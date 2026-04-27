@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JeetMantra — Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; -webkit-font-smoothing: antialiased; min-height: 100vh; transition: background 300ms, color 300ms; }
+  button { font-family: inherit; }
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 9999px; }
+
+  /* ── CSS Design Tokens ── */
+  :root {
+    --accent:      #f97316;
+    --accent-dark: #ea6c0a;
+    --accent-glow: rgba(249,115,22,0.25);
+    --accent-soft: rgba(249,115,22,0.12);
+    --navy:        #0f172a;
+    --navy-mid:    #1e3a5f;
+
+    /* Light theme defaults */
+    --bg-page:     #f4f6f8;
+    --bg-surface:  #ffffff;
+    --bg-surface2: #f8fafc;
+    --sidebar-bg:  #0f172a;
+    --fg-1:        #0f172a;
+    --fg-2:        #64748b;
+    --fg-3:        #9ca3af;
+    --fg-on-accent:#ffffff;
+    --border:      #e5e7eb;
+    --border-soft: rgba(0,0,0,0.06);
+    --shadow-sm:   0 2px 10px rgba(0,0,0,0.07);
+    --shadow-md:   0 4px 20px rgba(0,0,0,0.11);
+  }
+  body.dark {
+    --bg-page:     #0d1117;
+    --bg-surface:  #161b22;
+    --bg-surface2: #1c2330;
+    --sidebar-bg:  #0d1117;
+    --fg-1:        #f0f6fc;
+    --fg-2:        #8b949e;
+    --fg-3:        #484f58;
+    --border:      rgba(255,255,255,0.08);
+    --border-soft: rgba(255,255,255,0.04);
+    --shadow-sm:   0 2px 10px rgba(0,0,0,0.4);
+    --shadow-md:   0 4px 20px rgba(0,0,0,0.5);
+  }
+
+  /* ── Settings panel ── */
+  .settings-panel {
+    position: fixed; bottom: 24px; right: 24px; z-index: 500;
+    background: var(--bg-surface); border: 1px solid var(--border);
+    border-radius: 18px; box-shadow: var(--shadow-md);
+    width: 280px; overflow: hidden;
+    animation: panel-in 200ms ease-out;
+  }
+  @keyframes panel-in { from { opacity:0; transform:translateY(12px) scale(0.97); } to { opacity:1; transform:none; } }
+  .settings-fab {
+    position: fixed; bottom: 24px; right: 24px; z-index: 400;
+    width: 48px; height: 48px; border-radius: 50%;
+    background: var(--accent); border: none; cursor: pointer;
+    box-shadow: 0 4px 16px var(--accent-glow);
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 200ms;
+  }
+  .settings-fab:hover { transform: scale(1.08) rotate(30deg); }
+
+  /* ── Role picker ── */
+  .role-card { background: var(--bg-surface); border-radius: 16px; border: 2px solid var(--border); padding: 24px 20px; cursor: pointer; transition: all 200ms; text-align: center; }
+  .role-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: var(--shadow-md); }
+  .role-card.selected { border-color: var(--accent); background: var(--accent-soft); }
+
+  /* ── Mobile ── */
+  @media (max-width: 768px) {
+    .sidebar-desktop { display: none !important; }
+    .hamburger { display: flex !important; }
+    .main-content { padding: 20px 16px 80px !important; }
+    .stats-grid { grid-template-columns: 1fr 1fr !important; }
+    .pay-grid, .ref-grid { grid-template-columns: 1fr 1fr !important; }
+    .two-col-layout { grid-template-columns: 1fr !important; }
+    .live-grid { grid-template-columns: 1fr !important; }
+    .form-grid { grid-template-columns: 1fr !important; }
+    .settings-panel { right: 12px; bottom: 70px; }
+    .settings-fab { right: 12px; bottom: 16px; }
+  }
+  @media (max-width: 480px) {
+    .stats-grid { grid-template-columns: 1fr !important; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" src="Sidebar.jsx"></script>
+<script type="text/babel" src="Screens.jsx"></script>
+<script type="text/babel" src="TeacherScreens.jsx"></script>
+<script type="text/babel" src="PartnerScreens.jsx"></script>
+
+<script type="text/babel">
+const { useState, useEffect, useCallback } = React;
+
+// ── Language strings ──────────────────────────────────────────────────
+const LANG = {
+  en: {
+    greeting: 'Good morning',
+    overview: 'Overview', courses: 'My Courses', attendance: 'Attendance',
+    wallet: 'Wallet', profile: 'Profile', classes: 'My Classes',
+    liveClass: 'Live Class', createCourse: 'Create Course',
+    payments: 'Payments', references: 'References',
+    bookings: 'Bookings', services: 'My Services', liveSession: 'Live Session',
+    switchRole: '← Switch Role', studentPortal: 'Student Portal',
+    teacherPortal: 'Teacher Portal', partnerPortal: 'Partner Portal',
+    settings: 'Customise', darkMode: 'Dark Mode', language: 'Language',
+    accentColor: 'Accent Color', chooseRole: 'Choose Your Portal',
+    chooseRoleSub: 'Select how you want to use JeetMantra today',
+    student: 'Student', teacher: 'Teacher', partner: 'Partner',
+    enterPortal: 'Enter Portal →',
+  },
+  hi: {
+    greeting: 'शुभ प्रभात',
+    overview: 'सारांश', courses: 'मेरे कोर्स', attendance: 'उपस्थिति',
+    wallet: 'वॉलेट', profile: 'प्रोफाइल', classes: 'मेरी कक्षाएं',
+    liveClass: 'लाइव क्लास', createCourse: 'कोर्स बनाएं',
+    payments: 'भुगतान', references: 'रेफरेंस',
+    bookings: 'बुकिंग', services: 'मेरी सेवाएं', liveSession: 'लाइव सेशन',
+    switchRole: '← रोल बदलें', studentPortal: 'छात्र पोर्टल',
+    teacherPortal: 'शिक्षक पोर्टल', partnerPortal: 'पार्टनर पोर्टल',
+    settings: 'अनुकूलन', darkMode: 'डार्क मोड', language: 'भाषा',
+    accentColor: 'रंग चुनें', chooseRole: 'अपना पोर्टल चुनें',
+    chooseRoleSub: 'आज आप JeetMantra को कैसे उपयोग करना चाहते हैं?',
+    student: 'छात्र', teacher: 'शिक्षक', partner: 'पार्टनर',
+    enterPortal: 'पोर्टल खोलें →',
+  },
+  hi_en: {
+    greeting: 'Good morning',
+    overview: 'Overview', courses: 'Mere Courses', attendance: 'Attendance',
+    wallet: 'Wallet', profile: 'Profile', classes: 'Meri Classes',
+    liveClass: 'Live Class', createCourse: 'Course Banao',
+    payments: 'Payments', references: 'References',
+    bookings: 'Bookings', services: 'Meri Services', liveSession: 'Live Session',
+    switchRole: '← Role Badlo', studentPortal: 'Student Portal',
+    teacherPortal: 'Teacher Portal', partnerPortal: 'Partner Portal',
+    settings: 'Customise', darkMode: 'Dark Mode', language: 'Bhasha',
+    accentColor: 'Rang Chunein', chooseRole: 'Apna Portal Chunein',
+    chooseRoleSub: 'Aaj aap JeetMantra kaise use karna chahte hain?',
+    student: 'Student', teacher: 'Teacher', partner: 'Partner',
+    enterPortal: 'Portal Kholo →',
+  },
+};
+
+// ── Accent colour presets ─────────────────────────────────────────────
+const ACCENTS = [
+  { name: 'Saffron',  color: '#f97316', dark: '#ea6c0a', glow: 'rgba(249,115,22,0.25)',  soft: 'rgba(249,115,22,0.12)' },
+  { name: 'Teal',     color: '#0d9488', dark: '#0f766e', glow: 'rgba(13,148,136,0.25)',  soft: 'rgba(13,148,136,0.12)' },
+  { name: 'Indigo',   color: '#6366f1', dark: '#4f46e5', glow: 'rgba(99,102,241,0.25)',  soft: 'rgba(99,102,241,0.12)' },
+  { name: 'Rose',     color: '#e11d48', dark: '#be123c', glow: 'rgba(225,29,72,0.25)',   soft: 'rgba(225,29,72,0.12)' },
+  { name: 'Amber',    color: '#d97706', dark: '#b45309', glow: 'rgba(217,119,6,0.25)',   soft: 'rgba(217,119,6,0.12)' },
+  { name: 'Emerald',  color: '#059669', dark: '#047857', glow: 'rgba(5,150,105,0.25)',   soft: 'rgba(5,150,105,0.12)' },
+];
+
+// ── Settings Panel ────────────────────────────────────────────────────
+function SettingsPanel({ open, setOpen, dark, setDark, lang, setLang, accentIdx, setAccentIdx }) {
+  const t = LANG[lang];
+  if (!open) return (
+    <button className="settings-fab" onClick={() => setOpen(true)} title={t.settings}>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round">
+        <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+    </button>
+  );
+
+  return (
+    <div className="settings-panel">
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 18px', borderBottom: '1px solid var(--border)', background: 'var(--accent)', borderRadius: '18px 18px 0 0' }}>
+        <div style={{ fontSize: 14, fontWeight: 800, color: 'white', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33"/></svg>
+          {t.settings}
+        </div>
+        <button onClick={() => setOpen(false)} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: 8, width: 28, height: 28, cursor: 'pointer', color: 'white', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+      </div>
+
+      <div style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 18, background: 'var(--bg-surface)' }}>
+        {/* Dark mode */}
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--fg-3)', marginBottom: 10 }}>{t.darkMode}</div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {[['☀️ Light', false], ['🌙 Dark', true]].map(([label, val]) => (
+              <button key={label} onClick={() => { setDark(val); document.body.classList.toggle('dark', val); }} style={{ flex: 1, padding: '10px 8px', borderRadius: 10, border: `2px solid ${dark === val ? 'var(--accent)' : 'var(--border)'}`, background: dark === val ? 'var(--accent-soft)' : 'var(--bg-surface2)', color: dark === val ? 'var(--accent)' : 'var(--fg-2)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 150ms' }}>{label}</button>
+            ))}
+          </div>
+        </div>
+
+        {/* Language */}
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--fg-3)', marginBottom: 10 }}>{t.language}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {[['en', '🇬🇧  English'], ['hi', '🇮🇳  हिंदी'], ['hi_en', '🔀  Hinglish']].map(([code, label]) => (
+              <button key={code} onClick={() => setLang(code)} style={{ padding: '9px 12px', borderRadius: 9, border: `2px solid ${lang === code ? 'var(--accent)' : 'var(--border)'}`, background: lang === code ? 'var(--accent-soft)' : 'var(--bg-surface2)', color: lang === code ? 'var(--accent)' : 'var(--fg-2)', fontSize: 13, fontWeight: lang === code ? 700 : 500, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'all 150ms' }}>{label}</button>
+            ))}
+          </div>
+        </div>
+
+        {/* Accent colour */}
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--fg-3)', marginBottom: 10 }}>{t.accentColor}</div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {ACCENTS.map((a, i) => (
+              <button key={a.name} title={a.name} onClick={() => {
+                setAccentIdx(i);
+                const root = document.documentElement;
+                root.style.setProperty('--accent', a.color);
+                root.style.setProperty('--accent-dark', a.dark);
+                root.style.setProperty('--accent-glow', a.glow);
+                root.style.setProperty('--accent-soft', a.soft);
+              }} style={{ width: 34, height: 34, borderRadius: '50%', background: a.color, border: `3px solid ${accentIdx === i ? 'var(--fg-1)' : 'transparent'}`, cursor: 'pointer', transition: 'all 150ms', boxShadow: accentIdx === i ? `0 0 0 2px var(--bg-surface), 0 0 0 4px ${a.color}` : 'none', outline: 'none' }} />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Role Picker Screen ────────────────────────────────────────────────
+function RolePicker({ onSelect, lang }) {
+  const t = LANG[lang];
+  const [hov, setHov] = useState(null);
+  const roles = [
+    { id: 'student', icon: '🎓', label: t.student, desc: 'Courses, attendance, wallet & earnings', color: '#f97316' },
+    { id: 'teacher', icon: '📋', label: t.teacher, desc: 'Classes, attendance, live & payments', color: '#0d9488' },
+    { id: 'partner', icon: '🤝', label: t.partner, desc: 'Bookings, sessions, services & revenue', color: '#6366f1' },
+  ];
+  return (
+    <div style={{ minHeight: '100vh', background: 'var(--bg-page)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+      <div style={{ maxWidth: 520, width: '100%' }}>
+        <div style={{ textAlign: 'center', marginBottom: 40 }}>
+          <img src="../../assets/logo.png" alt="JeetMantra" style={{ width: 72, height: 72, objectFit: 'contain', marginBottom: 16 }} />
+          <h1 style={{ fontSize: 28, fontWeight: 800, color: 'var(--fg-1)', letterSpacing: '-0.02em', marginBottom: 8 }}>{t.chooseRole}</h1>
+          <p style={{ fontSize: 14, color: 'var(--fg-2)', lineHeight: 1.6 }}>{t.chooseRoleSub}</p>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {roles.map(r => (
+            <div key={r.id} className={`role-card${hov === r.id ? ' selected' : ''}`}
+              onMouseEnter={() => setHov(r.id)} onMouseLeave={() => setHov(null)}
+              onClick={() => onSelect(r.id)}
+              style={{ display: 'flex', alignItems: 'center', gap: 18, textAlign: 'left', padding: '20px 22px', borderColor: hov === r.id ? r.color : 'var(--border)', background: hov === r.id ? r.color + '10' : 'var(--bg-surface)' }}>
+              <div style={{ width: 52, height: 52, borderRadius: 14, background: r.color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0 }}>{r.icon}</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--fg-1)', marginBottom: 3 }}>{r.label}</div>
+                <div style={{ fontSize: 13, color: 'var(--fg-2)' }}>{r.desc}</div>
+              </div>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={hov === r.id ? r.color : 'var(--fg-3)'} strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main App ──────────────────────────────────────────────────────────
+function App() {
+  const [role, setRole] = useState(null);
+  const [screen, setScreen] = useState('home');
+  const [dark, setDark] = useState(false);
+  const [lang, setLang] = useState('en');
+  const [accentIdx, setAccentIdx] = useState(0);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  const t = LANG[lang];
+
+  const studentScreens = {
+    home:       <HomeScreen setScreen={setScreen} />,
+    courses:    <CoursesScreen />,
+    attendance: <AttendanceScreen />,
+    wallet:     <WalletScreen />,
+    profile:    <ProfileScreen />,
+  };
+  const teacherScreens = {
+    home:       <TeacherHome setScreen={setScreen} />,
+    classes:    <TeacherClasses setScreen={setScreen} />,
+    attendance: <TeacherAttendance />,
+    live:       <TeacherLive />,
+    create:     <TeacherCreateCourse />,
+    payments:   <TeacherPayments />,
+    references: <TeacherReferences />,
+  };
+  const partnerScreens = {
+    home:       <PartnerHome setScreen={setScreen} />,
+    bookings:   <PartnerBookings setScreen={setScreen} />,
+    attendance: <PartnerAttendance />,
+    services:   <PartnerServices />,
+    live:       <PartnerLive />,
+    payments:   <PartnerPayments />,
+    references: <PartnerReferences />,
+  };
+
+  const handleRole = (r) => { setRole(r); setScreen('home'); };
+  const handleRoleReset = () => { setRole(null); setScreen('home'); };
+
+  if (!role) return (
+    <>
+      <RolePicker onSelect={handleRole} lang={lang} />
+      <SettingsPanel open={settingsOpen} setOpen={setSettingsOpen} dark={dark} setDark={setDark} lang={lang} setLang={setLang} accentIdx={accentIdx} setAccentIdx={setAccentIdx} />
+    </>
+  );
+
+  const screenMap = role === 'student' ? studentScreens : role === 'teacher' ? teacherScreens : partnerScreens;
+  const SidebarComp = role === 'student' ? Sidebar : role === 'teacher' ? TeacherSidebar : PartnerSidebar;
+
+  return (
+    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-page)', color: 'var(--fg-1)' }}>
+      <SidebarComp screen={screen} setScreen={setScreen} setRole={handleRoleReset} lang={t} />
+      <main className="main-content" style={{ flex: 1, padding: '36px 40px', overflowY: 'auto', minHeight: '100vh', background: 'var(--bg-page)' }}>
+        {screenMap[screen] || screenMap['home']}
+      </main>
+      <SettingsPanel open={settingsOpen} setOpen={setSettingsOpen} dark={dark} setDark={setDark} lang={lang} setLang={setLang} accentIdx={accentIdx} setAccentIdx={setAccentIdx} />
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+</body>
+</html>
