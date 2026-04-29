@@ -488,16 +488,23 @@
       </div>
 
       <div class="form-group">
-        <label class="form-label">API Key <span class="required">*</span></label>
-        <input type="password" class="form-input" id="api-key" placeholder="Paste your API key here">
-        <div class="form-help" id="api-help"></div>
+        <label class="form-label">API Key (Optional)</label>
+        <input type="password" class="form-input" id="api-key" placeholder="Paste your API key here (optional)">
+        <div class="form-help" id="api-help">Provide your API key for personalized AI features (optional)</div>
         <div class="form-error" id="error-api-key"></div>
       </div>
 
       <div class="form-group">
-        <label class="form-label">API Key will be encrypted and stored securely</label>
-        <div style="padding: 12px; background: #d1fae5; border-radius: 8px; border-left: 4px solid var(--success); color: var(--text);">
-          <strong style="color: var(--success);">✓ Secure:</strong> Your API key is encrypted with AES-256 and never shared
+        <label class="form-label">Why provide an API key?</label>
+        <div style="padding: 12px; background: #dbeafe; border-radius: 8px; border-left: 4px solid #3b82f6; color: var(--text);">
+          <strong style="color: #1e40af;">💡 Benefits:</strong>
+          <ul style="margin: 8px 0 0 20px; font-size: 13px; color: var(--text-light);">
+            <li>Personalized course recommendations</li>
+            <li>AI-powered suggestions</li>
+            <li>Smart content generation</li>
+            <li>Your API key is encrypted with AES-256</li>
+          </ul>
+          <div style="margin-top: 8px; font-size: 12px;">✓ Optional: Use platform defaults if you skip this</div>
         </div>
       </div>
 
@@ -817,20 +824,21 @@ function validateStep(step) {
 
 function validateAISetup() {
   const provider = document.querySelector('input[name="ai-provider"]:checked');
-  const apiKey = document.getElementById('api-key').value;
+  const apiKey = document.getElementById('api-key').value.trim();
 
   if (!provider) {
     showError('Please select an AI provider');
     return false;
   }
 
-  if (!apiKey || apiKey.length < 10) {
-    showError('Please enter a valid API key', 'error-api-key');
+  // API key is now optional
+  if (apiKey && apiKey.length < 10) {
+    showError('API key must be at least 10 characters', 'error-api-key');
     return false;
   }
 
   signupData.aiProvider = provider.value;
-  signupData.apiKey = apiKey;
+  signupData.apiKey = apiKey || null; // Can be null if user doesn't provide it
   updateAIHelp();
   return true;
 }

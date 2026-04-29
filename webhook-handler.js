@@ -1,38 +1,50 @@
 /**
- * JeetMantra - Webhook Handler Library
- * Handles all form submissions and API calls to n8n webhooks
- * Integrates with MCP for validation, suggestions, and content generation
+ * JeetMantra - Unified Webhook Handler Library
+ * Single webhook endpoint routes all requests intelligently
+ * Supports user ops, course ops, dashboard, admin, MCP calls
  */
 
 class WebhookHandler {
-  constructor(n8nUrl = 'http://localhost:5678/webhook') {
-    this.n8nUrl = n8nUrl;
+  constructor(webhookUrl) {
+    // Auto-detect if not provided
+    if (!webhookUrl) {
+      // Use cloud URL if on HTTPS, else localhost
+      if (window.location.protocol === 'https:') {
+        webhookUrl = 'https://work.mantravat.cloud/webhook/jeetmantra';
+      } else {
+        webhookUrl = 'http://localhost:5678/webhook/jeetmantra';
+      }
+    }
+    this.webhookUrl = webhookUrl;
     this.isLoading = false;
     this.lastResponse = null;
   }
 
   /**
-   * Make API call to n8n webhook
-   * @param {string} endpoint - Webhook endpoint (e.g., 'user-signup')
-   * @param {object} data - Form data to submit
-   * @param {function} onSuccess - Callback on success
-   * @param {function} onError - Callback on error
+   * Send request to unified webhook
+   * @param {string} action - Action name (user-signup, course-create, mcp-validate, etc)
+   * @param {object} data - Action-specific data
+   * @param {function} onSuccess - Success callback
+   * @param {function} onError - Error callback
    */
-  async sendWebhook(endpoint, data, onSuccess, onError) {
+  async sendWebhook(action, data, onSuccess, onError) {
     this.isLoading = true;
     try {
-      console.log(`[Webhook] Sending to ${endpoint}:`, data);
+      console.log(`[Webhook] Action: ${action}`, data);
 
-      const response = await fetch(`${this.n8nUrl}/${endpoint}`, {
+      const payload = {
+        action,
+        data,
+        timestamp: new Date().toISOString(),
+        source: 'frontend'
+      };
+
+      const response = await fetch(this.webhookUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...data,
-          timestamp: new Date().toISOString(),
-          source: 'frontend'
-        })
+        body: JSON.stringify(payload)
       });
 
       if (!response.ok) {
@@ -42,7 +54,7 @@ class WebhookHandler {
       const result = await response.json();
       this.lastResponse = result;
 
-      console.log(`[Webhook] Response from ${endpoint}:`, result);
+      console.log(`[Webhook] Response for action "${action}":`, result);
 
       if (result.success || result.status === 'success') {
         if (onSuccess) onSuccess(result);
@@ -63,17 +75,11 @@ class WebhookHandler {
   // ==================== USER & AUTH WEBHOOKS ====================
 
   /**
-   * User Registration
+   * User Registration (Complete Signup)
    * Validates email, creates account, sends verification email
    */
   async registerUser(userData) {
-    return this.sendWebhook('user-signup', {
-      name: userData.name,
-      email: userData.email,
-      phone: userData.phone,
-      password: userData.password,
-      role: userData.role || 'Student'
-    },
+    return this.sendWebhook('user-signup', userData,
     (result) => {
       showToast(`Welcome! Verification email sent to ${userData.email}`, 'success');
       setTimeout(() => window.location.href = '/website.html?login=1', 2000);
@@ -90,13 +96,12 @@ class WebhookHandler {
   async loginUser(email, password) {
     return this.sendWebhook('user-login', {
       email,
-      password,
-      loginMethod: 'email-password'
+      password
     },
     (result) => {
-      localStorage.setItem('authToken', result.token);
-      localStorage.setItem('user', JSON.stringify(result.user));
-      showToast(`Welcome back, ${result.user.name}!`, 'success');
+      localStorage.setItem('authToken', result.data.token);
+      localStorage.setItem('user', JSON.stringify(result.data.user));
+      showToast(`Welcome back, ${result.data.user.name}!`, 'success');
 
       // Redirect based on role
       const dashboards = {
@@ -105,7 +110,7 @@ class WebhookHandler {
         'Partner': '/dashboard.html?role=partner',
         'Admin': '/admin.html'
       };
-      setTimeout(() => window.location.href = dashboards[result.user.role] || '/dashboard.html', 1500);
+      setTimeout(() => window.location.href = dashboards[result.data.user.role] || '/dashboard.html', 1500);
     },
     (error) => {
       showToast(`Login failed: ${error}`, 'error');
@@ -442,13 +447,20 @@ class WebhookHandler {
   }
 
   /**
-   * Validate Form Data
-   * MCP validates all form inputs before submission
+   * Validate Form Data via MCP/Claude
+   * AI validates all form inputs for quality and correctness
    */
   async validateFormData(formType, formData) {
     return this.sendWebhook('mcp-validate', {
       formType, // 'course-creation', 'user-signup', etc.
       formData
+    },
+    (result) => {
+      if (result.data.valid) {
+        showToast('✓ Validation passed', 'success');
+      } else {
+        result.data.errors?.forEach(err => showToast(`✗ ${err}`, 'error'));
+      }
     });
   }
 
@@ -490,7 +502,8 @@ class WebhookHandler {
    */
   async testConnection() {
     try {
-      const response = await fetch(`${this.n8nUrl.replace('/webhook', '')}/health`, {
+      const baseUrl = this.webhookUrl.replace('/webhook/jeetmantra', '');
+      const response = await fetch(`${baseUrl}/health`, {
         method: 'GET'
       });
       return response.ok;
