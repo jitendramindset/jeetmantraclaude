@@ -597,7 +597,7 @@ For each operation, create a sub-flow:
 
 ### Test 1: User Signup (curl)
 ```bash
-curl -X POST http://localhost:5678/webhook/jeetmantra \
+curl -X POST https://work.mantravat.cloud/webhook/jeetmantra \
   -H "Content-Type: application/json" \
   -d '{
     "action": "user-signup",
@@ -618,7 +618,7 @@ curl -X POST http://localhost:5678/webhook/jeetmantra \
 
 ### Test 2: MCP Validate (curl)
 ```bash
-curl -X POST http://localhost:5678/webhook/jeetmantra \
+curl -X POST https://work.mantravat.cloud/webhook/jeetmantra \
   -H "Content-Type: application/json" \
   -d '{
     "action": "mcp-validate",
@@ -636,7 +636,7 @@ curl -X POST http://localhost:5678/webhook/jeetmantra \
 
 ### Test 3: Admin Get Users (curl)
 ```bash
-curl -X POST http://localhost:5678/webhook/jeetmantra \
+curl -X POST https://work.mantravat.cloud/webhook/jeetmantra \
   -H "Content-Type: application/json" \
   -d '{
     "action": "admin-get-users",

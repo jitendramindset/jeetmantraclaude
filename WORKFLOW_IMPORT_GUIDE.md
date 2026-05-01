@@ -66,13 +66,13 @@ Response
 
 1. Click the **Activate** toggle at the top right
 2. You should see a green checkmark ✅ when active
-3. The webhook is now listening at: `http://localhost:5678/webhook/jeetmantra`
+3. The webhook is now listening at: `https://work.mantravat.cloud/webhook/jeetmantra`
 
 ### Step 6: Test the Workflow
 
 **Test User Signup:**
 ```bash
-curl -X POST http://localhost:5678/webhook/jeetmantra \
+curl -X POST https://work.mantravat.cloud/webhook/jeetmantra \
   -H "Content-Type: application/json" \
   -d '{
     "action": "user-signup",

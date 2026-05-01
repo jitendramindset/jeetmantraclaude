@@ -18,7 +18,7 @@
 
 - ✅ **webhook-handler.js** - Updated for unified webhook
   - Fixed bugs in line 48 and line 496 ✅
-  - Single endpoint: `http://localhost:5678/webhook/jeetmantra`
+  - Single endpoint: `https://work.mantravat.cloud/webhook/jeetmantra`
   - 36+ helper functions for all operations
   - Standardized request/response format
   - Global `webhooks` instance ready to use
@@ -183,7 +183,7 @@ curl http://localhost:5678/health
 curl http://localhost:3000/signup.html | grep "<title>"
 
 # 3. Test webhook directly
-curl -X POST http://localhost:5678/webhook/jeetmantra \
+curl -X POST https://work.mantravat.cloud/webhook/jeetmantra \
   -H "Content-Type: application/json" \
   -d '{"action":"user-signup","data":{"fullName":"Test","email":"test@test.com"}}'
 

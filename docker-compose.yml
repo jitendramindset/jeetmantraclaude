@@ -30,24 +30,24 @@ services:
       retries: 5
 
   # PostgreSQL Database (optional - for future scaling)
-  # postgres:
-  #   image: postgres:15-alpine
-  #   container_name: jeetmantra_db
-  #   environment:
-  #     POSTGRES_USER: jeetmantra_user
-  #     POSTGRES_PASSWORD: jeetmantra_secure_pwd_123
-  #     POSTGRES_DB: jeetmantra_db
-  #   ports:
-  #     - "5432:5432"
-  #   volumes:
-  #     - postgres_data:/var/lib/postgresql/data
-  #   networks:
-  #     - jeetmantra_network
-  #   restart: unless-stopped
+  postgres:
+    image: postgres:15-alpine
+    container_name: jeetmantra_db
+    environment:
+      POSTGRES_USER: jeetmantra_user
+      POSTGRES_PASSWORD: jeetmantra_secure_pwd_123
+      POSTGRES_DB: jeetmantra_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - jeetmantra_network
+    restart: unless-stopped
 
 volumes:
   n8n_data:
-  # postgres_data:
+  postgres_data:
 
 networks:
   jeetmantra_network:

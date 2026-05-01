@@ -80,7 +80,7 @@ Before `<script>` tag, add:
 Update the constructor default (line 8):
 ```javascript
 // OLD:
-constructor(webhookUrl = 'http://localhost:5678/webhook/jeetmantra') {
+constructor(webhookUrl = 'https://work.mantravat.cloud/webhook/jeetmantra') {
 
 // NEW (for cloud):
 constructor(webhookUrl = 'https://work.mantravat.cloud/webhook/jeetmantra') {
@@ -131,7 +131,7 @@ Update `webhook-test.html`:
 
 Find line:
 ```javascript
-id="webhookUrl" value="http://localhost:5678/webhook/jeetmantra"
+id="webhookUrl" value="https://work.mantravat.cloud/webhook/jeetmantra"
 ```
 
 Change to:

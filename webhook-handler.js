@@ -12,7 +12,7 @@ class WebhookHandler {
       if (window.location.protocol === 'https:') {
         webhookUrl = 'https://work.mantravat.cloud/webhook/jeetmantra';
       } else {
-        webhookUrl = 'http://localhost:5678/webhook/jeetmantra';
+        webhookUrl = 'https://work.mantravat.cloud/webhook/jeetmantra';
       }
     }
     this.webhookUrl = webhookUrl;

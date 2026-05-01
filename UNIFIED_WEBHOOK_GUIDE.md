@@ -1,6 +1,6 @@
 # 🔄 Unified Webhook - Quick Reference Guide
 
-**Single Endpoint:** `POST http://localhost:5678/webhook/jeetmantra`
+**Single Endpoint:** `POST https://work.mantravat.cloud/webhook/jeetmantra`
 
 All operations use this one endpoint. Smart routing handles the rest.
 
@@ -25,7 +25,7 @@ const data = {
   }
 };
 
-fetch('http://localhost:5678/webhook/jeetmantra', {
+fetch('https://work.mantravat.cloud/webhook/jeetmantra', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify(data)
@@ -196,7 +196,7 @@ const data = {
 
 ### Test Signup (No API Key)
 ```bash
-curl -X POST http://localhost:5678/webhook/jeetmantra \
+curl -X POST https://work.mantravat.cloud/webhook/jeetmantra \
   -H "Content-Type: application/json" \
   -d '{
     "action": "user-signup",
@@ -218,7 +218,7 @@ curl -X POST http://localhost:5678/webhook/jeetmantra \
 
 ### Test MCP Validation
 ```bash
-curl -X POST http://localhost:5678/webhook/jeetmantra \
+curl -X POST https://work.mantravat.cloud/webhook/jeetmantra \
   -H "Content-Type: application/json" \
   -d '{
     "action": "mcp-validate",
@@ -235,7 +235,7 @@ curl -X POST http://localhost:5678/webhook/jeetmantra \
 
 ### Test Admin Get Users
 ```bash
-curl -X POST http://localhost:5678/webhook/jeetmantra \
+curl -X POST https://work.mantravat.cloud/webhook/jeetmantra \
   -H "Content-Type: application/json" \
   -d '{
     "action": "admin-get-users",
@@ -268,7 +268,7 @@ document.getElementById('signup-form').addEventListener('submit', async (e) => {
   const formData = new FormData(e.target);
   const data = Object.fromEntries(formData);
   
-  const response = await fetch('http://localhost:5678/webhook/jeetmantra', {
+  const response = await fetch('https://work.mantravat.cloud/webhook/jeetmantra', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({

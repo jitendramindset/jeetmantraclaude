@@ -34,7 +34,7 @@ docker-compose up -d n8n
 **Fix:**
 ```bash
 # Verify webhook exists
-curl -X POST http://localhost:5678/webhook/jeetmantra \
+curl -X POST https://work.mantravat.cloud/webhook/jeetmantra \
   -H "Content-Type: application/json" \
   -d '{"action":"test","data":{}}'
 
@@ -315,7 +315,7 @@ docker-compose logs -f n8n
 docker-compose logs -f n8n | grep webhook
 
 # Terminal 2: Send test request
-curl -X POST http://localhost:5678/webhook/jeetmantra \
+curl -X POST https://work.mantravat.cloud/webhook/jeetmantra \
   -H "Content-Type: application/json" \
   -d '{"action":"test","data":{}}'
 ```
@@ -378,7 +378,7 @@ sleep 30
 # Upload n8n-jeetmantra-unified-router.json
 
 # 6. Test again
-curl http://localhost:5678/webhook/jeetmantra
+curl https://work.mantravat.cloud/webhook/jeetmantra
 ```
 
 ---
