@@ -826,20 +826,18 @@ function validateAISetup() {
   const provider = document.querySelector('input[name="ai-provider"]:checked');
   const apiKey = document.getElementById('api-key').value.trim();
 
-  if (!provider) {
-    showError('Please select an AI provider');
-    return false;
-  }
-
-  // API key is now optional
+  // AI provider is optional - user can skip
+  // API key is also optional
   if (apiKey && apiKey.length < 10) {
     showError('API key must be at least 10 characters', 'error-api-key');
     return false;
   }
 
-  signupData.aiProvider = provider.value;
-  signupData.apiKey = apiKey || null; // Can be null if user doesn't provide it
-  updateAIHelp();
+  signupData.aiProvider = provider ? provider.value : 'none';
+  signupData.apiKey = apiKey || null;
+  if (provider) {
+    updateAIHelp();
+  }
   return true;
 }
 

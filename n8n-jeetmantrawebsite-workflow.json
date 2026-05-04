@@ -2,16 +2,26 @@
   "name": "jeetmantrawebsite",
   "nodes": [
     {
-      "parameters": {
-        "path": "webhook/jeetmantra",
-        "responseMode": "responseNode"
-      },
-      "id": "webhook_node",
-      "name": "Webhook - Unified Router",
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 1,
-      "position": [250, 250]
+  "parameters": {
+    "values": {
+      "webhookUrl": "https://studious-yodel-g6v9jvxv5x62ww96-3000.app.github.dev/webhook/jeetmantra"
     },
+    "name": "Set Webhook URL",
+    "type": "n8n-nodes-base.set",
+    "typeVersion": 2,
+    "position": [150, 100],
+    "id": "set_webhook_url"
+  },
+  "parameters": {
+    "path": "webhook/jeetmantra",
+    "responseMode": "responseNode"
+  },
+  "id": "webhook_node",
+  "name": "Webhook - Unified Router",
+  "type": "n8n-nodes-base.webhook",
+  "typeVersion": 1,
+  "position": [250, 250]
+},
     {
       "parameters": {
         "jsCode": "const action = $json.action; const data = $json.data; if (!action || !data) { return [{ success: false, code: 'INVALID', error: 'Missing action or data' }]; } return [{ action, data, valid: true }];"
