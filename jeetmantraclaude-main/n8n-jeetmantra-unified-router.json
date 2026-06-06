@@ -1,0 +1,587 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "path": "webhook/jeetmantra",
+        "responseMode": "responseNode",
+        "responseData": "firstEntryData",
+        "options": {}
+      },
+      "id": "3e1e5e2f-8a9c-4b2d-9e1a-5c3b8f1d2a9e",
+      "name": "Webhook - Unified Router",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -300,
+        0
+      ],
+      "webhookId": "jeetmantra-webhook-id"
+    },
+    {
+      "parameters": {
+        "jsCode": "const action = $json.action;\nconst data = $json.data;\n\nif (!action || !data) {\n  return [{\n    success: false,\n    code: \"INVALID_REQUEST\",\n    error: \"Missing 'action' or 'data' field\",\n    details: { receivedAction: action }\n  }];\n}\n\nconsole.log(`[${new Date().toISOString()}] Action received: ${action}`);\n\nreturn [{\n  action: action,\n  data: data,\n  timestamp: $json.timestamp || new Date().toISOString(),\n  source: $json.source || 'unknown',\n  valid: true\n}];"
+      },
+      "id": "8b2f4c9e-1a5d-4e3f-b8c2-7f9a3d6e8c1b",
+      "name": "Validate Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -100,
+        0
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value": "={{ $json.action }}"
+      },
+      "id": "5d7b9f3c-2e4a-4b8c-9d1f-6a3e8b5c2f7e",
+      "name": "Extract Action",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [
+        100,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "cases": [
+          {
+            "condition": {
+              "type": "string",
+              "value": "user-signup",
+              "operation": "equals"
+            },
+            "output": 1
+          },
+          {
+            "condition": {
+              "type": "string",
+              "value": "user-login",
+              "operation": "equals"
+            },
+            "output": 2
+          },
+          {
+            "condition": {
+              "type": "string",
+              "value": "user-profile-get",
+              "operation": "equals"
+            },
+            "output": 3
+          },
+          {
+            "condition": {
+              "type": "string",
+              "value": "user-profile-update",
+              "operation": "equals"
+            },
+            "output": 4
+          },
+          {
+            "condition": {
+              "type": "string",
+              "value": "course-create",
+              "operation": "equals"
+            },
+            "output": 5
+          },
+          {
+            "condition": {
+              "type": "string",
+              "value": "course-list",
+              "operation": "equals"
+            },
+            "output": 6
+          },
+          {
+            "condition": {
+              "type": "string",
+              "value": "course-enroll",
+              "operation": "equals"
+            },
+            "output": 7
+          },
+          {
+            "condition": {
+              "type": "string",
+              "value": "mcp-validate",
+              "operation": "equals"
+            },
+            "output": 8
+          },
+          {
+            "condition": {
+              "type": "string",
+              "value": "mcp-recommend",
+              "operation": "equals"
+            },
+            "output": 9
+          },
+          {
+            "condition": {
+              "type": "string",
+              "value": "admin-get-users",
+              "operation": "equals"
+            },
+            "output": 10
+          },
+          {
+            "condition": {
+              "type": "string",
+              "value": "admin-block-user",
+              "operation": "equals"
+            },
+            "output": 11
+          }
+        ],
+        "fallbackOutput": 0
+      },
+      "id": "9c4f2d8e-5b1a-4c7f-8e2d-3a9f5c1b7d2e",
+      "name": "Route by Action",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        300,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "code": "return [{\n  success: false,\n  code: \"UNKNOWN_ACTION\",\n  error: `Unknown action: ${this.getInputData()[0].action}`,\n  timestamp: new Date().toISOString()\n}];"
+      },
+      "id": "2a6e8c4f-1b3d-4e9a-8f5c-7d2a9b6e1f3c",
+      "name": "Error - Unknown Action",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        -400
+      ]
+    },
+    {
+      "parameters": {
+        "code": "// User Signup Sub-flow\nconst { fullName, email, phone, password, userType, skills, aiProvider, apiKey } = this.getInputData()[0].data;\n\n// TODO: Implement actual signup logic\n// 1. Validate email via MCP\n// 2. Check if email exists in database\n// 3. Hash password\n// 4. Encrypt API key if provided\n// 5. Create user record\n// 6. Send verification email\n\nreturn [{\n  success: true,\n  code: \"SUCCESS\",\n  data: {\n    userId: `user_${Date.now()}`,\n    email: email,\n    message: \"Signup successful. Verification email sent.\"\n  },\n  message: \"User created successfully\"\n}];"
+      },
+      "id": "1d4f7a2c-8e5b-4a9f-2c3e-6b8f1d5a9c7e",
+      "name": "Flow - User Signup",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        -300
+      ]
+    },
+    {
+      "parameters": {
+        "code": "// User Login Sub-flow\nconst { email, password } = this.getInputData()[0].data;\n\n// TODO: Implement actual login logic\n// 1. Find user by email\n// 2. Verify password hash\n// 3. Generate JWT token\n// 4. Return token and user info\n\nreturn [{\n  success: true,\n  code: \"SUCCESS\",\n  data: {\n    token: `jwt_${Date.now()}`,\n    user: {\n      id: \"user_123\",\n      name: \"John Doe\",\n      email: email,\n      role: \"student\"\n    }\n  },\n  message: \"Login successful\"\n}];"
+      },
+      "id": "3e9b5f8c-2a4d-1e7c-9d3f-5b8a2c6e4f1a",
+      "name": "Flow - User Login",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        -200
+      ]
+    },
+    {
+      "parameters": {
+        "code": "// Get User Profile\nconst { userId } = this.getInputData()[0].data;\n\nreturn [{\n  success: true,\n  code: \"SUCCESS\",\n  data: {\n    userId: userId,\n    name: \"John Doe\",\n    email: \"john@example.com\",\n    role: \"student\",\n    skills: [\"Python\", \"Mathematics\"]\n  }\n}];"
+      },
+      "id": "4c7d2f9e-5b1a-4e8c-3f6d-9a2c7e1b5d8f",
+      "name": "Flow - Get Profile",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "code": "// Update User Profile\nconst { userId, updates } = this.getInputData()[0].data;\n\nreturn [{\n  success: true,\n  code: \"SUCCESS\",\n  data: {\n    userId: userId,\n    updated: updates,\n    message: \"Profile updated successfully\"\n  }\n}];"
+      },
+      "id": "5d8e3a1f-6c2b-4d9e-2a7f-8b4c1e3d6f9a",
+      "name": "Flow - Update Profile",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "code": "// Create Course\nconst { title, description, category, price, teacherId, duration, level } = this.getInputData()[0].data;\n\n// TODO: Implement actual course creation\n// 1. Validate course data via MCP\n// 2. Generate description if needed via MCP\n// 3. Create course record\n// 4. Return courseId\n\nreturn [{\n  success: true,\n  code: \"SUCCESS\",\n  data: {\n    courseId: `course_${Date.now()}`,\n    title: title,\n    message: \"Course created successfully\"\n  }\n}];"
+      },
+      "id": "6e9f4b2c-7d3a-4e5f-1c8d-9a6b3e2f5c7a",
+      "name": "Flow - Create Course",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "code": "// List Courses\nconst { filter, limit = 20, offset = 0 } = this.getInputData()[0].data;\n\nreturn [{\n  success: true,\n  code: \"SUCCESS\",\n  data: {\n    courses: [],\n    total: 0,\n    limit: limit,\n    offset: offset\n  }\n}];"
+      },
+      "id": "7f2a5c3d-8e4b-4f6a-2d9e-1b7c4a5f3e8d",
+      "name": "Flow - List Courses",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "code": "// Enroll in Course\nconst { studentId, courseId } = this.getInputData()[0].data;\n\nreturn [{\n  success: true,\n  code: \"SUCCESS\",\n  data: {\n    enrollmentId: `enroll_${Date.now()}`,\n    studentId: studentId,\n    courseId: courseId,\n    message: \"Enrollment successful\"\n  }\n}];"
+      },
+      "id": "8a3b6d4e-9f5c-4e7d-1f2a-5c8b3d6e9f4a",
+      "name": "Flow - Enroll Course",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "code": "// MCP Validate - Call Claude API\nconst { formType, formData } = this.getInputData()[0].data;\n\n// TODO: Implement actual MCP validation\n// 1. Get user's AI provider and API key from database\n// 2. Call appropriate AI API (OpenAI, Gemini, Claude, OpenRouter)\n// 3. Parse validation response\n// 4. Return validation result\n\nreturn [{\n  success: true,\n  code: \"SUCCESS\",\n  data: {\n    valid: true,\n    errors: [],\n    warnings: [],\n    formType: formType\n  }\n}];"
+      },
+      "id": "9b4c7e5f-1a6d-4b8c-2e3f-6d9a2c5f7b8e",
+      "name": "Flow - MCP Validate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "code": "// MCP Recommend - Get AI recommendations\nconst { userId, type } = this.getInputData()[0].data;\n\n// TODO: Implement actual MCP recommendations\n// 1. Get user profile and history\n// 2. Call AI to generate recommendations\n// 3. Return top 5 recommendations\n\nreturn [{\n  success: true,\n  code: \"SUCCESS\",\n  data: {\n    recommendations: [],\n    type: type,\n    userId: userId\n  }\n}];"
+      },
+      "id": "1c5d8f6a-2b7e-4a9c-3e5d-7a2f8c4b6e9a",
+      "name": "Flow - MCP Recommend",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "code": "// Admin Get Users\nconst { filter = 'all', limit = 50, offset = 0 } = this.getInputData()[0].data;\n\n// TODO: Implement actual database query\n// 1. Build query with filters\n// 2. Fetch from database\n// 3. Return paginated results\n\nreturn [{\n  success: true,\n  code: \"SUCCESS\",\n  data: {\n    users: [],\n    total: 0,\n    limit: limit,\n    offset: offset\n  }\n}];"
+      },
+      "id": "2d6e9a7b-3c8f-4b1d-5e2a-9f4c7d5b8e1a",
+      "name": "Flow - Admin Get Users",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "code": "// Admin Block User\nconst { userId, reason } = this.getInputData()[0].data;\n\n// TODO: Implement actual blocking\n// 1. Update user status to 'blocked'\n// 2. Revoke all active sessions\n// 3. Log the action\n\nreturn [{\n  success: true,\n  code: \"SUCCESS\",\n  data: {\n    userId: userId,\n    status: \"blocked\",\n    message: \"User blocked successfully\"\n  }\n}];"
+      },
+      "id": "3e7f1a8c-4d9b-4e2c-6f3d-1a5e8b2d7c9f",
+      "name": "Flow - Admin Block User",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        700
+      ]
+    },
+    {
+      "parameters": {
+        "responseData": "lastNode"
+      },
+      "id": "4f8a2b9d-5e6c-4f3a-7b1e-2c8d5a9f6b3e",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        700,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook - Unified Router": {
+      "main": [
+        [
+          {
+            "node": "Validate Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Request": {
+      "main": [
+        [
+          {
+            "node": "Extract Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Action": {
+      "main": [
+        [
+          {
+            "node": "Route by Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Action": {
+      "main": [
+        [
+          {
+            "node": "Error - Unknown Action",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Flow - User Signup",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Flow - User Login",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Flow - Get Profile",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Flow - Update Profile",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Flow - Create Course",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Flow - List Courses",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Flow - Enroll Course",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Flow - MCP Validate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Flow - MCP Recommend",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Flow - Admin Get Users",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Flow - Admin Block User",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error - Unknown Action": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Flow - User Signup": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Flow - User Login": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Flow - Get Profile": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Flow - Update Profile": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Flow - Create Course": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Flow - List Courses": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Flow - Enroll Course": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Flow - MCP Validate": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Flow - MCP Recommend": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Flow - Admin Get Users": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Flow - Admin Block User": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "nodes": [],
+  "connections": {},
+  "settings": {},
+  "name": "JeetMantra Unified Webhook Router",
+  "id": "jeetmantra-unified-router",
+  "tags": [
+    "webhook",
+    "routing",
+    "unified"
+  ]
+}

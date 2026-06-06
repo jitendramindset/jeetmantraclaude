@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f4f6f8; padding: 20px; }
+  .section-label { font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #9ca3af; margin-bottom: 10px; margin-top: 20px; }
+  .section-label:first-child { margin-top: 0; }
+  .row { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-start; }
+
+  /* ── Image card ── */
+  .img-card { width: 200px; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.13); background: white; cursor: pointer; transition: transform 250ms cubic-bezier(0.4,0,0.2,1), box-shadow 250ms; }
+  .img-card:hover { transform: translateY(-5px); box-shadow: 0 12px 36px rgba(0,0,0,0.18); }
+  .img-thumb { height: 110px; position: relative; overflow: hidden; }
+  .img-thumb-bg { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 42px; transition: transform 350ms; }
+  .img-card:hover .img-thumb-bg { transform: scale(1.08); }
+  .play-badge { position: absolute; top: 8px; right: 8px; background: rgba(239,68,68,0.92); color: white; border-radius: 9999px; padding: 3px 9px; font-size: 10px; font-weight: 800; display: flex; align-items: center; gap: 4px; }
+  .card-body { padding: 14px; }
+  .card-badge { display: inline-block; border-radius: 9999px; padding: 2px 9px; font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+  .card-title { font-size: 13px; font-weight: 700; color: #0f172a; margin: 7px 0 3px; line-height: 1.3; }
+  .card-meta { font-size: 11px; color: #64748b; }
+  .card-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; padding-top: 10px; border-top: 1px solid #f1f5f9; }
+  .card-price { font-size: 15px; font-weight: 800; color: #0f172a; }
+  .enroll-btn { background: #f97316; color: white; border: none; border-radius: 7px; padding: 6px 12px; font-size: 11px; font-weight: 700; cursor: pointer; font-family: inherit; }
+
+  /* ── Video card ── */
+  .video-card { width: 220px; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.12); background: white; }
+  .video-thumb { height: 120px; background: #0f172a; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: pointer; }
+  .video-gradient { position: absolute; inset: 0; background: linear-gradient(135deg,#1e3a5f,#0f172a); }
+  .video-pattern { position: absolute; inset: 0; opacity: 0.15; background-image: radial-gradient(circle at 2px 2px, white 1px, transparent 0); background-size: 20px 20px; }
+  .play-btn { position: relative; width: 42px; height: 42px; border-radius: 50%; background: rgba(249,115,22,0.9); display: flex; align-items: center; justify-content: center; transition: transform 200ms, background 200ms; box-shadow: 0 0 20px rgba(249,115,22,0.5); }
+  .video-thumb:hover .play-btn { transform: scale(1.12); background: #f97316; }
+  .duration-badge { position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.7); color: white; border-radius: 5px; padding: '2px 7px'; font-size: 11px; font-weight: 700; font-family: monospace; padding: 2px 7px; }
+  .live-dot { width: 7px; height: 7px; border-radius: 50%; background: #ef4444; display: inline-block; animation: pulse-dot 1.2s ease-in-out infinite; }
+  @keyframes pulse-dot { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.8); } }
+
+  /* ── Animated stat card ── */
+  .stat-card { width: 150px; background: white; border-radius: 14px; padding: 18px; box-shadow: 0 4px 16px rgba(0,0,0,0.09); text-align: center; }
+  @keyframes count-up { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .stat-val { font-size: 26px; font-weight: 800; line-height: 1; animation: count-up 0.6s ease-out both; }
+
+  /* ── Dark CTA card ── */
+  .cta-card { width: 240px; background: linear-gradient(135deg,#0f172a,#1e3a5f); border-radius: 16px; padding: 22px; color: white; }
+  @keyframes slide-in { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: translateX(0); } }
+  .cta-card > * { animation: slide-in 0.5s ease-out both; }
+  .cta-card > *:nth-child(1) { animation-delay: 0.1s; }
+  .cta-card > *:nth-child(2) { animation-delay: 0.2s; }
+  .cta-card > *:nth-child(3) { animation-delay: 0.3s; }
+  .cta-card > *:nth-child(4) { animation-delay: 0.4s; }
+
+  /* ── Shimmer skeleton ── */
+  @keyframes shimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
+  .skeleton { background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%); background-size: 800px 100%; animation: shimmer 1.5s infinite; border-radius: 6px; }
+
+  /* ── Flip card ── */
+  .flip-container { width: 190px; height: 220px; perspective: 1000px; cursor: pointer; }
+  .flip-card { width: 100%; height: 100%; transform-style: preserve-3d; transition: transform 0.6s cubic-bezier(0.4,0,0.2,1); position: relative; }
+  .flip-container:hover .flip-card { transform: rotateY(180deg); }
+  .flip-front, .flip-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
+  .flip-back { transform: rotateY(180deg); background: linear-gradient(135deg,#f97316,#ea6c0a); color: white; padding: 22px; align-items: center; justify-content: center; text-align: center; }
+
+  /* ── Progress card animation ── */
+  @keyframes grow-bar { from { width: 0; } to { width: var(--pct); } }
+  .prog-bar { height: 7px; background: #f1f5f9; border-radius: 9999px; overflow: hidden; }
+  .prog-fill { height: 100%; border-radius: 9999px; animation: grow-bar 1s ease-out both; animation-delay: 0.3s; }
+</style>
+</head>
+<body>
+
+<div class="section-label">Image Cards — hover for lift effect</div>
+<div class="row">
+  <div class="img-card">
+    <div class="img-thumb" style="background:linear-gradient(135deg,#fff7ed,#ffedd5)">
+      <div class="img-thumb-bg">📐</div>
+      <div style="position:absolute;top:8px;left:8px;background:#f97316;color:white;border-radius:9999px;padding:2px 9px;font-size:10px;font-weight:700;">JEE</div>
+    </div>
+    <div class="card-body">
+      <span class="card-badge" style="background:#fff7ed;color:#f97316;">Mathematics</span>
+      <div class="card-title">JEE Advanced — Integration</div>
+      <div class="card-meta">Mr. Sharma · 42 enrolled</div>
+      <div class="card-footer">
+        <span class="card-price">₹4,999</span>
+        <button class="enroll-btn">Enroll →</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="img-card">
+    <div class="img-thumb" style="background:linear-gradient(135deg,#f0fdfa,#ccfbf1)">
+      <div class="img-thumb-bg">🤖</div>
+      <div style="position:absolute;top:8px;left:8px;background:#0d9488;color:white;border-radius:9999px;padding:2px 9px;font-size:10px;font-weight:700;">AI</div>
+    </div>
+    <div class="card-body">
+      <span class="card-badge" style="background:#f0fdfa;color:#0d9488;">AI Skills</span>
+      <div class="card-title">Prompt Engineering Masterclass</div>
+      <div class="card-meta">Mr. Verma · 28 enrolled</div>
+      <div class="card-footer">
+        <span class="card-price">₹3,499</span>
+        <button class="enroll-btn" style="background:#0d9488;">Join →</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="img-card">
+    <div class="img-thumb" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7)">
+      <div class="img-thumb-bg">⚽</div>
+      <div style="position:absolute;top:8px;left:8px;background:#22c55e;color:white;border-radius:9999px;padding:2px 9px;font-size:10px;font-weight:700;">Sports</div>
+    </div>
+    <div class="card-body">
+      <span class="card-badge" style="background:#f0fdf4;color:#22c55e;">Cricket</span>
+      <div class="card-title">Cricket Coaching — Junior</div>
+      <div class="card-meta">SportZone · Daily 5PM</div>
+      <div class="card-footer">
+        <span class="card-price">₹2,499</span>
+        <button class="enroll-btn" style="background:#22c55e;">Book →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section-label">Video Cards — animated play button</div>
+<div class="row">
+  <div class="video-card">
+    <div class="video-thumb">
+      <div class="video-gradient"></div>
+      <div class="video-pattern"></div>
+      <div style="position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;">
+        <div class="play-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        </div>
+        <span style="color:rgba(255,255,255,0.7);font-size:10px;font-weight:600;">Integration — Part 3</span>
+      </div>
+      <div class="duration-badge">48:22</div>
+    </div>
+    <div class="card-body">
+      <span class="card-badge" style="background:#fff7ed;color:#f97316;">Recorded</span>
+      <div class="card-title">Calculus: Integration Methods</div>
+      <div class="card-meta">Mr. Sharma · JEE 2025</div>
+    </div>
+  </div>
+
+  <div class="video-card">
+    <div class="video-thumb" style="cursor:pointer;">
+      <div class="video-gradient" style="background:linear-gradient(135deg,#7c3aed,#4c1d95)"></div>
+      <div class="video-pattern"></div>
+      <div style="position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;">
+        <div class="play-btn" style="background:rgba(124,58,237,0.9);box-shadow:0 0 20px rgba(124,58,237,0.5);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        </div>
+        <span style="color:rgba(255,255,255,0.7);font-size:10px;font-weight:600;">AI Workshop Ep. 4</span>
+      </div>
+      <div style="position:absolute;top:8px;left:8px;background:#ef4444;color:white;border-radius:9999px;padding:2px 8px;font-size:10px;font-weight:800;display:flex;align-items:center;gap:4px;">
+        <span class="live-dot"></span> LIVE
+      </div>
+    </div>
+    <div class="card-body">
+      <span class="card-badge" style="background:#fdf4ff;color:#7c3aed;">Live Now</span>
+      <div class="card-title">AI Prompt Engineering — Ep.4</div>
+      <div class="card-meta">Mr. Verma · 12 watching</div>
+    </div>
+  </div>
+</div>
+
+<div class="section-label">Animated Stat Cards</div>
+<div class="row">
+  <div class="stat-card">
+    <div style="width:36px;height:36px;border-radius:9px;background:#fff7ed;display:flex;align-items:center;justify-content:center;margin:0 auto 10px;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2.5" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+    </div>
+    <div class="stat-val" style="color:#f97316;animation-delay:0.1s">1,240</div>
+    <div style="font-size:11px;color:#64748b;margin-top:5px;font-weight:500;">Active Students</div>
+    <div style="margin-top:10px;font-size:10px;font-weight:700;color:#22c55e;background:#f0fdf4;border-radius:9999px;padding:2px 8px;display:inline-block;">↑ 8% this month</div>
+  </div>
+  <div class="stat-card">
+    <div style="width:36px;height:36px;border-radius:9px;background:#f0fdfa;display:flex;align-items:center;justify-content:center;margin:0 auto 10px;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+    </div>
+    <div class="stat-val" style="color:#0d9488;animation-delay:0.2s">₹2.4L</div>
+    <div style="font-size:11px;color:#64748b;margin-top:5px;font-weight:500;">Student Earnings</div>
+    <div style="margin-top:10px;font-size:10px;font-weight:700;color:#22c55e;background:#f0fdf4;border-radius:9999px;padding:2px 8px;display:inline-block;">↑ 18% vs last month</div>
+  </div>
+  <div class="stat-card">
+    <div style="width:36px;height:36px;border-radius:9px;background:#fff7ed;display:flex;align-items:center;justify-content:center;margin:0 auto 10px;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2.5" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+    </div>
+    <div class="stat-val" style="color:#0f172a;animation-delay:0.3s">87%</div>
+    <div style="font-size:11px;color:#64748b;margin-top:5px;font-weight:500;">Avg Attendance</div>
+    <div style="margin-top:10px;">
+      <div class="prog-bar"><div class="prog-fill" style="--pct:87%;background:#f97316;"></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="section-label">Flip Card (hover to flip) · Dark CTA · Skeleton Loader</div>
+<div class="row" style="align-items:flex-start;">
+  <!-- Flip card -->
+  <div class="flip-container">
+    <div class="flip-card">
+      <div class="flip-front" style="background:white;box-shadow:0 4px 16px rgba(0,0,0,0.09);">
+        <div style="height:100px;background:linear-gradient(135deg,#fff7ed,#ffedd5);display:flex;align-items:center;justify-content:center;font-size:38px;">🏆</div>
+        <div style="padding:14px;">
+          <div style="font-size:13px;font-weight:800;color:#0f172a;margin-bottom:4px;">Top Earner Badge</div>
+          <div style="font-size:11px;color:#64748b;line-height:1.5;">Hover to see how to earn this badge</div>
+        </div>
+      </div>
+      <div class="flip-back">
+        <div style="font-size:28px;margin-bottom:12px;">🏆</div>
+        <div style="font-size:14px;font-weight:800;margin-bottom:8px;">How to Earn</div>
+        <div style="font-size:12px;opacity:0.85;line-height:1.6;">Refer 10+ friends who enroll in any course within 30 days.</div>
+        <button style="margin-top:16px;background:white;color:#f97316;border:none;border-radius:8px;padding:8px 18px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">Start Now →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dark CTA card -->
+  <div class="cta-card">
+    <div style="font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.4);margin-bottom:10px;">Limited Seats</div>
+    <div style="font-size:20px;font-weight:800;line-height:1.2;margin-bottom:10px;">JEE 2025 — Batch C</div>
+    <p style="font-size:12px;color:rgba(255,255,255,0.55);line-height:1.65;margin-bottom:18px;">Only 8 seats remaining. Mon · Wed · Fri · 7:00 AM</p>
+    <button style="width:100%;background:#f97316;color:white;border:none;border-radius:9px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 0 16px rgba(249,115,22,0.4);">Book Seat Now →</button>
+  </div>
+
+  <!-- Skeleton loader -->
+  <div style="width:190px;background:white;border-radius:16px;padding:0;box-shadow:0 4px 14px rgba(0,0,0,0.09);overflow:hidden;">
+    <div class="skeleton" style="height:100px;border-radius:0;"></div>
+    <div style="padding:14px;display:flex;flex-direction:column;gap:8px;">
+      <div class="skeleton" style="height:12px;width:60%;"></div>
+      <div class="skeleton" style="height:14px;width:90%;"></div>
+      <div class="skeleton" style="height:11px;width:70%;"></div>
+      <div style="display:flex;justify-content:space-between;margin-top:4px;">
+        <div class="skeleton" style="height:18px;width:40%;"></div>
+        <div class="skeleton" style="height:28px;width:32%;border-radius:7px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JeetMantra Advanced Auth & Live Classes Testing</title>
+  <script src="https://apis.google.com/js/platform.js" async defer></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      color: white;
+      margin-bottom: 40px;
+    }
+
+    .header h1 {
+      font-size: 2.5em;
+      margin-bottom: 10px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 30px;
+      margin-bottom: 40px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      transition: transform 0.3s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+    }
+
+    .card h2 {
+      color: #667eea;
+      margin-bottom: 20px;
+      font-size: 1.5em;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      color: #333;
+      font-weight: 500;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 1em;
+      font-family: inherit;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 1em;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.3);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    .secondary-btn {
+      background: #f5f5f5;
+      color: #667eea;
+      border: 2px solid #667eea;
+      margin-top: 10px;
+    }
+
+    .secondary-btn:hover {
+      background: #667eea;
+      color: white;
+    }
+
+    .divider {
+      text-align: center;
+      margin: 20px 0;
+      position: relative;
+    }
+
+    .divider::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: #ddd;
+    }
+
+    .divider span {
+      background: white;
+      padding: 0 10px;
+      position: relative;
+      color: #999;
+    }
+
+    .result {
+      background: #f9f9f9;
+      border-left: 4px solid #667eea;
+      padding: 15px;
+      margin-top: 20px;
+      border-radius: 6px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9em;
+      max-height: 300px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .error {
+      border-left-color: #e74c3c;
+      background: #ffe5e5;
+      color: #c0392b;
+    }
+
+    .success {
+      border-left-color: #27ae60;
+      background: #e5ffe5;
+      color: #196a3a;
+    }
+
+    .loading {
+      display: inline-block;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .section {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      margin-bottom: 30px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    }
+
+    .section h2 {
+      color: #667eea;
+      margin-bottom: 20px;
+      font-size: 1.8em;
+    }
+
+    .tab-nav {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #eee;
+    }
+
+    .tab-btn {
+      background: none;
+      color: #999;
+      border: none;
+      padding: 10px 20px;
+      cursor: pointer;
+      font-weight: 600;
+      border-bottom: 3px solid transparent;
+      transition: all 0.3s ease;
+      width: auto;
+    }
+
+    .tab-btn.active {
+      color: #667eea;
+      border-bottom-color: #667eea;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .google-signin {
+      justify-content: center;
+      display: flex;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 0.85em;
+      margin-top: 10px;
+    }
+
+    .status-badge.authenticated {
+      background: #e5ffe5;
+      color: #196a3a;
+    }
+
+    .status-badge.not-authenticated {
+      background: #ffe5e5;
+      color: #c0392b;
+    }
+
+    .live-class-list {
+      list-style: none;
+      margin-top: 20px;
+    }
+
+    .live-class-item {
+      background: #f9f9f9;
+      padding: 15px;
+      border-radius: 6px;
+      margin-bottom: 10px;
+      border-left: 4px solid #667eea;
+    }
+
+    .live-class-item h4 {
+      color: #333;
+      margin-bottom: 5px;
+    }
+
+    .live-class-item p {
+      color: #666;
+      font-size: 0.9em;
+      margin: 5px 0;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.8em;
+      font-weight: 600;
+      margin-right: 5px;
+    }
+
+    .badge.scheduled {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .badge.live {
+      background: #d1ecf1;
+      color: #0c5460;
+    }
+
+    .badge.completed {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+
+    @media (max-width: 600px) {
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+      
+      .grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .header h1 {
+        font-size: 1.8em;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🎓 JeetMantra Advanced Features</h1>
+      <p>Complete Authentication & Live Class Testing</p>
+    </div>
+
+    <!-- Main Grid for Quick Tests -->
+    <div class="grid">
+      <!-- Google OAuth -->
+      <div class="card">
+        <h2>🔐 Google OAuth Login</h2>
+        <div id="g_id_onload"
+             data-client_id="YOUR_GOOGLE_CLIENT_ID"
+             data-callback="onGoogleSuccess">
+        </div>
+        <div class="g_id_signin" data-type="standard"></div>
+        <div id="googleResult" class="result" style="display:none;"></div>
+      </div>
+
+      <!-- OTP Login -->
+      <div class="card">
+        <h2>📱 Phone OTP Login</h2>
+        <div class="form-group">
+          <label>Phone Number</label>
+          <input type="tel" id="otpPhone" placeholder="+91 98765 43210">
+        </div>
+        <button onclick="sendOTP()">Send OTP</button>
+        <div id="otpPhoneResult" class="result" style="display:none;"></div>
+
+        <div class="divider"><span>Verify OTP</span></div>
+
+        <div class="form-group">
+          <label>OTP Code</label>
+          <input type="text" id="otpCode" placeholder="123456" maxlength="6">
+        </div>
+        <div class="form-group">
+          <label>Full Name (Optional)</label>
+          <input type="text" id="otpName" placeholder="Your Name">
+        </div>
+        <button onclick="verifyOTP()">Verify & Login</button>
+        <div id="otpVerifyResult" class="result" style="display:none;"></div>
+      </div>
+
+      <!-- Current Session Status -->
+      <div class="card">
+        <h2>👤 Session Status</h2>
+        <button onclick="checkAuth()" class="secondary-btn">Check Auth Status</button>
+        <div id="authStatus" class="result" style="display:none;"></div>
+        <button onclick="logout()" class="secondary-btn" style="margin-top: 10px;">Logout</button>
+      </div>
+    </div>
+
+    <!-- Detailed Sections -->
+    <!-- Live Classes Management -->
+    <div class="section">
+      <h2>🎥 Live Classes Management</h2>
+      
+      <div class="tab-nav">
+        <button class="tab-btn active" onclick="switchTab('schedule')">Schedule Class</button>
+        <button class="tab-btn" onclick="switchTab('list')">View Classes</button>
+        <button class="tab-btn" onclick="switchTab('manage')">Manage Classes</button>
+      </div>
+
+      <!-- Schedule Class Tab -->
+      <div id="schedule" class="tab-content active">
+        <h3>Schedule New Live Class</h3>
+        <div class="form-group">
+          <label>Course ID</label>
+          <input type="text" id="classFormCourseId" placeholder="Enter course ID">
+        </div>
+        <div class="form-group">
+          <label>Class Title</label>
+          <input type="text" id="classFormTitle" placeholder="e.g., Session 1 - Introduction">
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <textarea id="classFormDescription" placeholder="Class details..." rows="3"></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Scheduled Time</label>
+            <input type="datetime-local" id="classFormScheduledTime">
+          </div>
+          <div class="form-group">
+            <label>Duration (minutes)</label>
+            <input type="number" id="classFormDuration" value="60" min="30" max="240">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Meeting Link (Optional)</label>
+            <input type="url" id="classFormMeetingLink" placeholder="https://meet.google.com/...">
+          </div>
+          <div class="form-group">
+            <label>Capacity</label>
+            <input type="number" id="classFormCapacity" value="50" min="1" max="500">
+          </div>
+        </div>
+        <button onclick="scheduleLiveClass()">Schedule Class</button>
+        <div id="scheduleResult" class="result" style="display:none;"></div>
+      </div>
+
+      <!-- View Classes Tab -->
+      <div id="list" class="tab-content">
+        <h3>View Upcoming Classes</h3>
+        <button onclick="getUpcomingClasses()">Fetch Upcoming Classes</button>
+        <div id="upcomingClassesList" class="result" style="display:none;"></div>
+
+        <h3 style="margin-top: 30px;">Classes for Specific Course</h3>
+        <div class="form-group">
+          <label>Course ID</label>
+          <input type="text" id="viewClassesCourseId" placeholder="Enter course ID">
+        </div>
+        <button onclick="getClassesForCourse()">View Course Classes</button>
+        <div id="courseClassesList" class="result" style="display:none;"></div>
+      </div>
+
+      <!-- Manage Classes Tab -->
+      <div id="manage" class="tab-content">
+        <h3>Start/End Live Class</h3>
+        <div class="form-group">
+          <label>Class ID</label>
+          <input type="text" id="manageClassId" placeholder="Enter class ID">
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <button onclick="startLiveClass()">▶ Start Class</button>
+          <button onclick="endLiveClass()" class="secondary-btn">⏹ End Class</button>
+        </div>
+        <div id="manageResult" class="result" style="display:none;"></div>
+
+        <h3 style="margin-top: 30px;">Join Live Class</h3>
+        <div class="form-group">
+          <label>Class ID to Join</label>
+          <input type="text" id="joinClassId" placeholder="Enter class ID">
+        </div>
+        <button onclick="joinClass()">Join Class</button>
+        <div id="joinResult" class="result" style="display:none;"></div>
+
+        <h3 style="margin-top: 30px;">View Class Attendees</h3>
+        <div class="form-group">
+          <label>Class ID</label>
+          <input type="text" id="attendeesClassId" placeholder="Enter class ID">
+        </div>
+        <button onclick="getAttendees()">Get Attendees</button>
+        <div id="attendeesResult" class="result" style="display:none;"></div>
+      </div>
+    </div>
+
+    <!-- API Testing Console -->
+    <div class="section">
+      <h2>🧪 API Testing Console</h2>
+      <p style="color: #666; margin-bottom: 15px;">Open browser console (F12) to see detailed API responses and errors.</p>
+      <button onclick="testAllApis()" class="secondary-btn">Run All API Tests</button>
+      <div id="consoleOutput" class="result" style="display:none; margin-top: 20px;"></div>
+    </div>
+
+    <!-- Debug Info -->
+    <div class="section">
+      <h2>🔍 Debug Information</h2>
+      <button onclick="showDebugInfo()" class="secondary-btn">Show Debug Info</button>
+      <div id="debugInfo" class="result" style="display:none; margin-top: 20px;"></div>
+    </div>
+  </div>
+
+  <!-- Include API Client -->
+  <script src="api-client.js"></script>
+
+  <script>
+    // ============ AUTH FUNCTIONS ============
+
+    function showResult(elementId, message, isError = false) {
+      const element = document.getElementById(elementId);
+      element.textContent = message;
+      element.className = `result ${isError ? 'error' : 'success'}`;
+      element.style.display = 'block';
+      console.log(isError ? '❌' : '✅', message);
+    }
+
+    function showRawResult(elementId, data, isError = false) {
+      const element = document.getElementById(elementId);
+      element.textContent = JSON.stringify(data, null, 2);
+      element.className = `result ${isError ? 'error' : 'success'}`;
+      element.style.display = 'block';
+    }
+
+    // Google OAuth Callback
+    function onGoogleSuccess(response) {
+      console.log('Google Token:', response.credential);
+      const payload = JSON.parse(atob(response.credential.split('.')[1]));
+      console.log('Google User:', payload);
+
+      api.googleLogin({
+        email: payload.email,
+        name: payload.name,
+        id: payload.sub,
+        picture: payload.picture
+      })
+      .then(result => {
+        showRawResult('googleResult', result);
+        updateAuthStatus();
+      })
+      .catch(error => {
+        showRawResult('googleResult', error.message, true);
+      });
+    }
+
+    // OTP Functions
+    async function sendOTP() {
+      const phone = document.getElementById('otpPhone').value;
+      if (!phone) {
+        showResult('otpPhoneResult', 'Please enter a phone number', true);
+        return;
+      }
+
+      try {
+        const result = await api.sendOTP(phone);
+        showRawResult('otpPhoneResult', result);
+      } catch (error) {
+        showRawResult('otpPhoneResult', { error: error.message }, true);
+      }
+    }
+
+    async function verifyOTP() {
+      const phone = document.getElementById('otpPhone').value;
+      const otp = document.getElementById('otpCode').value;
+      const name = document.getElementById('otpName').value;
+
+      if (!phone || !otp) {
+        showResult('otpVerifyResult', 'Please enter phone and OTP', true);
+        return;
+      }
+
+      try {
+        const result = await api.verifyOTP(phone, otp, name);
+        showRawResult('otpVerifyResult', result);
+        updateAuthStatus();
+      } catch (error) {
+        showRawResult('otpVerifyResult', { error: error.message }, true);
+      }
+    }
+
+    // Auth Status
+    async function checkAuth() {
+      try {
+        const result = await api.verifyToken();
+        showRawResult('authStatus', result);
+      } catch (error) {
+        showRawResult('authStatus', { authenticated: false, error: error.message }, true);
+      }
+    }
+
+    function updateAuthStatus() {
+      checkAuth();
+    }
+
+    function logout() {
+      api.logout();
+      showResult('authStatus', 'Logged out successfully', false);
+    }
+
+    // ============ LIVE CLASSES FUNCTIONS ============
+
+    async function scheduleLiveClass() {
+      const data = {
+        courseId: document.getElementById('classFormCourseId').value,
+        title: document.getElementById('classFormTitle').value,
+        description: document.getElementById('classFormDescription').value,
+        scheduledTime: new Date(document.getElementById('classFormScheduledTime').value).toISOString(),
+        duration: parseInt(document.getElementById('classFormDuration').value),
+        meetingLink: document.getElementById('classFormMeetingLink').value || null,
+        capacity: parseInt(document.getElementById('classFormCapacity').value)
+      };
+
+      try {
+        const result = await api.scheduleLiveClass(data);
+        showRawResult('scheduleResult', result);
+      } catch (error) {
+        showRawResult('scheduleResult', { error: error.message }, true);
+      }
+    }
+
+    async function getUpcomingClasses() {
+      try {
+        const result = await api.getUpcomingLiveClasses();
+        showRawResult('upcomingClassesList', result);
+      } catch (error) {
+        showRawResult('upcomingClassesList', { error: error.message }, true);
+      }
+    }
+
+    async function getClassesForCourse() {
+      const courseId = document.getElementById('viewClassesCourseId').value;
+      if (!courseId) {
+        showResult('courseClassesList', 'Please enter a course ID', true);
+        return;
+      }
+
+      try {
+        const result = await api.getLiveClassesForCourse(courseId);
+        showRawResult('courseClassesList', result);
+      } catch (error) {
+        showRawResult('courseClassesList', { error: error.message }, true);
+      }
+    }
+
+    async function startLiveClass() {
+      const classId = document.getElementById('manageClassId').value;
+      if (!classId) {
+        showResult('manageResult', 'Please enter a class ID', true);
+        return;
+      }
+
+      try {
+        const result = await api.startLiveClass(classId);
+        showRawResult('manageResult', result);
+      } catch (error) {
+        showRawResult('manageResult', { error: error.message }, true);
+      }
+    }
+
+    async function endLiveClass() {
+      const classId = document.getElementById('manageClassId').value;
+      if (!classId) {
+        showResult('manageResult', 'Please enter a class ID', true);
+        return;
+      }
+
+      try {
+        const result = await api.endLiveClass(classId);
+        showRawResult('manageResult', result);
+      } catch (error) {
+        showRawResult('manageResult', { error: error.message }, true);
+      }
+    }
+
+    async function joinClass() {
+      const classId = document.getElementById('joinClassId').value;
+      if (!classId) {
+        showResult('joinResult', 'Please enter a class ID', true);
+        return;
+      }
+
+      try {
+        const result = await api.joinLiveClass(classId);
+        showRawResult('joinResult', result);
+      } catch (error) {
+        showRawResult('joinResult', { error: error.message }, true);
+      }
+    }
+
+    async function getAttendees() {
+      const classId = document.getElementById('attendeesClassId').value;
+      if (!classId) {
+        showResult('attendeesResult', 'Please enter a class ID', true);
+        return;
+      }
+
+      try {
+        const result = await api.getClassAttendees(classId);
+        showRawResult('attendeesResult', result);
+      } catch (error) {
+        showRawResult('attendeesResult', { error: error.message }, true);
+      }
+    }
+
+    // ============ TAB SWITCHING ============
+
+    function switchTab(tabName) {
+      // Hide all tabs
+      document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+      });
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+
+      // Show selected tab
+      document.getElementById(tabName).classList.add('active');
+      event.target.classList.add('active');
+    }
+
+    // ============ DEBUG FUNCTIONS ============
+
+    async function testAllApis() {
+      const output = [];
+      output.push('🧪 Running all API tests...\n');
+
+      // Test auth endpoints
+      output.push('1️⃣ Testing /health endpoint...');
+      try {
+        const health = await fetch('http://localhost:5000/health');
+        const healthData = await health.json();
+        output.push('✅ Health: ' + JSON.stringify(healthData) + '\n');
+      } catch (e) {
+        output.push('❌ Health check failed: ' + e.message + '\n');
+      }
+
+      // Check token
+      output.push('2️⃣ Checking token status...');
+      if (api.token) {
+        output.push('✅ Token found: ' + api.token.substring(0, 20) + '...\n');
+      } else {
+        output.push('⚠️ No token found. Login first.\n');
+      }
+
+      const result = document.getElementById('consoleOutput');
+      result.textContent = output.join('\n');
+      result.style.display = 'block';
+    }
+
+    function showDebugInfo() {
+      const debugData = {
+        token: api.token ? 'Present (' + api.token.substring(0, 20) + '...)' : 'Not found',
+        apiBaseUrl: 'http://localhost:5000/api',
+        capabilities: {
+          emailLogin: '✅',
+          googleOAuth: '✅ (when configured)',
+          phoneOTP: '✅',
+          liveClasses: '✅'
+        },
+        browserInfo: {
+          userAgent: navigator.userAgent,
+          language: navigator.language,
+          onLine: navigator.onLine
+        }
+      };
+
+      showRawResult('debugInfo', debugData);
+    }
+
+    // Initialize
+    window.addEventListener('load', () => {
+      console.log('🎓 JeetMantra Test Page Loaded');
+      console.log('API Base URL:', 'http://localhost:5000/api');
+      updateAuthStatus();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f4f6f8; padding: 24px; display: flex; flex-direction: column; gap: 24px; }
+  .section-label { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #64748b; margin-bottom: 12px; }
+
+  /* Desktop Nav */
+  .desktop-nav { background: white; border-radius: 14px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 64px; }
+  .nav-logo { display: flex; align-items: center; gap: 10px; }
+  .nav-logo-icon { width: 32px; height: 32px; background: #0f172a; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+  .nav-logo-text { font-size: 18px; font-weight: 800; color: #0f172a; }
+  .nav-logo-text span { color: #f97316; }
+  .nav-links { display: flex; align-items: center; gap: 4px; }
+  .nav-link { padding: 8px 14px; border-radius: 8px; font-size: 14px; font-weight: 600; color: #374151; cursor: pointer; transition: all 150ms; }
+  .nav-link:hover { background: #f4f6f8; }
+  .nav-link.active { background: #fff7ed; color: #f97316; }
+  .nav-actions { display: flex; gap: 10px; align-items: center; }
+  .btn-sm-outline { border: 1.5px solid #e5e7eb; border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 600; background: white; color: #0f172a; cursor: pointer; font-family: inherit; }
+  .btn-sm-primary { border: none; border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 700; background: #f97316; color: white; cursor: pointer; font-family: inherit; }
+
+  /* Mobile bottom tab bar */
+  .mobile-nav { background: white; border-radius: 14px; box-shadow: 0 -2px 16px rgba(0,0,0,0.10); padding: 10px 8px 6px; display: flex; justify-content: space-around; align-items: center; max-width: 375px; }
+  .tab-item { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 14px; border-radius: 10px; cursor: pointer; }
+  .tab-item.active { background: #fff7ed; }
+  .tab-icon { width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; }
+  .tab-label { font-size: 10px; font-weight: 600; color: #64748b; }
+  .tab-item.active .tab-label { color: #f97316; }
+</style>
+</head>
+<body>
+
+<div>
+  <div class="section-label">Desktop Navigation</div>
+  <nav class="desktop-nav">
+    <div class="nav-logo">
+      <div class="nav-logo-icon">
+        <svg width="18" height="18" viewBox="0 0 60 60" fill="none"><ellipse cx="30" cy="26" rx="11" ry="14" fill="#f97316"/><ellipse cx="30" cy="24" rx="8" ry="11" fill="#fbbf24"/><rect x="26" y="36" width="8" height="14" rx="2" fill="#f97316"/></svg>
+      </div>
+      <div class="nav-logo-text">Jeet<span>Mantra</span></div>
+    </div>
+    <div class="nav-links">
+      <div class="nav-link active">Home</div>
+      <div class="nav-link">Courses</div>
+      <div class="nav-link">Skills</div>
+      <div class="nav-link">Earn</div>
+      <div class="nav-link">About</div>
+    </div>
+    <div class="nav-actions">
+      <button class="btn-sm-outline">Login</button>
+      <button class="btn-sm-primary">Book Demo</button>
+    </div>
+  </nav>
+</div>
+
+<div>
+  <div class="section-label">Mobile Bottom Tab Bar</div>
+  <div class="mobile-nav">
+    <div class="tab-item active">
+      <div class="tab-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></div>
+      <div class="tab-label" style="color:#f97316">Home</div>
+    </div>
+    <div class="tab-item">
+      <div class="tab-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
+      <div class="tab-label">Courses</div>
+    </div>
+    <div class="tab-item">
+      <div class="tab-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+      <div class="tab-label">Earn</div>
+    </div>
+    <div class="tab-item">
+      <div class="tab-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+      <div class="tab-label">Schedule</div>
+    </div>
+    <div class="tab-item">
+      <div class="tab-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+      <div class="tab-label">Profile</div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
