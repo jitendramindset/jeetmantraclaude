@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JeetMantra — Course Marketplace</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0a;color:#eaeaea;font-family:'Segoe UI',sans-serif;min-height:100vh}
+nav{background:#1a1a2e;border-bottom:1px solid #2a2a4a;padding:14px 32px;display:flex;align-items:center;gap:20px;position:sticky;top:0;z-index:100}
+nav .logo{color:#e94560;font-size:20px;font-weight:700;text-decoration:none;white-space:nowrap}
+.nav-search{display:flex;align-items:center;background:#0f3460;border-radius:8px;padding:10px 16px;gap:8px;flex:1;max-width:480px}
+.nav-search input{background:none;border:none;color:#eaeaea;font-size:14px;outline:none;width:100%}
+.nav-links{display:flex;align-items:center;gap:12px;margin-left:auto}
+.nav-links a{color:#aaa;text-decoration:none;font-size:14px;transition:color .2s}
+.nav-links a:hover{color:#e94560}
+.btn{padding:9px 18px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all .2s;text-decoration:none;display:inline-block}
+.btn-primary{background:#e94560;color:#fff}
+.btn-primary:hover{background:#c73550}
+.btn-outline{background:transparent;border:1px solid #e94560;color:#e94560}
+.btn-outline:hover{background:#e94560;color:#fff}
+.btn-sm{padding:6px 14px;font-size:12px}
+/* HERO */
+.hero{background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);padding:48px 32px;text-align:center}
+.hero h1{font-size:36px;font-weight:700;margin-bottom:12px}
+.hero h1 span{color:#e94560}
+.hero p{color:#aaa;font-size:16px;margin-bottom:24px}
+/* FILTERS */
+.filter-bar{padding:20px 32px;border-bottom:1px solid #1a1a2e;display:flex;align-items:center;gap:12px;overflow-x:auto}
+.cat-pill{padding:7px 16px;border-radius:20px;background:#16213e;border:1px solid #2a2a4a;color:#aaa;cursor:pointer;font-size:13px;white-space:nowrap;transition:all .2s}
+.cat-pill:hover,.cat-pill.active{background:#e94560;border-color:#e94560;color:#fff}
+.filter-right{margin-left:auto;display:flex;gap:10px;align-items:center;white-space:nowrap}
+select.filter-select{background:#16213e;border:1px solid #2a2a4a;color:#eaeaea;border-radius:8px;padding:7px 12px;font-size:13px;outline:none}
+/* MAIN LAYOUT */
+.main-layout{display:grid;grid-template-columns:1fr;max-width:1400px;margin:0 auto;padding:28px 32px;gap:24px}
+.section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.section-head h2{font-size:18px;font-weight:600}
+.courses-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px}
+/* COURSE CARD */
+.course-card{background:#16213e;border-radius:14px;border:1px solid #2a2a4a;overflow:hidden;transition:transform .2s,border-color .2s;cursor:pointer}
+.course-card:hover{transform:translateY(-4px);border-color:#e94560}
+.course-thumb{height:150px;background:linear-gradient(135deg,#0f3460,#1a1a2e);display:flex;align-items:center;justify-content:center;font-size:48px;position:relative}
+.course-category{position:absolute;top:10px;left:10px;background:#e94560;color:#fff;font-size:10px;padding:3px 10px;border-radius:20px;font-weight:600;text-transform:uppercase}
+.course-level{position:absolute;top:10px;right:10px;background:rgba(0,0,0,.6);color:#eaeaea;font-size:10px;padding:3px 10px;border-radius:20px}
+.course-body{padding:16px}
+.course-title{font-size:15px;font-weight:600;margin-bottom:6px;line-height:1.3}
+.course-instructor{font-size:12px;color:#888;margin-bottom:10px}
+.course-meta{display:flex;justify-content:space-between;align-items:center}
+.course-price{font-size:18px;font-weight:700;color:#00d4aa}
+.course-rating{font-size:12px;color:#ffd54f}
+.buy-btn{width:100%;margin-top:12px;padding:10px;border:none;border-radius:8px;background:#e94560;color:#fff;font-size:13px;font-weight:600;cursor:pointer;transition:background .2s}
+.buy-btn:hover{background:#c73550}
+.buy-btn.owned{background:#102a20;color:#00d4aa;cursor:default}
+/* SELLER SECTION */
+.seller-banner{background:linear-gradient(135deg,#1a1a2e,#0f3460);border:1px solid #2a4a8a;border-radius:14px;padding:28px;display:flex;align-items:center;gap:24px;margin-bottom:28px}
+.seller-banner .icon{font-size:48px}
+.seller-banner h3{font-size:20px;font-weight:700;margin-bottom:6px}
+.seller-banner p{color:#aaa;font-size:14px;margin-bottom:14px}
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:200;align-items:center;justify-content:center}
+.modal-overlay.show{display:flex}
+.modal{background:#1a1a2e;border-radius:16px;padding:28px;max-width:500px;width:90%;border:1px solid #2a2a4a;max-height:90vh;overflow-y:auto}
+.modal h3{font-size:18px;font-weight:700;margin-bottom:16px}
+.modal .close{float:right;cursor:pointer;color:#888;font-size:20px;line-height:1}
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-size:12px;color:#888;margin-bottom:5px}
+.form-group input,.form-group select{width:100%;background:#0f3460;border:1px solid #2a4a8a;border-radius:8px;padding:10px 12px;color:#eaeaea;font-size:14px;outline:none}
+.msg{padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:12px;display:none}
+.msg.error{background:#2a1020;color:#e94560;border:1px solid #e94560}
+.msg.success{background:#102a20;color:#00d4aa;border:1px solid #00d4aa}
+.empty-state{text-align:center;padding:60px 20px;color:#555}
+.empty-state .icon{font-size:48px;margin-bottom:12px}
+.loading{text-align:center;padding:40px;color:#888}
+@media(max-width:768px){
+  nav{padding:12px 16px;flex-wrap:wrap;gap:10px}
+  .nav-search{max-width:100%;order:3;width:100%}
+  .hero{padding:32px 16px}
+  .hero h1{font-size:24px}
+  .main-layout{padding:16px}
+  .filter-bar{padding:12px 16px}
+  .seller-banner{flex-direction:column;text-align:center}
+}
+</style>
+</head>
+<body>
+<nav>
+  <a href="/login.html" class="logo">🎓 JeetMantra</a>
+  <div class="nav-search">
+    <span>🔍</span>
+    <input type="text" placeholder="Search courses, topics, instructors..." id="navSearch" oninput="debounceSearch(this.value)">
+  </div>
+  <div class="nav-links">
+    <a href="/dashboard.html">Dashboard</a>
+    <span id="authLink"><a href="/login.html" class="btn btn-primary btn-sm">Login</a></span>
+  </div>
+</nav>
+
+<div class="hero">
+  <h1>Find Your Next <span>Course</span></h1>
+  <p>Browse thousands of courses from teachers, coaching centers, schools and partners.</p>
+</div>
+
+<div class="filter-bar" id="filterBar">
+  <div class="cat-pill active" onclick="filterCategory('all',this)">All</div>
+  <div class="cat-pill" onclick="filterCategory('Mathematics',this)">📐 Mathematics</div>
+  <div class="cat-pill" onclick="filterCategory('Science',this)">🔬 Science</div>
+  <div class="cat-pill" onclick="filterCategory('English',this)">📖 English</div>
+  <div class="cat-pill" onclick="filterCategory('Programming',this)">💻 Programming</div>
+  <div class="cat-pill" onclick="filterCategory('Commerce',this)">📊 Commerce</div>
+  <div class="cat-pill" onclick="filterCategory('Arts',this)">🎨 Arts</div>
+  <div class="cat-pill" onclick="filterCategory('Physics',this)">⚛️ Physics</div>
+  <div class="cat-pill" onclick="filterCategory('Chemistry',this)">🧪 Chemistry</div>
+  <div class="filter-right">
+    <select class="filter-select" onchange="filterLevel(this.value)">
+      <option value="">All Levels</option>
+      <option value="beginner">Beginner</option>
+      <option value="intermediate">Intermediate</option>
+      <option value="advanced">Advanced</option>
+    </select>
+    <select class="filter-select" onchange="sortListings(this.value)">
+      <option value="newest">Newest</option>
+      <option value="price-low">Price: Low to High</option>
+      <option value="price-high">Price: High to Low</option>
+    </select>
+  </div>
+</div>
+
+<div class="main-layout">
+
+  <!-- SELLER BANNER -->
+  <div class="seller-banner" id="sellerBanner" style="display:none">
+    <div class="icon">🏪</div>
+    <div>
+      <h3>Sell Your Courses Here</h3>
+      <p>Teachers, coaching centers, schools and partners can list their courses on the marketplace. Earn 85% of every sale.</p>
+      <button class="btn btn-primary" onclick="openListModal()">+ List a Course</button>
+    </div>
+  </div>
+
+  <!-- MY PURCHASES -->
+  <div id="myPurchasesSection" style="display:none">
+    <div class="section-head"><h2>🛍️ My Purchases</h2></div>
+    <div class="courses-grid" id="myPurchasesGrid"></div>
+  </div>
+
+  <!-- ALL LISTINGS -->
+  <div>
+    <div class="section-head">
+      <h2 id="resultsTitle">All Courses</h2>
+      <span id="resultsCount" style="color:#888;font-size:13px"></span>
+    </div>
+    <div id="loadingState" class="loading">⏳ Loading courses...</div>
+    <div class="courses-grid" id="coursesGrid"></div>
+    <div id="emptyState" class="empty-state" style="display:none">
+      <div class="icon">🔍</div>
+      <div>No courses found</div>
+      <div style="font-size:13px;margin-top:8px">Try a different search or category</div>
+    </div>
+  </div>
+</div>
+
+<!-- PURCHASE CONFIRM MODAL -->
+<div class="modal-overlay" id="purchaseModal">
+  <div class="modal">
+    <span class="close" onclick="closeModal('purchaseModal')">✕</span>
+    <h3>Purchase Course</h3>
+    <div id="purchaseMsg" class="msg"></div>
+    <div id="purchaseDetails" style="margin-bottom:20px;padding:14px;background:#0f3460;border-radius:10px">
+      <div style="font-weight:600;font-size:15px" id="modalTitle">—</div>
+      <div style="color:#888;font-size:13px;margin-top:4px" id="modalCategory">—</div>
+      <div style="font-size:22px;color:#00d4aa;font-weight:700;margin-top:10px" id="modalPrice">—</div>
+    </div>
+    <p style="color:#aaa;font-size:13px;margin-bottom:20px">After purchase you will be automatically enrolled in this course.</p>
+    <button class="btn btn-primary" style="width:100%;padding:12px" onclick="confirmPurchase()" id="confirmBtn">Confirm Purchase</button>
+  </div>
+</div>
+
+<!-- LIST COURSE MODAL -->
+<div class="modal-overlay" id="listModal">
+  <div class="modal">
+    <span class="close" onclick="closeModal('listModal')">✕</span>
+    <h3>List Your Course</h3>
+    <div id="listMsg" class="msg"></div>
+    <div class="form-group">
+      <label>Select Course</label>
+      <select id="listCourseId"><option value="">Loading your courses...</option></select>
+    </div>
+    <div class="form-group">
+      <label>Listing Price (₹)</label>
+      <input type="number" id="listPrice" placeholder="e.g. 2999" min="0">
+    </div>
+    <div class="form-group">
+      <label>Commission Rate (%) — Platform takes this %</label>
+      <input type="number" id="listCommission" value="15" min="5" max="50">
+    </div>
+    <button class="btn btn-primary" style="width:100%;padding:12px;margin-top:6px" onclick="submitListing()" id="listBtn">Publish Listing</button>
+  </div>
+</div>
+
+<script>
+const API='http://localhost:5000/api';
+let allListings=[],filteredListings=[],currentCategory='all',currentLevel='',currentSort='newest';
+let selectedListingId=null,purchasedIds=new Set();
+const token=localStorage.getItem('jm_token');
+const user=()=>{try{return JSON.parse(localStorage.getItem('jm_user'));}catch{return null;}};
+
+const ICONS={Mathematics:'📐',Science:'🔬',English:'📖',Programming:'💻',Commerce:'📊',Arts:'🎨',Physics:'⚛️',Chemistry:'🧪'};
+const SELLER_ROLES=['teacher','partner','school','coaching','admin'];
+
+function fmt(n){return '₹'+Number(n||0).toLocaleString('en-IN');}
+function debounceSearch(q){clearTimeout(window._st);window._st=setTimeout(()=>applySearch(q),400);}
+function closeModal(id){document.getElementById(id).classList.remove('show');}
+function showMsg(id,txt,type){const m=document.getElementById(id);m.textContent=txt;m.className='msg '+type;m.style.display='block';}
+
+function getListingIcon(listing){
+  const cat=listing.courses?.category||'';
+  return ICONS[cat]||'📚';
+}
+
+function renderCard(listing,owned){
+  const c=listing.courses||{};
+  const seller=listing.jeetmantra_users||listing.seller||{};
+  return `<div class="course-card" onclick="${owned?'':(`openPurchase('${listing.id}')`)}">
+    <div class="course-thumb">
+      <span>${getListingIcon(listing)}</span>
+      <span class="course-category">${c.category||'Course'}</span>
+      <span class="course-level">${c.level||''}</span>
+    </div>
+    <div class="course-body">
+      <div class="course-title">${c.title||'Untitled Course'}</div>
+      <div class="course-instructor">by ${seller.full_name||'Instructor'}</div>
+      <div class="course-meta">
+        <div class="course-price">${fmt(listing.price)}</div>
+        <div class="course-rating">⭐ 4.5</div>
+      </div>
+      <button class="buy-btn ${owned?'owned':''}" onclick="event.stopPropagation();${owned?'':(`openPurchase('${listing.id}')`)}">
+        ${owned?'✅ Enrolled':'Buy Now'}
+      </button>
+    </div>
+  </div>`;
+}
+
+function renderGrid(listings){
+  const grid=document.getElementById('coursesGrid');
+  const empty=document.getElementById('emptyState');
+  document.getElementById('loadingState').style.display='none';
+  document.getElementById('resultsCount').textContent=listings.length+' course'+(listings.length!==1?'s':'');
+  if(!listings.length){grid.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+  grid.innerHTML=listings.map(l=>renderCard(l,purchasedIds.has(l.id))).join('');
+}
+
+function applyFilters(){
+  let list=[...allListings];
+  if(currentCategory!=='all') list=list.filter(l=>l.courses?.category===currentCategory);
+  if(currentLevel) list=list.filter(l=>l.courses?.level===currentLevel);
+  if(currentSort==='price-low') list.sort((a,b)=>a.price-b.price);
+  else if(currentSort==='price-high') list.sort((a,b)=>b.price-a.price);
+  filteredListings=list;
+  renderGrid(list);
+}
+
+function applySearch(q){
+  document.getElementById('resultsTitle').textContent=q?`Results for "${q}"`:'All Courses';
+  if(!q){applyFilters();return;}
+  fetch(API+'/search?q='+encodeURIComponent(q))
+    .then(r=>r.json())
+    .then(data=>{
+      const ids=new Set((data.results||[]).map(c=>c.id));
+      const matched=allListings.filter(l=>ids.has(l.course_id)||
+        (l.courses?.title||'').toLowerCase().includes(q.toLowerCase())||
+        (l.courses?.category||'').toLowerCase().includes(q.toLowerCase()));
+      renderGrid(matched);
+    }).catch(()=>renderGrid([]));
+}
+
+function filterCategory(cat,el){
+  document.querySelectorAll('.cat-pill').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  currentCategory=cat;
+  document.getElementById('navSearch').value='';
+  document.getElementById('resultsTitle').textContent=cat==='all'?'All Courses':cat+' Courses';
+  applyFilters();
+}
+
+function filterLevel(level){currentLevel=level;applyFilters();}
+function sortListings(sort){currentSort=sort;applyFilters();}
+
+function openPurchase(listingId){
+  if(!token){window.location.href='/login.html';return;}
+  const listing=allListings.find(l=>l.id===listingId);
+  if(!listing)return;
+  selectedListingId=listingId;
+  document.getElementById('modalTitle').textContent=listing.courses?.title||'Course';
+  document.getElementById('modalCategory').textContent=(listing.courses?.category||'')+(listing.courses?.level?' · '+listing.courses.level:'');
+  document.getElementById('modalPrice').textContent=fmt(listing.price);
+  document.getElementById('purchaseMsg').style.display='none';
+  document.getElementById('confirmBtn').disabled=false;
+  document.getElementById('confirmBtn').textContent='Confirm Purchase';
+  document.getElementById('purchaseModal').classList.add('show');
+}
+
+async function confirmPurchase(){
+  if(!selectedListingId)return;
+  const btn=document.getElementById('confirmBtn');
+  btn.disabled=true;btn.textContent='Processing...';
+  try{
+    const res=await fetch(API+'/marketplace/'+selectedListingId+'/purchase',{
+      method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'}
+    });
+    const data=await res.json();
+    if(!res.ok)throw new Error(data.error||'Purchase failed');
+    purchasedIds.add(selectedListingId);
+    showMsg('purchaseMsg','✅ Purchase successful! You are now enrolled.','success');
+    btn.textContent='✅ Enrolled!';
+    setTimeout(()=>{closeModal('purchaseModal');applyFilters();},2000);
+  }catch(e){
+    showMsg('purchaseMsg',e.message,'error');
+    btn.disabled=false;btn.textContent='Confirm Purchase';
+  }
+}
+
+async function openListModal(){
+  if(!token){window.location.href='/login.html';return;}
+  document.getElementById('listModal').classList.add('show');
+  document.getElementById('listMsg').style.display='none';
+  // Load teacher's courses
+  try{
+    const res=await fetch(API+'/courses',{headers:{'Authorization':'Bearer '+token}});
+    const data=await res.json();
+    const sel=document.getElementById('listCourseId');
+    const courses=data.courses||data.data||[];
+    if(courses.length){
+      sel.innerHTML=courses.map(c=>`<option value="${c.id}">${c.title}</option>`).join('');
+    } else {
+      sel.innerHTML='<option value="">No courses found — create one first</option>';
+    }
+  }catch{document.getElementById('listCourseId').innerHTML='<option value="">Failed to load courses</option>';}
+}
+
+async function submitListing(){
+  const courseId=document.getElementById('listCourseId').value;
+  const price=parseFloat(document.getElementById('listPrice').value);
+  const commission=parseFloat(document.getElementById('listCommission').value)||15;
+  if(!courseId)return showMsg('listMsg','Select a course','error');
+  if(!price||price<=0)return showMsg('listMsg','Enter a valid price','error');
+  const btn=document.getElementById('listBtn');
+  btn.disabled=true;btn.textContent='Publishing...';
+  try{
+    const res=await fetch(API+'/marketplace',{
+      method:'POST',
+      headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
+      body:JSON.stringify({courseId,price,commissionRate:commission})
+    });
+    const data=await res.json();
+    if(!res.ok)throw new Error(data.error||'Failed to list');
+    showMsg('listMsg','✅ Course listed on marketplace!','success');
+    btn.textContent='Published!';
+    setTimeout(()=>{closeModal('listModal');loadListings();},1500);
+  }catch(e){
+    showMsg('listMsg',e.message,'error');
+    btn.disabled=false;btn.textContent='Publish Listing';
+  }
+}
+
+async function loadListings(){
+  try{
+    const res=await fetch(API+'/marketplace');
+    const data=await res.json();
+    allListings=data.listings||[];
+    applyFilters();
+  }catch{
+    document.getElementById('loadingState').style.display='none';
+    document.getElementById('emptyState').style.display='block';
+    document.getElementById('emptyState').innerHTML='<div class="icon">⚠️</div><div>Backend not running</div><div style="font-size:13px;margin-top:8px">cd backend && npm start</div>';
+  }
+}
+
+async function loadMyPurchases(){
+  if(!token)return;
+  try{
+    const res=await fetch(API+'/marketplace/my/purchases',{headers:{'Authorization':'Bearer '+token}});
+    const data=await res.json();
+    const purchases=data.purchases||[];
+    if(purchases.length){
+      purchases.forEach(p=>purchasedIds.add(p.listing_id));
+      document.getElementById('myPurchasesSection').style.display='block';
+      document.getElementById('myPurchasesGrid').innerHTML=purchases.map(p=>{
+        const l=p.marketplace_listings||{};
+        const c=l.courses||{};
+        return `<div class="course-card"><div class="course-thumb"><span>${ICONS[c.category]||'📚'}</span><span class="course-category">${c.category||'Course'}</span></div><div class="course-body"><div class="course-title">${c.title||'Course'}</div><div class="course-instructor">Purchased ${new Date(p.created_at).toLocaleDateString()}</div><div class="course-meta"><div class="course-price">${fmt(p.amount)}</div><span style="font-size:11px;color:#00d4aa">✅ Enrolled</span></div></div></div>`;
+      }).join('');
+    }
+  }catch{}
+}
+
+function initUI(){
+  const u=user();
+  if(u){
+    document.getElementById('authLink').innerHTML=`<a href="/dashboard.html" class="btn btn-outline btn-sm">Dashboard</a>`;
+    if(SELLER_ROLES.includes(u.role)){
+      document.getElementById('sellerBanner').style.display='flex';
+    }
+  }
+  // Pre-fill search from URL
+  const q=new URLSearchParams(location.search).get('q');
+  if(q){document.getElementById('navSearch').value=q;document.getElementById('resultsTitle').textContent=`Results for "${q}"`;}
+}
+
+initUI();
+loadListings().then(()=>{
+  const q=new URLSearchParams(location.search).get('q');
+  if(q)applySearch(q);
+});
+loadMyPurchases();
+</script>
+</body>
+</html>

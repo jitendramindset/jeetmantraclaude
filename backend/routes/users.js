@@ -7,14 +7,15 @@ const router = express.Router();
 // Get user profile
 router.get('/profile', authenticateToken, async (req, res) => {
   try {
-    const { data: user, error } = await supabase
+    const { data: user, error } = await supabaseAdmin
       .from('jeetmantra_users')
       .select('*')
       .eq('id', req.user.id)
       .single();
 
-    if (error) {
-      return res.status(404).json({ error: 'User not found' });
+    if (error || !user) {
+      // Return basic user info from token if DB lookup fails
+      return res.json({ message: 'Profile fetched from token', user: { id: req.user.id, email: req.user.email, role: req.user.role } });
     }
 
     // Remove password hash

@@ -1,10 +1,13 @@
+-- Enable pgvector for semantic search
+CREATE EXTENSION IF NOT EXISTS vector;
+
 -- Users table
 CREATE TABLE IF NOT EXISTS users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   email VARCHAR(255) UNIQUE NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
   full_name VARCHAR(255) NOT NULL,
-  role VARCHAR(50) NOT NULL CHECK (role IN ('student', 'teacher', 'partner', 'admin')),
+  role VARCHAR(50) NOT NULL CHECK (role IN ('student', 'teacher', 'partner', 'admin', 'school', 'coaching')),
   phone VARCHAR(20),
   profile_image TEXT,
   bio TEXT,
@@ -235,3 +238,97 @@ CREATE INDEX idx_payments_user_id ON payments(user_id);
 CREATE INDEX idx_payments_status ON payments(status);
 CREATE INDEX idx_bookings_student_id ON bookings(student_id);
 CREATE INDEX idx_earnings_user_id ON earnings(user_id);
+
+-- =========================================================
+-- NEW TABLES v2.0
+-- =========================================================
+
+-- Marketplace Listings
+CREATE TABLE IF NOT EXISTS marketplace_listings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  seller_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  course_id UUID NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+  price DECIMAL(10,2) NOT NULL,
+  commission_rate DECIMAL(5,2) DEFAULT 15.00,
+  status VARCHAR(50) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'paused', 'removed')),
+  views INTEGER DEFAULT 0,
+  sales_count INTEGER DEFAULT 0,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(seller_id, course_id)
+);
+
+-- Marketplace Purchases
+CREATE TABLE IF NOT EXISTS marketplace_purchases (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  buyer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  listing_id UUID NOT NULL REFERENCES marketplace_listings(id) ON DELETE CASCADE,
+  amount DECIMAL(10,2) NOT NULL,
+  platform_fee DECIMAL(10,2) NOT NULL,
+  seller_earnings DECIMAL(10,2) NOT NULL,
+  status VARCHAR(50) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'completed', 'refunded')),
+  transaction_id VARCHAR(255),
+  created_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(buyer_id, listing_id)
+);
+
+-- School Profiles
+CREATE TABLE IF NOT EXISTS school_profiles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE UNIQUE,
+  school_name VARCHAR(255) NOT NULL,
+  affiliation VARCHAR(255),
+  student_count INTEGER DEFAULT 0,
+  teacher_count INTEGER DEFAULT 0,
+  contact_email VARCHAR(255),
+  contact_phone VARCHAR(20),
+  address TEXT,
+  logo_url TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Coaching Institute Profiles
+CREATE TABLE IF NOT EXISTS coaching_profiles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE UNIQUE,
+  center_name VARCHAR(255) NOT NULL,
+  specializations TEXT[] DEFAULT '{}',
+  student_capacity INTEGER DEFAULT 0,
+  batch_count INTEGER DEFAULT 0,
+  contact_email VARCHAR(255),
+  contact_phone VARCHAR(20),
+  address TEXT,
+  logo_url TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Course Embeddings for Vector/Semantic Search (pgvector)
+CREATE TABLE IF NOT EXISTS course_embeddings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  course_id UUID NOT NULL REFERENCES courses(id) ON DELETE CASCADE UNIQUE,
+  embedding vector(1536),
+  content_hash VARCHAR(64),
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Sync Queue for local/server offline sync
+CREATE TABLE IF NOT EXISTS sync_queue (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  entity_type VARCHAR(100) NOT NULL,
+  entity_id UUID,
+  operation VARCHAR(20) NOT NULL CHECK (operation IN ('create', 'update', 'delete')),
+  payload JSONB,
+  synced_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Indexes for new tables
+CREATE INDEX idx_marketplace_listings_seller ON marketplace_listings(seller_id);
+CREATE INDEX idx_marketplace_listings_course ON marketplace_listings(course_id);
+CREATE INDEX idx_marketplace_listings_status ON marketplace_listings(status);
+CREATE INDEX idx_marketplace_purchases_buyer ON marketplace_purchases(buyer_id);
+CREATE INDEX idx_marketplace_purchases_listing ON marketplace_purchases(listing_id);
+CREATE INDEX idx_school_profiles_user ON school_profiles(user_id);
+CREATE INDEX idx_coaching_profiles_user ON coaching_profiles(user_id);
+CREATE INDEX idx_course_embeddings_course ON course_embeddings(course_id);
+CREATE INDEX idx_sync_queue_entity ON sync_queue(entity_type, entity_id);

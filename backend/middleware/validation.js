@@ -3,10 +3,10 @@ const Joi = require('joi');
 // Validation schemas
 const schemas = {
   signup: Joi.object({
-    email: Joi.string().email().required(),
+    email: Joi.string().email({ tlds: { allow: false } }).required(),
     password: Joi.string().min(8).required(),
     fullName: Joi.string().required(),
-    role: Joi.string().valid('student', 'teacher', 'partner', 'admin').required(),
+    role: Joi.string().valid('student', 'teacher', 'partner', 'admin', 'school', 'coaching').required(),
     phone: Joi.string().optional(),
     academicLevel: Joi.string().optional(),
     skills: Joi.array().items(Joi.string()).optional(),
@@ -15,7 +15,7 @@ const schemas = {
   }),
 
   login: Joi.object({
-    email: Joi.string().email().required(),
+    email: Joi.string().email({ tlds: { allow: false } }).required(),
     password: Joi.string().required()
   }),
 
@@ -56,6 +56,32 @@ const schemas = {
       content: Joi.number().min(1).max(10),
       engagement: Joi.number().min(1).max(10)
     })
+  }),
+
+  marketplaceListing: Joi.object({
+    courseId: Joi.string().uuid().required(),
+    price: Joi.number().positive().required(),
+    commissionRate: Joi.number().min(0).max(50).default(15)
+  }),
+
+  schoolProfile: Joi.object({
+    schoolName: Joi.string().required(),
+    affiliation: Joi.string().optional(),
+    studentCount: Joi.number().positive().optional(),
+    teacherCount: Joi.number().positive().optional(),
+    contactEmail: Joi.string().email().optional(),
+    contactPhone: Joi.string().optional(),
+    address: Joi.string().optional()
+  }),
+
+  coachingProfile: Joi.object({
+    centerName: Joi.string().required(),
+    specializations: Joi.array().items(Joi.string()).optional(),
+    studentCapacity: Joi.number().positive().optional(),
+    batchCount: Joi.number().positive().optional(),
+    contactEmail: Joi.string().email().optional(),
+    contactPhone: Joi.string().optional(),
+    address: Joi.string().optional()
   })
 };
 
