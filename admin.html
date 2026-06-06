@@ -686,16 +686,27 @@
 <!-- TOAST CONTAINER -->
 <div class="toast-container" id="toast-container"></div>
 
+<script src="webhook-handler.js"></script>
 <script>
 // ==================== STATE & CONFIG ====================
-const N8N_WEBHOOK_URL = 'http://localhost:5678/webhook';
 let currentUser = null;
 let allUsers = [];
 let allCourses = [];
 let allPartners = [];
 
-// ==================== INITIALIZATION ====================
+// Check authentication on load
 document.addEventListener('DOMContentLoaded', () => {
+  if (!webhooks.isAuthenticated()) {
+    window.location.href = '/website.html?tab=login';
+    return;
+  }
+  const user = webhooks.getCurrentUser();
+  if (!user || user.role !== 'Admin') {
+    showToast('Access denied. Admin privileges required.', 'error');
+    window.location.href = '/website.html';
+    return;
+  }
+  currentUser = user;
   loadDashboardData();
 });
 
@@ -733,32 +744,29 @@ function switchTab(tabName) {
 // ==================== DATA LOADING ====================
 async function loadDashboardData() {
   try {
-    const response = await fetch(`${N8N_WEBHOOK_URL}/admin-dashboard`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({})
-    });
-    const data = await response.json();
-
-    document.getElementById('stat-users').textContent = data.totalUsers || 0;
-    document.getElementById('stat-courses').textContent = data.totalCourses || 0;
-    document.getElementById('stat-revenue').textContent = '₹' + (data.totalRevenue || 0);
-    document.getElementById('stat-blocked').textContent = data.blockedUsers || 0;
+    const result = await webhooks.adminGetDashboard();
+    if (result.success) {
+      const data = result.data;
+      document.getElementById('stat-users').textContent = data.totalUsers || 0;
+      document.getElementById('stat-courses').textContent = data.totalCourses || 0;
+      document.getElementById('stat-revenue').textContent = '₹' + (data.totalRevenue || 0);
+      document.getElementById('stat-blocked').textContent = data.blockedUsers || 0;
+    }
   } catch (error) {
     console.error('Failed to load dashboard:', error);
+    showToast('Failed to load dashboard data', 'error');
   }
 }
 
 async function loadUsers() {
   try {
-    const response = await fetch(`${N8N_WEBHOOK_URL}/admin-get-users`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
-    });
-    const data = await response.json();
-    allUsers = data.users || [];
-    renderUsersTable();
+    const result = await webhooks.adminGetUsers();
+    if (result.success) {
+      allUsers = result.data.users || [];
+      renderUsersTable();
+    }
   } catch (error) {
+    console.error('Failed to load users:', error);
     showToast('Failed to load users', 'error');
   }
 }
@@ -785,13 +793,13 @@ function renderUsersTable() {
 
 async function loadCourses() {
   try {
-    const response = await fetch(`${N8N_WEBHOOK_URL}/admin-get-courses`, {
-      method: 'POST'
-    });
-    const data = await response.json();
-    allCourses = data.courses || [];
-    renderCoursesTable();
+    const result = await webhooks.adminGetCourses();
+    if (result.success) {
+      allCourses = result.data.courses || [];
+      renderCoursesTable();
+    }
   } catch (error) {
+    console.error('Failed to load courses:', error);
     showToast('Failed to load courses', 'error');
   }
 }
@@ -814,13 +822,13 @@ function renderCoursesTable() {
 
 async function loadPartners() {
   try {
-    const response = await fetch(`${N8N_WEBHOOK_URL}/admin-get-partners`, {
-      method: 'POST'
-    });
-    const data = await response.json();
-    allPartners = data.partners || [];
-    renderPartnersTable();
+    const result = await webhooks.adminGetPartners();
+    if (result.success) {
+      allPartners = result.data.partners || [];
+      renderPartnersTable();
+    }
   } catch (error) {
+    console.error('Failed to load partners:', error);
     showToast('Failed to load partners', 'error');
   }
 }
@@ -843,18 +851,16 @@ function renderPartnersTable() {
 
 async function loadPayments() {
   try {
-    const response = await fetch(`${N8N_WEBHOOK_URL}/admin-get-payments`, {
-      method: 'POST'
-    });
-    const data = await response.json();
-    const payments = data.payments || [];
-    const tbody = document.getElementById('payments-list');
-    tbody.innerHTML = payments.map(p => `
-      <tr>
-        <td>#${p.id}</td>
-        <td>${p.user}</td>
-        <td>₹${p.amount}</td>
-        <td>${p.type}</td>
+    const result = await webhooks.adminGetPayments();
+    if (result.success) {
+      const payments = result.data.payments || [];
+      const tbody = document.getElementById('payments-list');
+      tbody.innerHTML = payments.map(p => `
+        <tr>
+          <td>#${p.id}</td>
+          <td>${p.user}</td>
+          <td>₹${p.amount}</td>
+          <td>${p.type}</td>
         <td><span class="badge ${p.status === 'completed' ? 'badge-active' : 'badge-pending'}">${p.status}</span></td>
         <td>
           ${p.status === 'pending' ? `
@@ -954,16 +960,8 @@ async function blockUser(userId, userName) {
   if (!confirm(`Block user ${userName}?`)) return;
 
   try {
-    const response = await fetch(`${N8N_WEBHOOK_URL}/admin-block-user`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId })
-    });
-
-    if (response.ok) {
-      showToast(`User ${userName} blocked`, 'warning');
-      loadUsers();
-    }
+    await webhooks.adminBlockUser(userId);
+    loadUsers();
   } catch (error) {
     showToast('Failed to block user', 'error');
   }
@@ -973,16 +971,8 @@ async function unblockUser(userId, userName) {
   if (!confirm(`Unblock user ${userName}?`)) return;
 
   try {
-    const response = await fetch(`${N8N_WEBHOOK_URL}/admin-unblock-user`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId })
-    });
-
-    if (response.ok) {
-      showToast(`User ${userName} unblocked`, 'success');
-      loadUsers();
-    }
+    await webhooks.adminUnblockUser(userId);
+    loadUsers();
   } catch (error) {
     showToast('Failed to unblock user', 'error');
   }
@@ -992,16 +982,8 @@ async function deleteUser(userId) {
   if (!confirm('Delete this user? This action cannot be undone.')) return;
 
   try {
-    const response = await fetch(`${N8N_WEBHOOK_URL}/admin-delete-user`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId })
-    });
-
-    if (response.ok) {
-      showToast('User deleted', 'success');
-      loadUsers();
-    }
+    await webhooks.adminDeleteUser(userId);
+    loadUsers();
   } catch (error) {
     showToast('Failed to delete user', 'error');
   }
@@ -1016,16 +998,13 @@ async function addUser() {
   };
 
   try {
-    const response = await fetch(`${N8N_WEBHOOK_URL}/admin-create-user`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(userData)
-    });
-
-    if (response.ok) {
-      closeModal();
-      showToast(`User ${userData.name} created`, 'success');
-      loadUsers();
+    await webhooks.adminCreateUser(userData);
+    closeModal();
+    loadUsers();
+  } catch (error) {
+    showToast('Failed to create user', 'error');
+  }
+}
     }
   } catch (error) {
     showToast('Failed to create user', 'error');
@@ -1040,17 +1019,9 @@ async function addCourse() {
   };
 
   try {
-    const response = await fetch(`${N8N_WEBHOOK_URL}/admin-create-course`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(courseData)
-    });
-
-    if (response.ok) {
-      closeModal();
-      showToast(`Course created`, 'success');
-      loadCourses();
-    }
+    await webhooks.adminCreateCourse(courseData);
+    closeModal();
+    loadCourses();
   } catch (error) {
     showToast('Failed to create course', 'error');
   }
@@ -1064,17 +1035,9 @@ async function addPartner() {
   };
 
   try {
-    const response = await fetch(`${N8N_WEBHOOK_URL}/admin-create-partner`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(partnerData)
-    });
-
-    if (response.ok) {
-      closeModal();
-      showToast(`Partner added`, 'success');
-      loadPartners();
-    }
+    await webhooks.adminCreatePartner(partnerData);
+    closeModal();
+    loadPartners();
   } catch (error) {
     showToast('Failed to add partner', 'error');
   }
@@ -1088,12 +1051,7 @@ function deletePartner(id) { showToast('Partner removed', 'success'); }
 
 async function approvePayment(paymentId) {
   try {
-    await fetch(`${N8N_WEBHOOK_URL}/admin-approve-payment`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ paymentId })
-    });
-    showToast('Payment approved', 'success');
+    await webhooks.adminApprovePayment(paymentId);
     loadPayments();
   } catch (error) {
     showToast('Failed to approve payment', 'error');

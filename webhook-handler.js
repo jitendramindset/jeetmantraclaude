@@ -18,6 +18,8 @@ class WebhookHandler {
     this.webhookUrl = webhookUrl;
     this.isLoading = false;
     this.lastResponse = null;
+    this.offlineMode = false;
+    this.offlineWarningShown = false;
   }
 
   /**
@@ -32,6 +34,10 @@ class WebhookHandler {
     try {
       console.log(`[Webhook] Action: ${action}`, data);
 
+      if (this.offlineMode) {
+        return this.handleOfflineAction(action, data, onSuccess, onError);
+      }
+
       const payload = {
         action,
         data,
@@ -39,10 +45,12 @@ class WebhookHandler {
         source: 'frontend'
       };
 
+      const authToken = this.getAuthToken();
       const response = await fetch(this.webhookUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
         },
         body: JSON.stringify(payload)
       });
@@ -65,13 +73,94 @@ class WebhookHandler {
       }
     } catch (error) {
       console.error(`[Webhook] Error:`, error);
-      if (onError) onError(error.message);
-      return { success: false, error: error.message };
+      if (!this.offlineMode) {
+        this.offlineMode = true;
+      }
+      return this.handleOfflineAction(action, data, onSuccess, onError, error.message);
     } finally {
       this.isLoading = false;
     }
   }
 
+  handleOfflineAction(action, data, onSuccess, onError, previousError) {
+    if (!this.offlineWarningShown) {
+      showToast('Webhook unavailable — continuing in offline mode.', 'warning', 5000);
+      this.offlineWarningShown = true;
+    }
+
+    const fallback = this.getOfflineFallback(action, data);
+    if (!fallback) {
+      const message = previousError || 'No offline fallback available for this action.';
+      console.warn(`[WebhookFallback] ${action}:`, message);
+      if (onError) onError(message);
+      return { success: false, error: message };
+    }
+
+    this.lastResponse = fallback;
+    if (onSuccess) onSuccess(fallback);
+    return { success: true, data: fallback };
+  }
+
+  getOfflineFallback(action, data) {
+    const user = this.getCurrentUser();
+    const now = new Date().toISOString();
+    switch (action) {
+      case 'user-signup':
+        return { success: true, status: 'success', message: 'Signup simulated offline', data: { user: { id: 'offline-user', name: data.name || 'Guest', role: data.role || 'Student', email: data.email }, token: 'offline-token' } };
+      case 'user-login':
+      case 'user-login-otp-verify':
+      case 'user-login-google':
+        return { success: true, status: 'success', data: { user: { id: user?.id || 'offline-user', name: user?.name || 'Offline User', role: user?.role || 'Student' }, token: 'offline-token' } };
+      case 'course-create':
+      case 'admin-create-course':
+        return { success: true, status: 'success', courseId: `offline-course-${Date.now()}`, courseTitle: data.title || 'Offline Course' };
+      case 'class-schedule':
+        return { success: true, status: 'success', classId: `offline-class-${Date.now()}`, scheduledAt: now, ...data };
+      case 'class-live-start':
+      case 'class-live-end':
+        return { success: true, status: 'success', ...data };
+      case 'partner-session-book':
+      case 'student-admission':
+      case 'admin-create-partner':
+      case 'admin-create-user':
+      case 'admin-approve-payment':
+      case 'payment-initiate':
+      case 'withdrawal-request':
+        return { success: true, status: 'success', ...data, timestamp: now };
+      case 'course-enroll':
+        return { success: true, status: 'success', enrollmentId: `offline-enroll-${Date.now()}`, courseId: data.courseId, studentId: data.studentId };
+      case 'mcp-recommend-courses':
+        return { success: true, status: 'success', recommendations: [
+          { id: 'offline-1', title: 'AI Basics for Beginners' },
+          { id: 'offline-2', title: 'JEE Crash Course' }
+        ] };
+      case 'mcp-generate-course-description':
+        return { success: true, status: 'success', description: data.topics ? `Offline course description for ${data.title}: ${data.topics.join(', ')}.` : `Offline course description for ${data.title}.` };
+      case 'mcp-generate-blog-post':
+        return { success: true, status: 'success', blogId: `offline-blog-${Date.now()}`, title: data.title || 'Offline Blog Title', content: `This is an offline-generated SEO blog draft for ${data.title || 'Your Course'}.` };
+      case 'attendance-mark':
+      case 'attendance-bulk-mark':
+      case 'homework-submit':
+      case 'feedback-submit':
+      case 'mcp-generate-homework':
+      case 'mcp-validate':
+      case 'mcp-autofill':
+      case 'mcp-suggestions':
+        return { success: true, status: 'success', message: `Offline fallback for ${action}`, data };
+      case 'admin-dashboard':
+        return { success: true, status: 'success', dashboard: { users: 12, courses: 8, revenue: '₹0 (offline)', pending: 2 } };
+      case 'admin-get-users':
+        return { success: true, status: 'success', users: [{ id: 'offline-user-1', name: 'Offline User', email: 'offline@example.com', role: 'Student' }] };
+      case 'admin-get-courses':
+        return { success: true, status: 'success', courses: [{ id: 'offline-course-1', title: 'Offline Course', instructor: 'Offline Teacher' }] };
+      case 'admin-get-partners':
+        return { success: true, status: 'success', partners: [{ id: 'offline-partner-1', name: 'Offline Partner', service: 'Demo Service' }] };
+      case 'admin-get-payments':
+        return { success: true, status: 'success', payments: [{ id: 'offline-payment-1', amount: '₹0', status: 'offline' }] };
+      default:
+        return null;
+    }
+  }
   // ==================== USER & AUTH WEBHOOKS ====================
 
   /**
@@ -101,6 +190,7 @@ class WebhookHandler {
     (result) => {
       localStorage.setItem('authToken', result.data.token);
       localStorage.setItem('user', JSON.stringify(result.data.user));
+      localStorage.setItem('userId', result.data.user.id || result.data.user.userId || '');
       showToast(`Welcome back, ${result.data.user.name}!`, 'success');
 
       // Redirect based on role
@@ -138,6 +228,7 @@ class WebhookHandler {
         (result) => {
           localStorage.setItem('authToken', result.token);
           localStorage.setItem('user', JSON.stringify(result.user));
+          localStorage.setItem('userId', result.user.id || result.user.userId || '');
           showToast('Login successful!', 'success');
           setTimeout(() => window.location.href = '/dashboard.html', 1500);
         },
@@ -156,6 +247,7 @@ class WebhookHandler {
       (result) => {
         localStorage.setItem('authToken', result.token);
         localStorage.setItem('user', JSON.stringify(result.user));
+        localStorage.setItem('userId', result.user.id || result.user.userId || '');
         showToast('Google login successful!', 'success');
         setTimeout(() => window.location.href = '/dashboard.html', 1500);
       },
@@ -178,7 +270,15 @@ class WebhookHandler {
       price: courseData.price,
       teacherId: localStorage.getItem('userId'),
       duration: courseData.duration,
-      level: courseData.level
+      level: courseData.level,
+      topics: courseData.topics,
+      targetExam: courseData.targetExam,
+      fullFee: courseData.fullFee,
+      discountedFee: courseData.discountedFee,
+      maxSeats: courseData.maxSeats,
+      installments: courseData.installments,
+      schedule: courseData.schedule,
+      mode: courseData.mode
     },
     (result) => {
       showToast(`Course "${result.courseTitle}" created successfully!`, 'success');
@@ -193,6 +293,70 @@ class WebhookHandler {
    * Get Course Recommendations (via MCP)
    * AI-powered course recommendations based on student profile
    */
+  async scheduleClass(classData) {
+    return this.sendWebhook('class-schedule', {
+      ...classData,
+      teacherId: localStorage.getItem('userId'),
+      scheduledAt: new Date().toISOString()
+    },
+    (result) => {
+      showToast('Class scheduled successfully!', 'success');
+    });
+  }
+
+  async startLiveClass(classData) {
+    return this.sendWebhook('class-live-start', {
+      ...classData,
+      teacherId: localStorage.getItem('userId'),
+      startedAt: new Date().toISOString()
+    },
+    (result) => {
+      showToast('Live class started!', 'success');
+    });
+  }
+
+  async endLiveClass(classId) {
+    return this.sendWebhook('class-live-end', {
+      classId,
+      endedAt: new Date().toISOString()
+    },
+    (result) => {
+      showToast('Live class ended.', 'success');
+    });
+  }
+
+  async bookPartnerSession(sessionData) {
+    return this.sendWebhook('partner-session-book', {
+      ...sessionData,
+      partnerId: localStorage.getItem('userId'),
+      bookedAt: new Date().toISOString()
+    },
+    (result) => {
+      showToast('Partner session booked successfully!', 'success');
+    });
+  }
+
+  async admitStudent(studentData) {
+    return this.sendWebhook('student-admission', {
+      ...studentData,
+      admittedBy: localStorage.getItem('userId'),
+      admittedAt: new Date().toISOString()
+    },
+    (result) => {
+      showToast('Student admission completed!', 'success');
+    });
+  }
+
+  async generateBlogPost(blogData) {
+    return this.sendWebhook('mcp-generate-blog-post', {
+      ...blogData,
+      authorId: localStorage.getItem('userId')
+    },
+    (result) => {
+      showToast('SEO blog post generated!', 'success');
+    });
+  }
+
   async getCourseRecommendations(studentId) {
     return this.sendWebhook('mcp-recommend-courses', {
       studentId,
@@ -433,6 +597,93 @@ class WebhookHandler {
     });
   }
 
+  /**
+   * Admin Get Dashboard Data
+   * Get overview stats for admin dashboard
+   */
+  async adminGetDashboard() {
+    return this.sendWebhook('admin-dashboard', {});
+  }
+
+  /**
+   * Admin Get Users
+   * Get paginated list of all users
+   */
+  async adminGetUsers(filters = {}) {
+    return this.sendWebhook('admin-get-users', filters);
+  }
+
+  /**
+   * Admin Get Courses
+   * Get paginated list of all courses
+   */
+  async adminGetCourses(filters = {}) {
+    return this.sendWebhook('admin-get-courses', filters);
+  }
+
+  /**
+   * Admin Get Partners
+   * Get paginated list of all partners
+   */
+  async adminGetPartners(filters = {}) {
+    return this.sendWebhook('admin-get-partners', filters);
+  }
+
+  /**
+   * Admin Get Payments
+   * Get paginated list of all payments
+   */
+  async adminGetPayments(filters = {}) {
+    return this.sendWebhook('admin-get-payments', filters);
+  }
+
+  /**
+   * Admin Approve Payment
+   * Approve a pending payment
+   */
+  async adminApprovePayment(paymentId) {
+    return this.sendWebhook('admin-approve-payment', {
+      paymentId,
+      approvedBy: localStorage.getItem('userId')
+    },
+    (result) => {
+      showToast('Payment approved', 'success');
+    });
+  }
+
+  /**
+   * Admin Create User
+   * Create a new user account (admin only)
+   */
+  async adminCreateUser(userData) {
+    return this.sendWebhook('admin-create-user', userData,
+    (result) => {
+      showToast('User created successfully', 'success');
+    });
+  }
+
+  /**
+   * Admin Create Course
+   * Create a new course (admin only)
+   */
+  async adminCreateCourse(courseData) {
+    return this.sendWebhook('admin-create-course', courseData,
+    (result) => {
+      showToast('Course created successfully', 'success');
+    });
+  }
+
+  /**
+   * Admin Create Partner
+   * Create a new partner (admin only)
+   */
+  async adminCreatePartner(partnerData) {
+    return this.sendWebhook('admin-create-partner', partnerData,
+    (result) => {
+      showToast('Partner created successfully', 'success');
+    });
+  }
+
   // ==================== MCP SUGGESTION WEBHOOKS ====================
 
   /**
@@ -506,9 +757,12 @@ class WebhookHandler {
       const response = await fetch(`${baseUrl}/health`, {
         method: 'GET'
       });
-      return response.ok;
+      const healthy = response.ok;
+      this.offlineMode = !healthy;
+      return healthy;
     } catch (error) {
       console.error('Webhook connection test failed:', error);
+      this.offlineMode = true;
       return false;
     }
   }

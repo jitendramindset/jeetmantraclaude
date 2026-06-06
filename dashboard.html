@@ -8,6 +8,7 @@
 <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+<script src="webhook-handler.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; -webkit-font-smoothing: antialiased; min-height: 100vh; transition: background 300ms, color 300ms; }
@@ -1771,7 +1772,38 @@ function App() {
   const [lang, setLang] = useState('en');
   const [accentIdx, setAccentIdx] = useState(0);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
   const t = LANG[lang];
+
+  // Parse URL parameters and check authentication
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const roleParam = urlParams.get('role');
+
+    // Check if user is authenticated
+    if (!webhooks.isAuthenticated()) {
+      window.location.href = '/website.html?tab=login';
+      return;
+    }
+
+    const currentUser = webhooks.getCurrentUser();
+    if (!currentUser) {
+      window.location.href = '/website.html?tab=login';
+      return;
+    }
+
+    setUser(currentUser);
+
+    // Set role from URL or user data
+    if (roleParam) {
+      setRole(roleParam);
+    } else if (currentUser.role) {
+      setRole(currentUser.role.toLowerCase());
+    }
+
+    setLoading(false);
+  }, []);
   const studentScreens = {
     home: <HomeScreen setScreen={setScreen} />, courses: <CoursesScreen />,
     attendance: <AttendanceScreen />, wallet: <WalletScreen />, profile: <ProfileScreen />,
@@ -1788,6 +1820,17 @@ function App() {
   };
   const handleRole = (r) => { setRole(r); setScreen('home'); };
   const handleRoleReset = () => { setRole(null); setScreen('home'); };
+
+  if (loading) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: 'var(--bg-page)', color: 'var(--fg-1)' }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ width: 40, height: 40, border: '4px solid var(--border)', borderTop: '4px solid var(--accent)', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }}></div>
+        <div>Loading dashboard...</div>
+      </div>
+      <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
+
   if (!role) return (
     <>
       <RolePicker onSelect={handleRole} lang={lang} />
