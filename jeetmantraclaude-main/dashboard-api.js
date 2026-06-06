@@ -13,7 +13,7 @@ const DASHBOARD_API_CONFIG = {
  * Get authentication token from localStorage
  */
 function getDashboardAuthToken() {
-  return localStorage.getItem('authToken');
+  return localStorage.getItem('jm_token');
 }
 
 /**

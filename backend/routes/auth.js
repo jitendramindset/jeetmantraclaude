@@ -63,6 +63,44 @@ router.post('/signup', validate('signup'), async (req, res) => {
       return res.status(500).json({ error: 'Failed to create user' });
     }
 
+    // Create role-specific profile (best-effort — don't fail signup if it errors)
+    try {
+      const v = req.validatedData;
+      const toInt = (x) => (x === '' || x === undefined || x === null ? undefined : parseInt(x, 10));
+      if (role === 'school') {
+        await supabaseAdmin.from('school_profiles').insert({
+          id: uuidv4(),
+          user_id: newUser.id,
+          school_name: v.schoolName || fullName,
+          affiliation: v.affiliationBoard || v.affiliation || null,
+          student_count: toInt(v.studentCount) || 0,
+          teacher_count: toInt(v.teacherCount) || 0,
+          contact_email: email,
+          contact_phone: phone || null,
+          address: v.address || null,
+          created_at: new Date().toISOString()
+        });
+      } else if (role === 'coaching') {
+        const specs = Array.isArray(v.specializations)
+          ? v.specializations
+          : (v.specializations ? String(v.specializations).split(',').map(s => s.trim()).filter(Boolean) : []);
+        await supabaseAdmin.from('coaching_profiles').insert({
+          id: uuidv4(),
+          user_id: newUser.id,
+          center_name: v.centerName || fullName,
+          specializations: specs,
+          student_capacity: toInt(v.studentCapacity) || 0,
+          batch_count: toInt(v.batchCount) || 0,
+          contact_email: email,
+          contact_phone: phone || null,
+          address: v.address || null,
+          created_at: new Date().toISOString()
+        });
+      }
+    } catch (profileErr) {
+      console.warn('Profile creation warning:', profileErr.message);
+    }
+
     // Generate JWT token
     const token = jwt.sign(
       { 

@@ -7,11 +7,24 @@ const schemas = {
     password: Joi.string().min(8).required(),
     fullName: Joi.string().required(),
     role: Joi.string().valid('student', 'teacher', 'partner', 'admin', 'school', 'coaching').required(),
-    phone: Joi.string().optional(),
-    academicLevel: Joi.string().optional(),
+    phone: Joi.string().allow('').optional(),
+    academicLevel: Joi.string().allow('').optional(),
     skills: Joi.array().items(Joi.string()).optional(),
-    institution: Joi.string().optional(),
-    qualifications: Joi.array().items(Joi.string()).optional()
+    institution: Joi.string().allow('').optional(),
+    qualifications: Joi.array().items(Joi.string()).optional(),
+    // School profile fields (optional, used when role === 'school')
+    schoolName: Joi.string().allow('').optional(),
+    contactPerson: Joi.string().allow('').optional(),
+    affiliationBoard: Joi.string().allow('').optional(),
+    affiliation: Joi.string().allow('').optional(),
+    studentCount: Joi.alternatives(Joi.number(), Joi.string().allow('')).optional(),
+    teacherCount: Joi.alternatives(Joi.number(), Joi.string().allow('')).optional(),
+    address: Joi.string().allow('').optional(),
+    // Coaching profile fields (optional, used when role === 'coaching')
+    centerName: Joi.string().allow('').optional(),
+    specializations: Joi.alternatives(Joi.array().items(Joi.string()), Joi.string().allow('')).optional(),
+    studentCapacity: Joi.alternatives(Joi.number(), Joi.string().allow('')).optional(),
+    batchCount: Joi.alternatives(Joi.number(), Joi.string().allow('')).optional()
   }),
 
   login: Joi.object({
@@ -21,14 +34,15 @@ const schemas = {
 
   courseCreate: Joi.object({
     title: Joi.string().required(),
-    description: Joi.string().required(),
-    category: Joi.string().required(),
-    level: Joi.string().valid('beginner', 'intermediate', 'advanced').required(),
-    price: Joi.number().positive().required(),
-    startDate: Joi.date().required(),
-    endDate: Joi.date().required(),
-    maxStudents: Joi.number().positive().required(),
-    batchTiming: Joi.string().required()
+    description: Joi.string().allow('').optional(),
+    category: Joi.string().default('General'),
+    level: Joi.string().valid('beginner', 'intermediate', 'advanced').default('beginner'),
+    price: Joi.number().min(0).default(0),
+    // The following have DB defaults — optional so simple create forms work.
+    startDate: Joi.date().optional(),
+    endDate: Joi.date().optional(),
+    maxStudents: Joi.number().positive().optional(),
+    batchTiming: Joi.string().allow('').optional()
   }),
 
   enrollCourse: Joi.object({

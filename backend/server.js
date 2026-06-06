@@ -16,6 +16,7 @@ const liveClassesRoutes = require('./routes/liveClasses');
 const marketplaceRoutes = require('./routes/marketplace');
 const searchRoutes = require('./routes/search');
 const n8nRoutes = require('./routes/n8n');
+const { cacheMiddleware, syncMiddleware } = require('./middleware/datasync');
 
 const app = express();
 
@@ -27,6 +28,12 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // Serve frontend files
 const frontendPath = path.join(__dirname, '..', 'jeetmantraclaude-main');
 app.use(express.static(frontendPath));
+
+// LevelDB wiring for ALL /api routes:
+//   cacheMiddleware — cache-aside reads (local LevelDB), Supabase on miss
+//   syncMiddleware  — record writes to local SyncQueue + fire optional n8n addon
+app.use(cacheMiddleware);
+app.use(syncMiddleware);
 
 app.get('/health', (req, res) => {
   res.json({

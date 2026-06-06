@@ -698,6 +698,19 @@ let allPartners = [];
 
 // ==================== INITIALIZATION ====================
 document.addEventListener('DOMContentLoaded', () => {
+  // Auth guard — must be logged in as admin
+  const token = localStorage.getItem('jm_token');
+  const user = JSON.parse(localStorage.getItem('jm_user') || 'null');
+  if (!token) {
+    window.location.href = '/login.html';
+    return;
+  }
+  if (user && (user.user_type || user.role) !== 'admin') {
+    alert('Admin access only. Redirecting to your dashboard.');
+    window.location.href = '/dashboard.html?role=' + (user.user_type || user.role || 'student');
+    return;
+  }
+  currentUser = user;
   loadDashboardData();
 });
 
@@ -735,7 +748,7 @@ function switchTab(tabName) {
 // ==================== DATA LOADING ====================
 async function loadDashboardData() {
   try {
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('jm_token');
     const response = await fetch(`${BACKEND_API_URL}/admin/stats`, {
       method: 'GET',
       headers: { 
@@ -758,7 +771,7 @@ async function loadDashboardData() {
 
 async function loadUsers() {
   try {
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('jm_token');
     const response = await fetch(`${BACKEND_API_URL}/admin/users`, {
       method: 'GET',
       headers: { 
@@ -776,27 +789,32 @@ async function loadUsers() {
 
 function renderUsersTable() {
   const tbody = document.getElementById('users-list');
-  tbody.innerHTML = allUsers.map(user => `
+  tbody.innerHTML = allUsers.map(user => {
+    const name = user.full_name || user.name || '—';
+    const role = user.user_type || user.role || 'student';
+    const blocked = user.is_active === false || user.blocked === true;
+    return `
     <tr>
-      <td>${user.name}</td>
+      <td>${name}</td>
       <td>${user.email}</td>
-      <td><span class="badge badge-${user.role.toLowerCase()}">${user.role}</span></td>
-      <td><span class="badge ${user.blocked ? 'badge-blocked' : 'badge-active'}">${user.blocked ? 'Blocked' : 'Active'}</span></td>
+      <td><span class="badge badge-${role.toLowerCase()}">${role}</span></td>
+      <td><span class="badge ${blocked ? 'badge-blocked' : 'badge-active'}">${blocked ? 'Blocked' : 'Active'}</span></td>
       <td>
         <button class="btn btn-sm btn-secondary" onclick="editUser('${user.id}')">Edit</button>
-        ${!user.blocked ?
-          `<button class="btn btn-sm btn-warning" onclick="blockUser('${user.id}', '${user.name}')">Block</button>` :
-          `<button class="btn btn-sm btn-success" onclick="unblockUser('${user.id}', '${user.name}')">Unblock</button>`
+        ${!blocked ?
+          `<button class="btn btn-sm btn-warning" onclick="blockUser('${user.id}', '${name}')">Block</button>` :
+          `<button class="btn btn-sm btn-success" onclick="unblockUser('${user.id}', '${name}')">Unblock</button>`
         }
         <button class="btn btn-sm btn-danger" onclick="deleteUser('${user.id}')">Delete</button>
       </td>
     </tr>
-  `).join('');
+  `;
+  }).join('');
 }
 
 async function loadCourses() {
   try {
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('jm_token');
     const response = await fetch(`${BACKEND_API_URL}/courses`, {
       method: 'GET',
       headers: { 
@@ -830,7 +848,7 @@ function renderCoursesTable() {
 
 async function loadPartners() {
   try {
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('jm_token');
     const response = await fetch(`${BACKEND_API_URL}/admin/users?role=partner`, {
       method: 'GET',
       headers: { 
@@ -864,7 +882,7 @@ function renderPartnersTable() {
 
 async function loadPayments() {
   try {
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('jm_token');
     const response = await fetch(`${BACKEND_API_URL}/payments/my`, {
       method: 'GET',
       headers: { 
@@ -980,7 +998,7 @@ async function blockUser(userId, userName) {
   if (!confirm(`Block user ${userName}?`)) return;
 
   try {
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('jm_token');
     const response = await fetch(`${BACKEND_API_URL}/admin/users/${userId}/toggle-status`, {
       method: 'PUT',
       headers: { 
@@ -1005,7 +1023,7 @@ async function unblockUser(userId, userName) {
   if (!confirm(`Unblock user ${userName}?`)) return;
 
   try {
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('jm_token');
     const response = await fetch(`${BACKEND_API_URL}/admin/users/${userId}/toggle-status`, {
       method: 'PUT',
       headers: { 
@@ -1072,7 +1090,7 @@ async function addCourse() {
   };
 
   try {
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('jm_token');
     const response = await fetch(`${BACKEND_API_URL}/courses`, {
       method: 'POST',
       headers: { 
@@ -1127,7 +1145,7 @@ function deletePartner(id) { showToast('Partner removed', 'success'); }
 
 async function approvePayment(paymentId) {
   try {
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('jm_token');
     await fetch(`${BACKEND_API_URL}/payments/webhook/payment`, {
       method: 'POST',
       headers: { 

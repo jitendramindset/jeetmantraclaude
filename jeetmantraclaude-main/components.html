@@ -481,14 +481,14 @@ const API_CONFIG = {
 
 // ==================== TOKEN MANAGEMENT ====================
 function getAuthToken() {
-  return localStorage.getItem('jeetmantra_token');
+  return localStorage.getItem('jm_token');
 }
 
 function setAuthToken(token) {
   if (token) {
-    localStorage.setItem('jeetmantra_token', token);
+    localStorage.setItem('jm_token', token);
   } else {
-    localStorage.removeItem('jeetmantra_token');
+    localStorage.removeItem('jm_token');
   }
 }
 
@@ -499,10 +499,10 @@ function isTokenValid() {
 
 function logout() {
   setAuthToken(null);
-  localStorage.removeItem('jeetmantra_user');
+  localStorage.removeItem('jm_user');
   showToast('Logged out successfully', 'success');
   setTimeout(() => {
-    window.location.href = '/login'; // Redirect to login page
+    window.location.href = '/login.html'; // Redirect to login page
   }, 1500);
 }
 

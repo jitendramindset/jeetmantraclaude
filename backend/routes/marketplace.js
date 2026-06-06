@@ -9,27 +9,50 @@ const router = express.Router();
 const PLATFORM_COMMISSION = parseFloat(process.env.PLATFORM_COMMISSION_RATE || '15') / 100;
 const SELLER_ROLES = ['teacher', 'partner', 'school', 'coaching', 'admin'];
 
+// Attach seller {full_name,email} to listings via a single batched lookup.
+// Needed because jeetmantra_users.id is VARCHAR and seller_id is UUID, so no
+// PostgREST FK embed is possible.
+async function attachSellers(listings) {
+  if (!listings || !listings.length) return listings || [];
+  const ids = [...new Set(listings.map(l => l.seller_id).filter(Boolean))];
+  if (!ids.length) return listings;
+  const { data: sellers } = await supabaseAdmin
+    .from('jeetmantra_users')
+    .select('id, full_name, email')
+    .in('id', ids);
+  const byId = Object.fromEntries((sellers || []).map(s => [s.id, s]));
+  return listings.map(l => ({ ...l, seller: byId[l.seller_id] || null }));
+}
+
 // GET /api/marketplace — browse all active listings
 router.get('/', async (req, res) => {
   try {
     const { category, priceMin, priceMax, q, page = 1, limit = 12 } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
 
+    // NB: jeetmantra_users.id is VARCHAR while seller_id is UUID, so there's no
+    // PostgREST FK relationship to embed. We join the course (real FK) here and
+    // attach seller names in a second lookup below.
     let query = supabaseAdmin
       .from('marketplace_listings')
-      .select('*, courses(id,title,description,category,level,cover_image), jeetmantra_users!marketplace_listings_seller_id_fkey(full_name,email)')
+      .select('*, courses(id,title,description,category,level,cover_image)')
       .eq('status', 'active')
       .range(offset, offset + parseInt(limit) - 1);
 
-    if (category) query = query.eq('courses.category', category);
     if (priceMin) query = query.gte('price', parseFloat(priceMin));
     if (priceMax) query = query.lte('price', parseFloat(priceMax));
 
-    const { data: listings, error, count } = await query;
+    let { data: listings, error } = await query;
     if (error) {
       console.warn('Marketplace table not ready:', error.message);
       return res.json({ listings: [], page: parseInt(page), limit: parseInt(limit), note: 'Marketplace table not yet created in Supabase' });
     }
+
+    // Optional category filter (on the embedded course)
+    if (category) listings = (listings || []).filter(l => l.courses?.category === category);
+
+    // Attach seller info via a separate lookup (no FK embed possible).
+    listings = await attachSellers(listings);
 
     // If text search, also run search
     if (q) {
@@ -90,15 +113,18 @@ router.get('/:id', async (req, res) => {
   try {
     const { data: listing, error } = await supabaseAdmin
       .from('marketplace_listings')
-      .select('*, courses(*), jeetmantra_users!marketplace_listings_seller_id_fkey(id,full_name,email)')
+      .select('*, courses(*)')
       .eq('id', req.params.id)
       .single();
     if (error || !listing) return res.status(404).json({ error: 'Listing not found' });
 
+    // Attach seller info (separate lookup — no FK embed).
+    const [withSeller] = await attachSellers([listing]);
+
     // Increment view count
     await supabaseAdmin.from('marketplace_listings').update({ views: (listing.views || 0) + 1 }).eq('id', req.params.id);
 
-    res.json({ listing });
+    res.json({ listing: withSeller });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch listing' });
   }

@@ -37,8 +37,8 @@ async function loginUser(email, password) {
     
     // Store token and user info
     if (data.token) {
-      localStorage.setItem('authToken', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user || {}));
+      localStorage.setItem('jm_token', data.token);
+      localStorage.setItem('jm_user', JSON.stringify(data.user || {}));
       return {
         success: true,
         token: data.token,
@@ -89,8 +89,8 @@ async function verifyToken(token) {
  * Logout user (clear tokens)
  */
 function logout() {
-  localStorage.removeItem('authToken');
-  localStorage.removeItem('user');
+  localStorage.removeItem('jm_token');
+  localStorage.removeItem('jm_user');
   console.log('User logged out');
 }
 
@@ -99,7 +99,7 @@ function logout() {
  */
 function getStoredUser() {
   try {
-    const userJson = localStorage.getItem('user');
+    const userJson = localStorage.getItem('jm_user');
     return userJson ? JSON.parse(userJson) : null;
   } catch (e) {
     console.error('Error parsing stored user:', e);
@@ -111,7 +111,7 @@ function getStoredUser() {
  * Get stored auth token
  */
 function getStoredToken() {
-  return localStorage.getItem('authToken');
+  return localStorage.getItem('jm_token');
 }
 
 /**
@@ -126,7 +126,7 @@ function isAuthenticated() {
  */
 function getUserRole() {
   const user = getStoredUser();
-  return user?.role || null;
+  return user?.user_type || user?.role || null;
 }
 
 /**
@@ -213,8 +213,8 @@ async function verifyOTP(phone, otp) {
     const data = await response.json();
     
     if (data.token) {
-      localStorage.setItem('authToken', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user || {}));
+      localStorage.setItem('jm_token', data.token);
+      localStorage.setItem('jm_user', JSON.stringify(data.user || {}));
       return {
         success: true,
         token: data.token,
@@ -258,8 +258,8 @@ async function loginWithGoogle(googleToken) {
     const data = await response.json();
     
     if (data.token) {
-      localStorage.setItem('authToken', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user || {}));
+      localStorage.setItem('jm_token', data.token);
+      localStorage.setItem('jm_user', JSON.stringify(data.user || {}));
       return {
         success: true,
         token: data.token,

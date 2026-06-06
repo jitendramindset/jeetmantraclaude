@@ -1,12 +1,45 @@
 const express = require('express');
 const axios = require('axios');
 const { supabaseAdmin } = require('../config/supabase');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, authorizeRole } = require('../middleware/auth');
+const { getN8nConfig, setN8nConfig, triggerN8n } = require('../config/n8nConfig');
 
 const router = express.Router();
 
 const N8N_URL = process.env.N8N_WEBHOOK_URL || 'https://work.mantravat.cloud/webhook/jeetmantra';
 const N8N_SECRET = process.env.N8N_WEBHOOK_SECRET || '';
+
+// ── Addon config: a user can add / view their own n8n webhook at runtime ──
+// GET  /api/n8n/config — view current addon config (secret redacted)
+router.get('/config', authenticateToken, async (req, res) => {
+  const cfg = await getN8nConfig();
+  res.json({
+    enabled: cfg.enabled,
+    url: cfg.url || null,
+    hasSecret: !!cfg.secret,
+    source: cfg.url === (process.env.N8N_WEBHOOK_URL || '') ? 'env' : 'user'
+  });
+});
+
+// POST /api/n8n/config — add/update the webhook URL (admin only)
+router.post('/config', authenticateToken, authorizeRole(['admin']), async (req, res) => {
+  try {
+    const { url, secret, enabled } = req.body;
+    if (url && !/^https?:\/\//.test(url)) {
+      return res.status(400).json({ error: 'url must start with http:// or https://' });
+    }
+    const saved = await setN8nConfig({ url, secret, enabled });
+    res.json({ message: 'n8n addon updated', enabled: saved.enabled, url: saved.url || null, hasSecret: !!saved.secret });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update n8n config' });
+  }
+});
+
+// POST /api/n8n/test — fire a test event to the configured webhook (admin only)
+router.post('/test', authenticateToken, authorizeRole(['admin']), async (req, res) => {
+  const result = await triggerN8n('addon.test', { by: req.user.id, at: new Date().toISOString() });
+  res.json(result);
+});
 
 // Verify n8n webhook signature
 function verifyN8nSignature(req) {

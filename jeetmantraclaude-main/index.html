@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JeetMantra — Loading…</title>
+  <style>
+    html,body{margin:0;height:100%;background:#0a0a0a;color:#e94560;
+      font-family:system-ui,-apple-system,sans-serif;
+      display:flex;align-items:center;justify-content:center;flex-direction:column;gap:1rem}
+    .logo{font-size:2rem;font-weight:800}
+    .spin{width:36px;height:36px;border:3px solid #1a1a2e;border-top-color:#e94560;
+      border-radius:50%;animation:r .8s linear infinite}
+    @keyframes r{to{transform:rotate(360deg)}}
+  </style>
+</head>
+<body>
+  <div class="logo">🎓 JeetMantra</div>
+  <div class="spin"></div>
+  <script>
+    // Entry router: send logged-in users to their dashboard, others to landing/login.
+    (function () {
+      var token = localStorage.getItem('jm_token');
+      var user = null;
+      try { user = JSON.parse(localStorage.getItem('jm_user') || 'null'); } catch (e) {}
+      if (token && user) {
+        var role = user.user_type || user.role || 'student';
+        window.location.replace(role === 'admin' ? '/admin.html' : '/dashboard.html?role=' + role);
+      } else {
+        window.location.replace('/website.html');
+      }
+    })();
+  </script>
+</body>
+</html>

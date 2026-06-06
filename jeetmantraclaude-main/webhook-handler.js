@@ -103,8 +103,8 @@ class WebhookHandler {
       password
     },
     (result) => {
-      localStorage.setItem('authToken', result.data.token);
-      localStorage.setItem('user', JSON.stringify(result.data.user));
+      localStorage.setItem('jm_token', result.data.token);
+      localStorage.setItem('jm_user', JSON.stringify(result.data.user));
       showToast(`Welcome back, ${result.data.user.name}!`, 'success');
 
       // Redirect based on role
@@ -140,8 +140,8 @@ class WebhookHandler {
       // Step 2: Verify OTP
       return this.sendWebhook('user-login-otp-verify', { phone, otp },
         (result) => {
-          localStorage.setItem('authToken', result.token);
-          localStorage.setItem('user', JSON.stringify(result.user));
+          localStorage.setItem('jm_token', result.token);
+          localStorage.setItem('jm_user', JSON.stringify(result.user));
           showToast('Login successful!', 'success');
           setTimeout(() => window.location.href = '/dashboard.html', 1500);
         },
@@ -158,8 +158,8 @@ class WebhookHandler {
   async loginWithGoogle(googleToken) {
     return this.sendWebhook('user-login-google', { googleToken },
       (result) => {
-        localStorage.setItem('authToken', result.token);
-        localStorage.setItem('user', JSON.stringify(result.user));
+        localStorage.setItem('jm_token', result.token);
+        localStorage.setItem('jm_user', JSON.stringify(result.user));
         showToast('Google login successful!', 'success');
         setTimeout(() => window.location.href = '/dashboard.html', 1500);
       },
@@ -521,7 +521,7 @@ class WebhookHandler {
    * Get current authenticated user
    */
   getCurrentUser() {
-    const userStr = localStorage.getItem('user');
+    const userStr = localStorage.getItem('jm_user');
     return userStr ? JSON.parse(userStr) : null;
   }
 
@@ -529,15 +529,15 @@ class WebhookHandler {
    * Check if user is authenticated
    */
   isAuthenticated() {
-    return !!localStorage.getItem('authToken');
+    return !!localStorage.getItem('jm_token');
   }
 
   /**
    * Logout user
    */
   logout() {
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('user');
+    localStorage.removeItem('jm_token');
+    localStorage.removeItem('jm_user');
     localStorage.removeItem('userId');
     window.location.href = '/website.html';
   }
@@ -546,7 +546,7 @@ class WebhookHandler {
    * Get bearer token
    */
   getAuthToken() {
-    return localStorage.getItem('authToken');
+    return localStorage.getItem('jm_token');
   }
 }
 

@@ -1,0 +1,17 @@
+# Local runtime data
+backend/data/
+backend/uploads/
+
+# Backups / scratch
+*.bak
+
+# Local-only editor/agent settings (keep launch.json, ignore personal settings)
+.claude/settings.local.json
+
+# Env files (secrets)
+.env
+backend/.env
+
+# Logs
+*.log
+npm-debug.log*

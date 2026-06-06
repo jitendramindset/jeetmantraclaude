@@ -593,6 +593,13 @@
               <div class="radio-description">Manage teachers, students & programs</div>
             </label>
           </div>
+          <div class="radio-option">
+            <input type="radio" name="user-type" value="coaching" id="type-coaching" onchange="updateUserTypeFields()">
+            <label for="type-coaching">
+              <div class="radio-title">🏆 Coaching</div>
+              <div class="radio-description">Run batches, courses & track results</div>
+            </label>
+          </div>
         </div>
       </div>
 
@@ -706,6 +713,36 @@
           <div class="form-group">
             <label class="form-label">Address <span class="required">*</span></label>
             <textarea class="form-input" id="school-address" placeholder="Enter school full address..." rows="2" style="font-family: inherit; resize: vertical; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px;"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- COACHING SPECIFIC FIELDS -->
+      <div class="conditional" id="coaching-fields">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Coaching Center Name <span class="required">*</span></label>
+            <input type="text" class="form-input" id="center-name" placeholder="e.g. Apex Learning Center">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Specializations <span class="required">*</span></label>
+            <input type="text" class="form-input" id="specializations" placeholder="e.g. JEE, NEET, UPSC (comma separated)">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Student Capacity <span class="required">*</span></label>
+            <input type="number" class="form-input" id="student-capacity" placeholder="200" min="1">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Number of Batches <span class="required">*</span></label>
+            <input type="number" class="form-input" id="batch-count" placeholder="8" min="1">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Address <span class="required">*</span></label>
+            <textarea class="form-input" id="coaching-address" placeholder="Enter center full address..." rows="2" style="font-family: inherit; resize: vertical; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px;"></textarea>
           </div>
         </div>
       </div>
@@ -1017,6 +1054,23 @@ function validateProfile() {
     signupData.studentCount = parseInt(students);
     signupData.teacherCount = parseInt(teachers);
     signupData.address = addr;
+  } else if (signupData.userType === 'coaching') {
+    const cName = document.getElementById('center-name').value.trim();
+    const specs = document.getElementById('specializations').value.trim();
+    const cap = document.getElementById('student-capacity').value;
+    const batches = document.getElementById('batch-count').value;
+    const addr = document.getElementById('coaching-address').value.trim();
+
+    if (!cName || !specs || !cap || !batches || !addr) {
+      showError('Please complete all required fields');
+      return false;
+    }
+
+    signupData.centerName = cName;
+    signupData.specializations = specs.split(',').map(s => s.trim()).filter(Boolean);
+    signupData.studentCapacity = parseInt(cap);
+    signupData.batchCount = parseInt(batches);
+    signupData.address = addr;
   }
 
   return true;
@@ -1089,6 +1143,7 @@ function updateUserTypeFields() {
   document.getElementById('teacher-fields').classList.remove('show');
   document.getElementById('partner-fields').classList.remove('show');
   document.getElementById('school-fields').classList.remove('show');
+  document.getElementById('coaching-fields').classList.remove('show');
 
   if (userType === 'student') {
     document.getElementById('student-fields').classList.add('show');
@@ -1098,6 +1153,8 @@ function updateUserTypeFields() {
     document.getElementById('partner-fields').classList.add('show');
   } else if (userType === 'school') {
     document.getElementById('school-fields').classList.add('show');
+  } else if (userType === 'coaching') {
+    document.getElementById('coaching-fields').classList.add('show');
   }
 }
 
@@ -1170,7 +1227,12 @@ async function submitSignup() {
       affiliationBoard: signupData.affiliationBoard,
       studentCount: signupData.studentCount,
       teacherCount: signupData.teacherCount,
-      address: signupData.address
+      address: signupData.address,
+      // Coaching fields
+      centerName: signupData.centerName,
+      specializations: signupData.specializations,
+      studentCapacity: signupData.studentCapacity,
+      batchCount: signupData.batchCount
     };
 
     const response = await fetch('http://localhost:5000/api/auth/signup', {
@@ -1181,8 +1243,8 @@ async function submitSignup() {
 
     if (response.ok) {
       const data = await response.json();
-      localStorage.setItem('authToken', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
+      localStorage.setItem('jm_token', data.token);
+      localStorage.setItem('jm_user', JSON.stringify(data.user));
       
       showToast('Account created! Redirecting to dashboard...', 'success');
       setTimeout(() => {
@@ -1191,6 +1253,7 @@ async function submitSignup() {
           'teacher': '/dashboard.html?role=teacher',
           'partner': '/dashboard.html?role=partner',
           'school': '/dashboard.html?role=school',
+          'coaching': '/dashboard.html?role=coaching',
           'admin': '/admin.html'
         };
         const redirect = roleRedirects[signupData.userType] || '/dashboard.html';

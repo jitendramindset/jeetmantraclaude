@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "jeetmantra-backend",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["start-server.js"],
+      "port": 5000,
+      "autoPort": false
+    }
+  ]
+}

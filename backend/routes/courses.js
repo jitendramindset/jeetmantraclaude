@@ -84,23 +84,26 @@ router.post('/', authenticateToken, authorizeRole(['teacher']), validate('course
     const courseId = uuidv4();
     const { title, description, category, level, price, startDate, endDate, maxStudents, batchTiming } = req.validatedData;
 
+    // Only include optional columns when provided so DB defaults apply otherwise.
+    const insertData = {
+      id: courseId,
+      teacher_id: req.user.id,
+      title,
+      description: description || '',
+      category: category || 'General',
+      level: level || 'beginner',
+      price: price || 0,
+      is_active: true,
+      created_at: new Date().toISOString()
+    };
+    if (startDate) insertData.start_date = startDate;
+    if (endDate) insertData.end_date = endDate;
+    if (maxStudents) insertData.max_students = maxStudents;
+    if (batchTiming) insertData.batch_timing = batchTiming;
+
     const { data: course, error } = await supabaseAdmin
       .from('courses')
-      .insert({
-        id: courseId,
-        teacher_id: req.user.id,
-        title,
-        description,
-        category,
-        level,
-        price,
-        start_date: startDate,
-        end_date: endDate,
-        max_students: maxStudents,
-        batch_timing: batchTiming,
-        is_active: true,
-        created_at: new Date().toISOString()
-      })
+      .insert(insertData)
       .select()
       .single();
 

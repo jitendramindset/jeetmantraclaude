@@ -1,0 +1,164 @@
+/**
+ * datasync.js — wires LevelDB (local) into EVERY API route at once.
+ *
+ * Two Express middlewares:
+ *   1. cacheMiddleware  — cache-aside for safe GET reads. Serves from LevelDB
+ *                         when warm, otherwise lets the route hit Supabase and
+ *                         stores the JSON response for next time. Per-user keyed.
+ *   2. syncMiddleware   — for every successful write (POST/PUT/PATCH/DELETE),
+ *                         records the operation in the LevelDB SyncQueue (so it
+ *                         can be replayed/flushed to the server when offline) and
+ *                         fires the optional n8n webhook addon.
+ *
+ * This gives the architecture the user asked for: local LevelDB on every
+ * endpoint + Supabase/Postgres as the source of truth + n8n as an opt-in addon.
+ */
+const crypto = require('crypto');
+const { cacheGet, cacheSet, del, list, SyncQueue } = require('../config/leveldb');
+const { triggerN8n } = require('../config/n8nConfig');
+
+const queue = new SyncQueue();
+
+// Per-route cache TTLs (seconds). Anything not listed uses the default.
+const CACHE_TTL = {
+  '/api/dashboard': 60,
+  '/api/courses': 120,
+  '/api/search': 120,
+  '/api/marketplace': 90,
+  '/api/users/profile': 120,
+};
+const DEFAULT_TTL = 60;
+
+// Routes that must NEVER be cached (auth, OTP, anything sensitive/volatile).
+const NO_CACHE_PREFIXES = ['/api/auth', '/api/sync', '/api/n8n', '/api/webhooks'];
+
+function shouldCache(path) {
+  return !NO_CACHE_PREFIXES.some(p => path.startsWith(p));
+}
+
+function ttlFor(path) {
+  const hit = Object.keys(CACHE_TTL).find(p => path.startsWith(p));
+  return hit ? CACHE_TTL[hit] : DEFAULT_TTL;
+}
+
+// Build a per-user cache key so one user's data never leaks to another.
+function cacheKey(req) {
+  const auth = req.headers.authorization || 'anon';
+  const userTag = crypto.createHash('sha1').update(auth).digest('hex').slice(0, 12);
+  const qs = JSON.stringify(req.query || {});
+  return `${req.path}|${userTag}|${qs}`;
+}
+
+/**
+ * cacheMiddleware — only acts on GET requests to cacheable routes.
+ */
+async function cacheMiddleware(req, res, next) {
+  if (!req.path.startsWith('/api')) return next();
+  if (req.method !== 'GET' || !shouldCache(req.path)) return next();
+
+  const key = cacheKey(req);
+  try {
+    const cached = await cacheGet(key);
+    if (cached) {
+      res.setHeader('X-Cache', 'HIT');
+      res.setHeader('X-Data-Source', 'leveldb');
+      return res.json(cached);
+    }
+  } catch (_) { /* cache miss is non-fatal */ }
+
+  // Cache miss — capture the route's JSON response and store it.
+  // NB: capture the full path NOW — Express rewrites req.path during sub-router
+  // routing, so by the time res.json runs it may read e.g. "/" instead of
+  // "/api/courses". Use originalUrl (minus query) which stays stable.
+  const fullPath = (req.originalUrl || req.path).split('?')[0];
+  res.setHeader('X-Cache', 'MISS');
+  const originalJson = res.json.bind(res);
+  res.json = (body) => {
+    if (res.statusCode >= 200 && res.statusCode < 300) {
+      cacheSet(key, body, ttlFor(fullPath)).catch(() => {});
+      res.setHeader('X-Data-Source', 'supabase');
+    }
+    return originalJson(body);
+  };
+  next();
+}
+
+/**
+ * syncMiddleware — on every successful write, enqueue a sync record + fire n8n.
+ * The write still goes straight to Supabase inside the route; this layer records
+ * it locally so an offline client can replay, and notifies n8n if configured.
+ */
+function syncMiddleware(req, res, next) {
+  const fullPath = (req.originalUrl || req.path).split('?')[0];
+  if (!fullPath.startsWith('/api')) return next();
+  const writeMethods = ['POST', 'PUT', 'PATCH', 'DELETE'];
+  if (!writeMethods.includes(req.method)) return next();
+  // Don't record these: sync queue itself (feedback loop), auth (sensitive,
+  // not a replayable data mutation), or the n8n addon config endpoints.
+  const SKIP = ['/api/sync', '/api/auth', '/api/n8n'];
+  if (SKIP.some(p => fullPath.startsWith(p))) return next();
+
+  const originalJson = res.json.bind(res);
+  res.json = (body) => {
+    if (res.statusCode >= 200 && res.statusCode < 300) {
+      const op = {
+        method: req.method,
+        path: fullPath,
+        userId: req.user?.id || req.user?.userId || null,
+        body: sanitize(req.body),
+        result: pickId(body),
+        status: res.statusCode,
+      };
+      // Record locally for offline replay (non-blocking).
+      queue.enqueue(op).catch(() => {});
+      // Invalidate related GET caches so stale reads don't linger.
+      invalidate(fullPath).catch(() => {});
+      // Fire the optional n8n addon (non-blocking).
+      triggerN8n(eventName(fullPath, req.method), op).catch(() => {});
+    }
+    return originalJson(body);
+  };
+  next();
+}
+
+// Drop password/token fields before they ever touch the local queue.
+function sanitize(body) {
+  if (!body || typeof body !== 'object') return body;
+  const clone = { ...body };
+  for (const k of ['password', 'token', 'otp', 'password_hash']) delete clone[k];
+  return clone;
+}
+
+function pickId(body) {
+  if (!body || typeof body !== 'object') return null;
+  const obj = body.user || body.course || body.listing || body.data || body;
+  return obj && obj.id ? { id: obj.id } : null;
+}
+
+// Cache invalidation: clear every cached GET that belongs to the route family
+// of the write. Cache keys look like  cache:/api/courses|<userhash>|<query>  so
+// we prefix-scan `cache:/api/<family>` and delete all matches (all users/queries).
+async function invalidate(path) {
+  const family = '/' + path.split('/').slice(1, 3).join('/'); // e.g. /api/courses
+  const prefix = 'cache:' + family;
+  try {
+    const entries = await list(prefix);
+    await Promise.all(entries.map(e => del(e.key).catch(() => {})));
+    // A write to /api/marketplace/:id/purchase also affects the buyer's
+    // dashboard and enrollments — clear those families too.
+    if (family === '/api/marketplace' || family === '/api/enrollments') {
+      for (const extra of ['cache:/api/dashboard', 'cache:/api/enrollments']) {
+        const ex = await list(extra);
+        await Promise.all(ex.map(e => del(e.key).catch(() => {})));
+      }
+    }
+  } catch (_) { /* invalidation is best-effort */ }
+}
+
+function eventName(fullPath, method) {
+  const seg = fullPath.replace(/^\/api\//, '').split('/')[0];
+  const verb = { POST: 'created', PUT: 'updated', PATCH: 'updated', DELETE: 'deleted' }[method] || 'changed';
+  return `${seg}.${verb}`;
+}
+
+module.exports = { cacheMiddleware, syncMiddleware };
