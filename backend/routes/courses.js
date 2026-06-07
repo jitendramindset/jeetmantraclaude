@@ -2,6 +2,7 @@ const express = require('express');
 const { supabase, supabaseAdmin } = require('../config/supabase');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
 const { validate } = require('../middleware/validation');
+const { CREATOR_ROLES } = require('../config/roles');
 const { v4: uuidv4 } = require('uuid');
 
 const router = express.Router();
@@ -79,7 +80,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create course (teacher only)
-router.post('/', authenticateToken, authorizeRole(['teacher']), validate('courseCreate'), async (req, res) => {
+router.post('/', authenticateToken, authorizeRole(CREATOR_ROLES), validate('courseCreate'), async (req, res) => {
   try {
     const courseId = uuidv4();
     const { title, description, category, level, price, startDate, endDate, maxStudents, batchTiming } = req.validatedData;
@@ -122,7 +123,7 @@ router.post('/', authenticateToken, authorizeRole(['teacher']), validate('course
 });
 
 // Update course (teacher only)
-router.put('/:id', authenticateToken, authorizeRole(['teacher']), async (req, res) => {
+router.put('/:id', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
   try {
     // Verify ownership
     const { data: course } = await supabase
@@ -173,7 +174,7 @@ router.put('/:id', authenticateToken, authorizeRole(['teacher']), async (req, re
 });
 
 // Delete course (teacher only)
-router.delete('/:id', authenticateToken, authorizeRole(['teacher']), async (req, res) => {
+router.delete('/:id', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
   try {
     // Verify ownership
     const { data: course } = await supabase
@@ -199,6 +200,53 @@ router.delete('/:id', authenticateToken, authorizeRole(['teacher']), async (req,
   } catch (error) {
     console.error('Course deletion error:', error);
     res.status(500).json({ error: 'Failed to delete course' });
+  }
+});
+
+// GET /api/courses/:id/students — teacher views every enrolled student with
+// computed progress + last attendance date. Used by the Configure modal's
+// Students tab.
+router.get('/:id/students', authenticateToken, async (req, res) => {
+  try {
+    const courseId = req.params.id;
+    // Ownership check (teacher only or admin)
+    const { data: course } = await supabaseAdmin.from('courses').select('teacher_id, title').eq('id', courseId).single();
+    if (!course) return res.status(404).json({ error: 'Course not found' });
+    if (req.user.role !== 'admin' && course.teacher_id !== req.user.id) {
+      return res.status(403).json({ error: 'Not your course' });
+    }
+    // Enrollments
+    const { data: enrollments } = await supabaseAdmin.from('enrollments').select('*').eq('course_id', courseId);
+    if (!enrollments?.length) return res.json({ course, students: [] });
+    const studentIds = enrollments.map(e => e.student_id);
+    const { data: students } = await supabaseAdmin.from('jeetmantra_users').select('id, full_name, email, last_active').in('id', studentIds);
+    const byId = Object.fromEntries((students || []).map(s => [s.id, s]));
+    // Total lectures (shared across all students)
+    const { count: totalLectures } = await supabaseAdmin.from('course_lectures').select('id', { count: 'exact', head: true }).eq('course_id', courseId);
+    // Per-student attendance count + last date
+    const rows = await Promise.all(enrollments.map(async (e) => {
+      const [{ count: present }, { data: lastRow }] = await Promise.all([
+        supabaseAdmin.from('attendance').select('id', { count: 'exact', head: true }).eq('course_id', courseId).eq('student_id', e.student_id).eq('status', 'present'),
+        supabaseAdmin.from('attendance').select('date').eq('course_id', courseId).eq('student_id', e.student_id).order('date', { ascending: false }).limit(1).maybeSingle()
+      ]);
+      const pct = totalLectures ? Math.round(((present || 0) / totalLectures) * 100) : 0;
+      const student = byId[e.student_id] || {};
+      return {
+        enrollment_id: e.id,
+        student_id: e.student_id,
+        full_name: student.full_name || '—',
+        email: student.email || '',
+        last_active: student.last_active || null,
+        attended_lectures: present || 0,
+        total_lectures: totalLectures || 0,
+        progress_percentage: pct,
+        last_attendance_date: lastRow?.date || null,
+        enrolled_at: e.enrollment_date || e.created_at
+      };
+    }));
+    res.json({ course, students: rows });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
   }
 });
 

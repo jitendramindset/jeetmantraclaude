@@ -137,4 +137,37 @@ router.get('/progress', authenticateToken, async (req, res) => {
   res.json({ progress: rows });
 });
 
+// GET /api/student/test-history — every test the student has taken
+router.get('/test-history', authenticateToken, async (req, res) => {
+  try {
+    const { data: subs } = await supabaseAdmin.from('test_submissions').select('*').eq('student_id', req.user.id).order('submitted_at', { ascending: false });
+    const testIds = (subs || []).map(s => s.test_id);
+    let tests = [];
+    if (testIds.length) {
+      const { data } = await supabaseAdmin.from('course_tests').select('id, title, total_marks, course_id, courses(title)').in('id', testIds);
+      tests = data || [];
+    }
+    const byId = Object.fromEntries(tests.map(t => [t.id, t]));
+    res.json({
+      history: (subs || []).map(s => ({
+        ...s,
+        test: byId[s.test_id] || null,
+        percentage: byId[s.test_id]?.total_marks ? Math.round((s.score / byId[s.test_id].total_marks) * 100) : null
+      }))
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// GET /api/student/submission-history — every assignment the student submitted
+router.get('/submission-history', authenticateToken, async (req, res) => {
+  try {
+    const { data: subs } = await supabaseAdmin.from('assignments').select('*, courses(title)').eq('student_id', req.user.id).order('updated_at', { ascending: false });
+    res.json({ submissions: subs || [] });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 module.exports = router;

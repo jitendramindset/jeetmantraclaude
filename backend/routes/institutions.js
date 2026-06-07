@@ -63,7 +63,13 @@ router.post('/teachers', authenticateToken, authorizeRole(INSTITUTIONS), async (
     subject: subject || null,
     role: role || 'teacher'
   }).select().single();
-  if (error) return res.status(400).json({ error: error.message });
+  if (error) {
+    // Friendly message for the uniqueness constraint instead of leaking SQL.
+    if ((error.message || '').includes('duplicate key')) {
+      return res.status(409).json({ error: `Already linked: ${teacher.full_name || email}${subject ? ' for ' + subject : ''}` });
+    }
+    return res.status(400).json({ error: error.message });
+  }
   res.status(201).json({ message: 'Teacher linked', link: data, teacher });
 });
 
@@ -101,7 +107,12 @@ router.post('/students', authenticateToken, authorizeRole(INSTITUTIONS), async (
   const { data, error } = await supabaseAdmin.from('institution_students').insert({
     id: uuidv4(), institution_id: req.user.id, student_id: student.id, class_label: classLabel || null
   }).select().single();
-  if (error) return res.status(400).json({ error: error.message });
+  if (error) {
+    if ((error.message || '').includes('duplicate key')) {
+      return res.status(409).json({ error: `Student ${email} is already linked to this institution` });
+    }
+    return res.status(400).json({ error: error.message });
+  }
   res.status(201).json({ message: 'Student linked', link: data });
 });
 

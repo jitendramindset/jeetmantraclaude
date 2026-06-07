@@ -4,6 +4,7 @@ const path = require('path');
 const multer = require('multer');
 const { supabase, supabaseAdmin } = require('../config/supabase');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
+const { CREATOR_ROLES } = require('../config/roles');
 const { v4: uuidv4 } = require('uuid');
 
 const uploadDir = path.join(__dirname, '..', 'uploads');
@@ -20,7 +21,7 @@ const upload = multer({ storage });
 const router = express.Router();
 
 // Schedule a live class (teacher only)
-router.post('/', authenticateToken, authorizeRole(['teacher']), async (req, res) => {
+router.post('/', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
   try {
     const { courseId, title, description, scheduledTime, duration, meetingLink, capacity } = req.body;
     const classId = uuidv4();
@@ -184,38 +185,44 @@ router.post('/:classId/join', authenticateToken, async (req, res) => {
   try {
     const { classId } = req.params;
     const studentId = req.user.id;
-    const attendanceId = uuidv4();
 
-    // Check if already joined
-    const { data: existing } = await supabase
+    // Fetch the class so we can return meeting_link to the client (the UI
+    // opens it in a new tab on join). Also verifies the class exists.
+    const { data: liveClass } = await supabaseAdmin
+      .from('live_classes')
+      .select('id, title, status, meeting_link, course_id')
+      .eq('id', classId)
+      .single();
+    if (!liveClass) return res.status(404).json({ error: 'Live class not found' });
+    if (liveClass.status === 'completed' || liveClass.status === 'cancelled') {
+      return res.status(400).json({ error: 'This class is no longer available' });
+    }
+
+    // Check if already joined — if so, re-return meeting_link so the user can rejoin.
+    const { data: existing } = await supabaseAdmin
       .from('class_attendees')
       .select('id')
       .eq('class_id', classId)
       .eq('student_id', studentId)
-      .single();
+      .maybeSingle();
 
-    if (existing) {
-      return res.status(400).json({ error: 'Already joined this class' });
-    }
-
-    const { data: attendance, error } = await supabaseAdmin
-      .from('class_attendees')
-      .insert({
-        id: attendanceId,
-        class_id: classId,
-        student_id: studentId,
-        joined_at: new Date().toISOString()
-      })
-      .select()
-      .single();
-
-    if (error) {
-      return res.status(400).json({ error: 'Failed to join class' });
+    if (!existing) {
+      const { error } = await supabaseAdmin
+        .from('class_attendees')
+        .insert({
+          id: uuidv4(),
+          class_id: classId,
+          student_id: studentId,
+          joined_at: new Date().toISOString()
+        });
+      if (error) return res.status(400).json({ error: 'Failed to join class: ' + error.message });
     }
 
     res.json({
-      message: 'Joined live class successfully',
-      attendance
+      message: existing ? 'Rejoining live class' : 'Joined live class successfully',
+      meetingLink: liveClass.meeting_link,
+      classId: liveClass.id,
+      title: liveClass.title
     });
   } catch (error) {
     console.error('Join class error:', error);
@@ -253,7 +260,7 @@ router.post('/:classId/documents', authenticateToken, upload.single('file'), asy
 });
 
 // Update live class (teacher only)
-router.put('/:classId', authenticateToken, authorizeRole(['teacher']), async (req, res) => {
+router.put('/:classId', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
   try {
     // Verify teacher owns this class
     const { data: liveClass } = await supabase
@@ -297,7 +304,7 @@ router.put('/:classId', authenticateToken, authorizeRole(['teacher']), async (re
 });
 
 // Start live class (teacher only)
-router.post('/:classId/start', authenticateToken, authorizeRole(['teacher']), async (req, res) => {
+router.post('/:classId/start', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
   try {
     // Verify teacher owns this class
     const { data: liveClass } = await supabase
@@ -335,7 +342,7 @@ router.post('/:classId/start', authenticateToken, authorizeRole(['teacher']), as
 });
 
 // End live class (teacher only)
-router.post('/:classId/end', authenticateToken, authorizeRole(['teacher']), async (req, res) => {
+router.post('/:classId/end', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
   try {
     // Verify teacher owns this class
     const { data: liveClass } = await supabase
@@ -372,27 +379,31 @@ router.post('/:classId/end', authenticateToken, authorizeRole(['teacher']), asyn
   }
 });
 
-// Get class attendees
-router.get('/:classId/attendees', authenticateToken, async (req, res) => {
+// GET /api/live-classes/:id/attendees — teacher views who joined.
+// Uses the service client + a separate user lookup since jeetmantra_users.id
+// is VARCHAR and the FK embed isn't possible.
+router.get('/:id/attendees', authenticateToken, async (req, res) => {
   try {
-    const { data: attendees, error } = await supabase
-      .from('class_attendees')
-      .select('*, users (full_name, profile_image)')
-      .eq('class_id', req.params.classId)
-      .order('joined_at', { ascending: false });
-
-    if (error) {
-      return res.status(500).json({ error: 'Failed to fetch attendees' });
+    // Verify the caller is the class's teacher (or admin)
+    const { data: cls } = await supabaseAdmin.from('live_classes').select('teacher_id, title, status').eq('id', req.params.id).single();
+    if (!cls) return res.status(404).json({ error: 'Class not found' });
+    if (req.user.role !== 'admin' && cls.teacher_id !== req.user.id) {
+      return res.status(403).json({ error: 'Not your class' });
     }
-
+    const { data: rows } = await supabaseAdmin.from('class_attendees').select('*').eq('class_id', req.params.id).order('joined_at', { ascending: true });
+    const ids = (rows || []).map(r => r.student_id);
+    let students = [];
+    if (ids.length) {
+      const { data } = await supabaseAdmin.from('jeetmantra_users').select('id, full_name, email').in('id', ids);
+      students = data || [];
+    }
+    const byId = Object.fromEntries(students.map(s => [s.id, s]));
     res.json({
-      message: 'Class attendees fetched successfully',
-      attendees: attendees || [],
-      totalCount: attendees?.length || 0
+      class: cls,
+      attendees: (rows || []).map(r => ({ ...r, ...byId[r.student_id] }))
     });
-  } catch (error) {
-    console.error('Attendees fetch error:', error);
-    res.status(500).json({ error: 'Failed to fetch attendees' });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
   }
 });
 

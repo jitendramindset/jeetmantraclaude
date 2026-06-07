@@ -177,6 +177,14 @@ body{display:flex;min-height:100vh}
           <div class="card"><ul class="item-list" id="s-purchasesList"><li style="width:100%"><div class="empty-state"><div class="icon">🛍️</div>No purchases — <a href="/marketplace.html" style="color:var(--jm-primary)">Shop Now</a></div></li></ul></div>
         </div>
       </div>
+      <div class="grid-2">
+        <div class="section" id="sec-student-tests"><div class="section-title">✏️ Test Results</div>
+          <div class="card"><ul class="item-list" id="s-testsList"><li style="width:100%"><div class="empty-state"><div class="icon">✏️</div>Loading…</div></li></ul></div>
+        </div>
+        <div class="section" id="sec-student-submissions"><div class="section-title">📤 My Submissions</div>
+          <div class="card"><ul class="item-list" id="s-submissionsList"><li style="width:100%"><div class="empty-state"><div class="icon">📤</div>Loading…</div></li></ul></div>
+        </div>
+      </div>
       <div class="section" id="sec-student-notes">
         <div class="section-title">📝 My Notes
           <div class="actions"><button class="btn-sm btn-primary" onclick="openModal('addNote')">+ New Note</button></div>
@@ -242,6 +250,24 @@ body{display:flex;min-height:100vh}
         <div class="stat-card"><div class="label">Listings</div><div class="value" id="p-listings">0</div><div class="sub">On marketplace</div></div>
         <div class="stat-card"><div class="label">Pending</div><div class="value" id="p-pending">0</div><div class="sub">Bookings</div></div>
       </div>
+      <!-- PARTNER CREATOR TOOLS — partners can also offer courses + run live sessions -->
+      <div class="grid-2">
+        <div class="section" id="sec-partner-myCourses">
+          <div class="section-title">📚 My Services / Courses
+            <div class="actions">
+              <button class="btn-sm btn-primary" onclick="openModal('createCourse')">+ New Course</button>
+              <button class="btn-sm btn-outline" onclick="openModal('takeAttendance')">📝 Attendance</button>
+            </div>
+          </div>
+          <div class="card"><ul class="item-list" id="pm-coursesList"><li style="width:100%"><div class="empty-state"><div class="icon">📖</div>Loading…</div></li></ul></div>
+        </div>
+        <div class="section" id="sec-partner-myLive">
+          <div class="section-title">📡 Live Sessions
+            <div class="actions"><button class="btn-sm btn-primary" onclick="openModal('scheduleLive')">+ Schedule</button></div>
+          </div>
+          <div class="card"><ul class="item-list" id="pm-liveList"><li style="width:100%"><div class="empty-state"><div class="icon">📺</div>None yet</div></li></ul></div>
+        </div>
+      </div>
       <div class="grid-2">
         <div class="section" id="sec-partner-bookings">
           <div class="section-title">📅 Bookings
@@ -266,10 +292,34 @@ body{display:flex;min-height:100vh}
         <div class="stat-card"><div class="label">Available Courses</div><div class="value" id="sc-courses">0</div><div class="sub">On platform</div></div>
         <div class="stat-card"><div class="label">Payments</div><div class="value" id="sc-payments">₹0</div><div class="sub">Total spent</div></div>
       </div>
+      <!-- INSTITUTION CREATOR TOOLS — schools can run their own courses + live classes + attendance -->
+      <div class="stats-grid">
+        <div class="stat-card"><div class="label">School Courses</div><div class="value" id="sm-courses">0</div><div class="sub">Owned by school</div></div>
+        <div class="stat-card"><div class="label">Live Classes</div><div class="value" id="sm-liveCount">0</div><div class="sub">Scheduled/Live</div></div>
+        <div class="stat-card"><div class="label">Enrollments</div><div class="value" id="sm-enrollCount">0</div><div class="sub">Across courses</div></div>
+        <div class="stat-card"><div class="label">School Earnings</div><div class="value" id="sm-earnTotal">₹0</div><div class="sub">From courses</div></div>
+      </div>
+      <div class="grid-2">
+        <div class="section" id="sec-school-myCourses">
+          <div class="section-title">📚 My School Courses
+            <div class="actions">
+              <button class="btn-sm btn-primary" onclick="openModal('createCourse')">+ New Course</button>
+              <button class="btn-sm btn-outline" onclick="openModal('takeAttendance')">📝 Attendance</button>
+            </div>
+          </div>
+          <div class="card"><ul class="item-list" id="sm-coursesList"><li style="width:100%"><div class="empty-state"><div class="icon">📖</div>Loading…</div></li></ul></div>
+        </div>
+        <div class="section" id="sec-school-myLive">
+          <div class="section-title">📡 Live Classes
+            <div class="actions"><button class="btn-sm btn-primary" onclick="openModal('scheduleLive')">+ Schedule Class</button></div>
+          </div>
+          <div class="card"><ul class="item-list" id="sm-liveList"><li style="width:100%"><div class="empty-state"><div class="icon">📺</div>None yet</div></li></ul></div>
+        </div>
+      </div>
       <div class="grid-2">
         <div class="section" id="sec-school-courses">
-          <div class="section-title">📚 Available Courses
-            <div class="actions"><a href="/marketplace.html" class="btn-sm btn-primary" style="text-decoration:none">🛒 Marketplace</a></div>
+          <div class="section-title">📚 Platform Courses
+            <div class="actions"><a href="/marketplace.html" class="btn-sm btn-outline" style="text-decoration:none">🛒 Marketplace</a></div>
           </div>
           <div class="card"><ul class="item-list" id="sc-coursesList"><li style="width:100%"><div class="empty-state"><div class="icon">📖</div>Loading courses...</div></li></ul></div>
         </div>
@@ -277,11 +327,22 @@ body{display:flex;min-height:100vh}
           <div class="card"><ul class="item-list" id="sc-paymentsList"><li style="width:100%"><div class="empty-state"><div class="icon">💳</div>No payments</div></li></ul></div>
         </div>
       </div>
-      <div class="section" id="sec-school-teachers">
-        <div class="section-title">👨‍🏫 Linked Teachers
-          <div class="actions"><button class="btn-sm btn-primary" onclick="openModal('linkTeacher')">+ Add Teacher</button></div>
+      <div class="section" id="sec-school-earn"><div class="section-title">💰 Earnings</div>
+        <div class="card"><ul class="item-list" id="sm-earnList"><li style="width:100%"><div class="empty-state"><div class="icon">💸</div>No earnings yet</div></li></ul></div>
+      </div>
+      <div class="grid-2">
+        <div class="section" id="sec-school-teachers">
+          <div class="section-title">👨‍🏫 Linked Teachers
+            <div class="actions"><button class="btn-sm btn-primary" onclick="openModal('linkTeacher')">+ Add</button></div>
+          </div>
+          <div class="card"><ul class="item-list" id="inst-teachersList"><li style="width:100%"><div class="empty-state"><div class="icon">👨‍🏫</div>Loading…</div></li></ul></div>
         </div>
-        <div class="card"><ul class="item-list" id="inst-teachersList"><li style="width:100%"><div class="empty-state"><div class="icon">👨‍🏫</div>Loading…</div></li></ul></div>
+        <div class="section" id="sec-school-students">
+          <div class="section-title">🧑‍🎓 Linked Students
+            <div class="actions"><button class="btn-sm btn-primary" onclick="openModal('linkStudent')">+ Add</button></div>
+          </div>
+          <div class="card"><ul class="item-list" id="inst-studentsList"><li style="width:100%"><div class="empty-state"><div class="icon">🧑‍🎓</div>Loading…</div></li></ul></div>
+        </div>
       </div>
       <div class="section" id="sec-school-profile">
         <div class="section-title">🏫 School Profile
@@ -299,17 +360,35 @@ body{display:flex;min-height:100vh}
         <div class="stat-card"><div class="label">Listings</div><div class="value" id="co-listings">0</div><div class="sub">On marketplace</div></div>
         <div class="stat-card"><div class="label">Platform Courses</div><div class="value" id="co-courses">0</div><div class="sub">Available</div></div>
       </div>
+      <!-- COACHING CREATOR TOOLS — center can run their own courses + live + attendance -->
+      <div class="grid-2">
+        <div class="section" id="sec-coaching-myCourses">
+          <div class="section-title">📚 My Center Courses
+            <div class="actions">
+              <button class="btn-sm btn-primary" onclick="openModal('createCourse')">+ New Course</button>
+              <button class="btn-sm btn-outline" onclick="openModal('takeAttendance')">📝 Attendance</button>
+            </div>
+          </div>
+          <div class="card"><ul class="item-list" id="cm-coursesList"><li style="width:100%"><div class="empty-state"><div class="icon">📖</div>Loading…</div></li></ul></div>
+        </div>
+        <div class="section" id="sec-coaching-myLive">
+          <div class="section-title">📡 Live Classes
+            <div class="actions"><button class="btn-sm btn-primary" onclick="openModal('scheduleLive')">+ Schedule</button></div>
+          </div>
+          <div class="card"><ul class="item-list" id="cm-liveList"><li style="width:100%"><div class="empty-state"><div class="icon">📺</div>None yet</div></li></ul></div>
+        </div>
+      </div>
       <div class="grid-2">
         <div class="section" id="sec-coaching-listings">
-          <div class="section-title">🛒 My Listings
-            <div class="actions"><button class="btn-sm btn-primary" onclick="openModal('createCourse')">+ New Course</button></div>
+          <div class="section-title">🛒 My Marketplace Listings
+            <div class="actions"><button class="btn-sm btn-primary" onclick="openModal('listCourse')">+ List on Marketplace</button></div>
           </div>
           <div class="card">
             <ul class="item-list" id="co-listingsList"><li style="width:100%"><div class="empty-state"><div class="icon">🏪</div>No listings</div></li></ul>
           </div>
         </div>
         <div class="section" id="sec-coaching-earnings"><div class="section-title">💰 Earnings</div>
-          <div class="card"><ul class="item-list" id="co-earningsList"><li style="width:100%"><div class="empty-state"><div class="icon">💸</div>No earnings</div></li></ul></div>
+          <div class="card"><ul class="item-list" id="cm-earnList"><li style="width:100%"><div class="empty-state"><div class="icon">💸</div>No earnings</div></li></ul></div>
         </div>
       </div>
       <div class="section" id="sec-coaching-courses">
@@ -318,11 +397,19 @@ body{display:flex;min-height:100vh}
         </div>
         <div class="grid-3" id="co-coursesList"></div>
       </div>
-      <div class="section" id="sec-coaching-teachers">
-        <div class="section-title">👨‍🏫 Linked Teachers
-          <div class="actions"><button class="btn-sm btn-primary" onclick="openModal('linkTeacher')">+ Add Teacher</button></div>
+      <div class="grid-2">
+        <div class="section" id="sec-coaching-teachers">
+          <div class="section-title">👨‍🏫 Linked Teachers
+            <div class="actions"><button class="btn-sm btn-primary" onclick="openModal('linkTeacher')">+ Add</button></div>
+          </div>
+          <div class="card"><ul class="item-list" id="inst-teachersList-coaching"><li style="width:100%"><div class="empty-state"><div class="icon">👨‍🏫</div>Loading…</div></li></ul></div>
         </div>
-        <div class="card"><ul class="item-list" id="inst-teachersList-coaching"><li style="width:100%"><div class="empty-state"><div class="icon">👨‍🏫</div>Loading…</div></li></ul></div>
+        <div class="section" id="sec-coaching-students">
+          <div class="section-title">🧑‍🎓 Linked Students
+            <div class="actions"><button class="btn-sm btn-primary" onclick="openModal('linkStudent')">+ Add</button></div>
+          </div>
+          <div class="card"><ul class="item-list" id="inst-studentsList-coaching"><li style="width:100%"><div class="empty-state"><div class="icon">🧑‍🎓</div>Loading…</div></li></ul></div>
+        </div>
       </div>
       <div class="section" id="sec-coaching-profile">
         <div class="section-title">🏆 Center Profile
@@ -358,8 +445,23 @@ body{display:flex;min-height:100vh}
           <div class="card"><ul class="item-list" id="a-listingsList"><li style="width:100%"><div class="empty-state"><div class="icon">🛒</div>No listings</div></li></ul></div>
         </div>
       </div>
-      <div class="section" id="sec-admin-transactions"><div class="section-title">💳 Recent Transactions</div>
-        <div class="card"><ul class="item-list" id="a-paymentsList"><li style="width:100%"><div class="empty-state"><div class="icon">💳</div>No transactions</div></li></ul></div>
+      <div class="grid-2">
+        <div class="section" id="sec-admin-transactions"><div class="section-title">💳 Recent Transactions</div>
+          <div class="card"><ul class="item-list" id="a-paymentsList"><li style="width:100%"><div class="empty-state"><div class="icon">💳</div>No transactions</div></li></ul></div>
+        </div>
+        <div class="section" id="sec-admin-addons">
+          <div class="section-title">🤖 Platform Addons</div>
+          <div class="card">
+            <div style="padding:10px 0;border-bottom:1px solid var(--jm-border);display:flex;justify-content:space-between;align-items:center">
+              <div><div style="font-weight:600">n8n Webhook</div><div style="font-size:11px;color:var(--jm-text-muted)">Forward platform events to your n8n workflow</div></div>
+              <button class="btn-sm btn-outline" onclick="openN8nConfig()">Configure →</button>
+            </div>
+            <div style="padding:10px 0;display:flex;justify-content:space-between;align-items:center">
+              <div><div style="font-weight:600">Full Admin Panel</div><div style="font-size:11px;color:var(--jm-text-muted)">User management, courses, payouts</div></div>
+              <a href="/admin.html" class="btn-sm btn-primary" style="text-decoration:none">Open →</a>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -399,6 +501,7 @@ const NAV={
   school:[
     {i:'🏠',l:'Dashboard',t:'top',a:true},
     {i:'📚',l:'Available Courses',t:'courses'},
+    {i:'👨‍🏫',l:'Teachers',t:'teachers'},
     {i:'💳',l:'Payments',t:'payments'},
     {i:'🛒',l:'Browse Marketplace',h:'/marketplace.html'},
     {i:'🏫',l:'Profile',t:'profile'}
@@ -406,6 +509,7 @@ const NAV={
   coaching:[
     {i:'🏠',l:'Dashboard',t:'top',a:true},
     {i:'🛒',l:'My Listings',t:'listings'},
+    {i:'👨‍🏫',l:'Teachers',t:'teachers'},
     {i:'💰',l:'Earnings',t:'earnings'},
     {i:'📚',l:'Platform Courses',t:'courses'},
     {i:'🛒',l:'Browse Marketplace',h:'/marketplace.html'},
@@ -474,7 +578,12 @@ function renderStudentDash(d){
   document.getElementById('s-completed').textContent=d.enrolledCourses?.filter(e=>e.progress_percentage===100).length||0;
   document.getElementById('s-assignments').textContent=d.homework?.length||0;
   document.getElementById('s-skills').textContent=d.skillsThisWeek?.length||0;
-  renderList('s-coursesList',(d.enrolledCourses||[]).map(e=>`<li><div style="flex:1"><div>${e.courses?.title||'Course'}</div><div class="progress-bar"><div class="progress-fill" style="width:${e.progress_percentage||0}%"></div></div></div><span class="badge badge-blue">${e.progress_percentage||0}%</span></li>`),['📖','No courses yet — <a href="/marketplace.html" style="color:var(--jm-primary)">Browse</a>']);
+  renderList('s-coursesList',(d.enrolledCourses||[]).map(e=>{
+    const pct=e.progress_percentage||0;
+    const meta=e.total_lectures?`${e.attended_lectures||0} / ${e.total_lectures} lectures attended`:'No lectures yet';
+    const courseTitle=(e.courses?.title||'Course').replace(/'/g,"\\'");
+    return `<li><div style="flex:1"><div style="font-weight:600">${e.courses?.title||'Course'}</div><div style="font-size:11px;color:var(--jm-text-muted);margin-top:2px">${meta}</div><div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div></div><div class="row-actions"><span class="badge ${pct===100?'badge-green':'badge-blue'}">${pct}%</span><button class="btn-sm btn-outline" onclick="openAttendanceLog('${e.course_id}','${courseTitle}')">🗓 History</button><button class="btn-sm btn-primary" onclick="openStudentCourseView('${e.course_id}')">📚 View</button></div></li>`;
+  }),['📖','No courses yet — <a href="/marketplace.html" style="color:var(--jm-primary)">Browse</a>']);
   renderList('s-hwList',(d.homework||[]).map(h=>`<li><span>${h.title}</span><span class="badge badge-red">${new Date(h.due_date).toLocaleDateString()}</span></li>`),['✅','No pending assignments']);
   renderList('s-liveList',(d.liveClasses||[]).map(c=>{
     const s=c.status||(c.is_live?'live':'scheduled');
@@ -484,6 +593,44 @@ function renderStudentDash(d){
   renderList('s-purchasesList',(d.marketplacePurchases||[]).map(p=>`<li><span>${p.marketplace_listings?.courses?.title||'Course'}</span><span class="badge badge-green">${fmt(p.amount)}</span></li>`),['🛍️','No purchases yet']);
   renderProfile('s-profile');
 }
+// Shared renderer for "creator" data (courses, live classes, enrollments,
+// earnings) — used by teacher, school, coaching, partner. Takes an id prefix
+// so each role can have its own DOM nodes without collision.
+function renderCreatorBlock(prefix, d){
+  // Stash for modal pickers
+  window._teacherCourses=d.courses||[];
+  window._teacherEnrollments=d.enrollments||[];
+  window._teacherCoursesById=Object.fromEntries((d.courses||[]).map(c=>[c.id,c]));
+  // Stats
+  const setText=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  setText(prefix+'courses',(d.courses||[]).length);
+  setText(prefix+'liveCount',(d.liveClasses||[]).length);
+  setText(prefix+'enrollCount',(d.enrollments||[]).length);
+  setText(prefix+'earnTotal',fmt(d.totalEarnings));
+  // Courses list
+  renderList(prefix+'coursesList',(d.courses||[]).map(c=>{
+    const t=c.title.replace(/'/g,"\\'");
+    return `<li><span>${c.title}</span><div class="row-actions">
+      <span class="badge ${c.is_active?'badge-green':'badge-red'}">${c.is_active?'Active':'Inactive'}</span>
+      <button class="btn-sm btn-outline" onclick="openCourseStudents('${c.id}','${t}')">👥 Students</button>
+      <button class="btn-sm btn-outline" onclick="openAttendanceLog('${c.id}','${t}')">🗓 History</button>
+      <button class="btn-sm btn-outline" onclick="openEditCourse(window._teacherCoursesById['${c.id}'])">✏️ Edit</button>
+      <button class="btn-sm btn-outline" onclick="openConfigure('${c.id}')">⚙️ Configure</button>
+    </div></li>`;
+  }),['📖','No courses yet — click + New Course to start']);
+  // Live classes list
+  renderList(prefix+'liveList',(d.liveClasses||[]).map(c=>{
+    const s=c.status||'scheduled';
+    let act='';
+    if(s==='scheduled') act=`<button class="btn-sm btn-primary" onclick="startLive('${c.id}')">▶ Start</button>`;
+    else if(s==='live') act=`<button class="btn-sm btn-outline" onclick="endLive('${c.id}')">⏹ End</button>`;
+    const badge=s==='live'?'badge-green':(s==='completed'?'badge-blue':'badge-yellow');
+    return `<li><span>${c.title}</span><div class="row-actions"><span class="badge ${badge}">${s}</span><button class="btn-sm btn-outline" onclick="openLiveRoster('${c.id}')">👥 Roster</button>${act}</div></li>`;
+  }),['📺','No live classes scheduled']);
+  // Earnings list
+  renderList(prefix+'earnList',(d.earnings||[]).map(e=>`<li><span>${e.source||'Earning'}</span><span class="badge badge-green">${fmt(e.amount)}</span></li>`),['💸','No earnings yet']);
+}
+
 function renderTeacherDash(d){
   // Stash for modals that need a course/enrollment picker
   window._teacherCourses=d.courses||[];
@@ -492,21 +639,35 @@ function renderTeacherDash(d){
   document.getElementById('t-bookings').textContent=d.bookings?.length||0;
   document.getElementById('t-earnings').textContent=fmt(d.totalEarnings);
   document.getElementById('t-listings').textContent=d.marketplaceListings?.length||0;
-  renderList('t-coursesList',(d.courses||[]).map(c=>`<li><span>${c.title}</span><div class="row-actions"><span class="badge ${c.is_active?'badge-green':'badge-red'}">${c.is_active?'Active':'Inactive'}</span><button class="btn-sm btn-outline" onclick="openConfigure('${c.id}')">⚙️ Configure</button></div></li>`),['📖','No courses created']);
+  // Stash full course objects so Edit modal can pre-populate
+  window._teacherCoursesById=Object.fromEntries((d.courses||[]).map(c=>[c.id,c]));
+  renderList('t-coursesList',(d.courses||[]).map(c=>{
+    const courseTitle=c.title.replace(/'/g,"\\'");
+    return `<li><span>${c.title}</span><div class="row-actions">
+      <span class="badge ${c.is_active?'badge-green':'badge-red'}">${c.is_active?'Active':'Inactive'}</span>
+      <button class="btn-sm btn-outline" onclick="openCourseStudents('${c.id}','${courseTitle}')">👥 Students</button>
+      <button class="btn-sm btn-outline" onclick="openAttendanceLog('${c.id}','${courseTitle}')">🗓 History</button>
+      <button class="btn-sm btn-outline" onclick="openEditCourse(window._teacherCoursesById['${c.id}'])">✏️ Edit</button>
+      <button class="btn-sm btn-outline" onclick="openConfigure('${c.id}')">⚙️ Configure</button>
+    </div></li>`;
+  }),['📖','No courses created']);
   renderList('t-listingsList',(d.marketplaceListings||[]).map(l=>`<li><span>${l.courses?.title||'Course'}</span><span class="badge badge-green">${fmt(l.price)}</span></li>`),['🏪','No marketplace listings']);
   renderList('t-liveList',(d.liveClasses||[]).map(c=>{
     const s=c.status||'scheduled';
     let actions='';
     if(s==='scheduled') actions=`<button class="btn-sm btn-primary" onclick="startLive('${c.id}')">▶ Start</button>`;
     else if(s==='live') actions=`<button class="btn-sm btn-outline" onclick="endLive('${c.id}')">⏹ End</button>`;
+    const rosterBtn=`<button class="btn-sm btn-outline" onclick="openLiveRoster('${c.id}')">👥 Roster</button>`;
     const badge=s==='live'?'badge-green':(s==='completed'?'badge-blue':'badge-yellow');
-    return `<li><span>${c.title}</span><div class="row-actions"><span class="badge ${badge}">${s}</span>${actions}</div></li>`;
+    return `<li><span>${c.title}</span><div class="row-actions"><span class="badge ${badge}">${s}</span>${rosterBtn}${actions}</div></li>`;
   }),['📺','No live classes']);
   renderList('t-bookingsList',(d.bookings||[]).map(b=>`<li><span>Booking ${b.id?.slice(0,8)}</span><span class="badge badge-yellow">${b.status}</span></li>`),['📅','No bookings']);
   renderList('t-earningsList',(d.earnings||[]).map(e=>`<li><span>${e.source||'Earning'}</span><span class="badge badge-green">${fmt(e.amount)}</span></li>`),['💸','No earnings yet']);
   renderProfile('t-profile',[['Total Earnings',fmt(d.totalEarnings)],['Courses Published',(d.courses||[]).length]]);
 }
 function renderPartnerDash(d){
+  // Partner is also a creator (can run their own services as courses)
+  renderCreatorBlock('pm-', d);
   document.getElementById('p-bookings').textContent=d.bookings?.length||0;
   document.getElementById('p-earnings').textContent=fmt(d.totalEarnings);
   document.getElementById('p-listings').textContent=d.marketplaceListings?.length||0;
@@ -516,6 +677,8 @@ function renderPartnerDash(d){
   renderProfile('p-profile',[['Total Earnings',fmt(d.totalEarnings)]]);
 }
 function renderSchoolDash(d){
+  // School is also a creator — render same teacher-style block with prefix sm-
+  renderCreatorBlock('sm-', d);
   const p=d.profile||{};
   document.getElementById('sc-name').textContent=p.school_name||'Setup Profile';
   document.getElementById('sc-affiliation').textContent=p.affiliation||'No affiliation';
@@ -527,6 +690,8 @@ function renderSchoolDash(d){
   renderProfile('sc-profile',[['School Name',p.school_name||'Not set'],['Affiliation',p.affiliation||'—'],['Students',p.student_count||0],['Teachers',p.teacher_count||0],['Address',p.address||'—']]);
 }
 function renderCoachingDash(d){
+  // Coaching center is a creator too — render teacher-style block with prefix cm-
+  renderCreatorBlock('cm-', d);
   const p=d.profile||{};
   document.getElementById('co-name').textContent=p.center_name||'Setup Profile';
   document.getElementById('co-spec').textContent=(p.specializations||[]).join(', ')||'No specializations';
@@ -576,11 +741,11 @@ async function loadDashboard(){
     document.getElementById('loadingState').style.display='none';
     const sec=document.getElementById('section-'+role);
     if(sec)sec.classList.add('visible');
-    if(role==='student'){renderStudentDash(d); loadNotes(); startTimeTracking();}
+    if(role==='student'){renderStudentDash(d); loadNotes(); loadStudentHistory(); startTimeTracking();}
     else if(role==='teacher')renderTeacherDash(d);
     else if(role==='partner')renderPartnerDash(d);
-    else if(role==='school'){renderSchoolDash(d); loadInstitutionTeachers();}
-    else if(role==='coaching'){renderCoachingDash(d); loadInstitutionTeachers();}
+    else if(role==='school'){renderSchoolDash(d); loadInstitutionTeachers(); loadInstitutionStudents();}
+    else if(role==='coaching'){renderCoachingDash(d); loadInstitutionTeachers(); loadInstitutionStudents();}
     else if(role==='admin')renderAdminDash(d);
   }catch(e){
     document.getElementById('loadingState').innerHTML='<div class="empty-state"><div class="icon">⚠️</div><div>Could not load dashboard.</div><div style="font-size:12px;margin-top:8px;color:#888">Make sure backend is running: cd backend && npm start</div></div>';
@@ -604,6 +769,157 @@ function logout(){localStorage.removeItem('jm_token');localStorage.removeItem('j
 let _modalCtx={};
 
 const MODAL_DEFS={
+  // ── TEACHER: edit existing course (title, desc, price, etc.)
+  editCourse: {
+    title:'✏️ Edit Course',
+    body:()=>{
+      const c=_modalCtx.course||{};
+      return `
+      <div class="form-row"><label>Title *</label><input id="m-title" value="${(c.title||'').replace(/"/g,'&quot;')}"></div>
+      <div class="form-row"><label>Description</label><textarea id="m-desc" rows="3">${c.description||''}</textarea></div>
+      <div class="grid-2">
+        <div class="form-row"><label>Category</label><input id="m-cat" value="${c.category||'General'}"></div>
+        <div class="form-row"><label>Level</label><select id="m-level">
+          <option value="beginner" ${c.level==='beginner'?'selected':''}>Beginner</option>
+          <option value="intermediate" ${c.level==='intermediate'?'selected':''}>Intermediate</option>
+          <option value="advanced" ${c.level==='advanced'?'selected':''}>Advanced</option>
+        </select></div>
+      </div>
+      <div class="grid-2">
+        <div class="form-row"><label>Price (₹)</label><input id="m-price" type="number" min="0" value="${c.price||0}"></div>
+        <div class="form-row"><label>Status</label><select id="m-active">
+          <option value="true" ${c.is_active!==false?'selected':''}>Active</option>
+          <option value="false" ${c.is_active===false?'selected':''}>Inactive</option>
+        </select></div>
+      </div>`;
+    },
+    submit:async()=>{
+      const id=_modalCtx.course?.id;
+      const body={title:val('m-title'),description:val('m-desc'),category:val('m-cat'),level:val('m-level'),price:Number(val('m-price'))||0,is_active:val('m-active')==='true'};
+      if(!body.title) throw new Error('Title required');
+      await api('/courses/'+id,'PUT',body);
+      return 'Course updated';
+    }
+  },
+  // ── TEACHER: grade a single submission
+  gradeSubmission: {
+    title:'📝 Grade Submission',
+    body:()=>{
+      const s=_modalCtx.submission||{};
+      return `
+      <div style="background:var(--jm-primary-tint);padding:14px;border-radius:8px;margin-bottom:14px">
+        <div style="font-weight:700">${s.full_name||'Student'}</div>
+        <div style="font-size:12px;color:var(--jm-text-muted)">${s.email||''}</div>
+        ${s.submission_url?`<div style="margin-top:8px"><a href="${s.submission_url}" target="_blank">📎 Open submission</a></div>`:''}
+      </div>
+      <div class="form-row"><label>Score (0-100)</label><input id="m-score" type="number" min="0" max="100" value="${s.grade||''}"></div>
+      <div class="form-row"><label>Feedback</label><textarea id="m-fb" rows="3">${s.feedback||''}</textarea></div>`;
+    },
+    submit:async()=>{
+      const sid=_modalCtx.submission?.id;
+      const score=Number(val('m-score'));
+      if(isNaN(score)) throw new Error('Score required');
+      await api('/assignments/'+sid+'/grade','PUT',{grade:score,feedback:val('m-fb')});
+      return 'Graded';
+    }
+  },
+  // ── SCHOOL/COACHING: add student to institution
+  linkStudent: {
+    title:'🧑‍🎓 Add Student to Institution',
+    body:()=>`
+      <div class="form-row"><label>Student Email *</label><input id="m-email" type="email" placeholder="student@…"></div>
+      <div class="form-row"><label>Class / Section</label><input id="m-class" placeholder="e.g. Class 8 - A"></div>
+      <div style="font-size:12px;color:var(--jm-text-muted)">The student must already have a JeetMantra account.</div>`,
+    submit:async()=>{
+      if(!val('m-email')) throw new Error('Student email required');
+      const r=await api('/institutions/students','POST',{email:val('m-email'),classLabel:val('m-class')});
+      return 'Linked '+(r.link?'successfully':'');
+    }
+  },
+  // ── ADMIN: n8n addon configuration
+  n8nConfig: {
+    title:'🤖 n8n Webhook Addon',
+    body:()=>`<div id="n8n-body">Loading…</div>`,
+    submit:async()=>'(use buttons inside)'
+  },
+  // ── STUDENT: view course content (lectures + materials + tests + assignments)
+  studentCourseView: {
+    title:'📚 Course Content',
+    body:()=>`<div id="scv-body">Loading content…</div>`,
+    submit:async()=>'(closed)'
+  },
+  // ── STUDENT: submit assignment (URL OR file upload)
+  submitAssignment: {
+    title:'📤 Submit Assignment',
+    body:()=>`
+      <div class="form-row"><label>Submission Link (paste URL)</label><input id="m-url" placeholder="https://docs.google.com/…"></div>
+      <div class="form-row"><label>Or upload a file</label><input id="m-file" type="file" accept=".pdf,.doc,.docx,.zip,image/*"></div>
+      <div class="form-row"><label>Notes (optional)</label><textarea id="m-notes" rows="3" placeholder="Anything for the teacher to know"></textarea></div>
+      <div style="font-size:12px;color:var(--jm-text-muted)">Provide either a URL or a file.</div>`,
+    submit:async()=>{
+      const aid=_modalCtx.assignmentId;
+      const file=document.getElementById('m-file')?.files?.[0];
+      if(!val('m-url') && !file) throw new Error('Submission URL or file required');
+      const token=localStorage.getItem('jm_token');
+      const fd=new FormData();
+      if(val('m-url')) fd.append('submissionUrl',val('m-url'));
+      if(val('m-notes')) fd.append('notes',val('m-notes'));
+      if(file) fd.append('file',file);
+      const r=await fetch(API+'/assignments/'+aid+'/submit',{method:'POST',headers:{Authorization:'Bearer '+token},body:fd});
+      const j=await r.json();
+      if(!r.ok) throw new Error(j.error||'Submit failed');
+      return 'Submitted!';
+    }
+  },
+  // ── STUDENT: take/submit a test (self-scored MVP)
+  takeTest: {
+    title:'✏️ Take Test',
+    body:()=>{
+      const t=_modalCtx.test||{};
+      return `
+      <div style="background:var(--jm-primary-tint);padding:14px;border-radius:8px;margin-bottom:14px;font-size:13px">
+        <div style="font-weight:700;margin-bottom:4px">${t.title}</div>
+        <div style="color:var(--jm-text-strong)">${t.description||'(no description)'}</div>
+        <div style="margin-top:8px;font-size:11px;color:var(--jm-text-muted)">${t.total_marks} marks · ${t.duration_minutes} min</div>
+      </div>
+      <div class="form-row"><label>Your Score (out of ${t.total_marks||100}) *</label><input id="m-score" type="number" min="0" max="${t.total_marks||100}" placeholder="0"></div>
+      <div style="font-size:12px;color:var(--jm-text-muted)">MVP: self-report your score; teacher can grade later.</div>`;
+    },
+    submit:async()=>{
+      const tid=_modalCtx.test?.id;
+      const score=Number(val('m-score'));
+      if(isNaN(score)) throw new Error('Score required');
+      await api('/course-content/tests/'+tid+'/submit','POST',{ score });
+      return 'Test submitted!';
+    }
+  },
+  // ── TEACHER: add assignment from Configure modal
+  addAssignment: {
+    title:'➕ Add Assignment',
+    body:()=>`
+      <div class="form-row"><label>Title *</label><input id="m-title" placeholder="e.g. Worksheet 1"></div>
+      <div class="form-row"><label>Description</label><textarea id="m-desc" rows="3"></textarea></div>
+      <div class="form-row"><label>Due Date *</label><input id="m-due" type="datetime-local" value="${new Date(Date.now()+7*24*60*60*1000).toISOString().slice(0,16)}"></div>`,
+    submit:async()=>{
+      const courseId=_modalCtx.courseId;
+      if(!val('m-title')||!val('m-due')) throw new Error('Title and due date required');
+      await api('/assignments','POST',{ courseId, title:val('m-title'), description:val('m-desc'), dueDate:new Date(val('m-due')).toISOString() });
+      _reopenConfigure(courseId);
+      return 'Assignment added';
+    }
+  },
+  // ── TEACHER: view live class roster
+  liveClassRoster: {
+    title:'👥 Live Class Roster',
+    body:()=>`<div id="lcr-body">Loading…</div>`,
+    submit:async()=>'(closed)'
+  },
+  // ── TEACHER + STUDENT: attendance history per course
+  attendanceLog: {
+    title:'🗓️ Attendance History',
+    body:()=>`<div id="al-body">Loading…</div>`,
+    submit:async()=>'(closed)'
+  },
   createCourse: {
     title:'📚 Create a New Course',
     body:()=>`
@@ -722,7 +1038,8 @@ const MODAL_DEFS={
       return `
       <div class="form-row"><label>Title *</label><input id="m-title" placeholder="e.g. Pythagoras Theorem"></div>
       <div class="form-row"><label>Topic</label><select id="m-topic"><option value="">— No topic —</option>${opts}</select></div>
-      <div class="form-row"><label>Video URL</label><input id="m-video" placeholder="https://…"></div>
+      <div class="form-row"><label>Video URL (paste link)</label><input id="m-video" placeholder="https://…"></div>
+      <div class="form-row"><label>Or upload a video file</label><input id="m-file" type="file" accept="video/*"></div>
       <div class="grid-2">
         <div class="form-row"><label>Duration (min)</label><input id="m-dur" type="number" min="1" value="30"></div>
         <div class="form-row"><label>Type</label><select id="m-rec"><option value="true">Recorded</option><option value="false">Scheduled</option></select></div>
@@ -731,10 +1048,18 @@ const MODAL_DEFS={
     submit:async()=>{
       const courseId=_modalCtx.courseId;
       if(!val('m-title')) throw new Error('Title required');
-      await api('/course-content/'+courseId+'/lectures','POST',{
-        title:val('m-title'),topicId:val('m-topic')||null,videoUrl:val('m-video'),
-        duration:Number(val('m-dur'))||30,isRecorded:val('m-rec')==='true'
-      });
+      const file=document.getElementById('m-file')?.files?.[0];
+      const token=localStorage.getItem('jm_token');
+      const fd=new FormData();
+      fd.append('title',val('m-title'));
+      if(val('m-topic')) fd.append('topicId',val('m-topic'));
+      if(val('m-video')) fd.append('videoUrl',val('m-video'));
+      fd.append('duration',val('m-dur')||30);
+      fd.append('isRecorded',val('m-rec'));
+      if(file) fd.append('video',file);
+      const r=await fetch(API+'/course-content/'+courseId+'/lectures',{method:'POST',headers:{Authorization:'Bearer '+token},body:fd});
+      const j=await r.json();
+      if(!r.ok) throw new Error(j.error||'Add failed');
       _reopenConfigure(courseId);
       return 'Lecture added';
     }
@@ -859,6 +1184,10 @@ function openModal(type,ctx){
   overlay.classList.add('show');
 }
 function closeModal(){document.getElementById('actionOverlay').classList.remove('show');}
+// Sub-modals invoked from inside Configure should re-open Configure on success
+// rather than close the overlay entirely — keeps the user in the editing flow.
+const CONFIGURE_SUB_ACTIONS=new Set(['addTopic','addLecture','addMaterial','addTest','addAssignment']);
+
 async function submitModal(type){
   const btn=document.getElementById('m-submit');
   const msg=document.getElementById('m-msg');
@@ -866,8 +1195,14 @@ async function submitModal(type){
   btn.disabled=true;btn.textContent='Saving…';
   try{
     const result=await MODAL_DEFS[type].submit();
-    msg.className='msg success';msg.textContent=result||'Done';
-    setTimeout(()=>{closeModal();loadDashboard();},800);
+    if(CONFIGURE_SUB_ACTIONS.has(type)){
+      // Submit handler already called _reopenConfigure, so the modal body is
+      // now showing the refreshed Configure view. Just announce success.
+      toast(result||'Done');
+    } else {
+      msg.className='msg success';msg.textContent=result||'Done';
+      setTimeout(()=>{closeModal();loadDashboard();},800);
+    }
   }catch(e){
     msg.className='msg error';msg.textContent=e.message||'Action failed';
     btn.disabled=false;btn.textContent='Submit';
@@ -895,11 +1230,15 @@ async function _reopenConfigure(courseId){
   try{
     const r=await api('/course-content/'+courseId+'/full','GET');
     window._configureTopics=r.topics||[];
+    // Also fetch assignment templates for this course (5th tab)
+    let assigns=[];
+    try{ const a=await api('/assignments?courseId='+courseId,'GET'); assigns=(a.assignments||[]).filter(x=>!x.student_id); }catch(_){}
     const tabs=[
       {key:'topics',label:'Topics',items:r.topics,render:t=>`<div style="display:flex;justify-content:space-between;padding:8px 10px;border-bottom:1px solid var(--jm-border)"><span><strong>${t.title}</strong>${t.description?' — <span style="color:var(--jm-text-muted)">'+t.description+'</span>':''}</span><button class="btn-sm btn-outline" onclick="delContent('topics','${t.id}','${courseId}')">×</button></div>`,add:'addTopic'},
       {key:'lectures',label:'Lectures',items:r.lectures,render:l=>`<div style="display:flex;justify-content:space-between;padding:8px 10px;border-bottom:1px solid var(--jm-border)"><span><strong>${l.title}</strong>${l.duration?' <span class="badge badge-blue">'+l.duration+' min</span>':''}${l.is_recorded?' <span class="badge badge-green">recorded</span>':''}</span><button class="btn-sm btn-outline" onclick="delContent('lectures','${l.id}','${courseId}')">×</button></div>`,add:'addLecture'},
       {key:'materials',label:'Materials',items:r.materials,render:m=>`<div style="display:flex;justify-content:space-between;padding:8px 10px;border-bottom:1px solid var(--jm-border)"><span><strong>${m.title}</strong> <span class="badge badge-muted">${m.type}</span>${m.url?' <a href="'+m.url+'" target="_blank">open</a>':''}</span><button class="btn-sm btn-outline" onclick="delContent('materials','${m.id}','${courseId}')">×</button></div>`,add:'addMaterial'},
-      {key:'tests',label:'Tests',items:r.tests,render:t=>`<div style="display:flex;justify-content:space-between;padding:8px 10px;border-bottom:1px solid var(--jm-border)"><span><strong>${t.title}</strong> <span class="badge badge-muted">${t.total_marks} marks · ${t.duration_minutes} min</span></span></div>`,add:'addTest'}
+      {key:'tests',label:'Tests',items:r.tests,render:t=>`<div style="display:flex;justify-content:space-between;padding:8px 10px;border-bottom:1px solid var(--jm-border)"><span><strong>${t.title}</strong> <span class="badge badge-muted">${t.total_marks} marks · ${t.duration_minutes} min</span></span></div>`,add:'addTest'},
+      {key:'assignments',label:'Assignments',items:assigns,render:a=>`<div style="display:flex;justify-content:space-between;padding:8px 10px;border-bottom:1px solid var(--jm-border);align-items:center"><span><strong>${a.title}</strong> <span class="badge badge-muted">Due ${new Date(a.due_date).toLocaleDateString()}</span></span><button class="btn-sm btn-outline" onclick="openSubmissions('${a.id}','${a.title.replace(/'/g,"\\'")}')">📥 Submissions</button></div>`,add:'addAssignment'}
     ];
     body.innerHTML=`
       <div style="margin-bottom:14px;display:flex;align-items:center;gap:12px">
@@ -920,6 +1259,265 @@ async function _reopenConfigure(courseId){
 async function delContent(type, id, courseId){
   if(!confirm('Remove this '+type.slice(0,-1)+'?'))return;
   try{await api('/course-content/'+type+'/'+id,'DELETE');await _reopenConfigure(courseId);toast('Removed');}catch(e){toast(e.message,true);}
+}
+
+// ── Student "View Content" modal — renders the course as the student sees it.
+// Tabs: Lectures (clickable video links), Materials (download/open), Tests
+// (take button), Assignments (submit button).
+async function openStudentCourseView(courseId){
+  _modalCtx={courseId};
+  openModal('studentCourseView');
+  const body=document.getElementById('scv-body');
+  if(!body) return;
+  try{
+    const [full, assigns] = await Promise.all([
+      api('/course-content/'+courseId+'/full','GET'),
+      api('/assignments?courseId='+courseId,'GET')
+    ]);
+    window._studentTests = full.tests || [];
+    window._studentAssignments = assigns.assignments || [];
+    body.innerHTML=`
+      <div style="margin-bottom:14px">
+        <div style="font-weight:700;font-size:16px">${full.course?.title}</div>
+        <div style="font-size:12px;color:var(--jm-text-muted)">${full.course?.category} · ${full.course?.level}</div>
+      </div>
+      <div style="margin-bottom:18px">
+        <strong>🎬 Lectures (${full.lectures.length})</strong>
+        ${full.lectures.length ? full.lectures.map(l=>`
+          <div style="display:flex;justify-content:space-between;padding:10px;border-bottom:1px solid var(--jm-border);align-items:center">
+            <div><div style="font-weight:600">${l.title}</div><div style="font-size:11px;color:var(--jm-text-muted)">${l.duration||'?'} min · ${l.is_recorded?'recorded':'live'}</div></div>
+            ${l.video_url?`<a href="${l.video_url}" target="_blank" class="btn-sm btn-primary" style="text-decoration:none">▶ Watch</a>`:'<span style="font-size:11px;color:var(--jm-text-muted)">no link</span>'}
+          </div>`).join('') : '<div style="color:var(--jm-text-muted);padding:8px">No lectures yet.</div>'}
+      </div>
+      <div style="margin-bottom:18px">
+        <strong>📎 Materials (${full.materials.length})</strong>
+        ${full.materials.length ? full.materials.map(m=>`
+          <div style="display:flex;justify-content:space-between;padding:10px;border-bottom:1px solid var(--jm-border);align-items:center">
+            <div><div style="font-weight:600">${m.title}</div><div style="font-size:11px;color:var(--jm-text-muted)">${m.type}</div></div>
+            ${m.url?`<a href="${m.url}" target="_blank" class="btn-sm btn-outline" style="text-decoration:none">Open</a>`:''}
+          </div>`).join('') : '<div style="color:var(--jm-text-muted);padding:8px">No materials.</div>'}
+      </div>
+      <div style="margin-bottom:18px">
+        <strong>✏️ Tests (${full.tests.length})</strong>
+        ${full.tests.length ? full.tests.map((t,i)=>`
+          <div style="display:flex;justify-content:space-between;padding:10px;border-bottom:1px solid var(--jm-border);align-items:center">
+            <div><div style="font-weight:600">${t.title}</div><div style="font-size:11px;color:var(--jm-text-muted)">${t.total_marks} marks · ${t.duration_minutes} min</div></div>
+            <button class="btn-sm btn-primary" onclick="openTakeTest(${i})">Take →</button>
+          </div>`).join('') : '<div style="color:var(--jm-text-muted);padding:8px">No tests.</div>'}
+      </div>
+      <div>
+        <strong>📝 Assignments (${assigns.assignments.length})</strong>
+        ${assigns.assignments.length ? assigns.assignments.map((a,i)=>{
+          const sub=a.mySubmission;
+          const due=a.due_date?new Date(a.due_date).toLocaleDateString():'—';
+          let action;
+          if(sub?.status==='graded') action=`<span class="badge badge-green">✓ Graded: ${sub.grade}</span>`;
+          else if(sub?.status==='submitted') action=`<span class="badge badge-blue">Submitted</span>`;
+          else action=`<button class="btn-sm btn-primary" onclick="openSubmitAssignment('${a.id}')">Submit →</button>`;
+          return `<div style="display:flex;justify-content:space-between;padding:10px;border-bottom:1px solid var(--jm-border);align-items:center"><div><div style="font-weight:600">${a.title}</div><div style="font-size:11px;color:var(--jm-text-muted)">Due ${due}</div>${sub?.feedback?'<div style="font-size:11px;color:var(--jm-text-strong);margin-top:4px"><em>Teacher: '+sub.feedback+'</em></div>':''}</div>${action}</div>`;
+        }).join('') : '<div style="color:var(--jm-text-muted);padding:8px">No assignments.</div>'}
+      </div>`;
+  }catch(e){ body.innerHTML='<div style="color:#b91c1c">Error: '+e.message+'</div>'; }
+}
+function openTakeTest(testIdx){
+  const t=(window._studentTests||[])[testIdx];
+  if(!t) return;
+  _modalCtx={test:t};
+  openModal('takeTest',{test:t});
+}
+function openSubmitAssignment(aid){
+  _modalCtx={assignmentId:aid};
+  openModal('submitAssignment',{assignmentId:aid});
+}
+
+// ── Teacher: view live class roster
+async function openLiveRoster(classId){
+  _modalCtx={classId};
+  openModal('liveClassRoster');
+  const body=document.getElementById('lcr-body');
+  if(!body) return;
+  try{
+    const r=await api('/live-classes/'+classId+'/attendees','GET');
+    if(!r.attendees?.length){
+      body.innerHTML='<div style="text-align:center;padding:24px;color:var(--jm-text-muted)">No one has joined yet.</div>';
+      return;
+    }
+    body.innerHTML=`
+      <div style="margin-bottom:10px;font-size:13px;color:var(--jm-text-muted)">${r.class?.title} · <strong>${r.attendees.length}</strong> joined</div>
+      ${r.attendees.map(a=>`
+        <div style="display:flex;justify-content:space-between;padding:10px;border-bottom:1px solid var(--jm-border)">
+          <div><div style="font-weight:600">${a.full_name||a.email||a.student_id.slice(0,8)}</div><div style="font-size:11px;color:var(--jm-text-muted)">${a.email||''}</div></div>
+          <div style="font-size:11px;color:var(--jm-text-muted)">Joined ${new Date(a.joined_at).toLocaleTimeString()}</div>
+        </div>`).join('')}`;
+  }catch(e){ body.innerHTML='<div style="color:#b91c1c">Error: '+e.message+'</div>'; }
+}
+
+// ── Attendance log per course (teacher: everyone; student: just self)
+async function openAttendanceLog(courseId, courseTitle){
+  _modalCtx={courseId};
+  openModal('attendanceLog');
+  const body=document.getElementById('al-body');
+  if(!body) return;
+  try{
+    const r=await api('/attendance/log/'+courseId,'GET');
+    const s=r.summary||{};
+    body.innerHTML=`
+      <div style="background:var(--jm-primary-tint);padding:14px;border-radius:8px;margin-bottom:14px;font-size:13px">
+        <div style="font-weight:700;margin-bottom:4px">${courseTitle||'Course'}</div>
+        <div>${s.total||0} records · ${s.present||0} present · ${s.absent||0} absent · ${s.late||0} late · <strong>${s.percentage||0}%</strong> overall</div>
+      </div>
+      ${(r.log||[]).length ? r.log.map(row=>`
+        <div style="display:flex;justify-content:space-between;padding:8px 10px;border-bottom:1px solid var(--jm-border)">
+          <div><strong>${row.student_name||'You'}</strong><div style="font-size:11px;color:var(--jm-text-muted)">${new Date(row.date).toLocaleDateString()}</div></div>
+          <span class="badge ${row.status==='present'?'badge-green':row.status==='late'?'badge-yellow':'badge-red'}">${row.status}</span>
+        </div>`).join('') : '<div style="color:var(--jm-text-muted);text-align:center;padding:20px">No attendance records yet.</div>'}`;
+  }catch(e){ body.innerHTML='<div style="color:#b91c1c">Error: '+e.message+'</div>'; }
+}
+
+// ── Teacher: open Edit Course modal ────────────────────────────────────
+// openModal() overwrites _modalCtx with its second arg (or {}), so always
+// pass the context through openModal rather than setting _modalCtx first.
+function openEditCourse(course){ openModal('editCourse',{course}); }
+
+// ── Teacher: list submissions for an assignment → grade each ───────────
+async function openSubmissions(assignmentId, title){
+  _modalCtx={assignmentId};
+  // Reuse Configure modal infrastructure for the list view
+  const overlay=document.getElementById('actionOverlay');
+  document.getElementById('actionModal').innerHTML=`
+    <button class="close" onclick="closeModal()">×</button>
+    <h3>📥 Submissions: ${title||'Assignment'}</h3>
+    <div id="subs-body">Loading…</div>`;
+  overlay.classList.add('show');
+  try{
+    const r=await api('/assignments/'+assignmentId+'/submissions','GET');
+    const body=document.getElementById('subs-body');
+    if(!r.submissions?.length){
+      body.innerHTML='<div style="text-align:center;padding:20px;color:var(--jm-text-muted)">No submissions yet.</div>';
+      return;
+    }
+    body.innerHTML=r.submissions.map(s=>{
+      const badge=s.status==='graded'?'badge-green':s.status==='submitted'?'badge-blue':'badge-yellow';
+      return `<div style="display:flex;justify-content:space-between;padding:12px;border-bottom:1px solid var(--jm-border);align-items:center">
+        <div><div style="font-weight:600">${s.full_name||s.email||'Student'}</div><div style="font-size:11px;color:var(--jm-text-muted)">${s.email||''}</div>${s.submission_url?'<div style="margin-top:4px"><a href="'+s.submission_url+'" target="_blank">📎 View</a></div>':''}</div>
+        <div class="row-actions"><span class="badge ${badge}">${s.status}${s.grade!=null?': '+s.grade:''}</span><button class="btn-sm btn-primary" onclick="openGradeSubmission('${s.id}')">Grade</button></div>
+      </div>`;
+    }).join('');
+    // Inject the inline-JSON-encoded submissions into a window var so onclick can read by id
+    window._pendingSubmissions=Object.fromEntries(r.submissions.map(s=>[s.id,s]));
+  }catch(e){ document.getElementById('subs-body').innerHTML='<div style="color:#b91c1c">Error: '+e.message+'</div>'; }
+}
+function openGradeSubmission(sid){
+  const s=window._pendingSubmissions?.[sid];
+  if(!s){toast('Submission not found',true);return;}
+  openModal('gradeSubmission',{submission:s});
+}
+
+// ── Teacher: list enrolled students per course ─────────────────────────
+async function openCourseStudents(courseId, title){
+  _modalCtx={courseId};
+  const overlay=document.getElementById('actionOverlay');
+  document.getElementById('actionModal').innerHTML=`
+    <button class="close" onclick="closeModal()">×</button>
+    <h3>👥 Students: ${title||'Course'}</h3>
+    <div id="cs-body">Loading…</div>`;
+  overlay.classList.add('show');
+  try{
+    const r=await api('/courses/'+courseId+'/students','GET');
+    const body=document.getElementById('cs-body');
+    if(!r.students?.length){
+      body.innerHTML='<div style="text-align:center;padding:20px;color:var(--jm-text-muted)">No enrolled students yet.</div>';
+      return;
+    }
+    body.innerHTML=`
+      <div style="margin-bottom:10px;font-size:12px;color:var(--jm-text-muted)">${r.students.length} enrolled · ${r.students.filter(s=>s.progress_percentage===100).length} completed</div>
+      ${r.students.map(s=>`
+        <div style="display:flex;justify-content:space-between;padding:10px;border-bottom:1px solid var(--jm-border);align-items:center">
+          <div style="flex:1">
+            <div style="font-weight:600">${s.full_name}</div>
+            <div style="font-size:11px;color:var(--jm-text-muted)">${s.email} · ${s.attended_lectures}/${s.total_lectures} attended${s.last_attendance_date?' · last '+new Date(s.last_attendance_date).toLocaleDateString():''}</div>
+            <div class="progress-bar" style="margin-top:4px;max-width:200px"><div class="progress-fill" style="width:${s.progress_percentage}%"></div></div>
+          </div>
+          <span class="badge ${s.progress_percentage===100?'badge-green':'badge-blue'}">${s.progress_percentage}%</span>
+        </div>`).join('')}`;
+  }catch(e){ document.getElementById('cs-body').innerHTML='<div style="color:#b91c1c">Error: '+e.message+'</div>'; }
+}
+
+// ── Admin: n8n addon config ────────────────────────────────────────────
+async function openN8nConfig(){
+  openModal('n8nConfig');
+  const body=document.getElementById('n8n-body');
+  if(!body)return;
+  try{
+    const cfg=await api('/n8n/config','GET');
+    body.innerHTML=`
+      <div class="form-row"><label>Webhook URL</label><input id="m-n8n-url" placeholder="https://your-n8n.com/webhook/jeetmantra" value="${cfg.url||''}"></div>
+      <div class="form-row"><label>Secret (header X-N8N-Secret)</label><input id="m-n8n-secret" placeholder="${cfg.hasSecret?'(set — overwrite to change)':'optional'}"></div>
+      <div class="form-row"><label>Status</label><div style="font-size:13px"><span class="badge ${cfg.enabled?'badge-green':'badge-muted'}">${cfg.enabled?'Enabled':'Disabled'}</span>${cfg.source?' <span class="badge badge-muted">source: '+cfg.source+'</span>':''}</div></div>
+      <div style="display:flex;gap:8px;margin-top:14px">
+        <button class="btn-sm btn-primary" onclick="saveN8nConfig(true)">Save & Enable</button>
+        <button class="btn-sm btn-outline" onclick="saveN8nConfig(false)">Save & Disable</button>
+        <button class="btn-sm btn-outline" onclick="testN8n()">🔔 Send Test Event</button>
+      </div>
+      <div id="n8n-result" style="margin-top:12px;font-size:13px"></div>`;
+  }catch(e){ body.innerHTML='<div style="color:#b91c1c">Error: '+e.message+'</div>'; }
+}
+async function saveN8nConfig(enabled){
+  try{
+    const url=val('m-n8n-url');
+    const secret=val('m-n8n-secret');
+    const body={enabled};
+    if(url) body.url=url;
+    if(secret) body.secret=secret;
+    await api('/n8n/config','POST',body);
+    document.getElementById('n8n-result').innerHTML='<span style="color:#15803d">✓ Saved</span>';
+    setTimeout(openN8nConfig,500);
+  }catch(e){ document.getElementById('n8n-result').innerHTML='<span style="color:#b91c1c">'+e.message+'</span>'; }
+}
+async function testN8n(){
+  try{
+    const r=await api('/n8n/test','POST',{});
+    document.getElementById('n8n-result').innerHTML=r.fired?'<span style="color:#15803d">✓ Test event fired</span>':'<span style="color:#b45309">⚠ '+(r.reason||r.error||'n8n not reachable')+'</span>';
+  }catch(e){ document.getElementById('n8n-result').innerHTML='<span style="color:#b91c1c">'+e.message+'</span>'; }
+}
+
+// ── Student: load test + submission histories into the dedicated sections
+async function loadStudentHistory(){
+  try{
+    const [tests, subs] = await Promise.all([
+      api('/student/test-history','GET'),
+      api('/student/submission-history','GET')
+    ]);
+    // Tests
+    const tEl=document.getElementById('s-testsList');
+    if(tEl){
+      if(!tests.history?.length){ tEl.innerHTML='<li style="width:100%"><div class="empty-state"><div class="icon">✏️</div>No tests taken yet</div></li>'; }
+      else tEl.innerHTML=tests.history.map(h=>`<li><div><div style="font-weight:600">${h.test?.title||'Test'}</div><div style="font-size:11px;color:var(--jm-text-muted)">${h.test?.courses?.title||''} · ${new Date(h.submitted_at).toLocaleDateString()}</div></div><span class="badge ${h.percentage>=70?'badge-green':h.percentage>=50?'badge-yellow':'badge-red'}">${h.score}/${h.test?.total_marks||100}${h.percentage!=null?' ('+h.percentage+'%)':''}</span></li>`).join('');
+    }
+    // Submissions
+    const sEl=document.getElementById('s-submissionsList');
+    if(sEl){
+      const submitted=(subs.submissions||[]).filter(s=>s.student_id);
+      if(!submitted.length){ sEl.innerHTML='<li style="width:100%"><div class="empty-state"><div class="icon">📤</div>No submissions yet</div></li>'; }
+      else sEl.innerHTML=submitted.map(s=>{
+        const badge=s.status==='graded'?'badge-green':s.status==='submitted'?'badge-blue':'badge-yellow';
+        const meta=`${s.courses?.title||''}${s.feedback?' · "'+s.feedback+'"':''}`;
+        return `<li><div><div style="font-weight:600">${s.title}</div><div style="font-size:11px;color:var(--jm-text-muted)">${meta}</div></div><span class="badge ${badge}">${s.grade!=null?'Grade: '+s.grade:s.status}</span></li>`;
+      }).join('');
+    }
+  }catch(e){}
+}
+
+// ── School/Coaching: load linked students roster
+async function loadInstitutionStudents(){
+  try{
+    const r=await api('/institutions/students','GET');
+    const ids=['inst-studentsList','inst-studentsList-coaching'];
+    const html=r.students?.length
+      ? r.students.map(s=>`<li><div style="flex:1"><div style="font-weight:600">${s.full_name||s.email}</div><div style="font-size:12px;color:var(--jm-text-muted)">${s.email}${s.class_label?' · '+s.class_label:''}</div></div></li>`).join('')
+      : '<li style="width:100%"><div class="empty-state"><div class="icon">🧑‍🎓</div>No students linked yet</div></li>';
+    ids.forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML=html; });
+  }catch(e){}
 }
 
 // ── Notes panel: list + delete ─────────────────────────────────────────
@@ -963,10 +1561,46 @@ window.addEventListener('beforeunload',()=>{if(_sessionId){
   navigator.sendBeacon&&navigator.sendBeacon(API+'/student/sessions/end?sessionId='+_sessionId);
 }});
 
-// Row-level actions: Start/End live class + Join live class
-async function startLive(id){try{await api('/live-classes/'+id+'/start','POST',{});toast('Class started');loadDashboard();}catch(e){toast(e.message,true);}}
-async function endLive(id){try{await api('/live-classes/'+id+'/end','POST',{});toast('Class ended');loadDashboard();}catch(e){toast(e.message,true);}}
-async function joinLive(id){try{const r=await api('/live-classes/'+id+'/join','POST',{});if(r.meetingLink){window.open(r.meetingLink,'_blank');}toast('Joined');}catch(e){toast(e.message,true);}}
+// Row-level actions: Start/End live class + Join live class.
+// Each wraps the button in a loading state so quick double-clicks are guarded
+// and the user has feedback while the network call is in flight.
+function _withButtonLoading(handler){
+  return async function(...args){
+    const btn=window.event?.currentTarget||document.activeElement;
+    let originalText='';
+    if(btn&&btn.tagName==='BUTTON'){
+      originalText=btn.textContent;
+      btn.disabled=true;
+      btn.textContent='…';
+    }
+    try{ await handler(...args); }
+    finally{
+      if(btn&&btn.tagName==='BUTTON'){ btn.disabled=false; btn.textContent=originalText; }
+    }
+  };
+}
+const startLive=_withButtonLoading(async (id)=>{
+  try{ await api('/live-classes/'+id+'/start','POST',{}); toast('Class started'); loadDashboard(); }
+  catch(e){ toast(e.message,true); }
+});
+const endLive=_withButtonLoading(async (id)=>{
+  try{ await api('/live-classes/'+id+'/end','POST',{}); toast('Class ended'); loadDashboard(); }
+  catch(e){ toast(e.message,true); }
+});
+const joinLive=_withButtonLoading(async (id)=>{
+  try{
+    const r=await api('/live-classes/'+id+'/join','POST',{});
+    if(r.meetingLink){ window.open(r.meetingLink,'_blank'); }
+    toast(r.message||'Joined');
+  }catch(e){ toast(e.message,true); }
+});
+
+// Keyboard: Escape closes any open modal.
+document.addEventListener('keydown',(e)=>{
+  if(e.key==='Escape'&&document.getElementById('actionOverlay')?.classList.contains('show')){
+    closeModal();
+  }
+});
 
 loadDashboard();
 </script>

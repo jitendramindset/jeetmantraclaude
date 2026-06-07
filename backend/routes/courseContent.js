@@ -92,10 +92,12 @@ router.get('/:courseId/lectures', authenticateToken, async (req, res) => {
   res.json({ lectures: data || [] });
 });
 
-router.post('/:courseId/lectures', authenticateToken, async (req, res) => {
+router.post('/:courseId/lectures', authenticateToken, upload.single('video'), async (req, res) => {
   const { allowed } = await ownsCourse(req.params.courseId, req.user);
   if (!allowed) return res.status(403).json({ error: 'Not your course' });
-  const { topicId, title, description, videoUrl, duration, isRecorded, lectureDate, orderIndex } = req.body;
+  const { topicId, title, description, duration, isRecorded, lectureDate, orderIndex } = req.body;
+  let videoUrl = req.body.videoUrl;
+  if (req.file) videoUrl = `/uploads/courses/${req.file.filename}`;
   if (!title) return res.status(400).json({ error: 'title required' });
   const { data, error } = await supabaseAdmin.from('course_lectures').insert({
     id: uuidv4(),
@@ -104,10 +106,10 @@ router.post('/:courseId/lectures', authenticateToken, async (req, res) => {
     title,
     description: description || '',
     video_url: videoUrl || null,
-    duration: duration || null,
-    is_recorded: isRecorded !== false,
+    duration: duration ? Number(duration) : null,
+    is_recorded: isRecorded !== false && isRecorded !== 'false',
     lecture_date: lectureDate || null,
-    order_index: orderIndex || 0
+    order_index: orderIndex ? Number(orderIndex) : 0
   }).select().single();
   if (error) return res.status(400).json({ error: error.message });
   res.status(201).json({ lecture: data });
@@ -199,6 +201,28 @@ router.post('/tests/:testId/submit', authenticateToken, async (req, res) => {
   }).select().single();
   if (error) return res.status(400).json({ error: error.message });
   res.status(201).json({ submission: data });
+});
+
+// ── PUBLIC PREVIEW (no auth) — used by marketplace browsers. Returns title,
+// description, cover, topics list, and content COUNTS only. Lecture URLs,
+// material URLs etc. are stripped so unenrolled users can't access the goods.
+router.get('/:courseId/preview', async (req, res) => {
+  const courseId = req.params.courseId;
+  const [course, topics, lecturesCount, materialsCount, testsCount] = await Promise.all([
+    supabaseAdmin.from('courses').select('id,title,description,category,level,price,cover_image').eq('id', courseId).single().then(r => r.data),
+    supabaseAdmin.from('course_topics').select('id,title,description,order_index').eq('course_id', courseId).order('order_index').then(r => r.data || []),
+    supabaseAdmin.from('course_lectures').select('id', { count: 'exact', head: true }).eq('course_id', courseId).then(r => r.count || 0),
+    supabaseAdmin.from('course_materials').select('id', { count: 'exact', head: true }).eq('course_id', courseId).then(r => r.count || 0),
+    supabaseAdmin.from('course_tests').select('id', { count: 'exact', head: true }).eq('course_id', courseId).then(r => r.count || 0)
+  ]);
+  if (!course) return res.status(404).json({ error: 'Course not found' });
+  res.json({
+    course,
+    topics,
+    lectures: Array.from({ length: lecturesCount }).map(() => ({})),  // placeholder array so .length works on the client
+    materials: Array.from({ length: materialsCount }).map(() => ({})),
+    tests: Array.from({ length: testsCount }).map(() => ({}))
+  });
 });
 
 // ── COURSE DETAIL (all content in one shot — used by Configure modal) ──

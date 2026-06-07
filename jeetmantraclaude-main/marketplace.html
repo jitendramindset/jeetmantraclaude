@@ -177,6 +177,15 @@ select.filter-select{background:var(--jm-surface);border:1.5px solid var(--jm-bo
   </div>
 </div>
 
+<!-- COURSE PREVIEW MODAL -->
+<div class="modal-overlay" id="previewModal" onclick="if(event.target===this)closePreview()">
+  <div class="modal" style="max-width:640px">
+    <span class="close" onclick="closePreview()">✕</span>
+    <h3 id="previewTitle">Course Preview</h3>
+    <div id="previewBody">Loading…</div>
+  </div>
+</div>
+
 <!-- LIST COURSE MODAL -->
 <div class="modal-overlay" id="listModal">
   <div class="modal">
@@ -222,9 +231,10 @@ function getListingIcon(listing){
 function renderCard(listing,owned){
   const c=listing.courses||{};
   const seller=listing.jeetmantra_users||listing.seller||{};
-  return `<div class="course-card" onclick="${owned?'':(`openPurchase('${listing.id}')`)}">
+  const cover=c.cover_image?`<img src="${c.cover_image}" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0">`:`<span style="font-size:48px">${getListingIcon(listing)}</span>`;
+  return `<div class="course-card">
     <div class="course-thumb">
-      <span>${getListingIcon(listing)}</span>
+      ${cover}
       <span class="course-category">${c.category||'Course'}</span>
       <span class="course-level">${c.level||''}</span>
     </div>
@@ -235,12 +245,43 @@ function renderCard(listing,owned){
         <div class="course-price">${fmt(listing.price)}</div>
         <div class="course-rating">⭐ 4.5</div>
       </div>
-      <button class="buy-btn ${owned?'owned':''}" onclick="event.stopPropagation();${owned?'':(`openPurchase('${listing.id}')`)}">
-        ${owned?'✅ Enrolled':'Buy Now'}
-      </button>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
+        <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();openPreview('${listing.course_id}','${(c.title||'Course').replace(/'/g,"\\'")}')">👁 Preview</button>
+        <button class="buy-btn ${owned?'owned':''}" style="margin-top:0;padding:8px" onclick="event.stopPropagation();${owned?'':(`openPurchase('${listing.id}')`)}">
+          ${owned?'✅ Enrolled':'Buy Now'}
+        </button>
+      </div>
     </div>
   </div>`;
 }
+
+// Preview a course before purchase: title, description, topics list, counts
+// of lectures/materials/tests — but NOT the actual content.
+async function openPreview(courseId, courseTitle){
+  const overlay=document.getElementById('previewModal');
+  const body=document.getElementById('previewBody');
+  document.getElementById('previewTitle').textContent=courseTitle;
+  body.innerHTML='<div style="text-align:center;padding:24px;color:#888">Loading…</div>';
+  overlay.classList.add('show');
+  try{
+    const r=await fetch(API+'/course-content/'+courseId+'/preview');
+    if(!r.ok) throw new Error('Could not load preview');
+    const data=await r.json();
+    const c=data.course||{};
+    body.innerHTML=`
+      ${c.cover_image?`<img src="${c.cover_image}" style="width:100%;height:180px;object-fit:cover;border-radius:10px;margin-bottom:14px">`:''}
+      <div style="margin-bottom:14px;font-size:14px;line-height:1.55;color:#374151">${c.description||'(no description)'}</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px">
+        <div style="padding:12px;background:#fff7ed;border-radius:8px;text-align:center"><div style="font-size:18px;font-weight:800;color:#f97316">${(data.topics||[]).length}</div><div style="font-size:11px;color:#6b7280">Topics</div></div>
+        <div style="padding:12px;background:#fff7ed;border-radius:8px;text-align:center"><div style="font-size:18px;font-weight:800;color:#f97316">${(data.lectures||[]).length}</div><div style="font-size:11px;color:#6b7280">Lectures</div></div>
+        <div style="padding:12px;background:#fff7ed;border-radius:8px;text-align:center"><div style="font-size:18px;font-weight:800;color:#f97316">${(data.materials||[]).length}</div><div style="font-size:11px;color:#6b7280">Materials</div></div>
+        <div style="padding:12px;background:#fff7ed;border-radius:8px;text-align:center"><div style="font-size:18px;font-weight:800;color:#f97316">${(data.tests||[]).length}</div><div style="font-size:11px;color:#6b7280">Tests</div></div>
+      </div>
+      <div style="margin-bottom:14px"><strong>What you'll learn</strong></div>
+      ${(data.topics||[]).length ? data.topics.map(t=>`<div style="padding:10px;border-left:3px solid #f97316;background:#fff7ed;border-radius:0 8px 8px 0;margin-bottom:8px"><div style="font-weight:600">${t.title}</div>${t.description?'<div style="font-size:12px;color:#6b7280;margin-top:2px">'+t.description+'</div>':''}</div>`).join('') : '<div style="color:#6b7280;font-size:13px">Curriculum coming soon.</div>'}`;
+  }catch(e){ body.innerHTML='<div style="color:#b91c1c">Error: '+e.message+'</div>'; }
+}
+function closePreview(){ document.getElementById('previewModal').classList.remove('show'); }
 
 function renderGrid(listings){
   const grid=document.getElementById('coursesGrid');

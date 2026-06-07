@@ -13,20 +13,33 @@ router.get('/', authenticateToken, async (req, res) => {
     if (role === 'student') {
       const { data: enrollments } = await supabaseAdmin
         .from('enrollments')
-        .select('*, courses(id,title,category,teacher_id,batch_timing,price)')
+        .select('*, courses(id,title,category,teacher_id,batch_timing,price,cover_image)')
         .eq('student_id', userId).limit(6);
       // Live classes for the student's enrolled courses (was incorrectly using courses.is_live)
       const enrolledCourseIds = (enrollments || []).map(e => e.course_id);
       const { data: liveClasses } = enrolledCourseIds.length
         ? await supabaseAdmin.from('live_classes').select('*, courses(title)').in('course_id', enrolledCourseIds).in('status', ['scheduled', 'live']).order('scheduled_time', { ascending: true }).limit(5)
         : { data: [] };
+      // Compute live progress per enrollment: attendance(present) / total_lectures.
+      // The enrollments.progress_percentage column is stale (never updated), so we
+      // derive it on the fly here so the student sees real-time progress without
+      // an extra fetch.
+      const enrichedEnrollments = await Promise.all((enrollments || []).map(async (e) => {
+        const [{ count: total }, { count: present }] = await Promise.all([
+          supabaseAdmin.from('course_lectures').select('id', { count: 'exact', head: true }).eq('course_id', e.course_id),
+          supabaseAdmin.from('attendance').select('id', { count: 'exact', head: true })
+            .eq('student_id', userId).eq('course_id', e.course_id).eq('status', 'present')
+        ]);
+        const pct = total ? Math.round((present / total) * 100) : (e.progress_percentage || 0);
+        return { ...e, progress_percentage: pct, attended_lectures: present || 0, total_lectures: total || 0 };
+      }));
       const { data: recordedLectures } = await supabaseAdmin.from('lectures').select('*').eq('is_recorded', true).limit(5);
       const { data: homework } = await supabaseAdmin.from('assignments').select('*').eq('student_id', userId).order('due_date', { ascending: true }).limit(5);
       const { data: skills } = await supabaseAdmin.from('user_skills').select('*').eq('user_id', userId).order('updated_at', { ascending: false }).limit(3);
       const { data: feedback } = await supabaseAdmin.from('feedback').select('*').eq('from_user_id', userId).order('created_at', { ascending: false }).limit(5);
       const { data: purchases } = await supabaseAdmin.from('marketplace_purchases').select('*, marketplace_listings(*, courses(title,category))').eq('buyer_id', userId).limit(5);
       dashboardData = {
-        enrolledCourses: enrollments || [],
+        enrolledCourses: enrichedEnrollments,
         liveClasses: liveClasses || [],
         recordedLectures: recordedLectures || [],
         homework: homework || [],
@@ -78,15 +91,14 @@ router.get('/', authenticateToken, async (req, res) => {
       };
 
     } else if (role === 'partner') {
-      const { data: bookings } = await supabaseAdmin.from('bookings').select('*').eq('partner_id', userId).order('booking_date', { ascending: false });
-      const { data: earnings } = await supabaseAdmin.from('earnings').select('*').eq('user_id', userId).order('date', { ascending: false }).limit(10);
-      const { data: listings } = await supabaseAdmin.from('marketplace_listings').select('*, courses(title,category)').eq('seller_id', userId);
-      const totalEarnings = earnings?.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0) || 0;
+      // Partner-specific bookings (service bookings, by partner_id)
+      const { data: partnerBookings } = await supabaseAdmin.from('bookings').select('*').eq('partner_id', userId).order('booking_date', { ascending: false });
+      // Add all the creator-style data (courses they own, live classes, etc.)
+      const creator = await fetchCreatorData(userId);
       dashboardData = {
-        bookings: bookings || [],
-        earnings: earnings || [],
-        totalEarnings,
-        marketplaceListings: listings || []
+        ...creator,
+        // Override bookings with partner-specific (preserves the old semantics for the partner stats)
+        bookings: partnerBookings || creator.bookings
       };
 
     } else if (role === 'admin') {
@@ -117,26 +129,22 @@ router.get('/', authenticateToken, async (req, res) => {
       const { data: profile } = await supabaseAdmin.from('school_profiles').select('*').eq('user_id', userId).single();
       const { data: activeCourses } = await supabaseAdmin.from('courses').select('*').eq('is_active', true).limit(12);
       const { data: payments } = await supabaseAdmin.from('payments').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(10);
-      const { data: enrollments } = await supabaseAdmin.from('enrollments').select('*, courses(title,category)').eq('student_id', userId).limit(10);
+      const creator = await fetchCreatorData(userId);
       dashboardData = {
+        ...creator,
         profile: profile || {},
         availableCourses: activeCourses || [],
-        payments: payments || [],
-        enrollments: enrollments || []
+        payments: payments || []
       };
 
     } else if (role === 'coaching') {
       const { data: profile } = await supabaseAdmin.from('coaching_profiles').select('*').eq('user_id', userId).single();
       const { data: activeCourses } = await supabaseAdmin.from('courses').select('*').eq('is_active', true).limit(12);
-      const { data: earnings } = await supabaseAdmin.from('earnings').select('*').eq('user_id', userId).order('date', { ascending: false }).limit(10);
-      const { data: listings } = await supabaseAdmin.from('marketplace_listings').select('*, courses(title,category)').eq('seller_id', userId);
-      const totalEarnings = earnings?.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0) || 0;
+      const creator = await fetchCreatorData(userId);
       dashboardData = {
+        ...creator,
         profile: profile || {},
-        availableCourses: activeCourses || [],
-        earnings: earnings || [],
-        totalEarnings,
-        marketplaceListings: listings || []
+        availableCourses: activeCourses || []
       };
     }
 
@@ -146,5 +154,40 @@ router.get('/', authenticateToken, async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch dashboard data' });
   }
 });
+
+// Shared computation: any user who can OWN courses (teacher, school,
+// coaching, partner) gets back their owned courses + the same downstream
+// arrays. Returns a partial dashboardData object ready to merge into the
+// role-specific one.
+async function fetchCreatorData(userId) {
+  const { data: courses } = await supabaseAdmin.from('courses').select('*').eq('teacher_id', userId);
+  const courseIds = (courses || []).map(c => c.id);
+  let bookings = [], attendance = [], liveClasses = [], enrollments = [];
+  if (courseIds.length) {
+    [bookings, attendance, liveClasses, enrollments] = await Promise.all([
+      supabaseAdmin.from('bookings').select('*').in('course_id', courseIds).limit(10).then(r => r.data || []),
+      supabaseAdmin.from('attendance').select('*').in('course_id', courseIds).order('date', { ascending: false }).limit(20).then(r => r.data || []),
+      supabaseAdmin.from('live_classes').select('*, courses(title)').in('course_id', courseIds).order('scheduled_time', { ascending: false }).limit(10).then(r => r.data || []),
+      supabaseAdmin.from('enrollments').select('id, course_id, student_id, status, courses(title)').in('course_id', courseIds).limit(50).then(r => r.data || [])
+    ]);
+    // Hydrate student names on enrollments
+    if (enrollments.length) {
+      const sids = [...new Set(enrollments.map(e => e.student_id))];
+      const { data: students } = await supabaseAdmin.from('jeetmantra_users').select('id, full_name, email').in('id', sids);
+      const byId = Object.fromEntries((students || []).map(s => [s.id, s]));
+      enrollments = enrollments.map(e => ({ ...e, student_name: byId[e.student_id]?.full_name || byId[e.student_id]?.email || 'Student' }));
+    }
+  }
+  const { data: earnings } = await supabaseAdmin.from('earnings').select('*').eq('user_id', userId).order('date', { ascending: false }).limit(10);
+  const { data: listings } = await supabaseAdmin.from('marketplace_listings').select('*, courses(title)').eq('seller_id', userId);
+  const totalEarnings = (earnings || []).reduce((s, e) => s + parseFloat(e.amount || 0), 0);
+  return {
+    courses: courses || [],
+    bookings, attendance, liveClasses, enrollments,
+    earnings: earnings || [],
+    totalEarnings,
+    marketplaceListings: listings || []
+  };
+}
 
 module.exports = router;
