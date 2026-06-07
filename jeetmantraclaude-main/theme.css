@@ -1,0 +1,128 @@
+/* ============================================================
+   JeetMantra design system — extracted from website.html
+   The single source of truth for color, type, and component
+   styling. All pages must import this so the look stays
+   consistent with the public site.
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+:root {
+  /* Brand */
+  --jm-primary:      #f97316;   /* orange — primary CTA */
+  --jm-primary-2:    #ea580c;   /* darker for hover */
+  --jm-primary-tint: #fff7ed;   /* faint orange wash */
+  --jm-primary-glow: rgba(249,115,22,0.30);
+
+  /* Foreground / canvas */
+  --jm-bg:           #f4f6f8;
+  --jm-surface:      #ffffff;
+  --jm-surface-2:    #f1f5f9;
+  --jm-text:         #0f172a;   /* slate-900 — body text */
+  --jm-text-muted:   #64748b;   /* slate-500 */
+  --jm-text-subtle:  #9ca3af;   /* gray-400 */
+  --jm-text-strong:  #374151;   /* gray-700 */
+
+  /* Lines */
+  --jm-border:       #e5e7eb;   /* gray-200 */
+  --jm-border-soft:  rgba(0,0,0,0.07);
+
+  /* Status */
+  --jm-success:      #22c55e;
+  --jm-info:         #3b82f6;
+  --jm-warn:         #fbbf24;
+  --jm-danger:       #ef4444;
+
+  /* Deep accent — used in hero / footer panels */
+  --jm-deep:         #0f172a;
+  --jm-deep-2:       #1e3a5f;
+
+  /* Geometry */
+  --jm-radius:       12px;
+  --jm-radius-sm:    8px;
+  --jm-radius-pill:  9999px;
+  --jm-shadow-sm:    0 1px 3px rgba(0,0,0,0.06);
+  --jm-shadow:       0 4px 16px rgba(0,0,0,0.08);
+  --jm-shadow-glow:  0 0 24px var(--jm-primary-glow);
+}
+
+/* Base */
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  background: var(--jm-bg);
+  color: var(--jm-text);
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.55;
+}
+h1, h2, h3, h4 { font-weight: 800; letter-spacing: -0.02em; line-height: 1.2; }
+h1 { font-size: 36px; } h2 { font-size: 24px; } h3 { font-size: 18px; } h4 { font-size: 15px; }
+a { color: var(--jm-primary); text-decoration: none; }
+a:hover { color: var(--jm-primary-2); }
+
+/* Buttons */
+.jm-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  font-family: inherit; font-weight: 700; font-size: 14px;
+  padding: 10px 20px; border-radius: var(--jm-radius-sm); cursor: pointer;
+  border: 1.5px solid transparent; transition: all 150ms;
+}
+.jm-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.jm-btn-primary {
+  background: var(--jm-primary); color: #fff;
+  box-shadow: 0 2px 12px var(--jm-primary-glow);
+}
+.jm-btn-primary:hover { background: var(--jm-primary-2); box-shadow: 0 4px 18px var(--jm-primary-glow); }
+.jm-btn-secondary {
+  background: var(--jm-surface); color: var(--jm-text); border-color: var(--jm-border);
+}
+.jm-btn-secondary:hover { border-color: var(--jm-primary); color: var(--jm-primary); }
+.jm-btn-danger { background: var(--jm-danger); color: #fff; }
+.jm-btn-ghost { background: transparent; color: var(--jm-text); border-color: transparent; }
+.jm-btn-ghost:hover { background: var(--jm-surface-2); }
+.jm-btn-sm { padding: 7px 14px; font-size: 12px; }
+
+/* Cards */
+.jm-card {
+  background: var(--jm-surface);
+  border: 1px solid var(--jm-border);
+  border-radius: var(--jm-radius);
+  padding: 20px;
+  box-shadow: var(--jm-shadow-sm);
+}
+.jm-card-hover:hover { box-shadow: var(--jm-shadow); transform: translateY(-1px); }
+
+/* Inputs */
+.jm-input, .jm-select, .jm-textarea {
+  width: 100%; font-family: inherit; font-size: 14px;
+  background: var(--jm-surface); color: var(--jm-text);
+  border: 1.5px solid var(--jm-border); border-radius: var(--jm-radius-sm);
+  padding: 11px 14px; outline: none; transition: border 150ms, box-shadow 150ms;
+}
+.jm-input:focus, .jm-select:focus, .jm-textarea:focus {
+  border-color: var(--jm-primary); box-shadow: 0 0 0 3px rgba(249,115,22,0.12);
+}
+
+/* Badges / pills */
+.jm-badge {
+  display: inline-block; font-size: 11px; font-weight: 700;
+  padding: 3px 10px; border-radius: var(--jm-radius-pill);
+}
+.jm-badge-primary { background: var(--jm-primary-tint); color: var(--jm-primary-2); }
+.jm-badge-success { background: #f0fdf4; color: #15803d; }
+.jm-badge-info    { background: #eff6ff; color: #1d4ed8; }
+.jm-badge-warn    { background: #fffbeb; color: #b45309; }
+.jm-badge-danger  { background: #fef2f2; color: #b91c1c; }
+.jm-badge-muted   { background: var(--jm-surface-2); color: var(--jm-text-muted); }
+
+/* Surface variants */
+.jm-surface-dark { background: var(--jm-deep); color: #fff; }
+
+/* Logo wordmark — JeetMantra with orange "Mantra" */
+.jm-logo { font-size: 18px; font-weight: 800; letter-spacing: -0.02em; color: var(--jm-text); }
+.jm-logo .accent { color: var(--jm-primary); }
+
+/* Utility */
+.jm-muted { color: var(--jm-text-muted); }
+.jm-divider { height: 1px; background: var(--jm-border); margin: 16px 0; }

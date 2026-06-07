@@ -31,20 +31,19 @@ router.get('/profile', authenticateToken, async (req, res) => {
   }
 });
 
-// Update user profile
+// Update user profile.
+// Only columns that actually exist on jeetmantra_users are accepted —
+// extra fields from the dashboard form (institution, academicLevel, skills,
+// qualifications, profileImage) are silently ignored rather than 400-ing the
+// whole update.
 router.put('/profile', authenticateToken, async (req, res) => {
   try {
-    const { fullName, phone, academicLevel, skills, institution, qualifications, bio, profileImage } = req.body;
+    const { fullName, phone, bio } = req.body;
 
     const updates = {
       ...(fullName && { full_name: fullName }),
       ...(phone && { phone }),
-      ...(academicLevel && { academic_level: academicLevel }),
-      ...(skills && { skills }),
-      ...(institution && { institution }),
-      ...(qualifications && { qualifications }),
       ...(bio && { bio }),
-      ...(profileImage && { profile_image: profileImage }),
       updated_at: new Date().toISOString()
     };
 
@@ -56,7 +55,8 @@ router.put('/profile', authenticateToken, async (req, res) => {
       .single();
 
     if (error) {
-      return res.status(400).json({ error: 'Failed to update profile' });
+      console.error('Profile update error:', error);
+      return res.status(400).json({ error: 'Failed to update profile: ' + error.message });
     }
 
     const { password_hash, ...userWithoutPassword } = updatedUser;

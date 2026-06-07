@@ -4,74 +4,100 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>JeetMantra — Dashboard</title>
+<link rel="stylesheet" href="theme.css">
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:#0a0a0a;color:#eaeaea;font-family:'Segoe UI',sans-serif;display:flex;min-height:100vh}
-.sidebar{width:250px;background:#1a1a2e;border-right:1px solid #2a2a4a;display:flex;flex-direction:column;position:fixed;height:100vh;z-index:100;transition:transform .3s}
-.sidebar-logo{padding:24px 20px 16px;border-bottom:1px solid #2a2a4a}
-.sidebar-logo h2{color:#e94560;font-size:20px}
-.sidebar-logo p{color:#888;font-size:11px;margin-top:2px}
-.user-info{padding:16px 20px;border-bottom:1px solid #2a2a4a}
-.user-avatar{width:44px;height:44px;border-radius:50%;background:#e94560;display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:8px}
+/* Dashboard-specific styles — uses theme.css design tokens */
+body{display:flex;min-height:100vh}
+.sidebar{width:250px;background:var(--jm-deep);color:#fff;display:flex;flex-direction:column;position:fixed;height:100vh;z-index:100;transition:transform .3s}
+.sidebar-logo{padding:24px 20px 16px;border-bottom:1px solid rgba(255,255,255,0.1)}
+.sidebar-logo h2{font-size:20px;font-weight:800;letter-spacing:-0.02em}
+.sidebar-logo h2 .accent{color:var(--jm-primary)}
+.sidebar-logo p{color:rgba(255,255,255,0.5);font-size:11px;margin-top:2px}
+.user-info{padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.1)}
+.user-avatar{width:44px;height:44px;border-radius:50%;background:var(--jm-primary);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;margin-bottom:8px}
 .user-name{font-size:14px;font-weight:600}
-.user-role{font-size:11px;padding:3px 10px;border-radius:20px;display:inline-block;margin-top:4px;font-weight:500}
-.role-student{background:#0f3460;color:#64b5f6}
-.role-teacher{background:#1a3020;color:#81c784}
-.role-partner{background:#301a30;color:#ce93d8}
-.role-admin{background:#2a1010;color:#ef9a9a}
-.role-school{background:#1a2a10;color:#a5d6a7}
-.role-coaching{background:#2a2a00;color:#fff176}
+.user-role{font-size:11px;padding:3px 10px;border-radius:var(--jm-radius-pill);display:inline-block;margin-top:4px;font-weight:600;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.85)}
+.role-student .icon,.role-teacher .icon,.role-partner .icon,.role-admin .icon,.role-school .icon,.role-coaching .icon{font-size:18px;width:22px;text-align:center}
 .nav-menu{flex:1;overflow-y:auto;padding:12px 0}
-.nav-item{display:flex;align-items:center;gap:12px;padding:12px 20px;cursor:pointer;transition:background .2s;font-size:14px;color:#aaa}
-.nav-item:hover,.nav-item.active{background:#16213e;color:#eaeaea}
-.nav-item.active{border-right:3px solid #e94560}
+.nav-item{display:flex;align-items:center;gap:12px;padding:12px 20px;cursor:pointer;transition:all .15s;font-size:14px;color:rgba(255,255,255,0.65);font-weight:500}
+.nav-item:hover{background:rgba(255,255,255,0.05);color:#fff}
+.nav-item.active{background:rgba(249,115,22,0.12);color:var(--jm-primary);border-right:3px solid var(--jm-primary)}
 .nav-item .icon{font-size:18px;width:22px;text-align:center}
-.sidebar-footer{padding:16px 20px;border-top:1px solid #2a2a4a}
-.btn-logout{width:100%;background:#2a1020;border:1px solid #e94560;color:#e94560;border-radius:8px;padding:10px;cursor:pointer;font-size:13px;transition:all .2s}
-.btn-logout:hover{background:#e94560;color:#fff}
-.main{margin-left:250px;flex:1;display:flex;flex-direction:column;min-height:100vh}
-.topbar{background:#1a1a2e;border-bottom:1px solid #2a2a4a;padding:14px 28px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:50}
-.topbar h3{font-size:16px;font-weight:600;flex:1}
-.search-bar{display:flex;align-items:center;background:#0f3460;border-radius:8px;padding:8px 14px;gap:8px;flex:1;max-width:320px}
-.search-bar input{background:none;border:none;color:#eaeaea;font-size:13px;outline:none;width:100%}
+.sidebar-footer{padding:16px 20px;border-top:1px solid rgba(255,255,255,0.1)}
+.btn-logout{width:100%;background:transparent;border:1.5px solid rgba(255,255,255,0.2);color:#fff;border-radius:var(--jm-radius-sm);padding:10px;cursor:pointer;font-size:13px;font-family:inherit;font-weight:600;transition:all .15s}
+.btn-logout:hover{background:var(--jm-primary);border-color:var(--jm-primary)}
+.main{margin-left:250px;flex:1;display:flex;flex-direction:column;min-height:100vh;background:var(--jm-bg)}
+.topbar{background:var(--jm-surface);border-bottom:1px solid var(--jm-border);padding:14px 28px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:50;box-shadow:var(--jm-shadow-sm)}
+.topbar h3{font-size:16px;font-weight:700;flex:1;color:var(--jm-text)}
+.search-bar{display:flex;align-items:center;background:var(--jm-surface-2);border:1px solid var(--jm-border);border-radius:var(--jm-radius-sm);padding:8px 14px;gap:8px;flex:1;max-width:320px}
+.search-bar input{background:none;border:none;color:var(--jm-text);font-size:13px;outline:none;width:100%;font-family:inherit}
 .topbar-actions{display:flex;align-items:center;gap:10px}
-.icon-btn{background:#16213e;border:1px solid #2a2a4a;border-radius:8px;padding:8px 12px;cursor:pointer;font-size:16px;color:#aaa;text-decoration:none;display:flex;align-items:center}
+.icon-btn{background:var(--jm-surface);border:1px solid var(--jm-border);border-radius:var(--jm-radius-sm);padding:8px 12px;cursor:pointer;font-size:16px;color:var(--jm-text-muted);text-decoration:none;display:flex;align-items:center;transition:all .15s}
+.icon-btn:hover{border-color:var(--jm-primary);color:var(--jm-primary)}
 .content{padding:24px 28px;flex:1}
 .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
-.stat-card{background:#16213e;border-radius:12px;padding:20px;border:1px solid #2a2a4a}
-.stat-card .label{font-size:12px;color:#888;margin-bottom:6px}
-.stat-card .value{font-size:28px;font-weight:700;color:#e94560}
-.stat-card .sub{font-size:11px;color:#555;margin-top:4px}
+.stat-card{background:var(--jm-surface);border-radius:var(--jm-radius);padding:20px;border:1px solid var(--jm-border);box-shadow:var(--jm-shadow-sm)}
+.stat-card .label{font-size:12px;color:var(--jm-text-muted);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:0.04em}
+.stat-card .value{font-size:28px;font-weight:800;color:var(--jm-text);letter-spacing:-0.02em}
+.stat-card .sub{font-size:11px;color:var(--jm-text-subtle);margin-top:4px}
 .section{margin-bottom:28px}
-.section-title{font-size:15px;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:8px}
-.section-title::after{content:'';flex:1;height:1px;background:#2a2a4a;margin-left:8px}
+.section-title{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;color:var(--jm-text)}
+.section-title::after{content:'';flex:1;height:1px;background:var(--jm-border);margin-left:8px}
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-.card{background:#16213e;border-radius:12px;padding:18px;border:1px solid #2a2a4a}
-.item-list{list-style:none}
-.item-list li{padding:10px 0;border-bottom:1px solid #1a2a4a;font-size:13px;display:flex;justify-content:space-between;align-items:center;color:#ccc}
+.card{background:var(--jm-surface);border-radius:var(--jm-radius);padding:18px;border:1px solid var(--jm-border);box-shadow:var(--jm-shadow-sm)}
+.item-list{list-style:none;padding:0;margin:0}
+.item-list li{padding:10px 0;border-bottom:1px solid var(--jm-border);font-size:13px;display:flex;justify-content:space-between;align-items:center;color:var(--jm-text-strong)}
 .item-list li:last-child{border-bottom:none}
-.badge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500}
-.badge-green{background:#102a20;color:#00d4aa}
-.badge-blue{background:#0f2040;color:#64b5f6}
-.badge-red{background:#2a1020;color:#e94560}
-.badge-yellow{background:#2a2000;color:#ffd54f}
-.progress-bar{background:#0f3460;border-radius:4px;height:6px;margin-top:6px;width:100%}
-.progress-fill{background:#e94560;border-radius:4px;height:100%}
-.empty-state{text-align:center;padding:30px 20px;color:#555;font-size:13px;width:100%}
-.empty-state .icon{font-size:36px;margin-bottom:8px}
-.btn-sm{padding:6px 14px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;border:none;transition:all .2s;display:inline-block}
-.btn-primary{background:#e94560;color:#fff}
-.btn-outline{background:transparent;border:1px solid #e94560;color:#e94560}
+.badge{padding:3px 10px;border-radius:var(--jm-radius-pill);font-size:11px;font-weight:700}
+.badge-green{background:#f0fdf4;color:#15803d}
+.badge-blue{background:#eff6ff;color:#1d4ed8}
+.badge-red{background:#fef2f2;color:#b91c1c}
+.badge-yellow{background:#fffbeb;color:#b45309}
+.progress-bar{background:var(--jm-surface-2);border-radius:4px;height:6px;margin-top:6px;width:100%}
+.progress-fill{background:var(--jm-primary);border-radius:4px;height:100%}
+.empty-state{text-align:center;padding:30px 20px;color:var(--jm-text-muted);font-size:13px;width:100%}
+.empty-state .icon{font-size:36px;margin-bottom:8px;opacity:.5}
+.btn-sm{padding:7px 14px;border-radius:var(--jm-radius-sm);font-size:12px;font-weight:700;cursor:pointer;border:1.5px solid transparent;font-family:inherit;transition:all .15s;display:inline-block}
+.btn-primary{background:var(--jm-primary);color:#fff;box-shadow:0 2px 8px var(--jm-primary-glow)}
+.btn-primary:hover{background:var(--jm-primary-2)}
+.btn-outline{background:transparent;border-color:var(--jm-border);color:var(--jm-text)}
+.btn-outline:hover{border-color:var(--jm-primary);color:var(--jm-primary)}
 .role-section{display:none}
 .role-section.visible{display:block}
-.loading-state{text-align:center;padding:60px;color:#555}
-.hamburger{display:none;background:none;border:none;color:#eaeaea;font-size:22px;cursor:pointer;padding:0 4px}
-.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:90}
-.course-mini-card{background:#1a2a3e;border-radius:8px;padding:12px;border:1px solid #2a3a5a}
-.course-mini-card .cat{font-size:11px;color:#888}
-.course-mini-card .title{font-size:13px;font-weight:600;margin:4px 0}
-.course-mini-card .price{font-size:13px;color:#e94560}
+.loading-state{text-align:center;padding:60px;color:var(--jm-text-muted)}
+.hamburger{display:none;background:none;border:none;color:var(--jm-text);font-size:22px;cursor:pointer;padding:0 4px}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:90}
+.course-mini-card{background:var(--jm-surface);border-radius:var(--jm-radius-sm);padding:14px;border:1px solid var(--jm-border);box-shadow:var(--jm-shadow-sm)}
+.course-mini-card .cat{font-size:11px;color:var(--jm-text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.04em}
+.course-mini-card .title{font-size:13px;font-weight:700;margin:4px 0;color:var(--jm-text)}
+.course-mini-card .price{font-size:14px;color:var(--jm-primary);font-weight:700}
+/* Section action button next to title */
+.section-title .actions{margin-left:auto;display:flex;gap:6px}
+.section-title::after{display:none}
+.section-title{position:relative;padding-bottom:6px;border-bottom:1px solid var(--jm-border)}
+/* Row-level action buttons inside item-list */
+.row-actions{display:flex;gap:6px;align-items:center}
+.row-actions .btn-sm{padding:4px 10px;font-size:11px}
+/* Modal — uses the marketplace pattern */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,0.6);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.modal-overlay.show{display:flex}
+.modal{background:var(--jm-surface);border-radius:var(--jm-radius);padding:28px;max-width:540px;width:90%;border:1px solid var(--jm-border);max-height:90vh;overflow-y:auto;box-shadow:var(--jm-shadow)}
+.modal h3{font-size:20px;font-weight:800;margin-bottom:18px;letter-spacing:-0.02em;color:var(--jm-text)}
+.modal .close{float:right;cursor:pointer;color:var(--jm-text-muted);font-size:22px;line-height:1;font-weight:700;background:none;border:0}
+.modal .form-row{margin-bottom:14px}
+.modal label{display:block;font-size:12px;color:var(--jm-text-strong);margin-bottom:6px;font-weight:600}
+.modal input,.modal select,.modal textarea{width:100%;background:var(--jm-surface);border:1.5px solid var(--jm-border);border-radius:var(--jm-radius-sm);padding:10px 12px;color:var(--jm-text);font-size:14px;outline:none;font-family:inherit;transition:all .15s}
+.modal input:focus,.modal select:focus,.modal textarea:focus{border-color:var(--jm-primary);box-shadow:0 0 0 3px rgba(249,115,22,0.12)}
+.modal .modal-actions{display:flex;gap:10px;margin-top:18px;justify-content:flex-end}
+.modal .grid-2{grid-template-columns:1fr 1fr;display:grid;gap:14px}
+.modal .msg{padding:10px 14px;border-radius:var(--jm-radius-sm);font-size:13px;margin-bottom:12px;display:none;font-weight:600}
+.modal .msg.error{background:#fef2f2;color:#b91c1c;border:1px solid #fca5a5;display:block}
+.modal .msg.success{background:#f0fdf4;color:#15803d;border:1px solid #86efac;display:block}
+/* Toast */
+.toast{position:fixed;top:20px;right:20px;background:var(--jm-surface);border:1px solid var(--jm-border);border-left:4px solid var(--jm-success);border-radius:var(--jm-radius-sm);padding:14px 18px;box-shadow:var(--jm-shadow);font-size:14px;font-weight:600;color:var(--jm-text);z-index:300;animation:slideIn .3s}
+.toast.error{border-left-color:var(--jm-danger)}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:none;opacity:1}}
 @media(max-width:768px){
   .sidebar{transform:translateX(-100%)}
   .sidebar.open{transform:translateX(0)}
@@ -87,8 +113,8 @@ body{background:#0a0a0a;color:#eaeaea;font-family:'Segoe UI',sans-serif;display:
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
 <div class="sidebar" id="sidebar">
   <div class="sidebar-logo">
-    <h2>🎓 JeetMantra</h2>
-    <p>Learning Platform v2.0</p>
+    <h2>Jeet<span class="accent">Mantra</span></h2>
+    <p>India's Modern Gurukul</p>
   </div>
   <div class="user-info">
     <div class="user-avatar" id="userAvatar">👤</div>
@@ -130,20 +156,35 @@ body{background:#0a0a0a;color:#eaeaea;font-family:'Segoe UI',sans-serif;display:
         <div class="stat-card"><div class="label">Skills Tracked</div><div class="value" id="s-skills">0</div><div class="sub">This week</div></div>
       </div>
       <div class="grid-2">
-        <div class="section"><div class="section-title">📚 My Courses</div>
-          <div class="card"><ul class="item-list" id="s-coursesList"><li style="width:100%"><div class="empty-state"><div class="icon">📖</div>No courses yet — <a href="/marketplace.html" style="color:#e94560">Browse Marketplace</a></div></li></ul></div>
+        <div class="section" id="sec-student-courses">
+          <div class="section-title">📚 My Courses
+            <div class="actions"><a href="/marketplace.html" class="btn-sm btn-primary" style="text-decoration:none">🛒 Browse More</a></div>
+          </div>
+          <div class="card"><ul class="item-list" id="s-coursesList"><li style="width:100%"><div class="empty-state"><div class="icon">📖</div>No courses yet — <a href="/marketplace.html" style="color:var(--jm-primary)">Browse Marketplace</a></div></li></ul></div>
         </div>
-        <div class="section"><div class="section-title">📝 Assignments Due</div>
+        <div class="section" id="sec-student-hw">
+          <div class="section-title">📝 Assignments Due
+            <div class="actions"><button class="btn-sm btn-outline" onclick="openModal('markAttendance')">✅ Mark My Attendance</button></div>
+          </div>
           <div class="card"><ul class="item-list" id="s-hwList"><li style="width:100%"><div class="empty-state"><div class="icon">✅</div>No pending assignments</div></li></ul></div>
         </div>
       </div>
       <div class="grid-2">
-        <div class="section"><div class="section-title">📡 Live Classes</div>
+        <div class="section" id="sec-student-live"><div class="section-title">📡 Live Classes</div>
           <div class="card"><ul class="item-list" id="s-liveList"><li style="width:100%"><div class="empty-state"><div class="icon">📺</div>No live classes</div></li></ul></div>
         </div>
-        <div class="section"><div class="section-title">🛒 Marketplace Purchases</div>
-          <div class="card"><ul class="item-list" id="s-purchasesList"><li style="width:100%"><div class="empty-state"><div class="icon">🛍️</div>No purchases — <a href="/marketplace.html" style="color:#e94560">Shop Now</a></div></li></ul></div>
+        <div class="section" id="sec-student-purchases"><div class="section-title">🛒 Marketplace Purchases</div>
+          <div class="card"><ul class="item-list" id="s-purchasesList"><li style="width:100%"><div class="empty-state"><div class="icon">🛍️</div>No purchases — <a href="/marketplace.html" style="color:var(--jm-primary)">Shop Now</a></div></li></ul></div>
         </div>
+      </div>
+      <div class="section" id="sec-student-notes">
+        <div class="section-title">📝 My Notes
+          <div class="actions"><button class="btn-sm btn-primary" onclick="openModal('addNote')">+ New Note</button></div>
+        </div>
+        <div class="card"><ul class="item-list" id="s-notesList"><li style="width:100%"><div class="empty-state"><div class="icon">📝</div>Loading…</div></li></ul></div>
+      </div>
+      <div class="section" id="sec-student-profile"><div class="section-title">👤 Profile</div>
+        <div class="card" id="s-profile">Loading…</div>
       </div>
     </div>
 
@@ -156,23 +197,40 @@ body{background:#0a0a0a;color:#eaeaea;font-family:'Segoe UI',sans-serif;display:
         <div class="stat-card"><div class="label">Listings</div><div class="value" id="t-listings">0</div><div class="sub">On marketplace</div></div>
       </div>
       <div class="grid-2">
-        <div class="section"><div class="section-title">📚 My Courses</div>
+        <div class="section" id="sec-teacher-courses">
+          <div class="section-title">📚 My Courses
+            <div class="actions"><button class="btn-sm btn-primary" onclick="openModal('createCourse')">+ New Course</button></div>
+          </div>
           <div class="card"><ul class="item-list" id="t-coursesList"><li style="width:100%"><div class="empty-state"><div class="icon">📖</div>No courses yet</div></li></ul></div>
         </div>
-        <div class="section"><div class="section-title">🛒 Marketplace Listings</div>
+        <div class="section" id="sec-teacher-listings">
+          <div class="section-title">🛒 Marketplace Listings
+            <div class="actions"><button class="btn-sm btn-primary" onclick="openModal('listCourse')">+ List on Marketplace</button></div>
+          </div>
           <div class="card">
-            <a href="/marketplace.html" class="btn-sm btn-primary" style="margin-bottom:10px;text-decoration:none">+ Add Listing</a>
-            <ul class="item-list" id="t-listingsList" style="margin-top:10px"><li style="width:100%"><div class="empty-state"><div class="icon">🏪</div>No listings</div></li></ul>
+            <ul class="item-list" id="t-listingsList"><li style="width:100%"><div class="empty-state"><div class="icon">🏪</div>No listings</div></li></ul>
           </div>
         </div>
       </div>
       <div class="grid-2">
-        <div class="section"><div class="section-title">📡 Live Classes</div>
+        <div class="section" id="sec-teacher-live">
+          <div class="section-title">📡 Live Classes
+            <div class="actions"><button class="btn-sm btn-primary" onclick="openModal('scheduleLive')">+ Schedule Class</button></div>
+          </div>
           <div class="card"><ul class="item-list" id="t-liveList"><li style="width:100%"><div class="empty-state"><div class="icon">📺</div>None scheduled</div></li></ul></div>
         </div>
-        <div class="section"><div class="section-title">📊 Recent Bookings</div>
+        <div class="section" id="sec-teacher-bookings">
+          <div class="section-title">📊 Recent Bookings
+            <div class="actions"><button class="btn-sm btn-outline" onclick="openModal('takeAttendance')">📝 Take Attendance</button></div>
+          </div>
           <div class="card"><ul class="item-list" id="t-bookingsList"><li style="width:100%"><div class="empty-state"><div class="icon">📅</div>No bookings</div></li></ul></div>
         </div>
+      </div>
+      <div class="section" id="sec-teacher-earnings"><div class="section-title">💰 Earnings</div>
+        <div class="card"><ul class="item-list" id="t-earningsList"><li style="width:100%"><div class="empty-state"><div class="icon">💸</div>No earnings yet</div></li></ul></div>
+      </div>
+      <div class="section" id="sec-teacher-profile"><div class="section-title">👤 Profile</div>
+        <div class="card" id="t-profile">Loading…</div>
       </div>
     </div>
 
@@ -185,12 +243,18 @@ body{background:#0a0a0a;color:#eaeaea;font-family:'Segoe UI',sans-serif;display:
         <div class="stat-card"><div class="label">Pending</div><div class="value" id="p-pending">0</div><div class="sub">Bookings</div></div>
       </div>
       <div class="grid-2">
-        <div class="section"><div class="section-title">📅 Bookings</div>
+        <div class="section" id="sec-partner-bookings">
+          <div class="section-title">📅 Bookings
+            <div class="actions"><a href="/marketplace.html" class="btn-sm btn-primary" style="text-decoration:none">+ List Service</a></div>
+          </div>
           <div class="card"><ul class="item-list" id="p-bookingsList"><li style="width:100%"><div class="empty-state"><div class="icon">📅</div>No bookings</div></li></ul></div>
         </div>
-        <div class="section"><div class="section-title">💰 Earnings</div>
+        <div class="section" id="sec-partner-earnings"><div class="section-title">💰 Earnings</div>
           <div class="card"><ul class="item-list" id="p-earningsList"><li style="width:100%"><div class="empty-state"><div class="icon">💸</div>No earnings</div></li></ul></div>
         </div>
+      </div>
+      <div class="section" id="sec-partner-profile"><div class="section-title">👤 Profile</div>
+        <div class="card" id="p-profile">Loading…</div>
       </div>
     </div>
 
@@ -203,12 +267,27 @@ body{background:#0a0a0a;color:#eaeaea;font-family:'Segoe UI',sans-serif;display:
         <div class="stat-card"><div class="label">Payments</div><div class="value" id="sc-payments">₹0</div><div class="sub">Total spent</div></div>
       </div>
       <div class="grid-2">
-        <div class="section"><div class="section-title">📚 Available Courses</div>
+        <div class="section" id="sec-school-courses">
+          <div class="section-title">📚 Available Courses
+            <div class="actions"><a href="/marketplace.html" class="btn-sm btn-primary" style="text-decoration:none">🛒 Marketplace</a></div>
+          </div>
           <div class="card"><ul class="item-list" id="sc-coursesList"><li style="width:100%"><div class="empty-state"><div class="icon">📖</div>Loading courses...</div></li></ul></div>
         </div>
-        <div class="section"><div class="section-title">💳 Payment History</div>
+        <div class="section" id="sec-school-payments"><div class="section-title">💳 Payment History</div>
           <div class="card"><ul class="item-list" id="sc-paymentsList"><li style="width:100%"><div class="empty-state"><div class="icon">💳</div>No payments</div></li></ul></div>
         </div>
+      </div>
+      <div class="section" id="sec-school-teachers">
+        <div class="section-title">👨‍🏫 Linked Teachers
+          <div class="actions"><button class="btn-sm btn-primary" onclick="openModal('linkTeacher')">+ Add Teacher</button></div>
+        </div>
+        <div class="card"><ul class="item-list" id="inst-teachersList"><li style="width:100%"><div class="empty-state"><div class="icon">👨‍🏫</div>Loading…</div></li></ul></div>
+      </div>
+      <div class="section" id="sec-school-profile">
+        <div class="section-title">🏫 School Profile
+          <div class="actions"><button class="btn-sm btn-outline" onclick="openModal('updateProfile')">✏️ Edit</button></div>
+        </div>
+        <div class="card" id="sc-profile">Loading…</div>
       </div>
     </div>
 
@@ -221,18 +300,35 @@ body{background:#0a0a0a;color:#eaeaea;font-family:'Segoe UI',sans-serif;display:
         <div class="stat-card"><div class="label">Platform Courses</div><div class="value" id="co-courses">0</div><div class="sub">Available</div></div>
       </div>
       <div class="grid-2">
-        <div class="section"><div class="section-title">🛒 My Listings</div>
+        <div class="section" id="sec-coaching-listings">
+          <div class="section-title">🛒 My Listings
+            <div class="actions"><button class="btn-sm btn-primary" onclick="openModal('createCourse')">+ New Course</button></div>
+          </div>
           <div class="card">
-            <a href="/marketplace.html" class="btn-sm btn-primary" style="margin-bottom:10px;text-decoration:none">+ List a Course</a>
-            <ul class="item-list" id="co-listingsList" style="margin-top:10px"><li style="width:100%"><div class="empty-state"><div class="icon">🏪</div>No listings</div></li></ul>
+            <ul class="item-list" id="co-listingsList"><li style="width:100%"><div class="empty-state"><div class="icon">🏪</div>No listings</div></li></ul>
           </div>
         </div>
-        <div class="section"><div class="section-title">💰 Earnings</div>
+        <div class="section" id="sec-coaching-earnings"><div class="section-title">💰 Earnings</div>
           <div class="card"><ul class="item-list" id="co-earningsList"><li style="width:100%"><div class="empty-state"><div class="icon">💸</div>No earnings</div></li></ul></div>
         </div>
       </div>
-      <div class="section"><div class="section-title">📚 Browse Platform Courses</div>
+      <div class="section" id="sec-coaching-courses">
+        <div class="section-title">📚 Browse Platform Courses
+          <div class="actions"><a href="/marketplace.html" class="btn-sm btn-primary" style="text-decoration:none">🛒 Full Marketplace</a></div>
+        </div>
         <div class="grid-3" id="co-coursesList"></div>
+      </div>
+      <div class="section" id="sec-coaching-teachers">
+        <div class="section-title">👨‍🏫 Linked Teachers
+          <div class="actions"><button class="btn-sm btn-primary" onclick="openModal('linkTeacher')">+ Add Teacher</button></div>
+        </div>
+        <div class="card"><ul class="item-list" id="inst-teachersList-coaching"><li style="width:100%"><div class="empty-state"><div class="icon">👨‍🏫</div>Loading…</div></li></ul></div>
+      </div>
+      <div class="section" id="sec-coaching-profile">
+        <div class="section-title">🏆 Center Profile
+          <div class="actions"><button class="btn-sm btn-outline" onclick="openModal('updateProfile')">✏️ Edit</button></div>
+        </div>
+        <div class="card" id="co-profile">Loading…</div>
       </div>
     </div>
 
@@ -245,7 +341,7 @@ body{background:#0a0a0a;color:#eaeaea;font-family:'Segoe UI',sans-serif;display:
         <div class="stat-card"><div class="label">System</div><div class="value" id="a-health" style="font-size:16px">✅</div><div class="sub">All services OK</div></div>
       </div>
       <div class="grid-2">
-        <div class="section"><div class="section-title">👥 Users</div>
+        <div class="section" id="sec-admin-users"><div class="section-title">👥 Users</div>
           <div class="card">
             <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
               <button class="btn-sm btn-outline" onclick="filterUsers('all')">All</button>
@@ -258,11 +354,11 @@ body{background:#0a0a0a;color:#eaeaea;font-family:'Segoe UI',sans-serif;display:
             <ul class="item-list" id="a-usersList"><li style="width:100%"><div class="empty-state"><div class="icon">👥</div>No users</div></li></ul>
           </div>
         </div>
-        <div class="section"><div class="section-title">🛒 Marketplace</div>
+        <div class="section" id="sec-admin-listings"><div class="section-title">🛒 Marketplace</div>
           <div class="card"><ul class="item-list" id="a-listingsList"><li style="width:100%"><div class="empty-state"><div class="icon">🛒</div>No listings</div></li></ul></div>
         </div>
       </div>
-      <div class="section"><div class="section-title">💳 Recent Transactions</div>
+      <div class="section" id="sec-admin-transactions"><div class="section-title">💳 Recent Transactions</div>
         <div class="card"><ul class="item-list" id="a-paymentsList"><li style="width:100%"><div class="empty-state"><div class="icon">💳</div>No transactions</div></li></ul></div>
       </div>
     </div>
@@ -272,45 +368,143 @@ body{background:#0a0a0a;color:#eaeaea;font-family:'Segoe UI',sans-serif;display:
 <script>
 const API='http://localhost:5000/api';
 let currentUser=null,allUsers=[];
+// Each nav item: {i: icon, l: label, t?: in-page section key, h?: external URL, a?: active}
+// "t" maps to a section id `sec-{role}-{t}` (or 'top' to scroll back up).
 const NAV={
-  student:[{i:'🏠',l:'Dashboard',a:true},{i:'📚',l:'My Courses'},{i:'📡',l:'Live Classes'},{i:'📝',l:'Assignments'},{i:'🛒',l:'Marketplace',h:'/marketplace.html'},{i:'👤',l:'Profile'}],
-  teacher:[{i:'🏠',l:'Dashboard',a:true},{i:'📚',l:'My Courses'},{i:'📡',l:'Live Classes'},{i:'👥',l:'Students'},{i:'🛒',l:'Marketplace',h:'/marketplace.html'},{i:'💰',l:'Earnings'},{i:'👤',l:'Profile'}],
-  partner:[{i:'🏠',l:'Dashboard',a:true},{i:'📅',l:'Bookings'},{i:'🛒',l:'Marketplace',h:'/marketplace.html'},{i:'💰',l:'Earnings'},{i:'👤',l:'Profile'}],
-  school:[{i:'🏠',l:'Dashboard',a:true},{i:'📚',l:'Browse Courses',h:'/marketplace.html'},{i:'👨‍🏫',l:'Teachers'},{i:'💳',l:'Payments'},{i:'🏫',l:'Profile'}],
-  coaching:[{i:'🏠',l:'Dashboard',a:true},{i:'📚',l:'Browse Courses',h:'/marketplace.html'},{i:'🛒',l:'My Listings',h:'/marketplace.html'},{i:'💰',l:'Earnings'},{i:'🏆',l:'Profile'}],
-  admin:[{i:'🏠',l:'Dashboard',a:true},{i:'👥',l:'Users'},{i:'📚',l:'Courses'},{i:'🛒',l:'Marketplace',h:'/marketplace.html'},{i:'💳',l:'Transactions'},{i:'⚙️',l:'Settings'}]
+  student:[
+    {i:'🏠',l:'Dashboard',t:'top',a:true},
+    {i:'📚',l:'My Courses',t:'courses'},
+    {i:'📡',l:'Live Classes',t:'live'},
+    {i:'📝',l:'Assignments',t:'hw'},
+    {i:'🗒️',l:'Notes',t:'notes'},
+    {i:'🛒',l:'Marketplace',h:'/marketplace.html'},
+    {i:'👤',l:'Profile',t:'profile'}
+  ],
+  teacher:[
+    {i:'🏠',l:'Dashboard',t:'top',a:true},
+    {i:'📚',l:'My Courses',t:'courses'},
+    {i:'📡',l:'Live Classes',t:'live'},
+    {i:'📊',l:'Bookings',t:'bookings'},
+    {i:'💰',l:'Earnings',t:'earnings'},
+    {i:'🛒',l:'Marketplace',h:'/marketplace.html'},
+    {i:'👤',l:'Profile',t:'profile'}
+  ],
+  partner:[
+    {i:'🏠',l:'Dashboard',t:'top',a:true},
+    {i:'📅',l:'Bookings',t:'bookings'},
+    {i:'💰',l:'Earnings',t:'earnings'},
+    {i:'🛒',l:'Marketplace',h:'/marketplace.html'},
+    {i:'👤',l:'Profile',t:'profile'}
+  ],
+  school:[
+    {i:'🏠',l:'Dashboard',t:'top',a:true},
+    {i:'📚',l:'Available Courses',t:'courses'},
+    {i:'💳',l:'Payments',t:'payments'},
+    {i:'🛒',l:'Browse Marketplace',h:'/marketplace.html'},
+    {i:'🏫',l:'Profile',t:'profile'}
+  ],
+  coaching:[
+    {i:'🏠',l:'Dashboard',t:'top',a:true},
+    {i:'🛒',l:'My Listings',t:'listings'},
+    {i:'💰',l:'Earnings',t:'earnings'},
+    {i:'📚',l:'Platform Courses',t:'courses'},
+    {i:'🛒',l:'Browse Marketplace',h:'/marketplace.html'},
+    {i:'🏆',l:'Profile',t:'profile'}
+  ],
+  admin:[
+    {i:'🏠',l:'Dashboard',t:'top',a:true},
+    {i:'👥',l:'Users',t:'users'},
+    {i:'🛒',l:'Marketplace',t:'listings'},
+    {i:'💳',l:'Transactions',t:'transactions'},
+    {i:'🔧',l:'Full Admin Panel',h:'/admin.html'}
+  ]
 };
 const ROLE_LABELS={student:'🎓 Student',teacher:'👨‍🏫 Teacher',partner:'🤝 Partner',admin:'⚙️ Admin',school:'🏫 School',coaching:'🏆 Coaching'};
 const ROLE_CLS={student:'role-student',teacher:'role-teacher',partner:'role-partner',admin:'role-admin',school:'role-school',coaching:'role-coaching'};
 function fmt(n){return '₹'+Number(n||0).toLocaleString('en-IN');}
 function buildNav(role){
   const items=NAV[role]||NAV.student;
-  document.getElementById('navMenu').innerHTML=items.map(i=>`<div class="nav-item${i.a?' active':''}" onclick="${i.h?`window.location.href='${i.h}'`:''}""><span class="icon">${i.i}</span>${i.l}</div>`).join('');
+  document.getElementById('navMenu').innerHTML=items.map((it,idx)=>{
+    let onclick;
+    if(it.h){
+      onclick=`window.location.href='${it.h}'`;
+    } else if(it.t==='top'){
+      onclick=`navScroll(this,null)`;
+    } else {
+      onclick=`navScroll(this,'sec-${role}-${it.t}')`;
+    }
+    return `<div class="nav-item${it.a?' active':''}" onclick="${onclick}"><span class="icon">${it.i}</span>${it.l}</div>`;
+  }).join('');
+}
+// Activate the clicked nav item and scroll to its target section (or to the top).
+function navScroll(navEl,targetId){
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  if(navEl) navEl.classList.add('active');
+  if(targetId){
+    const t=document.getElementById(targetId);
+    if(t) t.scrollIntoView({behavior:'smooth',block:'start'});
+  } else {
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+  closeSidebar();
 }
 function renderList(id,items,empty){
   const el=document.getElementById(id);
   if(!el)return;
   el.innerHTML=items.length?items.join(''):`<li style="width:100%"><div class="empty-state"><div class="icon">${empty[0]}</div>${empty[1]}</div></li>`;
 }
+// Render the current user's profile into a card (common across roles).
+function renderProfile(cardId,extras){
+  const el=document.getElementById(cardId);
+  if(!el||!currentUser)return;
+  const u=currentUser;
+  const rows=[
+    ['Name', u.fullName||u.email||'—'],
+    ['Email', u.email||'—'],
+    ['Role', ROLE_LABELS[u.role]||u.role||'—'],
+    ['User ID', (u.id||'').slice(0,8)+'…']
+  ];
+  for (const [k,v] of (extras||[])) rows.push([k,v]);
+  el.innerHTML=rows.map(([k,v])=>`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--jm-border)"><span style="color:var(--jm-text-muted);font-size:13px">${k}</span><span style="font-size:13px;text-align:right;color:var(--jm-text);font-weight:500">${v}</span></div>`).join('')+`<button class="btn-sm btn-outline" style="margin-top:14px" onclick="logout()">🚪 Logout</button>`;
+}
 function renderStudentDash(d){
+  // Stash for the Add-Note modal's course picker
+  window._studentCourses=d.enrolledCourses||[];
   document.getElementById('s-enrolled').textContent=d.enrolledCourses?.length||0;
   document.getElementById('s-completed').textContent=d.enrolledCourses?.filter(e=>e.progress_percentage===100).length||0;
   document.getElementById('s-assignments').textContent=d.homework?.length||0;
   document.getElementById('s-skills').textContent=d.skillsThisWeek?.length||0;
-  renderList('s-coursesList',(d.enrolledCourses||[]).map(e=>`<li><div style="flex:1"><div>${e.courses?.title||'Course'}</div><div class="progress-bar"><div class="progress-fill" style="width:${e.progress_percentage||0}%"></div></div></div><span class="badge badge-blue">${e.progress_percentage||0}%</span></li>`),['📖','No courses yet — <a href="/marketplace.html" style="color:#e94560">Browse</a>']);
+  renderList('s-coursesList',(d.enrolledCourses||[]).map(e=>`<li><div style="flex:1"><div>${e.courses?.title||'Course'}</div><div class="progress-bar"><div class="progress-fill" style="width:${e.progress_percentage||0}%"></div></div></div><span class="badge badge-blue">${e.progress_percentage||0}%</span></li>`),['📖','No courses yet — <a href="/marketplace.html" style="color:var(--jm-primary)">Browse</a>']);
   renderList('s-hwList',(d.homework||[]).map(h=>`<li><span>${h.title}</span><span class="badge badge-red">${new Date(h.due_date).toLocaleDateString()}</span></li>`),['✅','No pending assignments']);
-  renderList('s-liveList',(d.liveClasses||[]).map(c=>`<li><span>${c.title}</span><span class="badge badge-green">Live</span></li>`),['📺','No live classes']);
+  renderList('s-liveList',(d.liveClasses||[]).map(c=>{
+    const s=c.status||(c.is_live?'live':'scheduled');
+    const action=(s==='live'||s==='scheduled')?`<button class="btn-sm btn-primary" onclick="joinLive('${c.id}')">▶ Join</button>`:'';
+    return `<li><span>${c.title}</span><div class="row-actions"><span class="badge ${s==='live'?'badge-green':'badge-yellow'}">${s}</span>${action}</div></li>`;
+  }),['📺','No live classes']);
   renderList('s-purchasesList',(d.marketplacePurchases||[]).map(p=>`<li><span>${p.marketplace_listings?.courses?.title||'Course'}</span><span class="badge badge-green">${fmt(p.amount)}</span></li>`),['🛍️','No purchases yet']);
+  renderProfile('s-profile');
 }
 function renderTeacherDash(d){
+  // Stash for modals that need a course/enrollment picker
+  window._teacherCourses=d.courses||[];
+  window._teacherEnrollments=d.enrollments||[];
   document.getElementById('t-courses').textContent=d.courses?.length||0;
   document.getElementById('t-bookings').textContent=d.bookings?.length||0;
   document.getElementById('t-earnings').textContent=fmt(d.totalEarnings);
   document.getElementById('t-listings').textContent=d.marketplaceListings?.length||0;
-  renderList('t-coursesList',(d.courses||[]).map(c=>`<li><span>${c.title}</span><span class="badge ${c.is_active?'badge-green':'badge-red'}">${c.is_active?'Active':'Inactive'}</span></li>`),['📖','No courses created']);
+  renderList('t-coursesList',(d.courses||[]).map(c=>`<li><span>${c.title}</span><div class="row-actions"><span class="badge ${c.is_active?'badge-green':'badge-red'}">${c.is_active?'Active':'Inactive'}</span><button class="btn-sm btn-outline" onclick="openConfigure('${c.id}')">⚙️ Configure</button></div></li>`),['📖','No courses created']);
   renderList('t-listingsList',(d.marketplaceListings||[]).map(l=>`<li><span>${l.courses?.title||'Course'}</span><span class="badge badge-green">${fmt(l.price)}</span></li>`),['🏪','No marketplace listings']);
-  renderList('t-liveList',(d.liveClasses||[]).map(c=>`<li><span>${c.title}</span><span class="badge badge-blue">Scheduled</span></li>`),['📺','No live classes']);
+  renderList('t-liveList',(d.liveClasses||[]).map(c=>{
+    const s=c.status||'scheduled';
+    let actions='';
+    if(s==='scheduled') actions=`<button class="btn-sm btn-primary" onclick="startLive('${c.id}')">▶ Start</button>`;
+    else if(s==='live') actions=`<button class="btn-sm btn-outline" onclick="endLive('${c.id}')">⏹ End</button>`;
+    const badge=s==='live'?'badge-green':(s==='completed'?'badge-blue':'badge-yellow');
+    return `<li><span>${c.title}</span><div class="row-actions"><span class="badge ${badge}">${s}</span>${actions}</div></li>`;
+  }),['📺','No live classes']);
   renderList('t-bookingsList',(d.bookings||[]).map(b=>`<li><span>Booking ${b.id?.slice(0,8)}</span><span class="badge badge-yellow">${b.status}</span></li>`),['📅','No bookings']);
+  renderList('t-earningsList',(d.earnings||[]).map(e=>`<li><span>${e.source||'Earning'}</span><span class="badge badge-green">${fmt(e.amount)}</span></li>`),['💸','No earnings yet']);
+  renderProfile('t-profile',[['Total Earnings',fmt(d.totalEarnings)],['Courses Published',(d.courses||[]).length]]);
 }
 function renderPartnerDash(d){
   document.getElementById('p-bookings').textContent=d.bookings?.length||0;
@@ -319,6 +513,7 @@ function renderPartnerDash(d){
   document.getElementById('p-pending').textContent=(d.bookings||[]).filter(b=>b.status==='pending').length;
   renderList('p-bookingsList',(d.bookings||[]).map(b=>`<li><span>Booking ${b.id?.slice(0,8)}</span><span class="badge badge-yellow">${b.status}</span></li>`),['📅','No bookings']);
   renderList('p-earningsList',(d.earnings||[]).map(e=>`<li><span>${e.source}</span><span class="badge badge-green">${fmt(e.amount)}</span></li>`),['💸','No earnings yet']);
+  renderProfile('p-profile',[['Total Earnings',fmt(d.totalEarnings)]]);
 }
 function renderSchoolDash(d){
   const p=d.profile||{};
@@ -329,6 +524,7 @@ function renderSchoolDash(d){
   document.getElementById('sc-payments').textContent=fmt((d.payments||[]).reduce((s,x)=>s+parseFloat(x.amount||0),0));
   renderList('sc-coursesList',(d.availableCourses||[]).slice(0,8).map(c=>`<li><div><div style="font-weight:500">${c.title}</div><div style="font-size:11px;color:#888">${c.category} · ${c.level}</div></div><span class="badge badge-blue">${fmt(c.price)}</span></li>`),['📖','No courses available']);
   renderList('sc-paymentsList',(d.payments||[]).map(p=>`<li><span>${p.id?.slice(0,8)}</span><span class="badge badge-green">${fmt(p.amount)}</span></li>`),['💳','No payments']);
+  renderProfile('sc-profile',[['School Name',p.school_name||'Not set'],['Affiliation',p.affiliation||'—'],['Students',p.student_count||0],['Teachers',p.teacher_count||0],['Address',p.address||'—']]);
 }
 function renderCoachingDash(d){
   const p=d.profile||{};
@@ -341,6 +537,7 @@ function renderCoachingDash(d){
   renderList('co-earningsList',(d.earnings||[]).map(e=>`<li><span>${e.source}</span><span class="badge badge-green">${fmt(e.amount)}</span></li>`),['💸','No earnings']);
   const cl=document.getElementById('co-coursesList');
   if(cl&&d.availableCourses?.length){cl.innerHTML=d.availableCourses.slice(0,6).map(c=>`<div class="course-mini-card"><div class="cat">${c.category}</div><div class="title">${c.title}</div><div class="price">${fmt(c.price)}</div></div>`).join('');}
+  renderProfile('co-profile',[['Center Name',p.center_name||'Not set'],['Specializations',(p.specializations||[]).join(', ')||'—'],['Student Capacity',p.student_capacity||0],['Batches',p.batch_count||0],['Address',p.address||'—']]);
 }
 function renderAdminDash(d){
   document.getElementById('a-users').textContent=d.stats?.totalUsers||d.users?.length||0;
@@ -361,7 +558,9 @@ async function loadDashboard(){
   const userStr=localStorage.getItem('jm_user');
   if(!token||!userStr){window.location.href='/login.html';return;}
   try{currentUser=JSON.parse(userStr);}catch{window.location.href='/login.html';return;}
-  const role=currentUser.role||new URLSearchParams(location.search).get('role')||'student';
+  // Trust the user object's role from the server; fall back to ?role= only if
+  // unset. user_type is the DB column; some flows store under .role.
+  const role=currentUser.user_type||currentUser.role||new URLSearchParams(location.search).get('role')||'student';
   document.getElementById('userName').textContent=currentUser.fullName||currentUser.email||'User';
   document.getElementById('userRoleBadge').textContent=ROLE_LABELS[role]||role;
   document.getElementById('userRoleBadge').className='user-role '+(ROLE_CLS[role]||'role-student');
@@ -377,11 +576,11 @@ async function loadDashboard(){
     document.getElementById('loadingState').style.display='none';
     const sec=document.getElementById('section-'+role);
     if(sec)sec.classList.add('visible');
-    if(role==='student')renderStudentDash(d);
+    if(role==='student'){renderStudentDash(d); loadNotes(); startTimeTracking();}
     else if(role==='teacher')renderTeacherDash(d);
     else if(role==='partner')renderPartnerDash(d);
-    else if(role==='school')renderSchoolDash(d);
-    else if(role==='coaching')renderCoachingDash(d);
+    else if(role==='school'){renderSchoolDash(d); loadInstitutionTeachers();}
+    else if(role==='coaching'){renderCoachingDash(d); loadInstitutionTeachers();}
     else if(role==='admin')renderAdminDash(d);
   }catch(e){
     document.getElementById('loadingState').innerHTML='<div class="empty-state"><div class="icon">⚠️</div><div>Could not load dashboard.</div><div style="font-size:12px;margin-top:8px;color:#888">Make sure backend is running: cd backend && npm start</div></div>';
@@ -396,7 +595,385 @@ function debounceSearch(q){
 function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('overlay').classList.toggle('show');}
 function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('overlay').classList.remove('show');}
 function logout(){localStorage.removeItem('jm_token');localStorage.removeItem('jm_user');window.location.href='/login.html';}
+
+// ============================================================
+// ACTION MODALS — every role-specific button (create course,
+// schedule live, take attendance, mark attendance, list course,
+// edit profile) shares this single modal infrastructure.
+// ============================================================
+let _modalCtx={};
+
+const MODAL_DEFS={
+  createCourse: {
+    title:'📚 Create a New Course',
+    body:()=>`
+      <div class="form-row"><label>Title *</label><input id="m-title" placeholder="e.g. Class 10 Mathematics"></div>
+      <div class="form-row"><label>Description</label><textarea id="m-desc" rows="3" placeholder="What students will learn"></textarea></div>
+      <div class="grid-2">
+        <div class="form-row"><label>Category</label><input id="m-cat" placeholder="Math" value="General"></div>
+        <div class="form-row"><label>Level</label><select id="m-level"><option value="beginner">Beginner</option><option value="intermediate">Intermediate</option><option value="advanced">Advanced</option></select></div>
+      </div>
+      <div class="form-row"><label>Price (₹)</label><input id="m-price" type="number" min="0" value="0"></div>
+      <div class="form-row"><label>Cover Image (optional)</label><input id="m-cover" type="file" accept="image/*"></div>
+      <div style="font-size:12px;color:var(--jm-text-muted)">Tip: you can configure topics, lectures, materials, and tests after the course is created.</div>`,
+    submit:async ()=>{
+      const body={title:val('m-title'),description:val('m-desc'),category:val('m-cat')||'General',level:val('m-level'),price:Number(val('m-price'))||0};
+      if(!body.title) throw new Error('Title is required');
+      const r=await api('/courses','POST',body);
+      // Upload cover image if provided (separate multipart request)
+      const file=document.getElementById('m-cover')?.files?.[0];
+      if(file && r.course?.id){
+        const fd=new FormData(); fd.append('cover',file);
+        await fetch(API+'/course-content/'+r.course.id+'/cover',{
+          method:'POST',
+          headers:{'Authorization':'Bearer '+localStorage.getItem('jm_token')},
+          body:fd
+        });
+      }
+      return 'Course created: '+r.course.title;
+    }
+  },
+  scheduleLive: {
+    title:'📡 Schedule a Live Class',
+    body:()=>{
+      const opts=(window._teacherCourses||[]).map(c=>`<option value="${c.id}">${c.title}</option>`).join('')||'<option value="">No courses yet — create one first</option>';
+      // Default scheduled time = tomorrow 10:00 local (formatted for datetime-local input)
+      const tomorrow=new Date();tomorrow.setDate(tomorrow.getDate()+1);tomorrow.setHours(10,0,0,0);
+      const iso=tomorrow.toISOString().slice(0,16);
+      return `
+      <div class="form-row"><label>Course *</label><select id="m-course">${opts}</select></div>
+      <div class="form-row"><label>Class Title *</label><input id="m-title" placeholder="e.g. Trigonometry — Live Walkthrough"></div>
+      <div class="form-row"><label>Description</label><textarea id="m-desc" rows="2"></textarea></div>
+      <div class="grid-2">
+        <div class="form-row"><label>Scheduled Time *</label><input id="m-time" type="datetime-local" value="${iso}"></div>
+        <div class="form-row"><label>Duration (min)</label><input id="m-dur" type="number" value="60" min="15"></div>
+      </div>
+      <div class="form-row"><label>Meeting Link</label><input id="m-link" placeholder="https://meet…"></div>`;
+    },
+    submit:async ()=>{
+      const body={courseId:val('m-course'),title:val('m-title'),description:val('m-desc'),scheduledTime:new Date(val('m-time')).toISOString(),duration:Number(val('m-dur'))||60,meetingLink:val('m-link')};
+      if(!body.courseId) throw new Error('Pick a course first');
+      if(!body.title) throw new Error('Class title required');
+      const r=await api('/live-classes','POST',body); return 'Live class scheduled: '+(r.liveClass?.title||body.title);
+    }
+  },
+  takeAttendance: {
+    title:'📝 Take Attendance',
+    body:()=>{
+      const opts=(window._teacherEnrollments||[]).map(e=>`<option value="${e.id}">${e.student_name||e.student_id?.slice(0,8)}</option>`).join('')||'<option value="">No enrollments to mark yet</option>';
+      return `
+      <div class="form-row"><label>Enrollment *</label><select id="m-enr">${opts}</select></div>
+      <div class="form-row"><label>Status</label><select id="m-status"><option value="present">✅ Present</option><option value="absent">❌ Absent</option><option value="late">⏰ Late</option></select></div>
+      <div class="form-row"><label>Class Date</label><input id="m-date" type="date" value="${new Date().toISOString().slice(0,10)}"></div>`;
+    },
+    submit:async ()=>{
+      const body={enrollmentId:val('m-enr'),status:val('m-status'),classDate:val('m-date')};
+      if(!body.enrollmentId) throw new Error('Pick an enrollment');
+      await api('/attendance','POST',body); return 'Attendance recorded';
+    }
+  },
+  markAttendance: {
+    title:'✅ Mark My Attendance',
+    body:()=>'<div class="form-row" style="background:var(--jm-primary-tint);padding:14px;border-radius:8px;font-size:13px;color:var(--jm-text-strong)">Attendance is marked by your teacher during class. If a class just ended and you don\'t see it yet, refresh in a minute. You can also message your teacher to confirm.</div>',
+    submit:async()=>'(no-op)'
+  },
+  listCourse: {
+    title:'🛒 List a Course on the Marketplace',
+    body:()=>{
+      const opts=(window._teacherCourses||[]).map(c=>`<option value="${c.id}" data-price="${c.price||0}">${c.title}</option>`).join('')||'<option value="">No courses yet — create one first</option>';
+      return `
+      <div class="form-row"><label>Course *</label><select id="m-course" onchange="document.getElementById('m-price').value=this.options[this.selectedIndex].dataset.price||0">${opts}</select></div>
+      <div class="grid-2">
+        <div class="form-row"><label>Price (₹) *</label><input id="m-price" type="number" min="1" value="499"></div>
+        <div class="form-row"><label>Commission %</label><input id="m-comm" type="number" min="0" max="50" value="15"></div>
+      </div>
+      <div style="font-size:12px;color:var(--jm-text-muted)">Platform keeps the commission %, you receive the rest.</div>`;
+    },
+    submit:async ()=>{
+      const body={courseId:val('m-course'),price:Number(val('m-price')),commissionRate:Number(val('m-comm'))||15};
+      if(!body.courseId) throw new Error('Pick a course');
+      if(!body.price||body.price<1) throw new Error('Price must be > 0');
+      await api('/marketplace','POST',body); return 'Course listed on marketplace';
+    }
+  },
+  configureCourse: {
+    title:'⚙️ Configure Course',
+    // Body is fetched async — we render a stub and populate after open.
+    body:()=>`<div id="cc-body">Loading course content…</div>`,
+    submit:async()=>'(content saved as you go)'
+  },
+  addTopic: {
+    title:'➕ Add Topic',
+    body:()=>`
+      <div class="form-row"><label>Topic Title *</label><input id="m-title" placeholder="e.g. Chapter 3 — Geometry"></div>
+      <div class="form-row"><label>Description</label><textarea id="m-desc" rows="2"></textarea></div>`,
+    submit:async()=>{
+      const courseId=_modalCtx.courseId;
+      if(!val('m-title')) throw new Error('Title required');
+      await api('/course-content/'+courseId+'/topics','POST',{ title:val('m-title'), description:val('m-desc'), order_index:Date.now()%10000 });
+      _reopenConfigure(courseId);
+      return 'Topic added';
+    }
+  },
+  addLecture: {
+    title:'🎬 Add Lecture',
+    body:()=>{
+      const opts=(window._configureTopics||[]).map(t=>`<option value="${t.id}">${t.title}</option>`).join('');
+      return `
+      <div class="form-row"><label>Title *</label><input id="m-title" placeholder="e.g. Pythagoras Theorem"></div>
+      <div class="form-row"><label>Topic</label><select id="m-topic"><option value="">— No topic —</option>${opts}</select></div>
+      <div class="form-row"><label>Video URL</label><input id="m-video" placeholder="https://…"></div>
+      <div class="grid-2">
+        <div class="form-row"><label>Duration (min)</label><input id="m-dur" type="number" min="1" value="30"></div>
+        <div class="form-row"><label>Type</label><select id="m-rec"><option value="true">Recorded</option><option value="false">Scheduled</option></select></div>
+      </div>`;
+    },
+    submit:async()=>{
+      const courseId=_modalCtx.courseId;
+      if(!val('m-title')) throw new Error('Title required');
+      await api('/course-content/'+courseId+'/lectures','POST',{
+        title:val('m-title'),topicId:val('m-topic')||null,videoUrl:val('m-video'),
+        duration:Number(val('m-dur'))||30,isRecorded:val('m-rec')==='true'
+      });
+      _reopenConfigure(courseId);
+      return 'Lecture added';
+    }
+  },
+  addMaterial: {
+    title:'📎 Add Material',
+    body:()=>{
+      const opts=(window._configureTopics||[]).map(t=>`<option value="${t.id}">${t.title}</option>`).join('');
+      return `
+      <div class="form-row"><label>Title *</label><input id="m-title" placeholder="e.g. Reference PDF"></div>
+      <div class="form-row"><label>Topic</label><select id="m-topic"><option value="">— No topic —</option>${opts}</select></div>
+      <div class="form-row"><label>Type</label><select id="m-type"><option value="file">File upload</option><option value="link">Link</option><option value="image">Image</option><option value="note">Note</option></select></div>
+      <div class="form-row" id="m-file-row"><label>File</label><input id="m-file" type="file"></div>
+      <div class="form-row" id="m-url-row" style="display:none"><label>URL</label><input id="m-url" placeholder="https://…"></div>`;
+    },
+    submit:async()=>{
+      const courseId=_modalCtx.courseId;
+      const type=val('m-type');
+      if(!val('m-title')) throw new Error('Title required');
+      const token=localStorage.getItem('jm_token');
+      const fd=new FormData();
+      fd.append('title',val('m-title'));
+      fd.append('type',type);
+      if(val('m-topic')) fd.append('topicId',val('m-topic'));
+      if(type==='link' && val('m-url')) fd.append('url',val('m-url'));
+      const file=document.getElementById('m-file')?.files?.[0];
+      if(file) fd.append('file',file);
+      const r=await fetch(API+'/course-content/'+courseId+'/materials',{ method:'POST',headers:{'Authorization':'Bearer '+token},body:fd });
+      const j=await r.json();
+      if(!r.ok) throw new Error(j.error||'Upload failed');
+      _reopenConfigure(courseId);
+      return 'Material added';
+    }
+  },
+  addTest: {
+    title:'✏️ Add Test',
+    body:()=>{
+      const opts=(window._configureTopics||[]).map(t=>`<option value="${t.id}">${t.title}</option>`).join('');
+      return `
+      <div class="form-row"><label>Title *</label><input id="m-title" placeholder="e.g. Mid-term Quiz"></div>
+      <div class="form-row"><label>Topic</label><select id="m-topic"><option value="">— No topic —</option>${opts}</select></div>
+      <div class="grid-2">
+        <div class="form-row"><label>Total Marks</label><input id="m-marks" type="number" min="1" value="100"></div>
+        <div class="form-row"><label>Duration (min)</label><input id="m-dur" type="number" min="5" value="60"></div>
+      </div>`;
+    },
+    submit:async()=>{
+      const courseId=_modalCtx.courseId;
+      if(!val('m-title')) throw new Error('Title required');
+      await api('/course-content/'+courseId+'/tests','POST',{
+        title:val('m-title'),topicId:val('m-topic')||null,totalMarks:Number(val('m-marks'))||100,durationMinutes:Number(val('m-dur'))||60
+      });
+      _reopenConfigure(courseId);
+      return 'Test added';
+    }
+  },
+  addNote: {
+    title:'📝 New Note',
+    body:()=>{
+      const opts=(window._studentCourses||[]).map(e=>`<option value="${e.course_id}">${e.courses?.title||'Course'}</option>`).join('');
+      return `
+      <div class="form-row"><label>Course</label><select id="m-course"><option value="">— No course —</option>${opts}</select></div>
+      <div class="form-row"><label>Title</label><input id="m-title" placeholder="Optional"></div>
+      <div class="form-row"><label>Content *</label><textarea id="m-content" rows="5" placeholder="Write your note…"></textarea></div>`;
+    },
+    submit:async()=>{
+      if(!val('m-content')) throw new Error('Note content required');
+      await api('/student/notes','POST',{ courseId:val('m-course')||null, title:val('m-title')||'Untitled', content:val('m-content') });
+      return 'Note saved';
+    }
+  },
+  linkTeacher: {
+    title:'👨‍🏫 Add Teacher to Institution',
+    body:()=>`
+      <div class="form-row"><label>Teacher's Email *</label><input id="m-email" type="email" placeholder="teacher@…"></div>
+      <div class="form-row"><label>Subject</label><input id="m-subject" placeholder="e.g. Mathematics"></div>
+      <div style="font-size:12px;color:var(--jm-text-muted)">The teacher must already have a JeetMantra account.</div>`,
+    submit:async()=>{
+      if(!val('m-email')) throw new Error('Teacher email required');
+      const r=await api('/institutions/teachers','POST',{ email:val('m-email'), subject:val('m-subject') });
+      return 'Linked '+(r.teacher?.full_name||val('m-email'));
+    }
+  },
+  updateProfile: {
+    title:'✏️ Edit Profile',
+    body:()=>`
+      <div class="form-row"><label>Full Name</label><input id="m-name" value="${(currentUser?.fullName||'').replace(/"/g,'&quot;')}"></div>
+      <div class="form-row"><label>Phone</label><input id="m-phone" value="${(currentUser?.phone||'').replace(/"/g,'&quot;')}"></div>
+      <div class="form-row"><label>Institution</label><input id="m-inst" placeholder="School/Center/Org"></div>`,
+    submit:async ()=>{
+      const body={fullName:val('m-name'),phone:val('m-phone'),institution:val('m-inst')};
+      await api('/users/profile','PUT',body);
+      const u={...currentUser,fullName:body.fullName,phone:body.phone};
+      localStorage.setItem('jm_user',JSON.stringify(u));
+      return 'Profile updated';
+    }
+  }
+};
+
+function val(id){return document.getElementById(id)?.value?.trim()||'';}
+async function api(path,method,body){
+  const token=localStorage.getItem('jm_token');
+  const r=await fetch(API+path,{method,headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:body?JSON.stringify(body):undefined});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok) throw new Error(j.error||j.message||('HTTP '+r.status));
+  return j;
+}
+function openModal(type,ctx){
+  _modalCtx=ctx||{};
+  const def=MODAL_DEFS[type];
+  if(!def){toast('Unknown action: '+type,true);return;}
+  const overlay=document.getElementById('actionOverlay');
+  document.getElementById('actionModal').innerHTML=`
+    <button class="close" onclick="closeModal()">×</button>
+    <h3>${def.title}</h3>
+    <div class="msg" id="m-msg"></div>
+    ${def.body()}
+    <div class="modal-actions">
+      <button class="btn-sm btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn-sm btn-primary" id="m-submit" onclick="submitModal('${type}')">Submit</button>
+    </div>`;
+  overlay.classList.add('show');
+}
+function closeModal(){document.getElementById('actionOverlay').classList.remove('show');}
+async function submitModal(type){
+  const btn=document.getElementById('m-submit');
+  const msg=document.getElementById('m-msg');
+  msg.className='msg';msg.textContent='';
+  btn.disabled=true;btn.textContent='Saving…';
+  try{
+    const result=await MODAL_DEFS[type].submit();
+    msg.className='msg success';msg.textContent=result||'Done';
+    setTimeout(()=>{closeModal();loadDashboard();},800);
+  }catch(e){
+    msg.className='msg error';msg.textContent=e.message||'Action failed';
+    btn.disabled=false;btn.textContent='Submit';
+  }
+}
+function toast(text,isErr){
+  const t=document.createElement('div');
+  t.className='toast'+(isErr?' error':'');
+  t.textContent=(isErr?'⚠️ ':'✅ ')+text;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(),3500);
+}
+
+// ── Configure-course modal: fetches /full and renders tabs for topics,
+// lectures, materials, tests; each tab has a "+ Add" button that re-uses
+// the addTopic/addLecture/addMaterial/addTest modal types and rebounds.
+async function openConfigure(courseId){
+  _modalCtx={courseId};
+  openModal('configureCourse',{courseId});
+  await _reopenConfigure(courseId);
+}
+async function _reopenConfigure(courseId){
+  const body=document.getElementById('cc-body');
+  if(!body)return;
+  try{
+    const r=await api('/course-content/'+courseId+'/full','GET');
+    window._configureTopics=r.topics||[];
+    const tabs=[
+      {key:'topics',label:'Topics',items:r.topics,render:t=>`<div style="display:flex;justify-content:space-between;padding:8px 10px;border-bottom:1px solid var(--jm-border)"><span><strong>${t.title}</strong>${t.description?' — <span style="color:var(--jm-text-muted)">'+t.description+'</span>':''}</span><button class="btn-sm btn-outline" onclick="delContent('topics','${t.id}','${courseId}')">×</button></div>`,add:'addTopic'},
+      {key:'lectures',label:'Lectures',items:r.lectures,render:l=>`<div style="display:flex;justify-content:space-between;padding:8px 10px;border-bottom:1px solid var(--jm-border)"><span><strong>${l.title}</strong>${l.duration?' <span class="badge badge-blue">'+l.duration+' min</span>':''}${l.is_recorded?' <span class="badge badge-green">recorded</span>':''}</span><button class="btn-sm btn-outline" onclick="delContent('lectures','${l.id}','${courseId}')">×</button></div>`,add:'addLecture'},
+      {key:'materials',label:'Materials',items:r.materials,render:m=>`<div style="display:flex;justify-content:space-between;padding:8px 10px;border-bottom:1px solid var(--jm-border)"><span><strong>${m.title}</strong> <span class="badge badge-muted">${m.type}</span>${m.url?' <a href="'+m.url+'" target="_blank">open</a>':''}</span><button class="btn-sm btn-outline" onclick="delContent('materials','${m.id}','${courseId}')">×</button></div>`,add:'addMaterial'},
+      {key:'tests',label:'Tests',items:r.tests,render:t=>`<div style="display:flex;justify-content:space-between;padding:8px 10px;border-bottom:1px solid var(--jm-border)"><span><strong>${t.title}</strong> <span class="badge badge-muted">${t.total_marks} marks · ${t.duration_minutes} min</span></span></div>`,add:'addTest'}
+    ];
+    body.innerHTML=`
+      <div style="margin-bottom:14px;display:flex;align-items:center;gap:12px">
+        ${r.course?.cover_image?`<img src="${r.course.cover_image}" style="width:60px;height:60px;object-fit:cover;border-radius:8px">`:''}
+        <div><div style="font-weight:700">${r.course?.title||'Course'}</div><div style="font-size:12px;color:var(--jm-text-muted)">${r.course?.category} · ${r.course?.level} · ₹${r.course?.price}</div></div>
+      </div>
+      ${tabs.map(t=>`
+        <div style="margin-bottom:18px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <strong>${t.label} (${(t.items||[]).length})</strong>
+            <button class="btn-sm btn-primary" onclick="openModal('${t.add}',{courseId:'${courseId}'})">+ Add ${t.label.slice(0,-1)}</button>
+          </div>
+          ${(t.items||[]).length?(t.items||[]).map(t.render).join(''):'<div style="color:var(--jm-text-muted);font-size:12px;padding:8px 10px">None yet.</div>'}
+        </div>
+      `).join('')}`;
+  }catch(e){body.innerHTML='<div style="color:#b91c1c">Error: '+e.message+'</div>';}
+}
+async function delContent(type, id, courseId){
+  if(!confirm('Remove this '+type.slice(0,-1)+'?'))return;
+  try{await api('/course-content/'+type+'/'+id,'DELETE');await _reopenConfigure(courseId);toast('Removed');}catch(e){toast(e.message,true);}
+}
+
+// ── Notes panel: list + delete ─────────────────────────────────────────
+async function loadNotes(){
+  try{
+    const r=await api('/student/notes','GET');
+    const el=document.getElementById('s-notesList'); if(!el)return;
+    if(!r.notes?.length){el.innerHTML='<li style="width:100%"><div class="empty-state"><div class="icon">📝</div>No notes yet</div></li>';return;}
+    el.innerHTML=r.notes.map(n=>`<li><div style="flex:1"><div style="font-weight:600">${n.title||'Untitled'}</div><div style="font-size:12px;color:var(--jm-text-muted);max-height:40px;overflow:hidden">${(n.content||'').slice(0,120)}</div></div><button class="btn-sm btn-outline" onclick="delNote('${n.id}')">×</button></li>`).join('');
+  }catch(e){}
+}
+async function delNote(id){if(!confirm('Delete note?'))return;try{await api('/student/notes/'+id,'DELETE');await loadNotes();toast('Note deleted');}catch(e){toast(e.message,true);}}
+
+// ── Institution: teacher roster (school/coaching) ──────────────────────
+async function loadInstitutionTeachers(){
+  try{
+    const r=await api('/institutions/teachers','GET');
+    // School and coaching both show this section under different IDs
+    const ids=['inst-teachersList','inst-teachersList-coaching'];
+    const html=r.teachers?.length
+      ? r.teachers.map(t=>`<li><div style="flex:1"><div style="font-weight:600">${t.full_name||t.email}</div><div style="font-size:12px;color:var(--jm-text-muted)">${t.email}${t.subject?' · '+t.subject:''}</div></div><button class="btn-sm btn-outline" onclick="unlinkTeacher('${t.link_id}')">Remove</button></li>`).join('')
+      : '<li style="width:100%"><div class="empty-state"><div class="icon">👨‍🏫</div>No teachers linked yet</div></li>';
+    ids.forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML=html; });
+  }catch(e){}
+}
+async function unlinkTeacher(linkId){if(!confirm('Remove this teacher?'))return;try{await api('/institutions/teachers/'+linkId,'DELETE');await loadInstitutionTeachers();toast('Teacher removed');}catch(e){toast(e.message,true);}}
+
+// ── Time tracking: auto-start a session on load, end on unload ─────────
+let _sessionId=null;
+async function startTimeTracking(){
+  try{
+    const r=await api('/student/sessions/start','POST',{context:'dashboard'});
+    _sessionId=r.session?.id||null;
+  }catch(e){}
+}
+async function endTimeTracking(){
+  if(!_sessionId)return;
+  try{await api('/student/sessions/end','POST',{sessionId:_sessionId});}catch(e){}
+}
+window.addEventListener('beforeunload',()=>{if(_sessionId){
+  navigator.sendBeacon&&navigator.sendBeacon(API+'/student/sessions/end?sessionId='+_sessionId);
+}});
+
+// Row-level actions: Start/End live class + Join live class
+async function startLive(id){try{await api('/live-classes/'+id+'/start','POST',{});toast('Class started');loadDashboard();}catch(e){toast(e.message,true);}}
+async function endLive(id){try{await api('/live-classes/'+id+'/end','POST',{});toast('Class ended');loadDashboard();}catch(e){toast(e.message,true);}}
+async function joinLive(id){try{const r=await api('/live-classes/'+id+'/join','POST',{});if(r.meetingLink){window.open(r.meetingLink,'_blank');}toast('Joined');}catch(e){toast(e.message,true);}}
+
 loadDashboard();
 </script>
+
+<!-- Action modal — reused by every dashboard button -->
+<div class="modal-overlay" id="actionOverlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="actionModal"></div>
+</div>
 </body>
 </html>

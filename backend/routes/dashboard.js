@@ -15,7 +15,11 @@ router.get('/', authenticateToken, async (req, res) => {
         .from('enrollments')
         .select('*, courses(id,title,category,teacher_id,batch_timing,price)')
         .eq('student_id', userId).limit(6);
-      const { data: liveClasses } = await supabaseAdmin.from('courses').select('*').eq('is_live', true).limit(3);
+      // Live classes for the student's enrolled courses (was incorrectly using courses.is_live)
+      const enrolledCourseIds = (enrollments || []).map(e => e.course_id);
+      const { data: liveClasses } = enrolledCourseIds.length
+        ? await supabaseAdmin.from('live_classes').select('*, courses(title)').in('course_id', enrolledCourseIds).in('status', ['scheduled', 'live']).order('scheduled_time', { ascending: true }).limit(5)
+        : { data: [] };
       const { data: recordedLectures } = await supabaseAdmin.from('lectures').select('*').eq('is_recorded', true).limit(5);
       const { data: homework } = await supabaseAdmin.from('assignments').select('*').eq('student_id', userId).order('due_date', { ascending: true }).limit(5);
       const { data: skills } = await supabaseAdmin.from('user_skills').select('*').eq('user_id', userId).order('updated_at', { ascending: false }).limit(3);
@@ -40,7 +44,25 @@ router.get('/', authenticateToken, async (req, res) => {
       const { data: attendance } = courseIds.length
         ? await supabaseAdmin.from('attendance').select('*').in('course_id', courseIds).order('date', { ascending: false }).limit(20)
         : { data: [] };
-      const { data: liveClasses } = await supabaseAdmin.from('courses').select('*').eq('teacher_id', userId).eq('is_live', true);
+      // Real live classes from live_classes table (was incorrectly querying courses)
+      const { data: liveClasses } = courseIds.length
+        ? await supabaseAdmin.from('live_classes').select('*, courses(title)').in('course_id', courseIds).order('scheduled_time', { ascending: false }).limit(10)
+        : { data: [] };
+      // Enrollments for the teacher's courses — used by Take Attendance modal
+      const { data: enrollments } = courseIds.length
+        ? await supabaseAdmin.from('enrollments').select('id, course_id, student_id, status, courses(title)').in('course_id', courseIds).limit(50)
+        : { data: [] };
+      // Attach student names for the picker
+      let enrichedEnrollments = enrollments || [];
+      if (enrichedEnrollments.length) {
+        const studentIds = [...new Set(enrichedEnrollments.map(e => e.student_id))];
+        const { data: students } = await supabaseAdmin.from('jeetmantra_users').select('id, full_name, email').in('id', studentIds);
+        const byId = Object.fromEntries((students || []).map(s => [s.id, s]));
+        enrichedEnrollments = enrichedEnrollments.map(e => ({
+          ...e,
+          student_name: byId[e.student_id]?.full_name || byId[e.student_id]?.email || 'Student'
+        }));
+      }
       const { data: earnings } = await supabaseAdmin.from('earnings').select('*').eq('user_id', userId).order('date', { ascending: false }).limit(10);
       const { data: listings } = await supabaseAdmin.from('marketplace_listings').select('*, courses(title)').eq('seller_id', userId);
       const totalEarnings = earnings?.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0) || 0;
@@ -49,6 +71,7 @@ router.get('/', authenticateToken, async (req, res) => {
         bookings: bookings || [],
         attendance: attendance || [],
         liveClasses: liveClasses || [],
+        enrollments: enrichedEnrollments,
         earnings: earnings || [],
         totalEarnings,
         marketplaceListings: listings || []

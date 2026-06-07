@@ -4,78 +4,81 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>JeetMantra — Course Marketplace</title>
+<link rel="stylesheet" href="theme.css">
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:#0a0a0a;color:#eaeaea;font-family:'Segoe UI',sans-serif;min-height:100vh}
-nav{background:#1a1a2e;border-bottom:1px solid #2a2a4a;padding:14px 32px;display:flex;align-items:center;gap:20px;position:sticky;top:0;z-index:100}
-nav .logo{color:#e94560;font-size:20px;font-weight:700;text-decoration:none;white-space:nowrap}
-.nav-search{display:flex;align-items:center;background:#0f3460;border-radius:8px;padding:10px 16px;gap:8px;flex:1;max-width:480px}
-.nav-search input{background:none;border:none;color:#eaeaea;font-size:14px;outline:none;width:100%}
+/* Marketplace — uses theme.css design tokens */
+nav{background:var(--jm-surface);border-bottom:1px solid var(--jm-border);padding:14px 32px;display:flex;align-items:center;gap:20px;position:sticky;top:0;z-index:100;box-shadow:var(--jm-shadow-sm)}
+nav .logo{font-size:20px;font-weight:800;text-decoration:none;white-space:nowrap;color:var(--jm-text);letter-spacing:-0.02em}
+nav .logo .accent{color:var(--jm-primary)}
+.nav-search{display:flex;align-items:center;background:var(--jm-surface-2);border:1px solid var(--jm-border);border-radius:var(--jm-radius-sm);padding:10px 16px;gap:8px;flex:1;max-width:480px}
+.nav-search input{background:none;border:none;color:var(--jm-text);font-size:14px;outline:none;width:100%;font-family:inherit}
 .nav-links{display:flex;align-items:center;gap:12px;margin-left:auto}
-.nav-links a{color:#aaa;text-decoration:none;font-size:14px;transition:color .2s}
-.nav-links a:hover{color:#e94560}
-.btn{padding:9px 18px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all .2s;text-decoration:none;display:inline-block}
-.btn-primary{background:#e94560;color:#fff}
-.btn-primary:hover{background:#c73550}
-.btn-outline{background:transparent;border:1px solid #e94560;color:#e94560}
-.btn-outline:hover{background:#e94560;color:#fff}
+.nav-links a{color:var(--jm-text-strong);text-decoration:none;font-size:14px;font-weight:600;transition:color .15s}
+.nav-links a:hover{color:var(--jm-primary)}
+.btn{padding:9px 18px;border-radius:var(--jm-radius-sm);font-size:13px;font-weight:700;cursor:pointer;border:1.5px solid transparent;font-family:inherit;transition:all .15s;text-decoration:none;display:inline-block}
+.btn-primary{background:var(--jm-primary);color:#fff;box-shadow:0 2px 8px var(--jm-primary-glow)}
+.btn-primary:hover{background:var(--jm-primary-2)}
+.btn-outline{background:transparent;border-color:var(--jm-border);color:var(--jm-text)}
+.btn-outline:hover{border-color:var(--jm-primary);color:var(--jm-primary)}
 .btn-sm{padding:6px 14px;font-size:12px}
-/* HERO */
-.hero{background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);padding:48px 32px;text-align:center}
-.hero h1{font-size:36px;font-weight:700;margin-bottom:12px}
-.hero h1 span{color:#e94560}
-.hero p{color:#aaa;font-size:16px;margin-bottom:24px}
+/* HERO — deep slate panel like website.html */
+.hero{background:linear-gradient(135deg,var(--jm-deep) 0%,var(--jm-deep-2) 100%);color:#fff;padding:56px 32px;text-align:center}
+.hero h1{font-size:38px;font-weight:800;margin-bottom:12px;letter-spacing:-0.02em;color:#fff}
+.hero h1 span{color:var(--jm-primary)}
+.hero p{color:rgba(255,255,255,0.7);font-size:16px;margin-bottom:24px}
 /* FILTERS */
-.filter-bar{padding:20px 32px;border-bottom:1px solid #1a1a2e;display:flex;align-items:center;gap:12px;overflow-x:auto}
-.cat-pill{padding:7px 16px;border-radius:20px;background:#16213e;border:1px solid #2a2a4a;color:#aaa;cursor:pointer;font-size:13px;white-space:nowrap;transition:all .2s}
-.cat-pill:hover,.cat-pill.active{background:#e94560;border-color:#e94560;color:#fff}
+.filter-bar{padding:20px 32px;border-bottom:1px solid var(--jm-border);background:var(--jm-surface);display:flex;align-items:center;gap:12px;overflow-x:auto}
+.cat-pill{padding:8px 16px;border-radius:var(--jm-radius-pill);background:var(--jm-surface);border:1.5px solid var(--jm-border);color:var(--jm-text-strong);cursor:pointer;font-size:13px;font-weight:600;white-space:nowrap;transition:all .15s}
+.cat-pill:hover{border-color:var(--jm-primary);color:var(--jm-primary)}
+.cat-pill.active{background:var(--jm-primary);border-color:var(--jm-primary);color:#fff}
 .filter-right{margin-left:auto;display:flex;gap:10px;align-items:center;white-space:nowrap}
-select.filter-select{background:#16213e;border:1px solid #2a2a4a;color:#eaeaea;border-radius:8px;padding:7px 12px;font-size:13px;outline:none}
+select.filter-select{background:var(--jm-surface);border:1.5px solid var(--jm-border);color:var(--jm-text);border-radius:var(--jm-radius-sm);padding:8px 12px;font-size:13px;outline:none;font-family:inherit;font-weight:600}
 /* MAIN LAYOUT */
 .main-layout{display:grid;grid-template-columns:1fr;max-width:1400px;margin:0 auto;padding:28px 32px;gap:24px}
 .section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
-.section-head h2{font-size:18px;font-weight:600}
+.section-head h2{font-size:20px;font-weight:800;letter-spacing:-0.02em}
 .courses-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px}
 /* COURSE CARD */
-.course-card{background:#16213e;border-radius:14px;border:1px solid #2a2a4a;overflow:hidden;transition:transform .2s,border-color .2s;cursor:pointer}
-.course-card:hover{transform:translateY(-4px);border-color:#e94560}
-.course-thumb{height:150px;background:linear-gradient(135deg,#0f3460,#1a1a2e);display:flex;align-items:center;justify-content:center;font-size:48px;position:relative}
-.course-category{position:absolute;top:10px;left:10px;background:#e94560;color:#fff;font-size:10px;padding:3px 10px;border-radius:20px;font-weight:600;text-transform:uppercase}
-.course-level{position:absolute;top:10px;right:10px;background:rgba(0,0,0,.6);color:#eaeaea;font-size:10px;padding:3px 10px;border-radius:20px}
+.course-card{background:var(--jm-surface);border-radius:var(--jm-radius);border:1px solid var(--jm-border);overflow:hidden;transition:all .2s;cursor:pointer;box-shadow:var(--jm-shadow-sm)}
+.course-card:hover{transform:translateY(-4px);border-color:var(--jm-primary);box-shadow:var(--jm-shadow)}
+.course-thumb{height:150px;background:linear-gradient(135deg,var(--jm-deep),var(--jm-deep-2));display:flex;align-items:center;justify-content:center;font-size:48px;position:relative;color:#fff}
+.course-category{position:absolute;top:10px;left:10px;background:var(--jm-primary);color:#fff;font-size:10px;padding:4px 10px;border-radius:var(--jm-radius-pill);font-weight:700;text-transform:uppercase;letter-spacing:0.04em}
+.course-level{position:absolute;top:10px;right:10px;background:rgba(255,255,255,0.95);color:var(--jm-text);font-size:10px;padding:4px 10px;border-radius:var(--jm-radius-pill);font-weight:600}
 .course-body{padding:16px}
-.course-title{font-size:15px;font-weight:600;margin-bottom:6px;line-height:1.3}
-.course-instructor{font-size:12px;color:#888;margin-bottom:10px}
+.course-title{font-size:15px;font-weight:700;margin-bottom:6px;line-height:1.3;color:var(--jm-text)}
+.course-instructor{font-size:12px;color:var(--jm-text-muted);margin-bottom:10px}
 .course-meta{display:flex;justify-content:space-between;align-items:center}
-.course-price{font-size:18px;font-weight:700;color:#00d4aa}
-.course-rating{font-size:12px;color:#ffd54f}
-.buy-btn{width:100%;margin-top:12px;padding:10px;border:none;border-radius:8px;background:#e94560;color:#fff;font-size:13px;font-weight:600;cursor:pointer;transition:background .2s}
-.buy-btn:hover{background:#c73550}
-.buy-btn.owned{background:#102a20;color:#00d4aa;cursor:default}
-/* SELLER SECTION */
-.seller-banner{background:linear-gradient(135deg,#1a1a2e,#0f3460);border:1px solid #2a4a8a;border-radius:14px;padding:28px;display:flex;align-items:center;gap:24px;margin-bottom:28px}
+.course-price{font-size:18px;font-weight:800;color:var(--jm-primary)}
+.course-rating{font-size:12px;color:var(--jm-warn)}
+.buy-btn{width:100%;margin-top:12px;padding:10px;border:none;border-radius:var(--jm-radius-sm);background:var(--jm-primary);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .15s;box-shadow:0 2px 8px var(--jm-primary-glow)}
+.buy-btn:hover{background:var(--jm-primary-2)}
+.buy-btn.owned{background:#f0fdf4;color:#15803d;cursor:default;box-shadow:none}
+/* SELLER BANNER */
+.seller-banner{background:linear-gradient(135deg,var(--jm-deep) 0%,var(--jm-deep-2) 100%);color:#fff;border-radius:var(--jm-radius);padding:28px;display:flex;align-items:center;gap:24px;margin-bottom:28px}
 .seller-banner .icon{font-size:48px}
-.seller-banner h3{font-size:20px;font-weight:700;margin-bottom:6px}
-.seller-banner p{color:#aaa;font-size:14px;margin-bottom:14px}
+.seller-banner h3{font-size:20px;font-weight:800;margin-bottom:6px;letter-spacing:-0.02em}
+.seller-banner p{color:rgba(255,255,255,0.7);font-size:14px;margin-bottom:14px}
 /* MODAL */
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:200;align-items:center;justify-content:center}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,0.6);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
 .modal-overlay.show{display:flex}
-.modal{background:#1a1a2e;border-radius:16px;padding:28px;max-width:500px;width:90%;border:1px solid #2a2a4a;max-height:90vh;overflow-y:auto}
-.modal h3{font-size:18px;font-weight:700;margin-bottom:16px}
-.modal .close{float:right;cursor:pointer;color:#888;font-size:20px;line-height:1}
+.modal{background:var(--jm-surface);border-radius:var(--jm-radius);padding:28px;max-width:500px;width:90%;border:1px solid var(--jm-border);max-height:90vh;overflow-y:auto;box-shadow:var(--jm-shadow)}
+.modal h3{font-size:20px;font-weight:800;margin-bottom:16px;letter-spacing:-0.02em}
+.modal .close{float:right;cursor:pointer;color:var(--jm-text-muted);font-size:20px;line-height:1}
 .form-group{margin-bottom:14px}
-.form-group label{display:block;font-size:12px;color:#888;margin-bottom:5px}
-.form-group input,.form-group select{width:100%;background:#0f3460;border:1px solid #2a4a8a;border-radius:8px;padding:10px 12px;color:#eaeaea;font-size:14px;outline:none}
-.msg{padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:12px;display:none}
-.msg.error{background:#2a1020;color:#e94560;border:1px solid #e94560}
-.msg.success{background:#102a20;color:#00d4aa;border:1px solid #00d4aa}
-.empty-state{text-align:center;padding:60px 20px;color:#555}
-.empty-state .icon{font-size:48px;margin-bottom:12px}
-.loading{text-align:center;padding:40px;color:#888}
+.form-group label{display:block;font-size:12px;color:var(--jm-text-strong);margin-bottom:5px;font-weight:600}
+.form-group input,.form-group select{width:100%;background:var(--jm-surface);border:1.5px solid var(--jm-border);border-radius:var(--jm-radius-sm);padding:10px 12px;color:var(--jm-text);font-size:14px;outline:none;font-family:inherit;transition:all .15s}
+.form-group input:focus,.form-group select:focus{border-color:var(--jm-primary);box-shadow:0 0 0 3px rgba(249,115,22,0.12)}
+.msg{padding:10px 14px;border-radius:var(--jm-radius-sm);font-size:13px;margin-bottom:12px;display:none;font-weight:600}
+.msg.error{background:#fef2f2;color:#b91c1c;border:1px solid #fca5a5}
+.msg.success{background:#f0fdf4;color:#15803d;border:1px solid #86efac}
+.empty-state{text-align:center;padding:60px 20px;color:var(--jm-text-muted)}
+.empty-state .icon{font-size:48px;margin-bottom:12px;opacity:.5}
+.loading{text-align:center;padding:40px;color:var(--jm-text-muted)}
 @media(max-width:768px){
   nav{padding:12px 16px;flex-wrap:wrap;gap:10px}
   .nav-search{max-width:100%;order:3;width:100%}
   .hero{padding:32px 16px}
-  .hero h1{font-size:24px}
+  .hero h1{font-size:26px}
   .main-layout{padding:16px}
   .filter-bar{padding:12px 16px}
   .seller-banner{flex-direction:column;text-align:center}
@@ -84,7 +87,7 @@ select.filter-select{background:#16213e;border:1px solid #2a2a4a;color:#eaeaea;b
 </head>
 <body>
 <nav>
-  <a href="/login.html" class="logo">🎓 JeetMantra</a>
+  <a href="/" class="logo">Jeet<span class="accent">Mantra</span></a>
   <div class="nav-search">
     <span>🔍</span>
     <input type="text" placeholder="Search courses, topics, instructors..." id="navSearch" oninput="debounceSearch(this.value)">

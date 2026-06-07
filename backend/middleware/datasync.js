@@ -138,19 +138,19 @@ function pickId(body) {
 // Cache invalidation: clear every cached GET that belongs to the route family
 // of the write. Cache keys look like  cache:/api/courses|<userhash>|<query>  so
 // we prefix-scan `cache:/api/<family>` and delete all matches (all users/queries).
+//
+// The dashboard endpoint aggregates from ~10 source tables — so ANY write to a
+// data route must also clear the dashboard cache, or stale snapshots persist.
 async function invalidate(path) {
   const family = '/' + path.split('/').slice(1, 3).join('/'); // e.g. /api/courses
-  const prefix = 'cache:' + family;
+  const families = new Set([family, '/api/dashboard']);
+  // Writes to marketplace/enrollments touch buyer dashboards too — already
+  // covered by always clearing dashboard, plus clear the enrollments family.
+  if (family === '/api/marketplace') families.add('/api/enrollments');
   try {
-    const entries = await list(prefix);
-    await Promise.all(entries.map(e => del(e.key).catch(() => {})));
-    // A write to /api/marketplace/:id/purchase also affects the buyer's
-    // dashboard and enrollments — clear those families too.
-    if (family === '/api/marketplace' || family === '/api/enrollments') {
-      for (const extra of ['cache:/api/dashboard', 'cache:/api/enrollments']) {
-        const ex = await list(extra);
-        await Promise.all(ex.map(e => del(e.key).catch(() => {})));
-      }
+    for (const f of families) {
+      const entries = await list('cache:' + f);
+      await Promise.all(entries.map(e => del(e.key).catch(() => {})));
     }
   } catch (_) { /* invalidation is best-effort */ }
 }
