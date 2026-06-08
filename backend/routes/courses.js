@@ -11,7 +11,7 @@ const router = express.Router();
 router.get('/', async (req, res) => {
   try {
     const { category, level, page = 1, limit = 12 } = req.query;
-    let query = supabase.from('courses').select('*').eq('is_active', true);
+    let query = supabaseAdmin.from('courses').select('*').eq('is_active', true);
 
     if (category) query = query.eq('category', category);
     if (level) query = query.eq('level', level);
@@ -42,7 +42,7 @@ router.get('/', async (req, res) => {
 // Get course by ID
 router.get('/:id', async (req, res) => {
   try {
-    const { data: course, error } = await supabase
+    const { data: course, error } = await supabaseAdmin
       .from('courses')
       .select('*')
       .eq('id', req.params.id)
@@ -53,14 +53,14 @@ router.get('/:id', async (req, res) => {
     }
 
     // Get teacher info
-    const { data: teacher } = await supabase
+    const { data: teacher } = await supabaseAdmin
       .from('jeetmantra_users')
       .select('id, full_name, profile_image, institution')
       .eq('id', course.teacher_id)
       .single();
 
     // Get enrolled students count
-    const { count: enrolledCount } = await supabase
+    const { count: enrolledCount } = await supabaseAdmin
       .from('enrollments')
       .select('*', { count: 'exact' })
       .eq('course_id', course.id);
@@ -126,7 +126,7 @@ router.post('/', authenticateToken, authorizeRole(CREATOR_ROLES), validate('cour
 router.put('/:id', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
   try {
     // Verify ownership
-    const { data: course } = await supabase
+    const { data: course } = await supabaseAdmin
       .from('courses')
       .select('teacher_id')
       .eq('id', req.params.id)
@@ -178,7 +178,7 @@ router.put('/:id', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, 
 router.delete('/:id', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
   try {
     // Verify ownership
-    const { data: course } = await supabase
+    const { data: course } = await supabaseAdmin
       .from('courses')
       .select('teacher_id')
       .eq('id', req.params.id)

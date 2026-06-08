@@ -268,7 +268,9 @@ router.post('/', authenticateToken, async (req, res) => {
 // Get payment history
 router.get('/my', authenticateToken, async (req, res) => {
   try {
-    const { data: payments, error } = await supabase
+    // supabaseAdmin: the self-hosted anon key is invalid / lacks grants on
+    // some tables (payments among them), so always use the service client.
+    const { data: payments, error } = await supabaseAdmin
       .from('payments')
       .select('*')
       .eq('user_id', req.user.id)

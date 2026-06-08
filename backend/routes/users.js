@@ -81,19 +81,19 @@ router.get('/stats', authenticateToken, async (req, res) => {
 
     if (role === 'student') {
       // Get enrolled courses
-      const { data: enrollments } = await supabase
+      const { data: enrollments } = await supabaseAdmin
         .from('enrollments')
         .select('*')
         .eq('student_id', userId);
 
       // Get attendance
-      const { data: attendance } = await supabase
+      const { data: attendance } = await supabaseAdmin
         .from('attendance')
         .select('*')
         .eq('student_id', userId);
 
       // Get earnings
-      const { data: earnings } = await supabase
+      const { data: earnings } = await supabaseAdmin
         .from('earnings')
         .select('amount')
         .eq('user_id', userId);
@@ -107,19 +107,19 @@ router.get('/stats', authenticateToken, async (req, res) => {
       };
     } else if (role === 'teacher') {
       // Get created courses
-      const { data: courses } = await supabase
+      const { data: courses } = await supabaseAdmin
         .from('courses')
         .select('*')
         .eq('teacher_id', userId);
 
       // Get total students
-      const { data: enrollments } = await supabase
+      const { data: enrollments } = await supabaseAdmin
         .from('enrollments')
         .select('*')
         .in('course_id', courses?.map(c => c.id) || []);
 
       // Get earnings
-      const { data: earnings } = await supabase
+      const { data: earnings } = await supabaseAdmin
         .from('earnings')
         .select('amount')
         .eq('user_id', userId);
@@ -132,13 +132,13 @@ router.get('/stats', authenticateToken, async (req, res) => {
       };
     } else if (role === 'partner') {
       // Get total bookings
-      const { data: bookings } = await supabase
+      const { data: bookings } = await supabaseAdmin
         .from('bookings')
         .select('*')
         .eq('partner_id', userId);
 
       // Get earnings
-      const { data: earnings } = await supabase
+      const { data: earnings } = await supabaseAdmin
         .from('earnings')
         .select('amount')
         .eq('user_id', userId);

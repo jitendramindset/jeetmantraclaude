@@ -8,7 +8,7 @@ const router = express.Router();
 // Get my enrollments
 router.get('/my', authenticateToken, async (req, res) => {
   try {
-    const { data: enrollments, error } = await supabase
+    const { data: enrollments, error } = await supabaseAdmin
       .from('enrollments')
       .select(`
         *,
@@ -47,7 +47,7 @@ router.post('/', authenticateToken, async (req, res) => {
     const enrollmentId = uuidv4();
 
     // Check if already enrolled
-    const { data: existing } = await supabase
+    const { data: existing } = await supabaseAdmin
       .from('enrollments')
       .select('id')
       .eq('course_id', courseId)
@@ -130,7 +130,7 @@ router.get('/course/:courseId/students', authenticateToken, async (req, res) => 
 // Cancel enrollment
 router.delete('/:enrollmentId', authenticateToken, async (req, res) => {
   try {
-    const { data: enrollment } = await supabase
+    const { data: enrollment } = await supabaseAdmin
       .from('enrollments')
       .select('student_id')
       .eq('id', req.params.enrollmentId)

@@ -14,7 +14,7 @@ router.post('/', authenticateToken, authorizeRole(CREATOR_ROLES), validate('reco
     const attendanceId = uuidv4();
 
     // Verify teacher owns this enrollment's course
-    const { data: enrollment } = await supabase
+    const { data: enrollment } = await supabaseAdmin
       .from('enrollments')
       .select('*, courses (teacher_id)')
       .eq('id', enrollmentId)
@@ -56,7 +56,7 @@ router.post('/', authenticateToken, authorizeRole(CREATOR_ROLES), validate('reco
 // Get attendance history
 router.get('/student/:studentId', authenticateToken, async (req, res) => {
   try {
-    const { data: attendance, error } = await supabase
+    const { data: attendance, error } = await supabaseAdmin
       .from('attendance')
       .select('*')
       .eq('student_id', req.params.studentId)
@@ -91,7 +91,7 @@ router.get('/student/:studentId', authenticateToken, async (req, res) => {
 // Get course attendance
 router.get('/course/:courseId', authenticateToken, async (req, res) => {
   try {
-    const { data: attendance, error } = await supabase
+    const { data: attendance, error } = await supabaseAdmin
       .from('attendance')
       .select('*')
       .eq('course_id', req.params.courseId)
