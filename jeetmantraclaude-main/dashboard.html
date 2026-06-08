@@ -178,7 +178,20 @@ body{display:flex;min-height:100vh}
   .search-bar{display:none}
   .row-actions{flex-wrap:wrap}
   .row-actions .btn-sm{font-size:11px;padding:4px 8px}
+  /* ── MODALS (create/edit forms): full-width, stacked, comfortable ── */
+  .modal{width:96%;padding:18px 16px;max-height:94vh}
+  .modal h3{font-size:17px}
+  .modal .grid-2,.grid-2{grid-template-columns:1fr !important}
+  .modal .modal-actions{flex-direction:column-reverse}
+  .modal .modal-actions .btn-sm{width:100%;text-align:center;padding:11px}
+  .modal input,.modal select,.modal textarea{font-size:16px}  /* no iOS zoom */
+  .qtype-grid{grid-template-columns:repeat(3,1fr) !important}
+  /* tree item action buttons wrap instead of overflowing */
+  .tree-item .item-actions{flex-wrap:wrap;justify-content:flex-end}
+  .tree-header{flex-wrap:wrap}
 }
+/* Question-type picker: auto-fit so 7 cards reflow on any width (no fixed 6-col) */
+.qtype-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(86px,1fr));gap:6px;margin-bottom:14px}
 @media(max-width:768px){
   .sidebar{transform:translateX(-100%)}
   .sidebar.open{transform:translateX(0)}
@@ -2568,9 +2581,19 @@ function exportRosterCsv(students, courseTitle){
 // ── TEACHER: question editor — full CRUD over a single test's questions.
 // Examforge-style: question text + type selector + MCQ option editor +
 // correct answer + marks + difficulty. Inline forms, no nested modals.
-let _qeTestId=null;
+let _qeTestId=null, _qeCourseId=null;
 async function openQuestionEditor(testId, testTitle){
   _qeTestId=testId;
+  // _qeCourseId powers the "test settings" fetch in _renderQuestionEditor.
+  // It comes from the active Configure page (_cfgCourseId); if the editor is
+  // opened from elsewhere, resolve it from the test row itself.
+  _qeCourseId = _cfgCourseId || null;
+  if(!_qeCourseId){
+    try{
+      const r=await api('/course-content/tests/'+testId,'GET').catch(()=>null);
+      _qeCourseId = r?.test?.course_id || null;
+    }catch(_){}
+  }
   openModal('questionEditor');
   document.querySelector('#actionModal h3').textContent='📝 Questions: '+testTitle;
   await _renderQuestionEditor();
@@ -2667,7 +2690,7 @@ function _renderQeAddForm(){
   const secOpts=_qeSections.map(s=>`<option value="${s.id}">${escHtml(s.title)}</option>`).join('');
   return `<div style="border:2px dashed var(--jm-primary);border-radius:10px;padding:14px;margin-top:10px;background:var(--jm-primary-tint)">
     <div style="font-weight:700;margin-bottom:10px">➕ Add Question</div>
-    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:14px">
+    <div class="qtype-grid">
       ${card('mcq','🔘','MCQ','single')}
       ${card('multi','☑️','Multi','many right')}
       ${card('true_false','✅','T / F','binary')}
