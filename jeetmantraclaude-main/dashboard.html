@@ -12,9 +12,11 @@
 /* Dashboard-specific styles — uses theme.css design tokens */
 body{display:flex;min-height:100vh}
 .sidebar{width:250px;background:var(--jm-deep);color:#fff;display:flex;flex-direction:column;position:fixed;height:100vh;z-index:100;transition:transform .3s}
-.sidebar-logo{padding:24px 20px 16px;border-bottom:1px solid rgba(255,255,255,0.1)}
+.sidebar-logo{position:relative;padding:24px 20px 16px;border-bottom:1px solid rgba(255,255,255,0.1)}
+/* Gradient brand strip on top of the sidebar — adds depth + product feel. */
+.sidebar-logo::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#7c3aed,#a855f7 50%,#ec4899)}
 .sidebar-logo h2{font-size:20px;font-weight:800;letter-spacing:-0.02em}
-.sidebar-logo h2 .accent{color:var(--jm-primary)}
+.sidebar-logo h2 .accent{background:linear-gradient(135deg,var(--jm-primary),#ec4899);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent}
 .sidebar-logo p{color:rgba(255,255,255,0.5);font-size:11px;margin-top:2px}
 .user-info{padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.1)}
 .user-avatar{width:44px;height:44px;border-radius:50%;background:var(--jm-primary);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;margin-bottom:8px}
@@ -39,13 +41,19 @@ body{display:flex;min-height:100vh}
 .icon-btn:hover{border-color:var(--jm-primary);color:var(--jm-primary)}
 .content{padding:24px 28px;flex:1}
 .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
-.stat-card{background:var(--jm-surface);border-radius:var(--jm-radius);padding:20px;border:1px solid var(--jm-border);box-shadow:var(--jm-shadow-sm)}
-.stat-card .label{font-size:12px;color:var(--jm-text-muted);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:0.04em}
-.stat-card .value{font-size:28px;font-weight:800;color:var(--jm-text);letter-spacing:-0.02em}
+/* Stat card with coloured top accent strip (--sc) — adds depth + meaning.
+   Default accent is the primary brand; cards can pass --sc:#10b981 etc. */
+.stat-card{position:relative;background:var(--jm-surface);border-radius:var(--jm-radius);padding:22px 20px 18px;border:1px solid var(--jm-border);box-shadow:var(--jm-shadow-sm);overflow:hidden;transition:transform .15s,box-shadow .15s;--sc:var(--jm-primary)}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--sc),var(--sc) 70%,transparent)}
+.stat-card:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(15,23,42,.06)}
+.stat-card .label{font-size:11px;color:var(--jm-text-muted);margin-bottom:6px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;display:flex;align-items:center;gap:6px}
+.stat-card .label::before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--sc)}
+.stat-card .value{font-size:30px;font-weight:800;color:var(--jm-text);letter-spacing:-0.02em;font-variant-numeric:tabular-nums}
 .stat-card .sub{font-size:11px;color:var(--jm-text-subtle);margin-top:4px}
 .section{margin-bottom:28px}
-.section-title{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;color:var(--jm-text)}
-.section-title::after{content:'';flex:1;height:1px;background:var(--jm-border);margin-left:8px}
+.section-title{font-size:14px;font-weight:800;margin-bottom:14px;display:flex;align-items:center;gap:8px;color:var(--jm-text);text-transform:uppercase;letter-spacing:0.05em}
+.section-title::before{content:'';width:3px;height:14px;background:linear-gradient(180deg,var(--jm-primary),#a855f7);border-radius:2px;display:inline-block}
+.section-title::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--jm-border),transparent);margin-left:8px}
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
 .card{background:var(--jm-surface);border-radius:var(--jm-radius);padding:18px;border:1px solid var(--jm-border);box-shadow:var(--jm-shadow-sm)}
@@ -62,7 +70,8 @@ body{display:flex;min-height:100vh}
 .empty-state{text-align:center;padding:30px 20px;color:var(--jm-text-muted);font-size:13px;width:100%}
 .empty-state .icon{font-size:36px;margin-bottom:8px;opacity:.5}
 .btn-sm{padding:7px 14px;border-radius:var(--jm-radius-sm);font-size:12px;font-weight:700;cursor:pointer;border:1.5px solid transparent;font-family:inherit;transition:all .15s;display:inline-block}
-.btn-primary{background:var(--jm-primary);color:#fff;box-shadow:0 2px 8px var(--jm-primary-glow)}
+.btn-primary{background:linear-gradient(135deg,var(--jm-primary),#a855f7);color:#fff;box-shadow:0 2px 8px var(--jm-primary-glow);border:0}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 14px var(--jm-primary-glow)}
 .btn-primary:hover{background:var(--jm-primary-2)}
 .btn-outline{background:transparent;border-color:var(--jm-border);color:var(--jm-text)}
 .btn-outline:hover{border-color:var(--jm-primary);color:var(--jm-primary)}
@@ -231,6 +240,10 @@ body{display:flex;min-height:100vh}
       <input type="text" placeholder="Search courses..." oninput="debounceSearch(this.value)">
     </div>
     <div class="topbar-actions">
+      <select id="langSwitch" onchange="setLang(this.value)" title="Language" style="background:transparent;border:1px solid var(--jm-border);border-radius:6px;padding:5px 8px;font-size:12px;font-weight:700;color:var(--jm-text);cursor:pointer">
+        <option value="en">🇮🇳 EN</option>
+        <option value="hi">🇮🇳 हिं</option>
+      </select>
       <button class="icon-btn" onclick="openAiKey()" title="AI assistant settings" style="border:none">🤖</button>
       <button class="icon-btn" onclick="openWall('me')" title="Activity wall" style="border:none">📰</button>
       <span class="icon-btn">🔔</span>
@@ -247,10 +260,10 @@ body{display:flex;min-height:100vh}
     <!-- STUDENT -->
     <div class="role-section" id="section-student">
       <div class="stats-grid">
-        <div class="stat-card"><div class="label">Enrolled Courses</div><div class="value" id="s-enrolled">0</div><div class="sub">Active</div></div>
-        <div class="stat-card"><div class="label">Completed</div><div class="value" id="s-completed">0</div><div class="sub">Finished</div></div>
-        <div class="stat-card"><div class="label">Assignments Due</div><div class="value" id="s-assignments">0</div><div class="sub">Pending</div></div>
-        <div class="stat-card"><div class="label">Skills Tracked</div><div class="value" id="s-skills">0</div><div class="sub">This week</div></div>
+        <div class="stat-card" style="--sc:#7c3aed"><div class="label" data-i18n="enrolled_courses">Enrolled Courses</div><div class="value" id="s-enrolled">0</div><div class="sub" data-i18n="active">Active</div></div>
+        <div class="stat-card" style="--sc:#10b981"><div class="label" data-i18n="completed">Completed</div><div class="value" id="s-completed">0</div><div class="sub" data-i18n="finished">Finished</div></div>
+        <div class="stat-card" style="--sc:#f59e0b"><div class="label" data-i18n="assignments_due">Assignments Due</div><div class="value" id="s-assignments">0</div><div class="sub" data-i18n="pending">Pending</div></div>
+        <div class="stat-card" style="--sc:#0ea5e9"><div class="label" data-i18n="skills_tracked">Skills Tracked</div><div class="value" id="s-skills">0</div><div class="sub" data-i18n="this_week">This week</div></div>
       </div>
       <div class="section" id="sec-student-continue">
         <div class="section-title">▶ Continue learning
@@ -308,10 +321,10 @@ body{display:flex;min-height:100vh}
     <!-- TEACHER -->
     <div class="role-section" id="section-teacher">
       <div class="stats-grid">
-        <div class="stat-card"><div class="label">My Courses</div><div class="value" id="t-courses">0</div><div class="sub">Published</div></div>
-        <div class="stat-card"><div class="label">Bookings</div><div class="value" id="t-bookings">0</div><div class="sub">All time</div></div>
-        <div class="stat-card"><div class="label">Earnings</div><div class="value" id="t-earnings">₹0</div><div class="sub">Total</div></div>
-        <div class="stat-card"><div class="label">Listings</div><div class="value" id="t-listings">0</div><div class="sub">On marketplace</div></div>
+        <div class="stat-card" style="--sc:#7c3aed"><div class="label">My Courses</div><div class="value" id="t-courses">0</div><div class="sub">Published</div></div>
+        <div class="stat-card" style="--sc:#0ea5e9"><div class="label">Bookings</div><div class="value" id="t-bookings">0</div><div class="sub">All time</div></div>
+        <div class="stat-card" style="--sc:#10b981"><div class="label">Earnings</div><div class="value" id="t-earnings">₹0</div><div class="sub">Total</div></div>
+        <div class="stat-card" style="--sc:#f59e0b"><div class="label">Listings</div><div class="value" id="t-listings">0</div><div class="sub">On marketplace</div></div>
       </div>
       <div class="grid-2">
         <div class="section" id="sec-teacher-courses">
@@ -628,6 +641,16 @@ body{display:flex;min-height:100vh}
   <div class="configure-body" id="cal-body">Loading…</div>
 </div>
 
+<div class="configure-page" id="billingPage">
+  <div class="configure-breadcrumb">
+    <span class="crumb" onclick="closeBilling()">🏠 Dashboard</span>
+    <span class="crumb-sep">/</span>
+    <span class="crumb active">Billing</span>
+    <div style="margin-left:auto"><button class="btn-sm btn-outline" onclick="closeBilling()">← Back</button></div>
+  </div>
+  <div class="configure-body" id="bl-body">Loading…</div>
+</div>
+
 <div class="configure-page" id="profilePage">
   <div class="configure-breadcrumb">
     <span class="crumb" onclick="closeProfilePage()">🏠 Dashboard</span>
@@ -689,6 +712,7 @@ const NAV={
     {i:'📹',l:'Recordings',action:'openRecordings()'},
     {i:'📊',l:'Bookings',action:'openBookings()'},
     {i:'💰',l:'Payments',action:'openPayments()'},
+    {i:'🧾',l:'Billing',action:'openBilling()'},
     {i:'📝',l:'Essay grading',action:'openEssayInbox()'},
     {i:'🏫',l:'My Institutions',action:'openMyInstitutions()'},
     {i:'🛒',l:'Marketplace',h:'/marketplace.html'},
@@ -742,7 +766,11 @@ function buildNav(role){
     } else {
       onclick=`navScroll(this,'sec-${role}-${it.t}')`;
     }
-    return `<div class="nav-item${it.a?' active':''}" onclick="${onclick}"><span class="icon">${it.i}</span>${it.l}</div>`;
+    // Translate the label if a matching i18n key exists (snake_case form of
+    // the label). Falls back to the literal English label when no entry.
+    const key=String(it.l).toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
+    const label=t(key)||it.l;
+    return `<div class="nav-item${it.a?' active':''}" onclick="${onclick}"><span class="icon">${it.i}</span>${label}</div>`;
   }).join('');
 }
 // PAGE ROUTER — clicking a nav item shows ONLY the matching section(s); the
@@ -3982,6 +4010,174 @@ function setActiveInstitution(id){
 }
 
 // ============================================================
+// I18N — minimal localization (en + hi). Strings carrying `data-i18n="key"`
+// are auto-translated on setLang(); helpers t(key) / tf(key,vars) used in JS.
+// Persisted to localStorage so the choice survives reloads.
+// ============================================================
+const I18N = {
+  en: {},
+  hi: {
+    dashboard:'डैशबोर्ड', my_courses:'मेरे कोर्स', live_classes:'लाइव क्लास',
+    assignments:'असाइनमेंट', notes:'नोट्स', attendance:'उपस्थिति',
+    my_institutions:'मेरे संस्थान', payments:'भुगतान', marketplace:'मार्केटप्लेस',
+    profile:'प्रोफ़ाइल', recordings:'रिकॉर्डिंग', bookings:'बुकिंग',
+    calendar:'कैलेंडर', essay_grading:'निबंध जाँच', billing:'बिलिंग',
+    enrolled_courses:'पंजीकृत कोर्स', completed:'पूर्ण', assignments_due:'देय असाइनमेंट',
+    skills_tracked:'ट्रैक किए गए कौशल', active:'सक्रिय', finished:'समाप्त',
+    pending:'लंबित', this_week:'इस सप्ताह'
+  }
+};
+function setLang(code){
+  if(!I18N[code]) code='en';
+  localStorage.setItem('jm_lang', code);
+  document.documentElement.lang=code;
+  const sw=document.getElementById('langSwitch'); if(sw) sw.value=code;
+  document.querySelectorAll('[data-i18n]').forEach(el=>{
+    const k=el.getAttribute('data-i18n'); const v=I18N[code][k]; if(v) el.textContent=v;
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el=>{
+    const k=el.getAttribute('data-i18n-placeholder'); const v=I18N[code][k]; if(v) el.placeholder=v;
+  });
+  // Re-render the nav so labels translate.
+  if(typeof buildNav==='function'){
+    const u=JSON.parse(localStorage.getItem('jm_user')||'{}');
+    if(u.user_type||u.role) buildNav(u.user_type||u.role);
+  }
+}
+function t(key){ const lang=localStorage.getItem('jm_lang')||'en'; return I18N[lang]?.[key] || I18N.en[key] || key; }
+// Apply saved lang on every load (before render).
+(function(){ const l=localStorage.getItem('jm_lang')||'en'; document.documentElement.lang=l; window.addEventListener('DOMContentLoaded',()=>setLang(l)); })();
+
+// ============================================================
+// BILLING / INVOICES (CRM-style) — issue, list, mark paid, print PDF.
+// ============================================================
+async function openBilling(){
+  document.getElementById('billingPage').classList.add('active');
+  document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
+  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
+  await _renderBilling();
+}
+function closeBilling(){
+  document.getElementById('billingPage').classList.remove('active');
+  document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='');
+  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='');
+}
+async function _renderBilling(){
+  const body=document.getElementById('bl-body');
+  body.innerHTML='<div style="text-align:center;padding:40px;color:#888">Loading…</div>';
+  try{
+    const r=await api('/teacher/invoices','GET');
+    const s=r.summary||{}, rows=r.invoices||[];
+    body.innerHTML=`<div style="max-width:1200px;margin:0 auto">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:8px;flex-wrap:wrap">
+        <h2 style="margin:0">🧾 Billing &amp; Invoices</h2>
+        <button class="btn-sm btn-primary" onclick="blOpenNew()">➕ New invoice</button>
+      </div>
+      <div class="stats-grid" style="margin-bottom:18px">
+        <div class="stat-card" style="--sc:#10b981"><div class="label">Collected</div><div class="value">${fmt(s.paidAmount||0)}</div><div class="sub">${s.paid||0} paid</div></div>
+        <div class="stat-card" style="--sc:#f59e0b"><div class="label">Pending</div><div class="value">${fmt(s.pendingAmount||0)}</div><div class="sub">${s.pending||0} invoices</div></div>
+        <div class="stat-card" style="--sc:#ef4444"><div class="label">Overdue</div><div class="value">${s.overdue||0}</div><div class="sub">past due date</div></div>
+        <div class="stat-card" style="--sc:#7c3aed"><div class="label">Total invoices</div><div class="value">${s.total||0}</div><div class="sub">All time</div></div>
+      </div>
+      <div class="card" style="padding:0">${rows.length?`<table style="width:100%;border-collapse:collapse">
+        <thead><tr style="text-align:left;color:var(--jm-text-muted);font-size:11px;text-transform:uppercase;border-bottom:1px solid var(--jm-border)">
+          <th style="padding:12px 14px">#</th><th style="padding:12px 14px">Client</th><th style="padding:12px 14px">Issued</th><th style="padding:12px 14px">Due</th><th style="padding:12px 14px">Status</th><th style="padding:12px 14px;text-align:right">Total</th><th style="padding:12px 14px;text-align:right">Actions</th>
+        </tr></thead><tbody>
+        ${rows.map(inv=>`<tr style="border-bottom:1px solid var(--jm-border)">
+          <td style="padding:12px 14px;font-family:monospace;font-size:12px;font-weight:600">${escHtml(inv.invoice_number||'')}</td>
+          <td style="padding:12px 14px"><div style="font-weight:600">${escHtml(inv.client_name||'—')}</div><div style="font-size:11px;color:var(--jm-text-muted)">${escHtml(inv.client_email||'')}</div></td>
+          <td style="padding:12px 14px;font-size:12px">${inv.created_at?new Date(inv.created_at).toLocaleDateString('en-IN'):''}</td>
+          <td style="padding:12px 14px;font-size:12px">${inv.due_date?new Date(inv.due_date).toLocaleDateString('en-IN'):'—'}</td>
+          <td style="padding:12px 14px"><span class="badge ${inv.status==='paid'?'badge-green':inv.status==='cancelled'?'badge-red':'badge-yellow'}">${escHtml(inv.status||'pending')}</span></td>
+          <td style="padding:12px 14px;text-align:right;font-weight:700">${fmt(inv.total||inv.amount||0)}</td>
+          <td style="padding:12px 14px;text-align:right">
+            <button class="btn-sm btn-outline" onclick="blOpenPdf('${inv.id}')">📄 PDF</button>
+            ${inv.status!=='paid'?`<button class="btn-sm btn-primary" onclick="blMarkPaid('${inv.id}')">✓ Paid</button>`:''}
+          </td>
+        </tr>`).join('')}
+        </tbody></table>`:'<div class="empty-state"><div class="icon">🧾</div>No invoices yet. Click ➕ New invoice to issue your first one.</div>'}</div>
+    </div>`;
+  }catch(e){ body.innerHTML='<div style="color:#b91c1c;padding:20px">'+escHtml(e.message)+'</div>'; }
+}
+function blOpenPdf(id){
+  const token=localStorage.getItem('jm_token');
+  fetch(API+'/teacher/invoices/'+id+'/pdf',{headers:{Authorization:'Bearer '+token}})
+    .then(r=>r.text()).then(html=>{ const w=window.open('about:blank'); w.document.write(html); w.document.close(); })
+    .catch(e=>toast(e.message,true));
+}
+async function blMarkPaid(id){
+  try{ await api('/teacher/invoices/'+id,'PUT',{status:'paid'}); toast('✓ Marked paid'); _renderBilling(); }
+  catch(e){ toast(e.message,true); }
+}
+let _blItems=[{description:'',qty:1,rate:0}];
+function blOpenNew(){
+  _blItems=[{description:'',qty:1,rate:0}];
+  document.getElementById('bl-body').innerHTML=`<div style="max-width:780px;margin:0 auto">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <button class="btn-sm btn-outline" onclick="_renderBilling()">← Back</button>
+      <h2 style="margin:0">➕ New invoice</h2>
+    </div>
+    <div class="card" style="padding:20px">
+      <div class="grid-2">
+        <div class="form-row"><label>Client name *</label><input id="bl-name" placeholder="e.g. Ravi Kumar"></div>
+        <div class="form-row"><label>Client email</label><input id="bl-email" type="email" placeholder="client@example.com"></div>
+      </div>
+      <div class="grid-2">
+        <div class="form-row"><label>Due date</label><input id="bl-due" type="date"></div>
+        <div class="form-row"><label>GST %</label><input id="bl-tax" type="number" value="18" min="0" max="50" step="0.5"></div>
+      </div>
+      <div style="margin:14px 0 8px;font-weight:700">Line items</div>
+      <div id="bl-items"></div>
+      <button class="btn-sm btn-outline" onclick="blAddRow()" style="margin-top:6px">+ Add line</button>
+      <div id="bl-totals" style="margin-top:14px;padding:12px;background:var(--jm-bg);border-radius:8px"></div>
+      <div class="form-row" style="margin-top:14px"><label>Notes</label><textarea id="bl-notes" rows="2" placeholder="Thank you for your business"></textarea></div>
+      <div id="bl-msg" class="msg"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
+        <button class="btn-sm btn-outline" onclick="_renderBilling()">Cancel</button>
+        <button class="btn-sm btn-primary" onclick="blSubmit()">💾 Create invoice</button>
+      </div>
+    </div>
+  </div>`;
+  blRenderItems();
+}
+function blRenderItems(){
+  const host=document.getElementById('bl-items');
+  host.innerHTML=_blItems.map((it,i)=>`<div style="display:grid;grid-template-columns:1fr 70px 100px 100px 30px;gap:6px;margin-bottom:6px;align-items:center">
+    <input placeholder="Description" value="${escHtml(it.description||'')}" oninput="_blItems[${i}].description=this.value">
+    <input type="number" min="0" placeholder="Qty" value="${it.qty}" oninput="_blItems[${i}].qty=Number(this.value)||0;blRenderTotals()">
+    <input type="number" min="0" placeholder="Rate" value="${it.rate}" oninput="_blItems[${i}].rate=Number(this.value)||0;blRenderTotals()">
+    <input value="${fmt((it.qty||0)*(it.rate||0))}" disabled style="text-align:right;font-weight:700">
+    <button class="btn-sm btn-outline" onclick="_blItems.splice(${i},1);blRenderItems()" ${_blItems.length<2?'disabled':''}>×</button>
+  </div>`).join('');
+  blRenderTotals();
+}
+function blAddRow(){ _blItems.push({description:'',qty:1,rate:0}); blRenderItems(); }
+function blRenderTotals(){
+  const tot=document.getElementById('bl-totals'); if(!tot) return;
+  const sub=_blItems.reduce((s,it)=>s+(Number(it.qty)||0)*(Number(it.rate)||0),0);
+  const tp=Number(document.getElementById('bl-tax')?.value)||0;
+  const tax=sub*tp/100, grand=sub+tax;
+  tot.innerHTML=`<div style="display:flex;justify-content:space-between;font-size:13px"><span>Subtotal</span><span>${fmt(sub)}</span></div>
+    <div style="display:flex;justify-content:space-between;font-size:13px;margin-top:4px"><span>GST (${tp}%)</span><span>${fmt(tax)}</span></div>
+    <div style="display:flex;justify-content:space-between;font-weight:800;font-size:16px;margin-top:8px;padding-top:8px;border-top:1px solid var(--jm-border);color:var(--jm-primary)"><span>Total</span><span>${fmt(grand)}</span></div>`;
+}
+async function blSubmit(){
+  const name=val('bl-name');
+  const msg=document.getElementById('bl-msg'); msg.className='msg';
+  if(!name){ msg.className='msg error'; msg.textContent='Client name required'; return; }
+  const items=_blItems.filter(it=>it.description||it.rate);
+  if(!items.length){ msg.className='msg error'; msg.textContent='Add at least one line item'; return; }
+  try{
+    await api('/teacher/invoices','POST',{
+      clientName:name, clientEmail:val('bl-email'),
+      items, taxPercent:Number(val('bl-tax'))||0,
+      dueDate:val('bl-due')||null, notes:val('bl-notes')
+    });
+    toast('✓ Invoice created'); _renderBilling();
+  }catch(e){ msg.className='msg error'; msg.textContent=e.message; }
+}
+
+// ============================================================
 // CALENDAR (month view) — visualizes live classes, assignments and tests
 // across a month. Honors the hierarchy "calendar view to manage timetable".
 // ============================================================
@@ -4182,6 +4378,7 @@ document.addEventListener('keydown',(e)=>{
   if(document.getElementById('readerPage')?.classList.contains('active')){ closeReader(); return; }
   if(document.getElementById('calendarPage')?.classList.contains('active')){ closeCalendar(); return; }
   if(document.getElementById('profilePage')?.classList.contains('active')){ closeProfilePage(); return; }
+  if(document.getElementById('billingPage')?.classList.contains('active')){ closeBilling(); return; }
 });
 
 loadDashboard();

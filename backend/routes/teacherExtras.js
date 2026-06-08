@@ -344,6 +344,124 @@ router.get('/tests/:testId/analytics', authenticateToken, authorizeRole(CREATOR_
   }
 });
 
+// ── INVOICES / BILLING (CRM-style) ────────────────────────────────────
+// Teachers / partners issue invoices to clients (students or external).
+router.get('/invoices', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
+  try {
+    const { data } = await supabaseAdmin.from('invoices')
+      .select('*').eq('owner_id', req.user.id).order('created_at', { ascending: false });
+    const rows = data || [];
+    const summary = {
+      total: rows.length,
+      paid: rows.filter(r => r.status === 'paid').length,
+      paidAmount: rows.filter(r => r.status === 'paid').reduce((s, r) => s + (Number(r.total) || 0), 0),
+      pending: rows.filter(r => r.status === 'pending' || r.status === 'draft').length,
+      pendingAmount: rows.filter(r => r.status === 'pending' || r.status === 'draft').reduce((s, r) => s + (Number(r.total) || 0), 0),
+      overdue: rows.filter(r => r.status === 'pending' && r.due_date && new Date(r.due_date) < new Date()).length
+    };
+    res.json({ invoices: rows, summary });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.post('/invoices', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
+  try {
+    const { clientName, clientEmail, clientId, items, taxPercent, dueDate, notes } = req.body || {};
+    if (!clientName) return res.status(400).json({ error: 'clientName required' });
+    if (!Array.isArray(items) || !items.length) return res.status(400).json({ error: 'at least one line item required' });
+    const sanitized = items.map(it => ({
+      description: String(it.description || ''),
+      qty: Number(it.qty) || 1,
+      rate: Number(it.rate) || 0,
+      amount: (Number(it.qty) || 1) * (Number(it.rate) || 0)
+    }));
+    const subtotal = sanitized.reduce((s, it) => s + it.amount, 0);
+    const tp = Number(taxPercent) || 0;
+    const tax = +(subtotal * tp / 100).toFixed(2);
+    const total = +(subtotal + tax).toFixed(2);
+    // Sequential invoice number per owner: count existing + 1, padded.
+    const { count } = await supabaseAdmin.from('invoices')
+      .select('id', { count: 'exact', head: true }).eq('owner_id', req.user.id);
+    const invoiceNumber = 'INV-' + new Date().getFullYear() + '-' + String((count || 0) + 1).padStart(4, '0');
+    const { data, error } = await supabaseAdmin.from('invoices').insert({
+      id: uuidv4(), owner_id: req.user.id, client_id: clientId || null,
+      client_name: clientName, client_email: clientEmail || null,
+      invoice_number: invoiceNumber, items: sanitized,
+      subtotal, tax_percent: tp, tax_amount: tax, total, amount: total,
+      status: 'pending', due_date: dueDate || null, notes: notes || null,
+      created_at: new Date().toISOString()
+    }).select().single();
+    if (error) return res.status(400).json({ error: error.message });
+    res.status(201).json({ invoice: data });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.put('/invoices/:id', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
+  try {
+    const { data: row } = await supabaseAdmin.from('invoices').select('owner_id').eq('id', req.params.id).maybeSingle();
+    if (!row) return res.status(404).json({ error: 'Invoice not found' });
+    if (row.owner_id !== req.user.id) return res.status(403).json({ error: 'Not yours' });
+    const { status, paidAt, notes } = req.body || {};
+    const updates = { updated_at: new Date().toISOString() };
+    if (status) updates.status = status;
+    if (status === 'paid' && !paidAt) updates.paid_at = new Date().toISOString();
+    if (paidAt) updates.paid_at = paidAt;
+    if (notes !== undefined) updates.notes = notes;
+    const { data, error } = await supabaseAdmin.from('invoices').update(updates).eq('id', req.params.id).select().single();
+    if (error) return res.status(400).json({ error: error.message });
+    res.json({ invoice: data });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Printable invoice HTML (browser → Save as PDF).
+router.get('/invoices/:id/pdf', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
+  try {
+    const { data: inv } = await supabaseAdmin.from('invoices').select('*').eq('id', req.params.id).single();
+    if (!inv || inv.owner_id !== req.user.id) return res.status(403).send('Not yours');
+    const { data: me } = await supabaseAdmin.from('jeetmantra_users').select('full_name, email, phone, street, city, state_region, postal_code, country').eq('id', req.user.id).single();
+    const esc = s => String(s == null ? '' : s).replace(/[<>&"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c]));
+    const fmt = n => '₹' + Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 });
+    res.set('Content-Type', 'text/html; charset=utf-8');
+    res.send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${esc(inv.invoice_number)}</title>
+<style>
+@page{size:A4;margin:0}body{margin:0;font-family:'Segoe UI',sans-serif;color:#111;padding:32px;background:#f8f7fc;min-height:100vh}
+.sheet{max-width:780px;margin:0 auto;background:#fff;border-radius:12px;padding:36px;box-shadow:0 8px 24px rgba(0,0,0,.06)}
+.row{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:24px}
+h1{font-size:32px;letter-spacing:-.02em;color:#7c3aed;margin:0}
+.label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#888;font-weight:700;margin-bottom:4px}
+table{width:100%;border-collapse:collapse;margin-top:14px}
+th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#666;border-bottom:2px solid #e5e3ed;padding:10px 8px}
+td{padding:10px 8px;border-bottom:1px solid #f0eff5}
+.tot{margin-top:18px;padding:14px;background:#f8f7fc;border-radius:8px;display:grid;gap:6px}
+.tot .line{display:flex;justify-content:space-between;font-size:14px}
+.tot .grand{font-size:20px;font-weight:800;color:#7c3aed;padding-top:8px;border-top:1px solid #ddd}
+.no-print{text-align:center;margin-bottom:14px}
+@media print{.no-print{display:none}body{background:#fff;padding:0}.sheet{box-shadow:none;border-radius:0}}
+button{padding:8px 18px;border:0;border-radius:6px;background:#7c3aed;color:#fff;cursor:pointer;font-weight:700}
+</style></head><body>
+<div class="no-print"><button onclick="window.print()">🖨 Print / Save as PDF</button></div>
+<div class="sheet">
+  <div class="row">
+    <div><h1>INVOICE</h1><div class="label" style="margin-top:6px">${esc(inv.invoice_number)}</div></div>
+    <div style="text-align:right"><div class="label">From</div><strong>${esc(me?.full_name || '')}</strong><div style="font-size:12px;color:#666">${esc(me?.email || '')}<br>${esc(me?.phone || '')}<br>${esc(me?.street || '')}<br>${esc([me?.city, me?.state_region, me?.postal_code].filter(Boolean).join(', '))}<br>${esc(me?.country || '')}</div></div>
+  </div>
+  <div class="row">
+    <div><div class="label">Billed to</div><strong>${esc(inv.client_name)}</strong><div style="font-size:12px;color:#666">${esc(inv.client_email || '')}</div></div>
+    <div style="text-align:right"><div class="label">Issued</div>${new Date(inv.created_at).toLocaleDateString('en-IN')}<br><div class="label" style="margin-top:8px">Due</div>${inv.due_date ? new Date(inv.due_date).toLocaleDateString('en-IN') : '—'}<br><div class="label" style="margin-top:8px">Status</div><span style="color:${inv.status === 'paid' ? '#10b981' : '#f59e0b'};font-weight:700;text-transform:uppercase">${esc(inv.status)}</span></div>
+  </div>
+  <table>
+    <thead><tr><th>Description</th><th style="text-align:right">Qty</th><th style="text-align:right">Rate</th><th style="text-align:right">Amount</th></tr></thead>
+    <tbody>${(inv.items || []).map(it => `<tr><td>${esc(it.description)}</td><td style="text-align:right">${it.qty}</td><td style="text-align:right">${fmt(it.rate)}</td><td style="text-align:right"><strong>${fmt(it.amount)}</strong></td></tr>`).join('')}</tbody>
+  </table>
+  <div class="tot">
+    <div class="line"><span>Subtotal</span><span>${fmt(inv.subtotal)}</span></div>
+    <div class="line"><span>GST (${inv.tax_percent || 0}%)</span><span>${fmt(inv.tax_amount)}</span></div>
+    <div class="line grand"><span>Total</span><span>${fmt(inv.total)}</span></div>
+  </div>
+  ${inv.notes ? `<div style="margin-top:18px;font-size:12px;color:#666"><div class="label">Notes</div>${esc(inv.notes)}</div>` : ''}
+</div></body></html>`);
+  } catch (e) { res.status(500).send('Invoice render failed: ' + e.message); }
+});
+
 // ── CALENDAR MONTH: events for a calendar grid (default: current month).
 // Returns live classes, assignment due dates and tests in {YYYY-MM-DD: [...]}.
 router.get('/calendar', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
