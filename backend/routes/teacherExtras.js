@@ -344,6 +344,56 @@ router.get('/tests/:testId/analytics', authenticateToken, authorizeRole(CREATOR_
   }
 });
 
+// ── BOOKING DETAIL + CANCEL/RESCHEDULE/REFUND ─────────────────────────
+router.get('/bookings/:id', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
+  try {
+    const { data: b } = await supabaseAdmin.from('bookings').select('*').eq('id', req.params.id).single();
+    if (!b) return res.status(404).json({ error: 'Booking not found' });
+    const { data: course } = await supabaseAdmin.from('courses').select('teacher_id, title').eq('id', b.course_id).single();
+    if (!course || course.teacher_id !== req.user.id) return res.status(403).json({ error: 'Not your booking' });
+    const { data: student } = await supabaseAdmin.from('jeetmantra_users').select('id, full_name, email, phone').eq('id', b.student_id).maybeSingle();
+    const { data: payment } = await supabaseAdmin.from('payments').select('*').eq('user_id', b.student_id).eq('course_id', b.course_id).order('created_at', { ascending: false }).maybeSingle();
+    res.json({ booking: { ...b, course_title: course.title }, student, payment });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// PUT /api/teacher/bookings/:id — reschedule or change status.
+router.put('/bookings/:id', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
+  try {
+    const { data: b } = await supabaseAdmin.from('bookings').select('course_id').eq('id', req.params.id).single();
+    if (!b) return res.status(404).json({ error: 'Booking not found' });
+    const { data: course } = await supabaseAdmin.from('courses').select('teacher_id').eq('id', b.course_id).single();
+    if (!course || course.teacher_id !== req.user.id) return res.status(403).json({ error: 'Not your booking' });
+    const { status, scheduledFor, notes } = req.body || {};
+    const updates = { updated_at: new Date().toISOString() };
+    if (status !== undefined) updates.status = status;
+    if (scheduledFor !== undefined) updates.scheduled_for = scheduledFor || null;
+    if (notes !== undefined) updates.notes = notes;
+    const { data, error } = await supabaseAdmin.from('bookings').update(updates).eq('id', req.params.id).select().single();
+    if (error) return res.status(400).json({ error: error.message });
+    res.json({ booking: data });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/teacher/bookings/:id/cancel — cancel + auto-refund tied payment.
+router.post('/bookings/:id/cancel', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
+  try {
+    const { data: b } = await supabaseAdmin.from('bookings').select('*').eq('id', req.params.id).single();
+    if (!b) return res.status(404).json({ error: 'Booking not found' });
+    const { data: course } = await supabaseAdmin.from('courses').select('teacher_id').eq('id', b.course_id).single();
+    if (!course || course.teacher_id !== req.user.id) return res.status(403).json({ error: 'Not your booking' });
+    await supabaseAdmin.from('bookings').update({ status: 'cancelled', updated_at: new Date().toISOString() }).eq('id', req.params.id);
+    // Flip any paid payment for this (user, course) to refunded — production
+    // would call Razorpay's /payments/:id/refund here too.
+    if (b.student_id && b.course_id) {
+      await supabaseAdmin.from('payments')
+        .update({ status: 'refunded', updated_at: new Date().toISOString() })
+        .eq('user_id', b.student_id).eq('course_id', b.course_id).eq('status', 'paid');
+    }
+    res.json({ message: 'Booking cancelled and payment marked refunded' });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ── MANUAL ESSAY GRADING: list ungraded long-answer responses for the
 // teacher's courses, and POST a score + feedback per (sessionId, questionId).
 router.get('/essays/pending', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {

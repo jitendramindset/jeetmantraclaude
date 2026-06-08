@@ -170,4 +170,41 @@ router.get('/submission-history', authenticateToken, async (req, res) => {
   }
 });
 
+// ── LESSON PROGRESS — student marks a lecture complete; we recompute the
+// course's progress % into enrollments.progress so the dashboard / reader
+// reflect it immediately and the certificate gate (≥80%) works.
+router.post('/progress/lecture', authenticateToken, async (req, res) => {
+  try {
+    const { courseId, lectureId } = req.body || {};
+    if (!courseId || !lectureId) return res.status(400).json({ error: 'courseId + lectureId required' });
+    // Idempotent: upsert by (student, lecture) so re-marking is a no-op.
+    const { data: existing } = await supabaseAdmin.from('lecture_progress')
+      .select('id').eq('student_id', req.user.id).eq('lecture_id', lectureId).maybeSingle();
+    if (!existing) {
+      await supabaseAdmin.from('lecture_progress').insert({
+        id: require('uuid').v4(), student_id: req.user.id, course_id: courseId,
+        lecture_id: lectureId, completed: true
+      });
+    }
+    // Recompute %: done / total lectures in this course.
+    const [{ count: total }, { count: done }] = await Promise.all([
+      supabaseAdmin.from('course_lectures').select('id', { count: 'exact', head: true }).eq('course_id', courseId),
+      supabaseAdmin.from('lecture_progress').select('id', { count: 'exact', head: true }).eq('course_id', courseId).eq('student_id', req.user.id)
+    ]);
+    const pct = total ? Math.round(100 * done / total) : 0;
+    await supabaseAdmin.from('enrollments').update({ progress: pct })
+      .eq('student_id', req.user.id).eq('course_id', courseId);
+    res.json({ progress: pct, done, total });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.get('/progress/:courseId', authenticateToken, async (req, res) => {
+  try {
+    const { data } = await supabaseAdmin.from('lecture_progress')
+      .select('lecture_id, completed_at')
+      .eq('student_id', req.user.id).eq('course_id', req.params.courseId);
+    res.json({ completed: data || [] });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 module.exports = router;

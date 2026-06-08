@@ -424,13 +424,13 @@ body{display:flex;min-height:100vh}
       <div class="grid-2">
         <div class="section" id="sec-school-teachers">
           <div class="section-title">👨‍🏫 Linked Teachers
-            <div class="actions"><button class="btn-sm btn-primary" onclick="openModal('linkTeacher')">+ Add</button></div>
+            <div class="actions"><button class="btn-sm btn-outline" onclick="openCsvImport('teacher')">📋 CSV Import</button><button class="btn-sm btn-primary" onclick="openModal('linkTeacher')">+ Add</button></div>
           </div>
           <div class="card"><ul class="item-list" id="inst-teachersList"><li style="width:100%"><div class="empty-state"><div class="icon">👨‍🏫</div>Loading…</div></li></ul></div>
         </div>
         <div class="section" id="sec-school-students">
           <div class="section-title">🧑‍🎓 Linked Students
-            <div class="actions"><button class="btn-sm btn-primary" onclick="openModal('linkStudent')">+ Add</button></div>
+            <div class="actions"><button class="btn-sm btn-outline" onclick="openCsvImport('student')">📋 CSV Import</button><button class="btn-sm btn-primary" onclick="openModal('linkStudent')">+ Add</button></div>
           </div>
           <div class="card"><ul class="item-list" id="inst-studentsList"><li style="width:100%"><div class="empty-state"><div class="icon">🧑‍🎓</div>Loading…</div></li></ul></div>
         </div>
@@ -491,13 +491,13 @@ body{display:flex;min-height:100vh}
       <div class="grid-2">
         <div class="section" id="sec-coaching-teachers">
           <div class="section-title">👨‍🏫 Linked Teachers
-            <div class="actions"><button class="btn-sm btn-primary" onclick="openModal('linkTeacher')">+ Add</button></div>
+            <div class="actions"><button class="btn-sm btn-outline" onclick="openCsvImport('teacher')">📋 CSV Import</button><button class="btn-sm btn-primary" onclick="openModal('linkTeacher')">+ Add</button></div>
           </div>
           <div class="card"><ul class="item-list" id="inst-teachersList-coaching"><li style="width:100%"><div class="empty-state"><div class="icon">👨‍🏫</div>Loading…</div></li></ul></div>
         </div>
         <div class="section" id="sec-coaching-students">
           <div class="section-title">🧑‍🎓 Linked Students
-            <div class="actions"><button class="btn-sm btn-primary" onclick="openModal('linkStudent')">+ Add</button></div>
+            <div class="actions"><button class="btn-sm btn-outline" onclick="openCsvImport('student')">📋 CSV Import</button><button class="btn-sm btn-primary" onclick="openModal('linkStudent')">+ Add</button></div>
           </div>
           <div class="card"><ul class="item-list" id="inst-studentsList-coaching"><li style="width:100%"><div class="empty-state"><div class="icon">🧑‍🎓</div>Loading…</div></li></ul></div>
         </div>
@@ -642,6 +642,7 @@ const NAV={
     {i:'📡',l:'Live Classes',t:'live'},
     {i:'📊',l:'Bookings',action:'openBookings()'},
     {i:'💰',l:'Payments',action:'openPayments()'},
+    {i:'📝',l:'Essay grading',action:'openEssayInbox()'},
     {i:'🏫',l:'My Institutions',action:'openMyInstitutions()'},
     {i:'🛒',l:'Marketplace',h:'/marketplace.html'},
     {i:'👤',l:'Profile',t:'profile'}
@@ -765,7 +766,7 @@ function renderStudentDash(d){
     const pct=e.progress_percentage||0;
     const meta=e.total_lectures?`${e.attended_lectures||0} / ${e.total_lectures} lectures attended`:'No lectures yet';
     const courseTitle=(e.courses?.title||'Course').replace(/'/g,"\\'");
-    return `<li><div style="flex:1"><div style="font-weight:600">${e.courses?.title||'Course'}</div><div style="font-size:11px;color:var(--jm-text-muted);margin-top:2px">${meta}</div><div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div></div><div class="row-actions"><span class="badge ${pct===100?'badge-green':'badge-blue'}">${pct}%</span><button class="btn-sm btn-outline" onclick="openCourseChat('${e.course_id}','${courseTitle}')">💬 Chat</button><button class="btn-sm btn-outline" onclick="openAttendanceLog('${e.course_id}','${courseTitle}')">🗓 History</button><button class="btn-sm btn-primary" onclick="openReader('${e.course_id}','${courseTitle}')">📖 Read</button><button class="btn-sm btn-outline" onclick="openStudentCourseView('${e.course_id}')">📋 List</button></div></li>`;
+    return `<li><div style="flex:1"><div style="font-weight:600">${e.courses?.title||'Course'}</div><div style="font-size:11px;color:var(--jm-text-muted);margin-top:2px">${meta}</div><div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div></div><div class="row-actions"><span class="badge ${pct===100?'badge-green':'badge-blue'}">${pct}%</span><button class="btn-sm btn-outline" onclick="openCourseChat('${e.course_id}','${courseTitle}')">💬 Chat</button><button class="btn-sm btn-outline" onclick="openAttendanceLog('${e.course_id}','${courseTitle}')">🗓 History</button><button class="btn-sm btn-primary" onclick="openReader('${e.course_id}','${courseTitle}')">📖 Read</button><button class="btn-sm btn-outline" onclick="openStudentCourseView('${e.course_id}')">📋 List</button>${pct>=80?`<button class="btn-sm btn-outline" onclick="openCertificate('${e.course_id}')">🎓 Certificate</button>`:''}</div></li>`;
   }),['📖','No courses yet — <a href="/marketplace.html" style="color:var(--jm-primary)">Browse</a>']);
   renderList('s-hwList',(d.homework||[]).map(h=>`<li><span>${h.title}</span><span class="badge badge-red">${new Date(h.due_date).toLocaleDateString()}</span></li>`),['✅','No pending assignments']);
   renderList('s-liveList',(d.liveClasses||[]).map(c=>{
@@ -1707,7 +1708,7 @@ function _renderTreeItem(key, it, idx, arr, courseId){
   // Swap with neighbour instead of bumping ±1 (preserves legitimate 0).
   const reorderBtns=canReorder?`${prev?`<button class="btn-sm btn-outline" onclick="reorderSwap('${single}','${it.id}','${prev.id}','${courseId}')">↑</button>`:''}${next?`<button class="btn-sm btn-outline" onclick="reorderSwap('${single}','${it.id}','${next.id}','${courseId}')">↓</button>`:''}`:'';
   const submissionsBtn=key==='assignments'?`<button class="btn-sm btn-outline" onclick="openSubmissions('${it.id}', window._configureItems?.assignments?.find(a=>a.id==='${it.id}')?.title||'')">📥 Submissions</button>`:'';
-  const questionsBtn=key==='tests'?`<button class="btn-sm btn-primary" onclick="openQuestionEditor('${it.id}','${escHtml(it.title||'').replace(/'/g,'&#39;')}')">📝 Questions</button>`:'';
+  const questionsBtn=key==='tests'?`<button class="btn-sm btn-primary" onclick="openQuestionEditor('${it.id}','${escHtml(it.title||'').replace(/'/g,'&#39;')}')">📝 Questions</button><button class="btn-sm btn-outline" onclick="openTestAnalytics('${it.id}','${escHtml(it.title||'').replace(/'/g,'&#39;')}')">📊 Analytics</button>`:'';
   return `<div class="tree-item">
     <span class="item-icon">${icons[key]}</span>
     <div style="flex:1">
@@ -3237,7 +3238,14 @@ async function _openMoneyPage(kind){
       const s=r.summary||{};
       body.innerHTML=`
         <div style="max-width:1000px;margin:0 auto">
-          <h2 style="margin-bottom:14px">💰 Payments &amp; Earnings</h2>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+            <h2 style="margin:0">💰 Payments &amp; Earnings</h2>
+            <div class="row-actions">
+              <button class="btn-sm btn-outline" onclick="downloadExport('earnings')">⬇ Earnings CSV</button>
+              <button class="btn-sm btn-outline" onclick="downloadExport('grades')">⬇ Grades CSV</button>
+              <button class="btn-sm btn-outline" onclick="downloadExport('attendance')">⬇ Attendance CSV</button>
+            </div>
+          </div>
           <div class="stats-grid" style="margin-bottom:18px">
             <div class="stat-card"><div class="label">Total Earned</div><div class="value">${fmt(s.totalEarned||0)}</div><div class="sub">All time</div></div>
             <div class="stat-card"><div class="label">Paid Out</div><div class="value">${fmt(s.paid||0)}</div><div class="sub">Cleared</div></div>
@@ -3270,7 +3278,7 @@ async function _openMoneyPage(kind){
           </div>
           <div class="card">${bookings.length ? `<table style="width:100%;border-collapse:collapse">
             <thead><tr style="text-align:left;color:var(--jm-text-muted);font-size:12px;border-bottom:1px solid var(--jm-border)"><th style="padding:10px">Date</th><th style="padding:10px">Student</th><th style="padding:10px">Course</th><th style="padding:10px">Status</th><th style="padding:10px;text-align:right">Amount</th></tr></thead><tbody>
-            ${bookings.map(b=>`<tr style="border-bottom:1px solid var(--jm-border)">
+            ${bookings.map(b=>`<tr style="border-bottom:1px solid var(--jm-border);cursor:pointer" onclick="openBookingDetail('${b.id}')" onmouseover="this.style.background='var(--jm-primary-tint)'" onmouseout="this.style.background=''">
               <td style="padding:10px">${b.created_at?new Date(b.created_at).toLocaleDateString():'—'}</td>
               <td style="padding:10px"><div style="font-weight:600">${escHtml(b.student_name)}</div><div style="font-size:11px;color:var(--jm-text-muted)">${escHtml(b.student_email||'')} ${b.student_phone?'· '+escHtml(b.student_phone):''}</div></td>
               <td style="padding:10px">${escHtml(b.course_title)}</td>
@@ -3281,6 +3289,258 @@ async function _openMoneyPage(kind){
         </div>`;
     }
   }catch(e){ body.innerHTML='<div style="color:#b91c1c;padding:20px">'+escHtml(e.message)+'</div>'; }
+}
+
+// ============================================================
+// TEST ANALYTICS — per-question pass rate + score distribution for a test
+// (opens via 📊 button next to each test row in Configure → Tests).
+// ============================================================
+async function openTestAnalytics(testId, testTitle){
+  document.getElementById('bookingsPage').classList.add('active');
+  document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
+  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
+  document.getElementById('bk-crumb').textContent='Analytics — '+(testTitle||'Test');
+  const body=document.getElementById('bk-body');
+  body.innerHTML='<div style="text-align:center;padding:40px;color:#888">Loading…</div>';
+  try{
+    const r=await api('/teacher/tests/'+testId+'/analytics','GET');
+    const dist=r.score_distribution||[];
+    const maxBucket=Math.max(1,...dist.map(d=>d.count));
+    body.innerHTML=`
+      <div style="max-width:1000px;margin:0 auto">
+        <h2 style="margin-bottom:14px">📊 ${escHtml(r.test?.title||'Test')} — analytics</h2>
+        <div class="stats-grid" style="margin-bottom:18px">
+          <div class="stat-card"><div class="label">Attempts</div><div class="value">${r.totalAttempts||0}</div></div>
+          <div class="stat-card"><div class="label">Mean score</div><div class="value">${r.mean_score||0}</div><div class="sub">of ${r.test?.total_marks||100}</div></div>
+          <div class="stat-card"><div class="label">Questions</div><div class="value">${(r.per_question||[]).length}</div></div>
+        </div>
+        <div class="card" style="margin-bottom:18px"><div style="font-weight:700;margin-bottom:10px">Score distribution</div>
+          <div style="display:flex;align-items:flex-end;gap:10px;height:160px">
+            ${dist.map(d=>`<div style="flex:1;text-align:center;display:flex;flex-direction:column;justify-content:flex-end">
+              <div style="background:var(--jm-primary);height:${(d.count/maxBucket)*120}px;border-radius:6px 6px 0 0;min-height:2px"></div>
+              <div style="font-size:11px;margin-top:4px;font-weight:600">${d.count}</div>
+              <div style="font-size:10px;color:var(--jm-text-muted)">${d.range}</div>
+            </div>`).join('')}
+          </div>
+        </div>
+        <div class="card">
+          <div style="font-weight:700;margin-bottom:10px">Per-question performance</div>
+          <table style="width:100%;border-collapse:collapse">
+            <thead><tr style="text-align:left;color:var(--jm-text-muted);font-size:12px;border-bottom:1px solid var(--jm-border)">
+              <th style="padding:8px">#</th><th style="padding:8px">Question</th><th style="padding:8px;text-align:center">Type</th><th style="padding:8px;text-align:center">Pass rate</th><th style="padding:8px">Top wrong answer</th>
+            </tr></thead><tbody>
+            ${(r.per_question||[]).map((q,i)=>{
+              const color=q.pass_rate>=70?'#10b981':q.pass_rate>=40?'#f59e0b':'#ef4444';
+              return `<tr style="border-bottom:1px solid var(--jm-border)">
+                <td style="padding:8px;color:var(--jm-text-muted)">${i+1}</td>
+                <td style="padding:8px">${escHtml(q.question_text.slice(0,80))}</td>
+                <td style="padding:8px;text-align:center"><span class="badge badge-muted">${q.type}</span></td>
+                <td style="padding:8px;text-align:center"><div style="display:inline-block;padding:3px 10px;border-radius:99px;background:${color};color:#fff;font-weight:600;font-size:12px">${q.pass_rate}%</div><div style="font-size:10px;color:var(--jm-text-muted);margin-top:2px">${q.correct}/${q.attempted}</div></td>
+                <td style="padding:8px;font-size:12px">${q.top_wrong_answer?escHtml(q.top_wrong_answer.value.slice(0,40))+' <span style="color:var(--jm-text-muted)">('+q.top_wrong_answer.count+'×)</span>':'—'}</td>
+              </tr>`;
+            }).join('')}
+            </tbody></table>
+        </div>
+      </div>`;
+  }catch(e){ body.innerHTML='<div style="color:#b91c1c;padding:20px">'+escHtml(e.message)+'</div>'; }
+}
+
+// ============================================================
+// ESSAY GRADING INBOX — pending long-answer responses across all the
+// teacher's courses. Each row shows the question, the student's answer,
+// max marks; teacher enters score + feedback (or clicks ✨ AI grade).
+// ============================================================
+async function openEssayInbox(){
+  document.getElementById('bookingsPage').classList.add('active');
+  document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
+  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
+  document.getElementById('bk-crumb').textContent='Essay grading';
+  const body=document.getElementById('bk-body');
+  body.innerHTML='<div style="text-align:center;padding:40px;color:#888">Loading…</div>';
+  try{
+    const r=await api('/teacher/essays/pending','GET');
+    const items=r.items||[];
+    if(!items.length){
+      body.innerHTML='<div class="card" style="max-width:600px;margin:40px auto;padding:24px;text-align:center"><div style="font-size:48px">📝</div><div style="font-weight:600;margin-top:10px">No pending essays</div><div style="color:var(--jm-text-muted);margin-top:6px">All long-answer responses have been graded.</div></div>';
+      return;
+    }
+    body.innerHTML=`<div style="max-width:900px;margin:0 auto"><h2 style="margin-bottom:14px">📝 Pending essays (${items.length})</h2>${
+      items.map((it,i)=>`<div class="card" style="margin-bottom:14px;padding:18px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:12px;color:var(--jm-text-muted)">
+          <span>${escHtml(it.test?.title||'Test')}</span>
+          <span>Submitted ${it.submitted_at?new Date(it.submitted_at).toLocaleString():''}</span>
+        </div>
+        <div style="font-weight:600;margin-bottom:6px">Q. ${escHtml(it.question_text)}</div>
+        <div style="font-size:13px;background:var(--jm-bg);padding:10px;border-radius:6px;border-left:3px solid var(--jm-primary);margin-bottom:10px;white-space:pre-wrap">${escHtml(it.answer||'')}</div>
+        <div class="grid-2">
+          <div class="form-row"><label>Score (out of ${it.max_marks})</label><input id="eg-s-${i}" type="number" min="0" max="${it.max_marks}" value="0"></div>
+          <div class="form-row"><label>Feedback</label><input id="eg-f-${i}" placeholder="Optional comments"></div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn-sm btn-primary" onclick="essayGrade('${it.session_id}','${it.question_id}',${i})">💾 Save grade</button>
+          <button class="btn-sm btn-outline" onclick="essayAiGrade('${it.session_id}','${it.question_id}',${i},'${escHtml(it.question_text||'').replace(/'/g,'&#39;')}',${it.max_marks})">✨ AI grade</button>
+        </div>
+      </div>`).join('')
+    }</div>`;
+    // Stash items for the AI grade handler to read the answer
+    window._essayItems=items;
+  }catch(e){ body.innerHTML='<div style="color:#b91c1c;padding:20px">'+escHtml(e.message)+'</div>'; }
+}
+async function essayGrade(sessionId, questionId, i){
+  try{
+    const score=Number(document.getElementById('eg-s-'+i).value)||0;
+    const feedback=document.getElementById('eg-f-'+i).value||'';
+    await api('/teacher/essays/grade','POST',{sessionId, questionId, score, feedback});
+    toast('✓ Graded');
+    openEssayInbox();
+  }catch(e){ toast(e.message,true); }
+}
+async function essayAiGrade(sessionId, questionId, i, qText, maxMarks){
+  try{
+    const answer=window._essayItems?.[i]?.answer || '';
+    toast('🤖 grading…');
+    const r=await api('/ai/grade-essay','POST',{question:qText, answer, maxMarks});
+    document.getElementById('eg-s-'+i).value=r.score||0;
+    document.getElementById('eg-f-'+i).value=r.feedback||'';
+    toast('✨ AI suggests '+r.score+'/'+maxMarks+' — review then save');
+  }catch(e){ toast(e.message,true); }
+}
+
+// ============================================================
+// AI TUTOR WIDGET — floating chat button (bottom-right) on the reading
+// panel. Asks /api/ai/tutor scoped to the current course.
+// ============================================================
+function openAiTutor(){
+  const courseId=window._reader?.courseId; if(!courseId){ toast('Open a course first',true); return; }
+  let panel=document.getElementById('aiTutorPanel');
+  if(!panel){
+    panel=document.createElement('div');
+    panel.id='aiTutorPanel';
+    panel.style.cssText='position:fixed;right:14px;bottom:14px;width:340px;height:480px;background:var(--jm-surface);border:1px solid var(--jm-border);border-radius:12px;box-shadow:0 14px 40px rgba(0,0,0,.25);z-index:9999;display:flex;flex-direction:column';
+    panel.innerHTML=`<div style="padding:12px;border-bottom:1px solid var(--jm-border);display:flex;align-items:center;justify-content:space-between"><strong>🤖 AI Tutor</strong><button onclick="document.getElementById('aiTutorPanel').remove()" style="border:0;background:none;cursor:pointer;font-size:18px">×</button></div>
+      <div id="aiTutorLog" style="flex:1;overflow-y:auto;padding:12px;font-size:13px">Ask me anything about this course.</div>
+      <div style="display:flex;gap:6px;padding:10px;border-top:1px solid var(--jm-border)"><input id="aiTutorIn" placeholder="Your question…" style="flex:1;padding:8px;border:1px solid var(--jm-border);border-radius:6px" onkeydown="if(event.key==='Enter')aiTutorAsk()"><button class="btn-sm btn-primary" onclick="aiTutorAsk()">Ask</button></div>`;
+    document.body.appendChild(panel);
+  }
+}
+async function aiTutorAsk(){
+  const input=document.getElementById('aiTutorIn'); const log=document.getElementById('aiTutorLog');
+  const q=input.value.trim(); if(!q) return; input.value='';
+  log.innerHTML+=`<div style="margin-bottom:8px;padding:8px;background:var(--jm-primary-tint);border-radius:6px"><strong>You:</strong> ${escHtml(q)}</div><div id="aiT-pending" style="margin-bottom:8px;color:var(--jm-text-muted)">🤖 thinking…</div>`;
+  log.scrollTop=log.scrollHeight;
+  try{
+    const r=await api('/ai/tutor','POST',{courseId:window._reader.courseId, question:q});
+    document.getElementById('aiT-pending').remove();
+    log.innerHTML+=`<div style="margin-bottom:8px;padding:8px;background:var(--jm-bg);border-radius:6px;border-left:3px solid var(--jm-primary)"><strong>🤖:</strong> ${escHtml(r.answer||'')}</div>`;
+    log.scrollTop=log.scrollHeight;
+  }catch(e){ document.getElementById('aiT-pending').textContent='⚠️ '+e.message; }
+}
+
+// ============================================================
+// COUPON FIELD — pulled into Razorpay/marketplace flows. Returns the
+// discounted amount the order should use; users sees Saved ₹X line.
+// ============================================================
+async function applyCoupon(code, amount, courseId){
+  if(!code) return { discounted: amount, saved: 0 };
+  try{
+    const r=await api('/payments/coupons/apply','POST',{code, amount, courseId});
+    return r;
+  }catch(e){ toast(e.message,true); return null; }
+}
+
+// ============================================================
+// BOOKING DETAIL DRAWER — clicking a row in /openBookings opens this with
+// cancel + reschedule + refund actions.
+// ============================================================
+async function openBookingDetail(bookingId){
+  try{
+    const r=await api('/teacher/bookings/'+bookingId,'GET');
+    const b=r.booking||{}, s=r.student||{}, p=r.payment||{};
+    const overlay=document.createElement('div');
+    overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9998;display:flex;align-items:center;justify-content:center;padding:20px';
+    overlay.onclick=e=>{ if(e.target===overlay) overlay.remove(); };
+    overlay.innerHTML=`<div style="background:var(--jm-surface);max-width:520px;width:100%;border-radius:12px;padding:24px;max-height:90vh;overflow-y:auto">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><h2>📅 Booking</h2><button onclick="this.closest('[style*=position]').remove()" style="border:0;background:none;font-size:22px;cursor:pointer">×</button></div>
+      <table style="width:100%;border-collapse:collapse;margin-bottom:14px;font-size:13px">
+        <tr><td style="padding:6px;color:var(--jm-text-muted);width:35%">Student</td><td style="padding:6px;font-weight:600">${escHtml(s.full_name||'—')}<div style="font-size:11px;color:var(--jm-text-muted)">${escHtml(s.email||'')} ${s.phone?'· '+escHtml(s.phone):''}</div></td></tr>
+        <tr><td style="padding:6px;color:var(--jm-text-muted)">Course</td><td style="padding:6px">${escHtml(b.course_title||'—')}</td></tr>
+        <tr><td style="padding:6px;color:var(--jm-text-muted)">Status</td><td style="padding:6px"><span class="badge ${b.status==='confirmed'?'badge-green':b.status==='cancelled'?'badge-red':'badge-yellow'}">${b.status||'pending'}</span></td></tr>
+        <tr><td style="padding:6px;color:var(--jm-text-muted)">Amount</td><td style="padding:6px">${b.amount?fmt(b.amount):'—'}</td></tr>
+        <tr><td style="padding:6px;color:var(--jm-text-muted)">Payment</td><td style="padding:6px">${p.status?'<span class="badge badge-'+(p.status==='paid'?'green':'yellow')+'">'+p.status+'</span>':'—'} ${p.transaction_id?'<div style="font-family:monospace;font-size:11px;color:var(--jm-text-muted)">'+escHtml(p.transaction_id)+'</div>':''}</td></tr>
+        <tr><td style="padding:6px;color:var(--jm-text-muted)">Booked</td><td style="padding:6px">${b.created_at?new Date(b.created_at).toLocaleString():'—'}</td></tr>
+      </table>
+      <div class="form-row"><label>Reschedule (optional)</label><input id="bk-resch" type="datetime-local" value="${b.scheduled_for?new Date(b.scheduled_for).toISOString().slice(0,16):''}"></div>
+      <div class="form-row"><label>Status</label><select id="bk-status"><option value="pending" ${b.status==='pending'?'selected':''}>pending</option><option value="confirmed" ${b.status==='confirmed'?'selected':''}>confirmed</option><option value="completed" ${b.status==='completed'?'selected':''}>completed</option><option value="cancelled" ${b.status==='cancelled'?'selected':''}>cancelled</option></select></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+        <button class="btn-sm btn-primary" onclick="bookingSave('${bookingId}')">💾 Save</button>
+        <button class="btn-sm btn-outline" onclick="bookingCancel('${bookingId}')" style="color:#b91c1c">❌ Cancel + refund</button>
+      </div>
+    </div>`;
+    document.body.appendChild(overlay);
+  }catch(e){ toast(e.message,true); }
+}
+async function bookingSave(id){
+  try{
+    await api('/teacher/bookings/'+id,'PUT',{
+      status:document.getElementById('bk-status').value,
+      scheduledFor:document.getElementById('bk-resch').value||null
+    });
+    toast('✓ Saved'); document.querySelector('[style*="z-index:9998"]')?.remove();
+    openBookings();
+  }catch(e){ toast(e.message,true); }
+}
+async function bookingCancel(id){
+  if(!confirm('Cancel this booking and refund the payment?')) return;
+  try{
+    await api('/teacher/bookings/'+id+'/cancel','POST',{});
+    toast('✓ Cancelled + refunded'); document.querySelector('[style*="z-index:9998"]')?.remove();
+    openBookings();
+  }catch(e){ toast(e.message,true); }
+}
+
+// ============================================================
+// CSV IMPORT (school/coaching) + EXPORT helpers
+// ============================================================
+async function openCsvImport(kind){
+  const csv=prompt('Paste CSV: header row "name,email,phone" then one '+kind+' per line:');
+  if(!csv) return;
+  try{
+    const r=await api('/institutions/import-csv','POST',{kind, csv});
+    toast(`✓ Created ${r.created}, linked ${r.linked}, skipped ${r.skipped}`);
+    loadDashboard();
+  }catch(e){ toast(e.message,true); }
+}
+function downloadExport(type){
+  const token=localStorage.getItem('jm_token');
+  fetch(API+'/teacher/export?type='+type,{headers:{Authorization:'Bearer '+token}})
+    .then(r=>r.blob()).then(blob=>{
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a'); a.href=url; a.download=type+'.csv'; a.click();
+      URL.revokeObjectURL(url);
+    }).catch(e=>toast(e.message,true));
+}
+
+// ============================================================
+// CERTIFICATE — open the printable HTML in a new tab
+// ============================================================
+function openCertificate(courseId){
+  const token=localStorage.getItem('jm_token');
+  fetch(API+'/courses/'+courseId+'/certificate',{headers:{Authorization:'Bearer '+token}})
+    .then(r=>r.text().then(html=>{
+      if(!r.ok){ toast(html,true); return; }
+      const w=window.open('about:blank'); w.document.write(html); w.document.close();
+    })).catch(e=>toast(e.message,true));
+}
+
+// ============================================================
+// LECTURE MARK-COMPLETE — POST to /student/progress/lecture and refresh
+// the reader's progress %.
+// ============================================================
+async function markLectureComplete(lectureId){
+  try{
+    const r=await api('/student/progress/lecture','POST',{courseId:window._reader.courseId, lectureId});
+    toast(`✓ ${r.done}/${r.total} complete (${r.progress}%)`);
+  }catch(e){ toast(e.message,true); }
 }
 
 // ============================================================
@@ -3334,7 +3594,16 @@ async function _renderReader(){
         if(/\.(mp4|webm|ogg)$/i.test(url)) player=`<video src="${escHtml(url)}" controls style="width:100%;max-height:480px;border-radius:8px;background:#000"></video>`;
         else player=`<div style="padding:14px;background:var(--jm-primary-tint);border-radius:8px"><a href="${escHtml(url)}" target="_blank" class="btn-sm btn-primary" style="text-decoration:none">▶ Open lecture link</a></div>`;
       }
-      return `<div style="margin-bottom:14px"><h2 style="margin-bottom:4px">${escHtml(lec.title||'Lecture')}</h2><div style="color:var(--jm-text-muted);font-size:12px;margin-bottom:10px">${lec.duration?lec.duration+' min':''}</div>${player||'<div class="empty-state">No video attached.</div>'}</div>`;
+      return `<div style="margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;margin-bottom:4px">
+          <h2 style="flex:1;min-width:0">${escHtml(lec.title||'Lecture')}</h2>
+          <div class="row-actions">
+            <button class="btn-sm btn-outline" onclick="markLectureComplete('${lec.id}')">✓ Mark complete</button>
+            <button class="btn-sm btn-primary" onclick="openAiTutor()">🤖 Ask Tutor</button>
+          </div>
+        </div>
+        <div style="color:var(--jm-text-muted);font-size:12px;margin-bottom:10px">${lec.duration?lec.duration+' min':''}</div>${player||'<div class="empty-state">No video attached.</div>'}
+      </div>`;
     };
 
     const tocItem=(label, icon, onclick, sub)=>`<div onclick="${onclick}" style="padding:8px 10px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:13px" onmouseover="this.style.background='var(--jm-primary-tint)'" onmouseout="this.style.background=''"><span>${icon}</span><div style="flex:1"><div>${escHtml(label)}</div>${sub?`<div style="font-size:11px;color:var(--jm-text-muted)">${escHtml(sub)}</div>`:''}</div></div>`;
@@ -3417,8 +3686,10 @@ async function payCourse(courseId, amount, courseTitle){
     catch(e){ toast(e.message,true); }
     return;
   }
+  // Optional coupon — prompt once. Skip silently if user cancels.
+  const couponCode = prompt('Coupon code (optional, press Cancel to skip):') || '';
   try{
-    const order=await api('/payments/order','POST',{courseId, amount});
+    const order=await api('/payments/order','POST',{courseId, amount, couponCode});
     if(order.mode==='demo'){
       _demoCheckout(order, courseId, courseTitle, amount);
       return;
@@ -3432,7 +3703,7 @@ async function payCourse(courseId, amount, courseTitle){
       handler:async function(resp){
         try{
           await api('/payments/verify','POST',{
-            paymentRowId:order.paymentRowId, courseId,
+            paymentRowId:order.paymentRowId, courseId, couponCode,
             razorpayOrderId:resp.razorpay_order_id,
             razorpayPaymentId:resp.razorpay_payment_id,
             razorpaySignature:resp.razorpay_signature

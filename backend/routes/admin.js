@@ -135,4 +135,58 @@ router.get('/stats', authenticateToken, authorizeRole(['admin']), async (req, re
   }
 });
 
+// ── ADMIN USER DETAIL: deep view of one user.
+router.get('/users/:userId', authenticateToken, authorizeRole(['admin']), async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const [{ data: user }, { data: courses }, { data: enrollments }, { data: payments }] = await Promise.all([
+      supabaseAdmin.from('jeetmantra_users').select('*').eq('id', userId).single(),
+      supabaseAdmin.from('courses').select('id, title, is_active').eq('teacher_id', userId),
+      supabaseAdmin.from('enrollments').select('id, course_id, progress, status, enrolled_at, courses(title)').eq('student_id', userId),
+      supabaseAdmin.from('payments').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(20)
+    ]);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    delete user.password_hash; delete user.pass_hash; delete user.password;
+    res.json({ user, ownedCourses: courses || [], enrollments: enrollments || [], payments: payments || [] });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.put('/users/:userId', authenticateToken, authorizeRole(['admin']), async (req, res) => {
+  try {
+    const { fullName, role, status } = req.body || {};
+    const updates = { updated_at: new Date().toISOString() };
+    if (fullName !== undefined) updates.full_name = fullName;
+    if (role !== undefined) updates.user_type = role;
+    if (status !== undefined) updates.status = status;
+    const { data, error } = await supabaseAdmin.from('jeetmantra_users').update(updates).eq('id', req.params.userId).select().single();
+    if (error) return res.status(400).json({ error: error.message });
+    await supabaseAdmin.from('audit_log').insert({
+      id: require('uuid').v4(), actor_id: req.user.id, action: 'user.update',
+      target_id: req.params.userId, metadata: updates, occurred_at: new Date().toISOString()
+    }).catch(() => {});
+    delete data.password_hash;
+    res.json({ user: data });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.delete('/users/:userId', authenticateToken, authorizeRole(['admin']), async (req, res) => {
+  try {
+    if (req.params.userId === req.user.id) return res.status(400).json({ error: "Can't delete your own admin account" });
+    await supabaseAdmin.from('jeetmantra_users').update({ status: 'deleted', updated_at: new Date().toISOString() }).eq('id', req.params.userId);
+    await supabaseAdmin.from('audit_log').insert({
+      id: require('uuid').v4(), actor_id: req.user.id, action: 'user.delete',
+      target_id: req.params.userId, occurred_at: new Date().toISOString()
+    }).catch(() => {});
+    res.json({ message: 'User soft-deleted' });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.get('/audit', authenticateToken, authorizeRole(['admin']), async (req, res) => {
+  try {
+    const limit = Math.min(200, Number(req.query.limit) || 100);
+    const { data } = await supabaseAdmin.from('audit_log').select('*').order('occurred_at', { ascending: false }).limit(limit);
+    res.json({ events: data || [] });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 module.exports = router;
