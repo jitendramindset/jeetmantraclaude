@@ -40,7 +40,14 @@ body{display:flex;min-height:100vh}
 .icon-btn{background:var(--jm-surface);border:1px solid var(--jm-border);border-radius:var(--jm-radius-sm);padding:8px 12px;cursor:pointer;font-size:16px;color:var(--jm-text-muted);text-decoration:none;display:flex;align-items:center;transition:all .15s}
 .icon-btn:hover{border-color:var(--jm-primary);color:var(--jm-primary)}
 .content{padding:24px 28px;flex:1}
-.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+/* Auto-fit so cards reflow at any width (was a fixed 4-col grid). */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:24px}
+/* Dark theme overrides — toggled via <html data-theme="dark"> from Settings. */
+html[data-theme="dark"]{
+  --jm-bg:#0f1117;--jm-surface:#171a23;--jm-border:#262a36;
+  --jm-text:#e8eaf0;--jm-text-strong:#fff;--jm-text-muted:#9aa0b0;--jm-text-subtle:#6b7080;
+  --jm-primary-tint:rgba(124,58,237,.18);--jm-shadow:0 8px 24px rgba(0,0,0,.4);--jm-shadow-sm:0 1px 3px rgba(0,0,0,.4)
+}
 /* Stat card with coloured top accent strip (--sc) — adds depth + meaning.
    Default accent is the primary brand; cards can pass --sc:#10b981 etc. */
 .stat-card{position:relative;background:var(--jm-surface);border-radius:var(--jm-radius);padding:22px 20px 18px;border:1px solid var(--jm-border);box-shadow:var(--jm-shadow-sm);overflow:hidden;transition:transform .15s,box-shadow .15s;--sc:var(--jm-primary)}
@@ -51,9 +58,15 @@ body{display:flex;min-height:100vh}
 .stat-card .value{font-size:30px;font-weight:800;color:var(--jm-text);letter-spacing:-0.02em;font-variant-numeric:tabular-nums}
 .stat-card .sub{font-size:11px;color:var(--jm-text-subtle);margin-top:4px}
 .section{margin-bottom:28px}
+/* Per-section accent — set --sc on the parent .section to colour just that
+   block's pill marker. Defaults to brand purple. Adds gentle hover lift. */
+.section{--sc:var(--jm-primary)}
 .section-title{font-size:14px;font-weight:800;margin-bottom:14px;display:flex;align-items:center;gap:8px;color:var(--jm-text);text-transform:uppercase;letter-spacing:0.05em}
-.section-title::before{content:'';width:3px;height:14px;background:linear-gradient(180deg,var(--jm-primary),#a855f7);border-radius:2px;display:inline-block}
+.section-title::before{content:'';width:3px;height:14px;background:linear-gradient(180deg,var(--sc),color-mix(in oklab,var(--sc),#a855f7 40%));border-radius:2px;display:inline-block}
 .section-title::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--jm-border),transparent);margin-left:8px}
+/* Card hover lift — adds depth without a heavy shadow. */
+.card{transition:box-shadow .15s,transform .15s}
+.section:hover .card{box-shadow:0 4px 14px rgba(15,23,42,.05)}
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
 .card{background:var(--jm-surface);border-radius:var(--jm-radius);padding:18px;border:1px solid var(--jm-border);box-shadow:var(--jm-shadow-sm)}
@@ -101,6 +114,23 @@ body{display:flex;min-height:100vh}
 .modal label{display:block;font-size:12px;color:var(--jm-text-strong);margin-bottom:6px;font-weight:600}
 .modal input,.modal select,.modal textarea{width:100%;background:var(--jm-surface);border:1.5px solid var(--jm-border);border-radius:var(--jm-radius-sm);padding:10px 12px;color:var(--jm-text);font-size:14px;outline:none;font-family:inherit;transition:all .15s}
 .modal input:focus,.modal select:focus,.modal textarea:focus{border-color:var(--jm-primary);box-shadow:0 0 0 3px rgba(249,115,22,0.12)}
+/* GLOBAL form-row — used by full-page views (billing/profile/wizard/att grid).
+   Labels stack ABOVE inputs (was the "labels glued to fields" bug in the
+   New Invoice form). Inputs span the row and breathe. */
+.form-row{margin-bottom:14px;display:block}
+.form-row > label{display:block;font-size:12px;color:var(--jm-text-strong);font-weight:600;margin-bottom:6px;letter-spacing:.01em}
+.form-row > input:not([type=checkbox]):not([type=radio]),
+.form-row > select,
+.form-row > textarea{width:100%;background:var(--jm-surface);border:1.5px solid var(--jm-border);border-radius:var(--jm-radius-sm);padding:10px 12px;color:var(--jm-text);font-size:14px;outline:none;font-family:inherit;transition:border .15s,box-shadow .15s;box-sizing:border-box}
+.form-row > input:focus,.form-row > select:focus,.form-row > textarea:focus{border-color:var(--jm-primary);box-shadow:0 0 0 3px rgba(124,58,237,.15)}
+.form-row > textarea{min-height:72px;resize:vertical;line-height:1.5}
+/* When a label has an inline mic-button or a flex-row of input+addon, the
+   div wrapper still needs the input to fill remaining space. */
+.form-row > div{display:flex;gap:6px;align-items:flex-start;flex-wrap:wrap}
+.form-row > div > input,
+.form-row > div > select,
+.form-row > div > textarea{flex:1;min-width:0;background:var(--jm-surface);border:1.5px solid var(--jm-border);border-radius:var(--jm-radius-sm);padding:10px 12px;color:var(--jm-text);font-size:14px;outline:none;font-family:inherit;box-sizing:border-box}
+.form-row > div > input:focus,.form-row > div > select:focus,.form-row > div > textarea:focus{border-color:var(--jm-primary);box-shadow:0 0 0 3px rgba(124,58,237,.15)}
 .modal .modal-actions{display:flex;gap:10px;margin-top:18px;justify-content:flex-end}
 .modal .grid-2{grid-template-columns:1fr 1fr;display:grid;gap:14px}
 .modal .msg{padding:10px 14px;border-radius:var(--jm-radius-sm);font-size:13px;margin-bottom:12px;display:none;font-weight:600}
@@ -327,13 +357,13 @@ body{display:flex;min-height:100vh}
         <div class="stat-card" style="--sc:#f59e0b"><div class="label">Listings</div><div class="value" id="t-listings">0</div><div class="sub">On marketplace</div></div>
       </div>
       <div class="grid-2">
-        <div class="section" id="sec-teacher-courses">
+        <div class="section" id="sec-teacher-courses" style="--sc:#7c3aed">
           <div class="section-title">📚 My Courses
             <div class="actions"><button class="btn-sm btn-primary" onclick="openWizard()">+ New Course</button></div>
           </div>
           <div class="card"><ul class="item-list" id="t-coursesList"><li style="width:100%"><div class="empty-state"><div class="icon">📖</div>No courses yet</div></li></ul></div>
         </div>
-        <div class="section" id="sec-teacher-listings">
+        <div class="section" id="sec-teacher-listings" style="--sc:#f59e0b">
           <div class="section-title">🛒 Marketplace Listings
             <div class="actions"><button class="btn-sm btn-primary" onclick="openModal('listCourse')">+ List on Marketplace</button></div>
           </div>
@@ -343,7 +373,7 @@ body{display:flex;min-height:100vh}
         </div>
       </div>
       <div class="grid-2">
-        <div class="section" id="sec-teacher-live">
+        <div class="section" id="sec-teacher-live" style="--sc:#ec4899">
           <div class="section-title">📡 Live Classes
             <div class="actions">
               <button class="btn-sm btn-outline" onclick="openTimetable(0)">📅 Timetable</button>
@@ -353,7 +383,7 @@ body{display:flex;min-height:100vh}
           </div>
           <div class="card"><ul class="item-list" id="t-liveList"><li style="width:100%"><div class="empty-state"><div class="icon">📺</div>None scheduled</div></li></ul></div>
         </div>
-        <div class="section" id="sec-teacher-bookings">
+        <div class="section" id="sec-teacher-bookings" style="--sc:#0ea5e9">
           <div class="section-title">📊 Recent Bookings
             <div class="actions"><button class="btn-sm btn-outline" onclick="openAttGrid()">📝 Take Attendance</button></div>
           </div>
@@ -641,6 +671,16 @@ body{display:flex;min-height:100vh}
   <div class="configure-body" id="cal-body">Loading…</div>
 </div>
 
+<div class="configure-page" id="settingsPage">
+  <div class="configure-breadcrumb">
+    <span class="crumb" onclick="closeSettings()">🏠 Dashboard</span>
+    <span class="crumb-sep">/</span>
+    <span class="crumb active">Settings</span>
+    <div style="margin-left:auto"><button class="btn-sm btn-outline" onclick="closeSettings()">← Back</button></div>
+  </div>
+  <div class="configure-body" id="st-body">Loading…</div>
+</div>
+
 <div class="configure-page" id="billingPage">
   <div class="configure-breadcrumb">
     <span class="crumb" onclick="closeBilling()">🏠 Dashboard</span>
@@ -702,6 +742,7 @@ const NAV={
     {i:'🏫',l:'My Institutions',action:'openMyInstitutions()'},
     {i:'💳',l:'Payments',action:'openPayments()'},
     {i:'🛒',l:'Marketplace',h:'/marketplace.html'},
+    {i:'⚙️',l:'Settings',action:'openSettings()'},
     {i:'👤',l:'Profile',action:'openProfilePage()'}
   ],
   teacher:[
@@ -714,8 +755,10 @@ const NAV={
     {i:'💰',l:'Payments',action:'openPayments()'},
     {i:'🧾',l:'Billing',action:'openBilling()'},
     {i:'📝',l:'Essay grading',action:'openEssayInbox()'},
+    {i:'⚙️',l:'Settings',action:'openSettings()'},
     {i:'🏫',l:'My Institutions',action:'openMyInstitutions()'},
     {i:'🛒',l:'Marketplace',h:'/marketplace.html'},
+    {i:'⚙️',l:'Settings',action:'openSettings()'},
     {i:'👤',l:'Profile',action:'openProfilePage()'}
   ],
   partner:[
@@ -723,6 +766,7 @@ const NAV={
     {i:'📅',l:'Bookings',t:'bookings'},
     {i:'💰',l:'Earnings',t:'earnings'},
     {i:'🛒',l:'Marketplace',h:'/marketplace.html'},
+    {i:'⚙️',l:'Settings',action:'openSettings()'},
     {i:'👤',l:'Profile',action:'openProfilePage()'}
   ],
   school:[
@@ -797,6 +841,13 @@ function showPage(pageKey, navEl){
     const m=s.id.match(/^sec-[^-]+-(.+)$/);
     const key=m?m[1]:null;
     s.style.display=(showAll||key===pageKey)?'':'none';
+  });
+  // A .grid-2 row with one visible child leaves a 50% empty column on the
+  // right — collapse to 1 col when only one child is visible. Restore on
+  // the home/Dashboard view.
+  sec.querySelectorAll('.grid-2, .grid-3').forEach(g=>{
+    const visibleChildren=[...g.children].filter(c=>getComputedStyle(c).display!=='none').length;
+    g.style.gridTemplateColumns = (showAll||visibleChildren>=2) ? '' : '1fr';
   });
   const crumb=document.getElementById('pageCrumb');
   if(crumb){
@@ -4010,6 +4061,104 @@ function setActiveInstitution(id){
 }
 
 // ============================================================
+// SETTINGS — single hub for personal + workspace preferences.
+// Mirrors the MantraCRM "Settings" card grid: each option is a coloured
+// tile so the page reads as a real product, not a checklist of links.
+// ============================================================
+function openSettings(){
+  document.getElementById('settingsPage').classList.add('active');
+  document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
+  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
+  const lang=localStorage.getItem('jm_lang')||'en';
+  const theme=localStorage.getItem('jm_theme')||'light';
+  const role=(JSON.parse(localStorage.getItem('jm_user')||'{}').user_type)||(JSON.parse(localStorage.getItem('jm_user')||'{}').role)||'student';
+  const isAdmin = role==='admin';
+  const tile=(c,icon,title,desc,action)=>`
+    <div class="card" onclick="${action}" style="cursor:pointer;padding:18px;position:relative;overflow:hidden;border-top:3px solid ${c};transition:transform .15s,box-shadow .15s" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 20px rgba(15,23,42,.08)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
+      <div style="font-size:28px;margin-bottom:8px">${icon}</div>
+      <div style="font-weight:700;font-size:14px;margin-bottom:4px;color:var(--jm-text)">${title}</div>
+      <div style="font-size:12px;color:var(--jm-text-muted);line-height:1.4">${desc}</div>
+    </div>`;
+  document.getElementById('st-body').innerHTML=`<div style="max-width:1100px;margin:0 auto">
+    <h2 style="margin-bottom:6px">⚙️ Settings</h2>
+    <div style="color:var(--jm-text-muted);font-size:13px;margin-bottom:18px">Personal preferences and workspace configuration</div>
+    <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--jm-text-muted);margin:8px 0 10px">Personal</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:24px">
+      ${tile('#7c3aed','👤','Profile','Name · contact · address · photo','openProfilePage()')}
+      ${tile('#0ea5e9','🏫','My Institutions','Manage school / coaching links','openMyInstitutions()')}
+      ${tile('#10b981','🤖','AI assistant key','Configure provider (OpenAI / Anthropic / Gemini)','openAiKey()')}
+      ${tile('#ec4899','💳','Payments &amp; coupons','Razorpay status · coupon codes · refunds','openPayments()')}
+    </div>
+    <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--jm-text-muted);margin:8px 0 10px">Appearance &amp; language</div>
+    <div class="card" style="padding:18px;margin-bottom:24px">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px;align-items:end">
+        <div class="form-row" style="margin:0">
+          <label>🌐 Language</label>
+          <select id="st-lang" onchange="setLang(this.value)">
+            <option value="en" ${lang==='en'?'selected':''}>🇮🇳 English</option>
+            <option value="hi" ${lang==='hi'?'selected':''}>🇮🇳 हिन्दी</option>
+          </select>
+        </div>
+        <div class="form-row" style="margin:0">
+          <label>🎨 Theme</label>
+          <select id="st-theme" onchange="setTheme(this.value)">
+            <option value="light" ${theme==='light'?'selected':''}>☀ Light</option>
+            <option value="dark"  ${theme==='dark' ?'selected':''}>🌙 Dark</option>
+          </select>
+        </div>
+        <div class="form-row" style="margin:0">
+          <label>💱 Currency</label>
+          <select id="st-currency" onchange="localStorage.setItem('jm_currency',this.value);toast('Currency set — applies on next reload')">
+            <option ${(localStorage.getItem('jm_currency')||'INR')==='INR'?'selected':''} value="INR">₹ INR — Indian Rupee</option>
+            <option ${(localStorage.getItem('jm_currency')||'INR')==='USD'?'selected':''} value="USD">$ USD — US Dollar</option>
+            <option ${(localStorage.getItem('jm_currency')||'INR')==='EUR'?'selected':''} value="EUR">€ EUR — Euro</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--jm-text-muted);margin:8px 0 10px">Workspace</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:24px">
+      ${tile('#f59e0b','🧾','Billing &amp; invoices','Issue invoices · mark paid · PDF','openBilling()')}
+      ${tile('#7c3aed','📅','Calendar','Month view of classes, tests, assignments','openCalendar()')}
+      ${tile('#0ea5e9','📹','Recordings','Browse past live-class recordings','openRecordings()')}
+      ${tile('#10b981','📊','Test analytics','Per-question pass rate · score distribution',"toast('Open a test from Configure → 📊 Analytics')")}
+    </div>
+    ${isAdmin?`
+    <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--jm-text-muted);margin:8px 0 10px">Admin</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:24px">
+      ${tile('#ef4444','🛡','Audit log','Recent admin actions',"toast('See Admin page')")}
+      ${tile('#7c3aed','💰','Commission rate','Platform commission %',"window.location.href='/admin.html'")}
+      ${tile('#ec4899','🔌','n8n / webhooks','Configure automations','openN8nConfig()')}
+    </div>`:''}
+    <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--jm-text-muted);margin:8px 0 10px">Account</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px">
+      ${tile('#0ea5e9','🔑','Change password','Send a reset link to your email','stChangePassword()')}
+      ${tile('#ef4444','🚪','Log out','End your session on this device','logout()')}
+    </div>
+  </div>`;
+}
+function closeSettings(){
+  document.getElementById('settingsPage').classList.remove('active');
+  document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='');
+  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='');
+}
+function setTheme(mode){
+  localStorage.setItem('jm_theme',mode);
+  document.documentElement.setAttribute('data-theme',mode);
+  toast(mode==='dark'?'🌙 Dark mode on':'☀ Light mode on');
+}
+// Apply saved theme on every load.
+(function(){ const t=localStorage.getItem('jm_theme')||'light'; document.documentElement.setAttribute('data-theme',t); })();
+async function stChangePassword(){
+  const u=JSON.parse(localStorage.getItem('jm_user')||'{}');
+  if(!u.email){ toast('No email on account',true); return; }
+  try{
+    await fetch(API+'/auth/forgot-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:u.email})});
+    toast('✓ Reset link sent (check email)');
+  }catch(_){ toast('Failed to send reset link',true); }
+}
+
+// ============================================================
 // I18N — minimal localization (en + hi). Strings carrying `data-i18n="key"`
 // are auto-translated on setLang(); helpers t(key) / tf(key,vars) used in JS.
 // Persisted to localStorage so the choice survives reloads.
@@ -4379,6 +4528,7 @@ document.addEventListener('keydown',(e)=>{
   if(document.getElementById('calendarPage')?.classList.contains('active')){ closeCalendar(); return; }
   if(document.getElementById('profilePage')?.classList.contains('active')){ closeProfilePage(); return; }
   if(document.getElementById('billingPage')?.classList.contains('active')){ closeBilling(); return; }
+  if(document.getElementById('settingsPage')?.classList.contains('active')){ closeSettings(); return; }
 });
 
 loadDashboard();
