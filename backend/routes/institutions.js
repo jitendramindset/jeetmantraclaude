@@ -146,10 +146,18 @@ router.get('/dashboard', authenticateToken, authorizeRole(INSTITUTIONS), async (
 });
 
 // ── FOR TEACHERS: which institutions am I in? ──────────────────────────
+// Returns every institution this user is linked to — as a teacher OR as a
+// student — so the dashboard can show "you belong to N institutions, switch
+// active one." Single user id, many memberships.
 router.get('/my-institutions', authenticateToken, async (req, res) => {
-  const { data: links } = await supabaseAdmin
-    .from('institution_teachers').select('*').eq('teacher_id', req.user.id).eq('is_active', true);
-  const ids = (links || []).map(l => l.institution_id);
+  const userId = req.user.id;
+  const [tRes, sRes] = await Promise.all([
+    supabaseAdmin.from('institution_teachers').select('*').eq('teacher_id', userId).eq('is_active', true),
+    supabaseAdmin.from('institution_students').select('*').eq('student_id', userId).eq('is_active', true)
+  ]);
+  const tLinks = tRes.data || [];
+  const sLinks = sRes.data || [];
+  const ids = [...new Set([...tLinks.map(l => l.institution_id), ...sLinks.map(l => l.institution_id)])];
   let institutions = [];
   if (ids.length) {
     const { data } = await supabaseAdmin
@@ -157,9 +165,21 @@ router.get('/my-institutions', authenticateToken, async (req, res) => {
     institutions = data || [];
   }
   const byId = Object.fromEntries(institutions.map(i => [i.id, i]));
-  res.json({
-    institutions: (links || []).map(l => ({ link_id: l.id, subject: l.subject, role: l.role, ...byId[l.institution_id] }))
-  });
+  const merged = [
+    ...tLinks.map(l => ({
+      link_id: l.id, institution_id: l.institution_id,
+      name: byId[l.institution_id]?.full_name || 'Institution',
+      type: byId[l.institution_id]?.user_type || 'school',
+      role: 'teacher', subject: l.subject || null
+    })),
+    ...sLinks.map(l => ({
+      link_id: l.id, institution_id: l.institution_id,
+      name: byId[l.institution_id]?.full_name || 'Institution',
+      type: byId[l.institution_id]?.user_type || 'school',
+      role: 'student', subject: null
+    }))
+  ];
+  res.json({ institutions: merged, count: merged.length });
 });
 
 module.exports = router;

@@ -143,6 +143,32 @@ body{display:flex;min-height:100vh}
 .toast{position:fixed;top:20px;right:20px;background:var(--jm-surface);border:1px solid var(--jm-border);border-left:4px solid var(--jm-success);border-radius:var(--jm-radius-sm);padding:14px 18px;box-shadow:var(--jm-shadow);font-size:14px;font-weight:600;color:var(--jm-text);z-index:300;animation:slideIn .3s}
 .toast.error{border-left-color:var(--jm-danger)}
 @keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:none;opacity:1}}
+/* ── Responsive sweep — tables/grids/wizards scale below 900 / 600 ── */
+@media(max-width:900px){
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  .grid-2{grid-template-columns:1fr}
+  .configure-body{padding:14px}
+  .configure-body table{font-size:12px}
+  .configure-body table th,.configure-body table td{padding:6px 4px}
+  .configure-body .card{padding:16px}
+}
+@media(max-width:600px){
+  .stats-grid{grid-template-columns:1fr 1fr;gap:8px}
+  .stat-card .value{font-size:20px}
+  .configure-body{padding:8px}
+  .configure-body h2{font-size:18px}
+  /* tables get horizontal-scroll wrappers via overflow-x:auto on the .card */
+  .configure-body .card{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .configure-body table{min-width:520px}
+  /* wizard step bar wraps */
+  .configure-body div[style*="display:flex;gap:8px;margin-bottom:24px"]{flex-wrap:wrap}
+  /* attendance grid: hide email second line to save space */
+  #att-roster .item-meta{display:none}
+  .topbar h3{font-size:16px}
+  .search-bar{display:none}
+  .row-actions{flex-wrap:wrap}
+  .row-actions .btn-sm{font-size:11px;padding:4px 8px}
+}
 @media(max-width:768px){
   .sidebar{transform:translateX(-100%)}
   .sidebar.open{transform:translateX(0)}
@@ -585,6 +611,8 @@ const NAV={
     {i:'📡',l:'Live Classes',t:'live'},
     {i:'📝',l:'Assignments',t:'hw'},
     {i:'🗒️',l:'Notes',t:'notes'},
+    {i:'🏫',l:'My Institutions',action:'openMyInstitutions()'},
+    {i:'💳',l:'Payments',action:'openPayments()'},
     {i:'🛒',l:'Marketplace',h:'/marketplace.html'},
     {i:'👤',l:'Profile',t:'profile'}
   ],
@@ -592,8 +620,9 @@ const NAV={
     {i:'🏠',l:'Dashboard',t:'top',a:true},
     {i:'📚',l:'My Courses',t:'courses'},
     {i:'📡',l:'Live Classes',t:'live'},
-    {i:'📊',l:'Bookings',t:'bookings'},
-    {i:'💰',l:'Earnings',t:'earnings'},
+    {i:'📊',l:'Bookings',action:'openBookings()'},
+    {i:'💰',l:'Payments',action:'openPayments()'},
+    {i:'🏫',l:'My Institutions',action:'openMyInstitutions()'},
     {i:'🛒',l:'Marketplace',h:'/marketplace.html'},
     {i:'👤',l:'Profile',t:'profile'}
   ],
@@ -636,7 +665,9 @@ function buildNav(role){
   const items=NAV[role]||NAV.student;
   document.getElementById('navMenu').innerHTML=items.map((it,idx)=>{
     let onclick;
-    if(it.h){
+    if(it.action){
+      onclick=it.action; // direct JS call (e.g. openBookings())
+    } else if(it.h){
       onclick=`window.location.href='${it.h}'`;
     } else if(it.t==='top'){
       onclick=`navScroll(this,null)`;
@@ -797,8 +828,14 @@ function renderTeacherDash(d){
     const badge=s==='live'?'badge-green':(s==='completed'?'badge-blue':'badge-yellow');
     return `<li><span>${c.title}</span><div class="row-actions"><span class="badge ${badge}">${s}</span>${rosterBtn}${actions}</div></li>`;
   }),['📺','No live classes']);
-  renderList('t-bookingsList',(d.bookings||[]).slice(0,6).map(b=>`<li><span>Booking ${b.id?.slice(0,8)}</span><div class="row-actions"><span class="badge badge-yellow">${b.status||'pending'}</span><button class="btn-sm btn-outline" onclick="openBookings()">View →</button></div></li>`).concat(['<li style="width:100%;text-align:center"><button class="btn-sm btn-primary" onclick="openBookings()">📋 See All Bookings</button></li>']),['📅','No bookings']);
-  renderList('t-earningsList',(d.earnings||[]).slice(0,5).map(e=>`<li><span>${e.source||'Earning'}</span><span class="badge badge-green">${fmt(e.amount)}</span></li>`).concat(['<li style="width:100%;text-align:center"><button class="btn-sm btn-primary" onclick="openPayments()">💰 Open Payments Page</button></li>']),['💸','No earnings yet']);
+  // Append the "See All" CTA only when there are rows — otherwise the
+  // empty-state placeholder ("📅 No bookings") is never reached.
+  const bks=(d.bookings||[]).slice(0,6).map(b=>`<li><span>Booking ${b.id?.slice(0,8)}</span><div class="row-actions"><span class="badge badge-yellow">${b.status||'pending'}</span><button class="btn-sm btn-outline" onclick="openBookings()">View →</button></div></li>`);
+  if(bks.length) bks.push('<li style="width:100%;text-align:center"><button class="btn-sm btn-primary" onclick="openBookings()">📋 See All Bookings</button></li>');
+  renderList('t-bookingsList',bks,['📅','No bookings']);
+  const ers=(d.earnings||[]).slice(0,5).map(e=>`<li><span>${e.source||'Earning'}</span><span class="badge badge-green">${fmt(e.amount)}</span></li>`);
+  if(ers.length) ers.push('<li style="width:100%;text-align:center"><button class="btn-sm btn-primary" onclick="openPayments()">💰 Open Payments Page</button></li>');
+  renderList('t-earningsList',ers,['💸','No earnings yet']);
   renderProfile('t-profile',[['Total Earnings',fmt(d.totalEarnings)],['Courses Published',(d.courses||[]).length]]);
 }
 function renderPartnerDash(d){
@@ -2522,13 +2559,16 @@ async function qeDelete(id){
   catch(e){ toast(e.message,true); }
 }
 async function qeAiSuggest(){
-  const prompt=val('qe-text')||prompt;
-  if(!prompt){ toast('Type a topic first, then click AI suggest',true); return; }
+  // Rename the local to avoid self-shadowing window.prompt — the previous
+  // `val('qe-text')||prompt` fell back to the prompt() function when empty,
+  // bypassing the guard and sending "[native code]" to the AI.
+  const topic=val('qe-text');
+  if(!topic){ toast('Type a topic first, then click AI suggest',true); return; }
   try{
     toast('🤖 thinking…');
     const r=await api('/ai/generate','POST',{
       systemPrompt:'You write exam MCQ questions. Reply with ONLY a JSON object — no prose.',
-      prompt:`Write one multiple-choice question on this topic. Reply JSON: {"questionText":"…","options":["a","b","c","d"],"correctAnswer":"…","marks":2,"explanation":"…"}\\nTOPIC: ${prompt}`,
+      prompt:`Write one multiple-choice question on this topic. Reply JSON: {"questionText":"…","options":["a","b","c","d"],"correctAnswer":"…","marks":2,"explanation":"…"}\\nTOPIC: ${topic}`,
       json:true
     });
     let parsed=null;
@@ -2613,12 +2653,12 @@ function _withButtonLoading(handler){
   };
 }
 // startLive / endLive / joinLive — all route through the in-browser live-room page.
-// The room itself (liveRoom.html) handles the status POSTs, Jitsi WebRTC bridge,
-// attendance polling and pause/end controls. Opening the room in the same tab
-// lets the back button return to the dashboard cleanly.
-function startLive(id){ window.location.href='/liveRoom.html?class='+id; }
-function endLive(id){ window.location.href='/liveRoom.html?class='+id; }
-function joinLive(id){ window.location.href='/liveRoom.html?class='+id; }
+// The room itself (liveRoom.html) handles status POSTs, Jitsi WebRTC bridge,
+// attendance polling and pause/end controls. Wrapped in _withButtonLoading so
+// a double-click can't fire two navigations.
+const startLive=_withButtonLoading(async (id)=>{ window.location.href='/liveRoom.html?class='+id; });
+const endLive=_withButtonLoading(async (id)=>{ window.location.href='/liveRoom.html?class='+id; });
+const joinLive=_withButtonLoading(async (id)=>{ window.location.href='/liveRoom.html?class='+id; });
 
 // ============================================================
 // COURSE-CREATION WIZARD — 4 steps, inline page (no modal):
@@ -2897,7 +2937,17 @@ async function _openMoneyPage(kind){
   body.innerHTML='<div style="text-align:center;padding:40px;color:#888">Loading…</div>';
   try{
     if(kind==='payments'){
-      const r=await api('/teacher/payments','GET');
+      // Teacher / creator roles → rich earnings + payments combined view.
+      // Student / other → plain payment history via /payments/my (works for everyone).
+      const role=(JSON.parse(localStorage.getItem('jm_user')||'{}').user_type)||'student';
+      const isCreator=['teacher','partner','school','coaching','admin'].includes(role);
+      const r = isCreator
+        ? await api('/teacher/payments','GET')
+        : await api('/payments/my','GET').then(d=>({payments:d.payments||[], earnings:[], summary:{
+            totalEarned:0,
+            paid:(d.payments||[]).filter(p=>p.status==='paid'||p.status==='completed').reduce((s,p)=>s+parseFloat(p.amount||0),0),
+            pending:(d.payments||[]).filter(p=>p.status==='pending').reduce((s,p)=>s+parseFloat(p.amount||0),0)
+          }}));
       const s=r.summary||{};
       body.innerHTML=`
         <div style="max-width:1000px;margin:0 auto">
@@ -2945,6 +2995,138 @@ async function _openMoneyPage(kind){
         </div>`;
     }
   }catch(e){ body.innerHTML='<div style="color:#b91c1c;padding:20px">'+escHtml(e.message)+'</div>'; }
+}
+
+// ============================================================
+// RAZORPAY CHECKOUT — UPI / GPay / cards / netbanking via one widget.
+// payCourse(course) is reused by marketplace / course-preview / re-pay-on-fail.
+// In demo mode the backend returns mode:'demo' and we render a minimal modal
+// that mimics a successful checkout so the rest of the flow can run without
+// real keys configured.
+// ============================================================
+function _ensureRzpScript(){
+  return new Promise((resolve,reject)=>{
+    if(window.Razorpay) return resolve();
+    const s=document.createElement('script');
+    s.src='https://checkout.razorpay.com/v1/checkout.js';
+    s.onload=resolve; s.onerror=()=>reject(new Error('Razorpay script failed to load'));
+    document.head.appendChild(s);
+  });
+}
+async function payCourse(courseId, amount, courseTitle){
+  if(!amount || amount<1){ toast('This course is free — enrolling directly');
+    try{ await api('/enrollments','POST',{courseId}); toast('✓ Enrolled'); loadDashboard(); }
+    catch(e){ toast(e.message,true); }
+    return;
+  }
+  try{
+    const order=await api('/payments/order','POST',{courseId, amount});
+    if(order.mode==='demo'){
+      _demoCheckout(order, courseId, courseTitle, amount);
+      return;
+    }
+    await _ensureRzpScript();
+    const rzp=new Razorpay({
+      key:order.keyId, order_id:order.orderId, amount:order.amount, currency:order.currency,
+      name:'JeetMantra', description:courseTitle||'Course enrollment', image:'/logo.png',
+      prefill:{ name:currentUser?.fullName||'', email:currentUser?.email||'', contact:currentUser?.phone||'' },
+      theme:{ color:'#7c3aed' },
+      handler:async function(resp){
+        try{
+          await api('/payments/verify','POST',{
+            paymentRowId:order.paymentRowId, courseId,
+            razorpayOrderId:resp.razorpay_order_id,
+            razorpayPaymentId:resp.razorpay_payment_id,
+            razorpaySignature:resp.razorpay_signature
+          });
+          toast('✓ Payment successful — you are enrolled');
+          loadDashboard();
+        }catch(e){ toast('Verification failed: '+e.message, true); }
+      },
+      modal:{ ondismiss:()=>toast('Payment cancelled',true) }
+    });
+    rzp.open();
+  }catch(e){ toast(e.message,true); }
+}
+function _demoCheckout(order, courseId, courseTitle, amount){
+  // Mini modal mimicking a payment gateway — used when Razorpay keys aren't
+  // set. Lets us E2E-test the verify flow without real money.
+  const overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.innerHTML=`
+    <div style="background:var(--jm-surface);max-width:420px;width:100%;border-radius:12px;padding:24px;box-shadow:0 20px 40px rgba(0,0,0,.4)">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><span style="font-size:22px">💳</span><strong style="font-size:16px">Pay ₹${amount}</strong><span class="badge badge-yellow" style="margin-left:auto">DEMO</span></div>
+      <div style="color:var(--jm-text-muted);font-size:13px;margin-bottom:14px">${escHtml(courseTitle||'Course')} — UPI / GPay / Card via Razorpay (test mode)</div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px">
+        <button class="btn-sm btn-outline" disabled>📱 UPI</button>
+        <button class="btn-sm btn-outline" disabled>G Google Pay</button>
+        <button class="btn-sm btn-outline" disabled>💳 Card</button>
+        <button class="btn-sm btn-outline" disabled>🏦 Net Banking</button>
+      </div>
+      <div style="font-size:12px;color:var(--jm-text-muted);margin-bottom:14px">In live mode, the real Razorpay popup opens here. Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in backend/.env to enable.</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn-sm btn-outline" style="flex:1" id="dc-cancel">Cancel</button>
+        <button class="btn-sm btn-primary" style="flex:1" id="dc-pay">✓ Simulate Success</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.querySelector('#dc-cancel').onclick=()=>{ overlay.remove(); toast('Payment cancelled',true); };
+  overlay.querySelector('#dc-pay').onclick=async()=>{
+    try{
+      await api('/payments/verify','POST',{ paymentRowId:order.paymentRowId, razorpayOrderId:order.orderId, courseId });
+      overlay.remove();
+      toast('✓ Payment successful — you are enrolled');
+      loadDashboard();
+    }catch(e){ toast(e.message,true); }
+  };
+}
+
+// ============================================================
+// MY INSTITUTIONS — single user can be linked to many schools / coaching
+// centers (as teacher OR student). This page lists all such links and
+// lets the user switch the "active institution" stored on window.
+// ============================================================
+async function openMyInstitutions(){
+  document.getElementById('bookingsPage').classList.add('active');
+  document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
+  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
+  document.getElementById('bk-crumb').textContent='My Institutions';
+  const body=document.getElementById('bk-body');
+  body.innerHTML='<div style="text-align:center;padding:40px;color:#888">Loading…</div>';
+  try{
+    const r=await api('/institutions/my-institutions','GET');
+    const links=r.institutions||r.links||[];
+    if(!links.length){
+      body.innerHTML='<div class="card" style="max-width:600px;margin:40px auto;padding:24px;text-align:center"><div style="font-size:48px">🏫</div><div style="font-weight:600;margin-top:10px">No institutions linked yet</div><div style="color:var(--jm-text-muted);margin-top:6px">A school or coaching center can add you from their dashboard.</div></div>';
+      return;
+    }
+    const active=localStorage.getItem('jm_active_institution')||'';
+    body.innerHTML=`
+      <div style="max-width:900px;margin:0 auto">
+        <h2 style="margin-bottom:14px">🏫 My Institutions (${links.length})</h2>
+        <div style="color:var(--jm-text-muted);font-size:13px;margin-bottom:18px">You're a member of multiple institutions with a single JeetMantra account. Switch the active one to filter your dashboard.</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">
+          ${links.map(i=>{
+            const id=i.institution_id||i.id;
+            const isActive=active===id;
+            return `<div class="card" style="padding:18px;border:2px solid ${isActive?'var(--jm-primary)':'var(--jm-border)'}">
+              <div style="font-weight:700;font-size:15px;margin-bottom:4px">${escHtml(i.name||i.institution_name||'Institution')}</div>
+              <div style="font-size:12px;color:var(--jm-text-muted);margin-bottom:10px">${escHtml(i.type||i.institution_type||'school')} · Role: ${escHtml(i.role||i.member_role||'member')}</div>
+              ${i.subject?`<div style="font-size:12px;margin-bottom:10px"><span class="badge badge-muted">${escHtml(i.subject)}</span></div>`:''}
+              ${isActive
+                ? '<button class="btn-sm btn-primary" disabled>✓ Active</button>'
+                : `<button class="btn-sm btn-outline" onclick="setActiveInstitution('${id}')">Switch to this</button>`}
+            </div>`;
+          }).join('')}
+        </div>
+      </div>`;
+  }catch(e){ body.innerHTML='<div style="color:#b91c1c;padding:20px">'+escHtml(e.message)+'</div>'; }
+}
+function setActiveInstitution(id){
+  localStorage.setItem('jm_active_institution', id);
+  toast('✓ Active institution switched');
+  loadDashboard();
+  openMyInstitutions();
 }
 
 // Keyboard: Escape closes any open modal OR the configure page.

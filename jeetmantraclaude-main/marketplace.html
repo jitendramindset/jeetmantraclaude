@@ -343,24 +343,87 @@ function openPurchase(listingId){
   document.getElementById('purchaseModal').classList.add('show');
 }
 
+// Confirm a marketplace purchase via Razorpay (UPI / GPay / card / netbanking).
+// Free listings still go through the old direct-purchase endpoint.
 async function confirmPurchase(){
   if(!selectedListingId)return;
+  const listing=allListings.find(l=>l.id===selectedListingId);
   const btn=document.getElementById('confirmBtn');
   btn.disabled=true;btn.textContent='Processing...';
-  try{
-    const res=await fetch(API+'/marketplace/'+selectedListingId+'/purchase',{
-      method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'}
-    });
-    const data=await res.json();
-    if(!res.ok)throw new Error(data.error||'Purchase failed');
-    purchasedIds.add(selectedListingId);
-    showMsg('purchaseMsg','✅ Purchase successful! You are now enrolled.','success');
-    btn.textContent='✅ Enrolled!';
-    setTimeout(()=>{closeModal('purchaseModal');applyFilters();},2000);
-  }catch(e){
-    showMsg('purchaseMsg',e.message,'error');
-    btn.disabled=false;btn.textContent='Confirm Purchase';
+  const price=Number(listing?.price)||0;
+  if(price<=0){
+    // Free — straight enroll via the existing endpoint
+    try{
+      const res=await fetch(API+'/marketplace/'+selectedListingId+'/purchase',{
+        method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'}
+      });
+      const data=await res.json();
+      if(!res.ok)throw new Error(data.error||'Enroll failed');
+      purchasedIds.add(selectedListingId);
+      showMsg('purchaseMsg','✅ Enrolled (free course)','success');
+      btn.textContent='✅ Enrolled!';
+      setTimeout(()=>{closeModal('purchaseModal');applyFilters();},1500);
+    }catch(e){ showMsg('purchaseMsg',e.message,'error'); btn.disabled=false; btn.textContent='Confirm Purchase'; }
+    return;
   }
+  try{
+    const order=await (await fetch(API+'/payments/order',{
+      method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body:JSON.stringify({courseId:listing.course_id, amount:price})
+    })).json();
+    if(order.error) throw new Error(order.error);
+    if(order.mode==='demo'){
+      // Show a demo gateway modal and verify on confirm.
+      if(!confirm('DEMO mode: simulate a successful ₹'+price+' payment?')){
+        btn.disabled=false; btn.textContent='Confirm Purchase'; return;
+      }
+      const v=await (await fetch(API+'/payments/verify',{
+        method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+        body:JSON.stringify({paymentRowId:order.paymentRowId, razorpayOrderId:order.orderId, courseId:listing.course_id})
+      })).json();
+      if(v.error) throw new Error(v.error);
+      purchasedIds.add(selectedListingId);
+      showMsg('purchaseMsg','✅ Payment successful (demo) — enrolled','success');
+      btn.textContent='✅ Enrolled!';
+      setTimeout(()=>{closeModal('purchaseModal');applyFilters();},1500);
+      return;
+    }
+    // Live: open Razorpay checkout.
+    await new Promise((resolve,reject)=>{
+      if(window.Razorpay) return resolve();
+      const s=document.createElement('script');
+      s.src='https://checkout.razorpay.com/v1/checkout.js';
+      s.onload=resolve; s.onerror=()=>reject(new Error('Razorpay script failed'));
+      document.head.appendChild(s);
+    });
+    const u=JSON.parse(localStorage.getItem('jm_user')||'{}');
+    const rzp=new Razorpay({
+      key:order.keyId, order_id:order.orderId, amount:order.amount, currency:order.currency,
+      name:'JeetMantra', description:listing.courses?.title||'Course',
+      prefill:{ name:u.fullName||u.full_name||'', email:u.email||'', contact:u.phone||'' },
+      theme:{ color:'#7c3aed' },
+      handler:async function(resp){
+        try{
+          const v=await (await fetch(API+'/payments/verify',{
+            method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+            body:JSON.stringify({
+              paymentRowId:order.paymentRowId, courseId:listing.course_id,
+              razorpayOrderId:resp.razorpay_order_id,
+              razorpayPaymentId:resp.razorpay_payment_id,
+              razorpaySignature:resp.razorpay_signature
+            })
+          })).json();
+          if(v.error) throw new Error(v.error);
+          purchasedIds.add(selectedListingId);
+          showMsg('purchaseMsg','✅ Payment verified — enrolled','success');
+          btn.textContent='✅ Enrolled!';
+          setTimeout(()=>{closeModal('purchaseModal');applyFilters();},1500);
+        }catch(e){ showMsg('purchaseMsg',e.message,'error'); btn.disabled=false; btn.textContent='Confirm Purchase'; }
+      },
+      modal:{ ondismiss:()=>{ btn.disabled=false; btn.textContent='Confirm Purchase'; } }
+    });
+    rzp.open();
+  }catch(e){ showMsg('purchaseMsg',e.message,'error'); btn.disabled=false; btn.textContent='Confirm Purchase'; }
 }
 
 async function openListModal(){
