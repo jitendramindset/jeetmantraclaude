@@ -1,11 +1,14 @@
-// JeetMantra service worker — minimal offline shell.
-// Strategy: cache-first for static assets, network-first for /api.
-const CACHE_NAME = 'jm-shell-v1';
+// JeetMantra service worker.
+// Strategy:
+//   - HTML documents (navigations / *.html): NETWORK-FIRST, so a freshly
+//     deployed page is always served and never goes stale. Falls back to
+//     cache only when offline.
+//   - /api/*: network-first (stash GET responses for offline read).
+//   - Other static assets (css/js/img/fonts): cache-first for speed.
+// Bump CACHE_NAME whenever shell assets change so the old cache is evicted.
+const CACHE_NAME = 'jm-shell-v3';
 const SHELL = [
-  '/', '/dashboard.html', '/login.html', '/signup.html',
-  '/marketplace.html', '/liveRoom.html',
-  '/forgot-password.html', '/reset-password.html', '/verify-email.html',
-  '/manifest.json'
+  '/login.html', '/signup.html', '/manifest.json'
 ];
 
 self.addEventListener('install', e => {
@@ -20,32 +23,47 @@ self.addEventListener('activate', e => {
   self.clients.claim();
 });
 
+function isHtml(req, url) {
+  return req.mode === 'navigate'
+    || req.destination === 'document'
+    || url.pathname.endsWith('.html')
+    || url.pathname === '/';
+}
+
 self.addEventListener('fetch', e => {
-  const url = new URL(e.request.url);
-  // Skip cross-origin (Jitsi, Razorpay, KaTeX CDN).
-  if (url.origin !== self.location.origin) return;
-  // API: network-first; fall back to cache if offline.
-  if (url.pathname.startsWith('/api/')) {
+  const req = e.request;
+  const url = new URL(req.url);
+  // Skip cross-origin (Jitsi, Razorpay, KaTeX CDN) and non-GET.
+  if (url.origin !== self.location.origin || req.method !== 'GET') return;
+
+  // HTML pages: NETWORK-FIRST — always fetch the latest, cache as fallback.
+  if (isHtml(req, url)) {
     e.respondWith(
-      fetch(e.request).then(r => {
-        // Stash GET responses for offline read.
-        if (e.request.method === 'GET' && r.ok) {
-          const clone = r.clone();
-          caches.open(CACHE_NAME).then(c => c.put(e.request, clone).catch(()=>{}));
-        }
+      fetch(req).then(r => {
+        const clone = r.clone();
+        caches.open(CACHE_NAME).then(c => c.put(req, clone).catch(()=>{}));
         return r;
-      }).catch(() => caches.match(e.request))
+      }).catch(() => caches.match(req).then(c => c || caches.match('/login.html')))
     );
     return;
   }
-  // Static: cache-first.
+
+  // API: network-first, fall back to cache if offline.
+  if (url.pathname.startsWith('/api/')) {
+    e.respondWith(
+      fetch(req).then(r => {
+        if (r.ok) { const clone = r.clone(); caches.open(CACHE_NAME).then(c => c.put(req, clone).catch(()=>{})); }
+        return r;
+      }).catch(() => caches.match(req))
+    );
+    return;
+  }
+
+  // Other static assets: cache-first.
   e.respondWith(
-    caches.match(e.request).then(cached => cached || fetch(e.request).then(r => {
-      if (r.ok && e.request.method === 'GET') {
-        const clone = r.clone();
-        caches.open(CACHE_NAME).then(c => c.put(e.request, clone).catch(()=>{}));
-      }
+    caches.match(req).then(cached => cached || fetch(req).then(r => {
+      if (r.ok) { const clone = r.clone(); caches.open(CACHE_NAME).then(c => c.put(req, clone).catch(()=>{})); }
       return r;
-    }).catch(() => caches.match('/dashboard.html')))
+    }))
   );
 });
