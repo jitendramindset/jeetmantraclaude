@@ -176,6 +176,7 @@ body{display:flex;min-height:100vh}
   <div class="topbar">
     <button class="hamburger" onclick="toggleSidebar()">☰</button>
     <h3 id="pageTitle">Dashboard</h3>
+    <span id="pageCrumb" style="font-size:13px;color:var(--jm-text-muted);font-weight:500"></span>
     <div class="search-bar">
       <span>🔍</span>
       <input type="text" placeholder="Search courses..." oninput="debounceSearch(this.value)">
@@ -612,17 +613,43 @@ function buildNav(role){
     return `<div class="nav-item${it.a?' active':''}" onclick="${onclick}"><span class="icon">${it.i}</span>${it.l}</div>`;
   }).join('');
 }
-// Activate the clicked nav item and scroll to its target section (or to the top).
-function navScroll(navEl,targetId){
+// PAGE ROUTER — clicking a nav item shows ONLY the matching section(s); the
+// "Dashboard" item (key=top) shows everything (the home overview). Each
+// section's id follows `sec-{role}-{key}` so the page key falls out of the
+// id naturally. The breadcrumb in the topbar reflects the current page.
+let _currentPage=null;
+function showPage(pageKey, navEl){
+  _currentPage=pageKey;
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   if(navEl) navEl.classList.add('active');
-  if(targetId){
-    const t=document.getElementById(targetId);
-    if(t) t.scrollIntoView({behavior:'smooth',block:'start'});
-  } else {
-    window.scrollTo({top:0,behavior:'smooth'});
+  const role=(JSON.parse(localStorage.getItem('jm_user')||'{}').user_type)
+    ||(JSON.parse(localStorage.getItem('jm_user')||'{}').role)
+    ||new URLSearchParams(location.search).get('role')
+    ||'student';
+  const sec=document.getElementById('section-'+role);
+  if(!sec) return;
+  const showAll=!pageKey||pageKey==='top';
+  // Stats grid only on the home/Dashboard page.
+  const stats=sec.querySelector('.stats-grid');
+  if(stats) stats.style.display=showAll?'':'none';
+  // Each .section row matches by its id suffix.
+  sec.querySelectorAll('.section').forEach(s=>{
+    const m=s.id.match(/^sec-[^-]+-(.+)$/);
+    const key=m?m[1]:null;
+    s.style.display=(showAll||key===pageKey)?'':'none';
+  });
+  const crumb=document.getElementById('pageCrumb');
+  if(crumb){
+    const label=(pageKey&&pageKey!=='top')?pageKey.replace(/[-_]/g,' ').replace(/\b\w/g,c=>c.toUpperCase()):'Dashboard';
+    crumb.textContent='› '+label;
   }
+  window.scrollTo({top:0,behavior:'smooth'});
   closeSidebar();
+}
+// Backwards-compat alias used by the rendered nav items.
+function navScroll(navEl,targetId){
+  const key = targetId ? targetId.replace(/^sec-[^-]+-/, '') : null;
+  showPage(key, navEl);
 }
 function renderList(id,items,empty){
   const el=document.getElementById(id);
@@ -921,6 +948,12 @@ const MODAL_DEFS={
       return 'Announcement sent';
     }
   },
+  // ── TEACHER: question editor for a single test
+  questionEditor: {
+    title:'📝 Test Questions',
+    body:()=>`<div id="qe-body" style="min-height:300px">Loading…</div>`,
+    submit:async()=>'(close)'
+  },
   // ── Activity wall viewer
   wallView: {
     title:'📰 Activity Wall',
@@ -1029,27 +1062,23 @@ const MODAL_DEFS={
       return 'Submitted!';
     }
   },
-  // ── STUDENT: take/submit a test (self-scored MVP)
+  // ── STUDENT: take/submit a test — auto-graded against course_questions.
+  // If a test has questions, the student answers them and the server grades
+  // MCQ/TF automatically. If a test has zero questions, fall back to the
+  // legacy self-report flow.
   takeTest: {
     title:'✏️ Take Test',
     body:()=>{
       const t=_modalCtx.test||{};
       return `
       <div style="background:var(--jm-primary-tint);padding:14px;border-radius:8px;margin-bottom:14px;font-size:13px">
-        <div style="font-weight:700;margin-bottom:4px">${t.title}</div>
-        <div style="color:var(--jm-text-strong)">${t.description||'(no description)'}</div>
+        <div style="font-weight:700;margin-bottom:4px">${escHtml(t.title)}</div>
+        <div style="color:var(--jm-text-strong)">${escHtml(t.description||'(no description)')}</div>
         <div style="margin-top:8px;font-size:11px;color:var(--jm-text-muted)">${t.total_marks} marks · ${t.duration_minutes} min</div>
       </div>
-      <div class="form-row"><label>Your Score (out of ${t.total_marks||100}) *</label><input id="m-score" type="number" min="0" max="${t.total_marks||100}" placeholder="0"></div>
-      <div style="font-size:12px;color:var(--jm-text-muted)">MVP: self-report your score; teacher can grade later.</div>`;
+      <div id="take-questions">Loading questions…</div>`;
     },
-    submit:async()=>{
-      const tid=_modalCtx.test?.id;
-      const score=Number(val('m-score'));
-      if(isNaN(score)) throw new Error('Score required');
-      await api('/course-content/tests/'+tid+'/submit','POST',{ score });
-      return 'Test submitted!';
-    }
+    submit:async()=>'(handled inline)'
   },
   // ── TEACHER: add assignment from Configure modal
   addAssignment: {
@@ -1579,13 +1608,14 @@ function _renderTreeItem(key, it, idx, arr, courseId){
   // Swap with neighbour instead of bumping ±1 (preserves legitimate 0).
   const reorderBtns=canReorder?`${prev?`<button class="btn-sm btn-outline" onclick="reorderSwap('${single}','${it.id}','${prev.id}','${courseId}')">↑</button>`:''}${next?`<button class="btn-sm btn-outline" onclick="reorderSwap('${single}','${it.id}','${next.id}','${courseId}')">↓</button>`:''}`:'';
   const submissionsBtn=key==='assignments'?`<button class="btn-sm btn-outline" onclick="openSubmissions('${it.id}', window._configureItems?.assignments?.find(a=>a.id==='${it.id}')?.title||'')">📥 Submissions</button>`:'';
+  const questionsBtn=key==='tests'?`<button class="btn-sm btn-primary" onclick="openQuestionEditor('${it.id}','${escHtml(it.title||'').replace(/'/g,'&#39;')}')">📝 Questions</button>`:'';
   return `<div class="tree-item">
     <span class="item-icon">${icons[key]}</span>
     <div style="flex:1">
       <div class="item-title">${title}</div>
       ${metas[key]?`<div class="item-meta">${metas[key]}</div>`:''}
     </div>
-    <div class="item-actions">${reorderBtns}${submissionsBtn}
+    <div class="item-actions">${reorderBtns}${submissionsBtn}${questionsBtn}
       <button class="btn-sm btn-outline" onclick="cfgStartEdit('${key}','${it.id}','${courseId}')">✏️</button>
       <button class="btn-sm btn-outline" onclick="cfgDelete('${key}','${it.id}','${courseId}')">×</button>
     </div>
@@ -1718,7 +1748,7 @@ async function _reopenConfigure(courseId){
       {key:'topics',label:'Topics',items:r.topics,render:(t,i,arr)=>`<div style="display:flex;justify-content:space-between;padding:8px 10px;border-bottom:1px solid var(--jm-border);align-items:center"><span><strong>${t.title}</strong>${t.description?' — <span style="color:var(--jm-text-muted)">'+t.description+'</span>':''}</span><div class="row-actions">${reorderBtns(arr,'topic',t.id,i)}<button class="btn-sm btn-outline" onclick="editContent('topic',window._configureItems.topics[${i}],'${courseId}')">✏️</button><button class="btn-sm btn-outline" onclick="delContent('topics','${t.id}','${courseId}')">×</button></div></div>`,add:'addTopic'},
       {key:'lectures',label:'Lectures',items:r.lectures,render:(l,i,arr)=>`<div style="display:flex;justify-content:space-between;padding:8px 10px;border-bottom:1px solid var(--jm-border);align-items:center"><span><strong>${l.title}</strong>${l.duration?' <span class="badge badge-blue">'+l.duration+' min</span>':''}${l.is_recorded?' <span class="badge badge-green">recorded</span>':''}</span><div class="row-actions">${reorderBtns(arr,'lecture',l.id,i)}<button class="btn-sm btn-outline" onclick="editContent('lecture',window._configureItems.lectures[${i}],'${courseId}')">✏️</button><button class="btn-sm btn-outline" onclick="delContent('lectures','${l.id}','${courseId}')">×</button></div></div>`,add:'addLecture'},
       {key:'materials',label:'Materials',items:r.materials,render:(m,i)=>`<div style="display:flex;justify-content:space-between;padding:8px 10px;border-bottom:1px solid var(--jm-border);align-items:center"><span><strong>${m.title}</strong> <span class="badge badge-muted">${m.type}</span>${m.url?' <a href="'+m.url+'" target="_blank">open</a>':''}</span><div class="row-actions"><button class="btn-sm btn-outline" onclick="editContent('material',window._configureItems.materials[${i}],'${courseId}')">✏️</button><button class="btn-sm btn-outline" onclick="delContent('materials','${m.id}','${courseId}')">×</button></div></div>`,add:'addMaterial'},
-      {key:'tests',label:'Tests',items:r.tests,render:(t,i)=>`<div style="display:flex;justify-content:space-between;padding:8px 10px;border-bottom:1px solid var(--jm-border);align-items:center"><span><strong>${t.title}</strong> <span class="badge badge-muted">${t.total_marks} marks · ${t.duration_minutes} min</span></span><div class="row-actions"><button class="btn-sm btn-outline" onclick="editContent('test',window._configureItems.tests[${i}],'${courseId}')">✏️</button><button class="btn-sm btn-outline" onclick="delContent('tests','${t.id}','${courseId}')">×</button></div></div>`,add:'addTest'},
+      {key:'tests',label:'Tests',items:r.tests,render:(t,i)=>`<div style="display:flex;justify-content:space-between;padding:8px 10px;border-bottom:1px solid var(--jm-border);align-items:center"><span><strong>${escHtml(t.title)}</strong> <span class="badge badge-muted">${t.total_marks} marks · ${t.duration_minutes} min</span></span><div class="row-actions"><button class="btn-sm btn-primary" onclick="openQuestionEditor('${t.id}','${escHtml(t.title).replace(/'/g,'&#39;')}')">📝 Questions</button><button class="btn-sm btn-outline" onclick="editContent('test',window._configureItems.tests[${i}],'${courseId}')">✏️</button><button class="btn-sm btn-outline" onclick="delContent('tests','${t.id}','${courseId}')">×</button></div></div>`,add:'addTest'},
       {key:'assignments',label:'Assignments',items:assigns,render:a=>`<div style="display:flex;justify-content:space-between;padding:8px 10px;border-bottom:1px solid var(--jm-border);align-items:center"><span><strong>${a.title}</strong> <span class="badge badge-muted">Due ${new Date(a.due_date).toLocaleDateString()}</span></span><button class="btn-sm btn-outline" onclick="openSubmissions('${a.id}','${a.title.replace(/'/g,"\\'")}')">📥 Submissions</button></div>`,add:'addAssignment'}
     ];
     body.innerHTML=`
@@ -1800,11 +1830,95 @@ async function openStudentCourseView(courseId){
       </div>`;
   }catch(e){ body.innerHTML='<div style="color:#b91c1c">Error: '+e.message+'</div>'; }
 }
-function openTakeTest(testIdx){
+async function openTakeTest(testIdx){
   const t=(window._studentTests||[])[testIdx];
   if(!t) return;
-  _modalCtx={test:t};
   openModal('takeTest',{test:t});
+  // Fetch questions then render the test UI. We start a session up-front so
+  // the server has a record even if the user closes the modal mid-test.
+  const body=document.getElementById('take-questions');
+  if(!body) return;
+  try{
+    const [qs, ss] = await Promise.all([
+      api('/course-content/tests/'+t.id+'/questions','GET'),
+      api('/course-content/tests/'+t.id+'/session/start','POST',{})
+    ]);
+    window._activeTestSession=ss.session;
+    // Restore prior answers when this is a RESUMED session so the "Resumed
+    // session" label isn't misleading. Plain object from server.
+    window._takeTestAnswers = (ss.resumed && ss.session?.answers) ? {...ss.session.answers} : {};
+    const questions=qs.questions||[];
+    if(!questions.length){
+      // Fallback: tests without questions take a self-reported score
+      body.innerHTML=`
+        <div class="form-row"><label>Your Score (out of ${t.total_marks||100}) *</label><input id="m-score" type="number" min="0" max="${t.total_marks||100}" placeholder="0"></div>
+        <div style="font-size:12px;color:var(--jm-text-muted);margin-bottom:10px">This test has no questions yet — self-report your score for now.</div>
+        <div class="modal-actions"><button class="btn-sm btn-outline" onclick="closeModal()">Cancel</button><button class="btn-sm btn-primary" onclick="submitSelfTest('${t.id}')">Submit</button></div>`;
+      return;
+    }
+    body.innerHTML=`
+      <div style="margin-bottom:10px;font-size:12px;color:var(--jm-text-muted)">${questions.length} questions · ${ss.resumed?'Resumed — previous answers restored':'Started'} session</div>
+      ${questions.map((q,i)=>_renderQuestionForStudent(q,i)).join('')}
+      <div class="modal-actions" style="position:sticky;bottom:0;background:var(--jm-surface);padding-top:14px;border-top:1px solid var(--jm-border);margin-top:14px">
+        <button class="btn-sm btn-outline" onclick="closeModal()">Save & Close</button>
+        <button class="btn-sm btn-primary" onclick="submitTestSession()">📤 Submit Test</button>
+      </div>`;
+  }catch(e){ body.innerHTML='<div style="color:#b91c1c">'+escHtml(e.message)+'</div>'; }
+}
+
+function _renderQuestionForStudent(q, idx){
+  const onchange="window._takeTestAnswers['"+q.id+"']=this.value";
+  // Restore the prior selection if the student is resuming.
+  const prior=(window._takeTestAnswers||{})[q.id];
+  let body='';
+  if(q.type==='mcq' && Array.isArray(q.options)){
+    body=q.options.map((opt,i)=>{
+      const v=String.fromCharCode(65+i);
+      const checked=prior!=null && String(prior)===String(opt) ? ' checked' : '';
+      return `<label style="display:flex;align-items:center;gap:8px;padding:8px;border:1.5px solid var(--jm-border);border-radius:8px;margin-bottom:6px;cursor:pointer">
+        <input type="radio" name="q-${q.id}" value="${escHtml(opt)}" onchange="${onchange}"${checked}>
+        <span style="font-weight:700;color:var(--jm-primary);min-width:18px">${v}.</span>
+        <span>${escHtml(opt)}</span>
+      </label>`;
+    }).join('');
+  } else if(q.type==='true_false'){
+    const t=String(prior)==='true'?' checked':'', f=String(prior)==='false'?' checked':'';
+    body=`
+      <label style="display:flex;align-items:center;gap:8px;padding:8px;border:1.5px solid var(--jm-border);border-radius:8px;margin-bottom:6px;cursor:pointer"><input type="radio" name="q-${q.id}" value="true" onchange="${onchange}"${t}> ✅ True</label>
+      <label style="display:flex;align-items:center;gap:8px;padding:8px;border:1.5px solid var(--jm-border);border-radius:8px;cursor:pointer"><input type="radio" name="q-${q.id}" value="false" onchange="${onchange}"${f}> ❌ False</label>`;
+  } else {
+    const rows=q.type==='long'?5:2;
+    body=`<textarea rows="${rows}" oninput="${onchange}" placeholder="Type your answer…" style="width:100%">${escHtml(prior||'')}</textarea>`;
+  }
+  return `<div style="background:var(--jm-surface);border:1px solid var(--jm-border);border-radius:10px;padding:14px;margin-bottom:12px">
+    <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+      <strong>Q${idx+1}. ${escHtml(q.question_text)}</strong>
+      <span class="badge badge-muted">${q.marks||1} mark${(q.marks||1)>1?'s':''}</span>
+    </div>
+    ${body}
+  </div>`;
+}
+
+async function submitTestSession(){
+  const session=window._activeTestSession;
+  if(!session){ toast('No active session',true); return; }
+  try{
+    const r=await api('/course-content/sessions/'+session.id+'/submit','POST',{answers:window._takeTestAnswers||{}});
+    toast(`✓ Submitted — ${r.scoreEarned}/${r.totalMarks}`);
+    closeModal();
+    loadDashboard();
+  }catch(e){ toast(e.message,true); }
+}
+
+async function submitSelfTest(testId){
+  const score=Number(val('m-score'));
+  if(isNaN(score)){ toast('Score required',true); return; }
+  try{
+    await api('/course-content/tests/'+testId+'/submit','POST',{score});
+    toast('✓ Submitted');
+    closeModal();
+    loadDashboard();
+  }catch(e){ toast(e.message,true); }
 }
 function openSubmitAssignment(aid){
   _modalCtx={assignmentId:aid};
@@ -2271,6 +2385,129 @@ function exportRosterCsv(students, courseTitle){
   document.body.appendChild(a); a.click(); a.remove();
   URL.revokeObjectURL(url);
   toast('CSV downloaded');
+}
+
+// ── TEACHER: question editor — full CRUD over a single test's questions.
+// Examforge-style: question text + type selector + MCQ option editor +
+// correct answer + marks + difficulty. Inline forms, no nested modals.
+let _qeTestId=null;
+async function openQuestionEditor(testId, testTitle){
+  _qeTestId=testId;
+  openModal('questionEditor');
+  document.querySelector('#actionModal h3').textContent='📝 Questions: '+testTitle;
+  await _renderQuestionEditor();
+}
+async function _renderQuestionEditor(){
+  const body=document.getElementById('qe-body');
+  if(!body) return;
+  try{
+    const r=await api('/course-content/tests/'+_qeTestId+'/questions','GET');
+    const qs=r.questions||[];
+    body.innerHTML=`
+      <div style="background:var(--jm-primary-tint);padding:12px;border-radius:8px;margin-bottom:14px;font-size:13px">
+        <strong>${qs.length}</strong> question${qs.length===1?'':'s'} ·
+        <strong>${qs.reduce((s,q)=>s+(q.marks||1),0)}</strong> total marks
+      </div>
+      ${qs.map((q,i)=>_renderQeRow(q,i)).join('')}
+      ${_renderQeAddForm()}`;
+  }catch(e){ body.innerHTML='<div style="color:#b91c1c">'+escHtml(e.message)+'</div>'; }
+}
+function _renderQeRow(q,i){
+  const opts=Array.isArray(q.options)?q.options:[];
+  const optList = q.type==='mcq' ? opts.map((o,j)=>`<div style="font-size:12px;padding:2px 0"><strong>${String.fromCharCode(65+j)}.</strong> ${escHtml(o)}${q.correct_answer===o?' <span class="badge badge-green">correct</span>':''}</div>`).join('') :
+                  q.type==='true_false' ? `<div style="font-size:12px">Answer: <span class="badge badge-green">${escHtml(q.correct_answer||'?')}</span></div>` :
+                  q.correct_answer?`<div style="font-size:12px">Expected: <em>${escHtml(q.correct_answer)}</em></div>`:'';
+  return `<div style="border:1px solid var(--jm-border);border-radius:10px;padding:12px;margin-bottom:10px">
+    <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+      <strong>Q${i+1}. ${escHtml(q.question_text)}</strong>
+      <div class="row-actions"><span class="badge badge-muted">${q.type}</span> <span class="badge badge-blue">${q.marks||1} marks</span> <button class="btn-sm btn-outline" onclick="qeDelete('${q.id}')">×</button></div>
+    </div>
+    ${optList}
+  </div>`;
+}
+function _renderQeAddForm(){
+  return `<div style="border:2px dashed var(--jm-primary);border-radius:10px;padding:14px;margin-top:10px;background:var(--jm-primary-tint)">
+    <div style="font-weight:700;margin-bottom:10px">➕ Add Question</div>
+    <div class="form-row"><label>Question *</label><div style="display:flex;align-items:flex-start"><textarea id="qe-text" rows="2" placeholder="What is …?" style="flex:1"></textarea>${micBtn('qe-text')}</div></div>
+    <div class="grid-2">
+      <div class="form-row"><label>Type</label><select id="qe-type" onchange="qeToggleType()">
+        <option value="mcq">MCQ (4 options)</option>
+        <option value="true_false">True / False</option>
+        <option value="short">Short answer</option>
+        <option value="long">Long answer</option>
+      </select></div>
+      <div class="form-row"><label>Marks</label><input id="qe-marks" type="number" value="1" min="1"></div>
+    </div>
+    <div id="qe-options-wrap">
+      <div class="form-row"><label>Options (one per line)</label><textarea id="qe-options" rows="4" placeholder="3
+4
+5
+6"></textarea></div>
+      <div class="form-row"><label>Correct answer (must match one option, or true/false)</label><input id="qe-correct" placeholder="4"></div>
+    </div>
+    <div class="form-row"><label>Explanation (optional)</label><textarea id="qe-expl" rows="2"></textarea></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn-sm btn-primary" onclick="qeAdd()">➕ Add Question</button>
+      <button class="btn-sm btn-outline" onclick="qeAiSuggest()">🤖 AI suggest from topic</button>
+    </div>
+  </div>`;
+}
+function qeToggleType(){
+  const type=val('qe-type');
+  const wrap=document.getElementById('qe-options-wrap');
+  if(type==='mcq'){
+    wrap.innerHTML=`<div class="form-row"><label>Options (one per line, 2-6)</label><textarea id="qe-options" rows="4" placeholder="Option A&#10;Option B&#10;Option C&#10;Option D"></textarea></div>
+      <div class="form-row"><label>Correct answer (must match one option exactly)</label><input id="qe-correct"></div>`;
+  } else if(type==='true_false'){
+    wrap.innerHTML=`<div class="form-row"><label>Correct answer</label><select id="qe-correct"><option value="true">true</option><option value="false">false</option></select></div>`;
+  } else {
+    wrap.innerHTML=`<div class="form-row"><label>Expected answer (used for auto-grading exact match)</label><input id="qe-correct" placeholder="(optional)"></div>`;
+  }
+}
+async function qeAdd(){
+  const type=val('qe-type'), text=val('qe-text');
+  if(!text){ toast('Question text required',true); return; }
+  let options=null;
+  if(type==='mcq'){
+    options=val('qe-options').split(/\n/).map(s=>s.trim()).filter(Boolean);
+    if(options.length<2){ toast('At least 2 options required',true); return; }
+  }
+  try{
+    await api('/course-content/tests/'+_qeTestId+'/questions','POST',{
+      type, questionText:text, options,
+      correctAnswer:val('qe-correct'),
+      marks:Number(val('qe-marks'))||1,
+      explanation:val('qe-expl')
+    });
+    toast('✓ Question added');
+    await _renderQuestionEditor();
+  }catch(e){ toast(e.message,true); }
+}
+async function qeDelete(id){
+  if(!confirm('Delete this question?'))return;
+  try{ await api('/course-content/questions/'+id,'DELETE'); await _renderQuestionEditor(); toast('Removed'); }
+  catch(e){ toast(e.message,true); }
+}
+async function qeAiSuggest(){
+  const prompt=val('qe-text')||prompt;
+  if(!prompt){ toast('Type a topic first, then click AI suggest',true); return; }
+  try{
+    toast('🤖 thinking…');
+    const r=await api('/ai/generate','POST',{
+      systemPrompt:'You write exam MCQ questions. Reply with ONLY a JSON object — no prose.',
+      prompt:`Write one multiple-choice question on this topic. Reply JSON: {"questionText":"…","options":["a","b","c","d"],"correctAnswer":"…","marks":2,"explanation":"…"}\\nTOPIC: ${prompt}`,
+      json:true
+    });
+    let parsed=null;
+    try{ parsed=JSON.parse(r.text); }catch(_){}
+    if(!parsed||!parsed.questionText){ toast('AI returned unparseable response',true); return; }
+    document.getElementById('qe-text').value=parsed.questionText;
+    if(document.getElementById('qe-options')) document.getElementById('qe-options').value=(parsed.options||[]).join('\n');
+    if(document.getElementById('qe-correct')) document.getElementById('qe-correct').value=parsed.correctAnswer||'';
+    if(document.getElementById('qe-marks')) document.getElementById('qe-marks').value=parsed.marks||1;
+    if(document.getElementById('qe-expl')) document.getElementById('qe-expl').value=parsed.explanation||'';
+    toast('✓ filled — review and click Add');
+  }catch(e){ toast(e.message,true); }
 }
 
 // ── Student activity wall — small embedded version ─────────────────────

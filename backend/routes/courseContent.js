@@ -275,6 +275,149 @@ router.delete('/tests/:id', authenticateToken, async (req, res) => {
   res.json({ message: 'Test removed' });
 });
 
+// ── QUESTIONS — the actual items inside a test ──────────────────────────
+// GET /api/course-content/tests/:testId/questions
+router.get('/tests/:testId/questions', authenticateToken, async (req, res) => {
+  const { data, error } = await supabaseAdmin
+    .from('course_questions').select('*').eq('test_id', req.params.testId).order('order_index');
+  if (error) return res.status(400).json({ error: error.message });
+  // For students viewing during a test, strip correct_answer + explanation.
+  // Teachers + admin see full row.
+  if (req.user.role === 'student') {
+    return res.json({ questions: (data || []).map(q => ({ ...q, correct_answer: null, explanation: null })) });
+  }
+  res.json({ questions: data || [] });
+});
+
+// POST /api/course-content/tests/:testId/questions
+router.post('/tests/:testId/questions', authenticateToken, async (req, res) => {
+  // Verify ownership via the test's course
+  const { data: test } = await supabaseAdmin.from('course_tests').select('course_id').eq('id', req.params.testId).single();
+  if (!test) return res.status(404).json({ error: 'Test not found' });
+  const { allowed } = await ownsCourse(test.course_id, req.user);
+  if (!allowed) return res.status(403).json({ error: 'Not your course' });
+  const { type, questionText, options, correctAnswer, marks, difficulty, explanation, orderIndex } = req.body;
+  if (!questionText) return res.status(400).json({ error: 'questionText required' });
+  // MCQ must carry at least 2 options — otherwise students will see an empty
+  // radio group / fall through to a free-text box that can never auto-grade.
+  if ((type || 'mcq') === 'mcq' && (!Array.isArray(options) || options.length < 2)) {
+    return res.status(400).json({ error: 'MCQ questions require at least 2 options' });
+  }
+  const { data, error } = await supabaseAdmin.from('course_questions').insert({
+    id: uuidv4(),
+    test_id: req.params.testId,
+    type: type || 'mcq',
+    question_text: questionText,
+    options: options || null,
+    correct_answer: correctAnswer || null,
+    marks: Number(marks) || 1,
+    difficulty: difficulty || 'medium',
+    explanation: explanation || null,
+    order_index: Number(orderIndex) || 0
+  }).select().single();
+  if (error) return res.status(400).json({ error: error.message });
+  res.status(201).json({ question: data });
+});
+
+// PUT /api/course-content/questions/:id — edit
+router.put('/questions/:id', authenticateToken, async (req, res) => {
+  const { data: row } = await supabaseAdmin.from('course_questions').select('id, test_id').eq('id', req.params.id).single();
+  if (!row) return res.status(404).json({ error: 'Question not found' });
+  const { data: test } = await supabaseAdmin.from('course_tests').select('course_id').eq('id', row.test_id).single();
+  const { allowed } = await ownsCourse(test.course_id, req.user);
+  if (!allowed) return res.status(403).json({ error: 'Not your course' });
+  const { questionText, options, correctAnswer, marks, difficulty, explanation, orderIndex, type } = req.body;
+  const updates = {};
+  if (type !== undefined) updates.type = type;
+  if (questionText !== undefined) updates.question_text = questionText;
+  if (options !== undefined) updates.options = options;
+  if (correctAnswer !== undefined) updates.correct_answer = correctAnswer;
+  if (marks !== undefined) updates.marks = Number(marks);
+  if (difficulty !== undefined) updates.difficulty = difficulty;
+  if (explanation !== undefined) updates.explanation = explanation;
+  if (orderIndex !== undefined) updates.order_index = Number(orderIndex);
+  const { data, error } = await supabaseAdmin.from('course_questions').update(updates).eq('id', req.params.id).select().single();
+  if (error) return res.status(400).json({ error: error.message });
+  res.json({ question: data });
+});
+
+// DELETE /api/course-content/questions/:id
+router.delete('/questions/:id', authenticateToken, async (req, res) => {
+  const { data: row } = await supabaseAdmin.from('course_questions').select('id, test_id').eq('id', req.params.id).single();
+  if (!row) return res.status(404).json({ error: 'Question not found' });
+  const { data: test } = await supabaseAdmin.from('course_tests').select('course_id').eq('id', row.test_id).single();
+  const { allowed } = await ownsCourse(test.course_id, req.user);
+  if (!allowed) return res.status(403).json({ error: 'Not your course' });
+  const { error } = await supabaseAdmin.from('course_questions').delete().eq('id', req.params.id);
+  if (error) return res.status(400).json({ error: error.message });
+  res.json({ message: 'Question removed' });
+});
+
+// ── TEST SESSIONS — student starts → submits a test ──────────────────────
+// POST /api/course-content/tests/:testId/session/start
+router.post('/tests/:testId/session/start', authenticateToken, async (req, res) => {
+  // Re-use any in_progress session for this student
+  const { data: existing } = await supabaseAdmin.from('test_sessions')
+    .select('*').eq('test_id', req.params.testId).eq('student_id', req.user.id).eq('status', 'in_progress').maybeSingle();
+  if (existing) return res.json({ session: existing, resumed: true });
+  const { data, error } = await supabaseAdmin.from('test_sessions').insert({
+    id: uuidv4(),
+    test_id: req.params.testId,
+    student_id: req.user.id,
+    answers: {},
+    status: 'in_progress'
+  }).select().single();
+  if (error) return res.status(400).json({ error: error.message });
+  res.status(201).json({ session: data, resumed: false });
+});
+
+// POST /api/course-content/sessions/:id/submit
+router.post('/sessions/:id/submit', authenticateToken, async (req, res) => {
+  const { answers } = req.body;
+  const { data: session } = await supabaseAdmin.from('test_sessions').select('*').eq('id', req.params.id).single();
+  if (!session) return res.status(404).json({ error: 'Session not found' });
+  if (session.student_id !== req.user.id) return res.status(403).json({ error: 'Not your session' });
+  if (session.status !== 'in_progress') return res.status(400).json({ error: 'Session already submitted' });
+  // Auto-grade MCQ + true_false (and exact-match short answers).
+  const [{ data: questions }, { data: testRow }] = await Promise.all([
+    supabaseAdmin.from('course_questions').select('*').eq('test_id', session.test_id),
+    supabaseAdmin.from('course_tests').select('total_marks').eq('id', session.test_id).single()
+  ]);
+  let score = 0, totalFromQuestions = 0;
+  (questions || []).forEach(q => {
+    totalFromQuestions += q.marks || 1;
+    const a = answers?.[q.id];
+    if (a && q.correct_answer && String(a).trim().toLowerCase() === String(q.correct_answer).trim().toLowerCase()) {
+      score += q.marks || 1;
+    }
+  });
+  // Prefer the test's authoritative total_marks; fall back to summing question
+  // marks if the test row is missing or out of sync.
+  const totalMarks = testRow?.total_marks || totalFromQuestions;
+  const { data: updated, error } = await supabaseAdmin.from('test_sessions').update({
+    answers: answers || {},
+    score,
+    submitted_at: new Date().toISOString(),
+    status: 'submitted'
+  }).eq('id', req.params.id).select().single();
+  if (error) return res.status(400).json({ error: error.message });
+  // Mirror to test_submissions (legacy summary read by /api/student/test-history).
+  // The table has UNIQUE(test_id, student_id), so retakes must UPDATE — not
+  // INSERT — otherwise old scores are returned forever.
+  const { data: existingSub } = await supabaseAdmin.from('test_submissions')
+    .select('id').eq('test_id', session.test_id).eq('student_id', req.user.id).maybeSingle();
+  if (existingSub) {
+    await supabaseAdmin.from('test_submissions').update({
+      score, status: 'submitted', submitted_at: new Date().toISOString()
+    }).eq('id', existingSub.id);
+  } else {
+    await supabaseAdmin.from('test_submissions').insert({
+      id: uuidv4(), test_id: session.test_id, student_id: req.user.id, score, status: 'submitted'
+    });
+  }
+  res.json({ session: updated, scoreEarned: score, totalMarks });
+});
+
 router.post('/tests/:testId/submit', authenticateToken, async (req, res) => {
   const { score } = req.body;
   const { data, error } = await supabaseAdmin.from('test_submissions').insert({

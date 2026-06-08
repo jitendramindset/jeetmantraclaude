@@ -149,9 +149,14 @@ function pickId(body) {
 async function invalidate(path) {
   const family = '/' + path.split('/').slice(1, 3).join('/'); // e.g. /api/courses
   const families = new Set([family, '/api/dashboard']);
-  // Writes to marketplace/enrollments touch buyer dashboards too — already
-  // covered by always clearing dashboard, plus clear the enrollments family.
+  // Writes to marketplace/enrollments touch buyer dashboards too.
   if (family === '/api/marketplace') families.add('/api/enrollments');
+  // Test-session submits write the test_submissions table — the same table
+  // that /api/student/test-history reads. Without clearing that family, a
+  // retake's new score isn't visible until the cache's TTL expires.
+  if (family === '/api/course-content' && /\/sessions\//.test(path)) families.add('/api/student');
+  // Same idea for attendance writes (student progress reads downstream).
+  if (family === '/api/attendance' || family === '/api/assignments') families.add('/api/student');
   try {
     for (const f of families) {
       const entries = await list('cache:' + f);
