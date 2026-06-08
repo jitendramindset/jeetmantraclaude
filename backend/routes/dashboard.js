@@ -4,10 +4,26 @@ const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
 
+// Optional institution-scoping. When the client sends X-Active-Institution: <id>
+// (or ?inst=<id>), we narrow course lists to those owned by that institution.
+// Validates membership: the caller must be linked to the institution as a
+// teacher or student, else the header is ignored.
+async function resolveInstitution(req) {
+  const id = req.headers['x-active-institution'] || req.query.inst;
+  if (!id) return null;
+  const userId = req.user.id;
+  const [{ data: t }, { data: s }] = await Promise.all([
+    require('../config/supabase').supabaseAdmin.from('institution_teachers').select('id').eq('institution_id', id).eq('teacher_id', userId).maybeSingle(),
+    require('../config/supabase').supabaseAdmin.from('institution_students').select('id').eq('institution_id', id).eq('student_id', userId).maybeSingle()
+  ]);
+  return (t || s) ? id : null;
+}
+
 router.get('/', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
     const role = req.user.role;
+    const instId = await resolveInstitution(req);
     let dashboardData = {};
 
     if (role === 'student') {
@@ -49,7 +65,12 @@ router.get('/', authenticateToken, async (req, res) => {
       };
 
     } else if (role === 'teacher') {
-      const { data: courses } = await supabaseAdmin.from('courses').select('*').eq('teacher_id', userId);
+      // When an active institution is set, narrow to courses the teacher
+      // teaches inside THAT institution. Without the header, behavior is
+      // unchanged (every course they own).
+      let teacherCoursesQ = supabaseAdmin.from('courses').select('*').eq('teacher_id', userId);
+      if (instId) teacherCoursesQ = teacherCoursesQ.eq('institution_id', instId);
+      const { data: courses } = await teacherCoursesQ;
       const courseIds = courses?.map(c => c.id) || [];
       const { data: bookings } = courseIds.length
         ? await supabaseAdmin.from('bookings').select('*').in('course_id', courseIds).limit(10)

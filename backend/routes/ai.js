@@ -210,4 +210,45 @@ router.post('/suggest-topics', authenticateToken, async (req, res) => {
   }
 });
 
+// ── AI TUTOR: student asks a question scoped to a course. We pull the
+// course title/description/topic titles as context so answers stay on-topic.
+router.post('/tutor', authenticateToken, async (req, res) => {
+  try {
+    const { courseId, question } = req.body || {};
+    if (!courseId || !question) return res.status(400).json({ error: 'courseId + question required' });
+    const { supabaseAdmin } = require('../config/supabase');
+    const [{ data: course }, { data: topics }] = await Promise.all([
+      supabaseAdmin.from('courses').select('title, description, category, level').eq('id', courseId).single(),
+      supabaseAdmin.from('course_topics').select('title, description').eq('course_id', courseId).order('order_index')
+    ]);
+    if (!course) return res.status(404).json({ error: 'Course not found' });
+    const topicSummary = (topics || []).slice(0, 12).map(t => '- ' + t.title + (t.description ? ': ' + t.description : '')).join('\n');
+    const out = await ai(req.user.id,
+      'You are an AI tutor. Answer concisely in 3-6 sentences. Use simple, encouraging language. If the question is off-topic for this course, gently steer back.',
+      `COURSE: ${course.title}\nLEVEL: ${course.level || 'beginner'}\nDESCRIPTION: ${course.description || ''}\n\nTOPICS:\n${topicSummary}\n\nSTUDENT QUESTION: ${question}`,
+      { action: 'tutor' });
+    res.json({ answer: out.text, provider: out.provider });
+  } catch (e) {
+    res.status(e.code === 'RATE_LIMITED' ? 429 : 400).json({ error: e.message, code: e.code });
+  }
+});
+
+// ── AI ESSAY GRADER: returns {score, feedback} for a long-answer response.
+router.post('/grade-essay', authenticateToken, async (req, res) => {
+  try {
+    const { question, answer, maxMarks, rubric } = req.body || {};
+    if (!question || !answer || !maxMarks) return res.status(400).json({ error: 'question, answer, maxMarks required' });
+    const out = await ai(req.user.id,
+      'You grade student essays fairly. Reply ONLY with a JSON object — no prose.',
+      `Grade this essay out of ${maxMarks} marks. Return JSON: {"score": <number>, "feedback": "<2-3 sentence feedback>", "strengths": ["..."], "improvements": ["..."]}.\n${rubric ? 'RUBRIC: ' + rubric + '\n' : ''}\nQUESTION: ${question}\n\nSTUDENT ANSWER:\n${answer}`,
+      { json: true, action: 'grade-essay' });
+    const parsed = safeJson(out.text);
+    if (!parsed) return res.status(502).json({ error: 'AI returned unparseable response', raw: out.text });
+    parsed.score = Math.max(0, Math.min(Number(maxMarks), Number(parsed.score) || 0));
+    res.json({ ...parsed, provider: out.provider });
+  } catch (e) {
+    res.status(e.code === 'RATE_LIMITED' ? 429 : 400).json({ error: e.message, code: e.code });
+  }
+});
+
 module.exports = router;

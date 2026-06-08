@@ -271,6 +271,197 @@ router.post('/attendance/bulk', authenticateToken, authorizeRole(CREATOR_ROLES),
   }
 });
 
+// ── TEST ANALYTICS: per-question pass rate + top wrong answer + score
+// distribution. Walks every submitted session and tallies which questions
+// the cohort got wrong most often.
+router.get('/tests/:testId/analytics', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
+  try {
+    const { testId } = req.params;
+    // Ownership via course
+    const { data: test } = await supabaseAdmin.from('course_tests').select('course_id, title, total_marks').eq('id', testId).single();
+    if (!test) return res.status(404).json({ error: 'Test not found' });
+    const { data: course } = await supabaseAdmin.from('courses').select('teacher_id').eq('id', test.course_id).single();
+    if (!course || course.teacher_id !== req.user.id) return res.status(403).json({ error: 'Not your course' });
+
+    const [{ data: questions }, { data: sessions }] = await Promise.all([
+      supabaseAdmin.from('course_questions').select('*').eq('test_id', testId).order('order_index'),
+      supabaseAdmin.from('test_sessions').select('*').eq('test_id', testId).eq('status', 'submitted')
+    ]);
+    const totalAttempts = (sessions || []).length;
+    const scores = (sessions || []).map(s => Number(s.score) || 0);
+    const norm = s => String(s == null ? '' : s).trim().toLowerCase();
+
+    const perQuestion = (questions || []).map(q => {
+      let correct = 0, attempted = 0;
+      const wrongAnswers = {}; // tally of wrong responses
+      (sessions || []).forEach(s => {
+        const a = s.answers?.[q.id];
+        if (a == null || a === '') return;
+        attempted++;
+        let isCorrect = false;
+        if (q.type === 'long') return; // skipped (manual grading)
+        if (q.type === 'fill') {
+          const valid = String(q.correct_answer || '').split('|').map(norm).filter(Boolean);
+          isCorrect = valid.includes(norm(a));
+        } else if (q.type === 'match' && typeof a === 'object') {
+          const lefts = q.match_pairs?.left || [];
+          const rights = q.match_pairs?.right || [];
+          isCorrect = lefts.length > 0 && lefts.every((l, i) => norm(a[l]) === norm(rights[i]));
+        } else {
+          isCorrect = q.correct_answer != null && norm(a) === norm(q.correct_answer);
+        }
+        if (isCorrect) correct++;
+        else { const key = typeof a === 'object' ? JSON.stringify(a) : String(a).slice(0, 50); wrongAnswers[key] = (wrongAnswers[key] || 0) + 1; }
+      });
+      const topWrong = Object.entries(wrongAnswers).sort((a, b) => b[1] - a[1])[0];
+      return {
+        id: q.id, type: q.type, question_text: q.question_text,
+        marks: q.marks, difficulty: q.difficulty,
+        attempted, correct,
+        pass_rate: attempted ? Math.round(100 * correct / attempted) : 0,
+        top_wrong_answer: topWrong ? { value: topWrong[0], count: topWrong[1] } : null
+      };
+    });
+
+    // Score distribution buckets (0-20% / 20-40% / ... / 80-100%)
+    const buckets = [0, 0, 0, 0, 0];
+    const tm = test.total_marks || 100;
+    scores.forEach(s => {
+      const pct = (s / tm) * 100;
+      const i = Math.min(4, Math.floor(pct / 20));
+      buckets[i]++;
+    });
+    const mean = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
+    res.json({
+      test: { id: testId, title: test.title, total_marks: tm },
+      totalAttempts,
+      mean_score: Number(mean.toFixed(2)),
+      score_distribution: buckets.map((c, i) => ({ range: `${i * 20}-${(i + 1) * 20}%`, count: c })),
+      per_question: perQuestion
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── MANUAL ESSAY GRADING: list ungraded long-answer responses for the
+// teacher's courses, and POST a score + feedback per (sessionId, questionId).
+router.get('/essays/pending', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
+  try {
+    const { data: courses } = await supabaseAdmin.from('courses').select('id, title').eq('teacher_id', req.user.id);
+    const courseIds = (courses || []).map(c => c.id);
+    if (!courseIds.length) return res.json({ items: [] });
+    // Find all submitted sessions whose tests belong to my courses
+    const { data: tests } = await supabaseAdmin.from('course_tests').select('id, title, course_id').in('course_id', courseIds);
+    const testMap = Object.fromEntries((tests || []).map(t => [t.id, t]));
+    const testIds = (tests || []).map(t => t.id);
+    if (!testIds.length) return res.json({ items: [] });
+    const { data: sessions } = await supabaseAdmin.from('test_sessions').select('*').in('test_id', testIds).eq('status', 'submitted');
+    const { data: questions } = await supabaseAdmin.from('course_questions').select('*').in('test_id', testIds).eq('type', 'long');
+    const qMap = Object.fromEntries((questions || []).map(q => [q.id, q]));
+    const items = [];
+    (sessions || []).forEach(s => {
+      const ans = s.answers || {};
+      Object.keys(ans).forEach(qId => {
+        const q = qMap[qId]; if (!q) return;
+        const graded = s.manual_grades?.[qId];
+        if (graded != null) return;
+        items.push({
+          session_id: s.id, question_id: qId, student_id: s.student_id,
+          test: testMap[s.test_id], question_text: q.question_text,
+          max_marks: q.marks, answer: ans[qId], submitted_at: s.submitted_at
+        });
+      });
+    });
+    res.json({ items });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.post('/essays/grade', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
+  try {
+    const { sessionId, questionId, score, feedback } = req.body || {};
+    if (!sessionId || !questionId || score == null) return res.status(400).json({ error: 'sessionId, questionId, score required' });
+    // Ownership via session → test → course
+    const { data: sess } = await supabaseAdmin.from('test_sessions').select('*, course_tests(course_id)').eq('id', sessionId).single();
+    if (!sess) return res.status(404).json({ error: 'Session not found' });
+    const courseId = sess.course_tests?.course_id;
+    const { data: course } = await supabaseAdmin.from('courses').select('teacher_id').eq('id', courseId).single();
+    if (!course || course.teacher_id !== req.user.id) return res.status(403).json({ error: 'Not your course' });
+
+    const grades = sess.manual_grades || {};
+    grades[questionId] = { score: Number(score), feedback: feedback || '', graded_by: req.user.id, at: new Date().toISOString() };
+    // Recompute final score: existing score + sum of manual_grades values.
+    const sumManual = Object.values(grades).reduce((a, g) => a + (Number(g.score) || 0), 0);
+    const newScore = (Number(sess.score) || 0) + Number(score);
+    await supabaseAdmin.from('test_sessions').update({
+      manual_grades: grades, score: newScore, updated_at: new Date().toISOString()
+    }).eq('id', sessionId);
+    // Mirror into test_submissions for /test-history display.
+    await supabaseAdmin.from('test_submissions').update({ score: newScore }).eq('test_id', sess.test_id).eq('student_id', sess.student_id);
+    res.json({ message: 'Graded', totalManual: sumManual, newScore });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── CSV EXPORT: attendance | grades | earnings. Tiny no-dep CSV serializer.
+function toCsv(rows) {
+  if (!rows.length) return '';
+  const cols = Object.keys(rows[0]);
+  const esc = v => {
+    if (v == null) return '';
+    const s = String(v);
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+  return cols.join(',') + '\n' + rows.map(r => cols.map(c => esc(r[c])).join(',')).join('\n');
+}
+router.get('/export', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
+  try {
+    const type = req.query.type;
+    const { data: courses } = await supabaseAdmin.from('courses').select('id, title').eq('teacher_id', req.user.id);
+    const courseIds = (courses || []).map(c => c.id);
+    const courseTitleById = Object.fromEntries((courses || []).map(c => [c.id, c.title]));
+    let rows = [];
+    if (type === 'attendance' && courseIds.length) {
+      const { data } = await supabaseAdmin.from('attendance').select('*').in('course_id', courseIds).order('date', { ascending: false });
+      const studentIds = [...new Set((data || []).map(a => a.student_id))];
+      const { data: students } = studentIds.length
+        ? await supabaseAdmin.from('jeetmantra_users').select('id, full_name, email').in('id', studentIds)
+        : { data: [] };
+      const sMap = Object.fromEntries((students || []).map(s => [s.id, s]));
+      rows = (data || []).map(a => ({
+        date: a.date, course: courseTitleById[a.course_id] || '',
+        student_name: sMap[a.student_id]?.full_name || '',
+        student_email: sMap[a.student_id]?.email || '',
+        status: a.status
+      }));
+    } else if (type === 'grades' && courseIds.length) {
+      const { data: subs } = await supabaseAdmin.from('test_submissions').select('*, course_tests(title, course_id)').order('submitted_at', { ascending: false });
+      const mine = (subs || []).filter(s => courseIds.includes(s.course_tests?.course_id));
+      const studentIds = [...new Set(mine.map(s => s.student_id))];
+      const { data: students } = studentIds.length
+        ? await supabaseAdmin.from('jeetmantra_users').select('id, full_name, email').in('id', studentIds)
+        : { data: [] };
+      const sMap = Object.fromEntries((students || []).map(s => [s.id, s]));
+      rows = mine.map(s => ({
+        submitted_at: s.submitted_at, test: s.course_tests?.title || '',
+        course: courseTitleById[s.course_tests?.course_id] || '',
+        student_name: sMap[s.student_id]?.full_name || '',
+        student_email: sMap[s.student_id]?.email || '',
+        score: s.score, status: s.status
+      }));
+    } else if (type === 'earnings') {
+      const { data } = await supabaseAdmin.from('earnings').select('*').eq('user_id', req.user.id).order('date', { ascending: false });
+      rows = (data || []).map(e => ({ date: e.date, source: e.source, amount: e.amount, currency: e.currency || 'INR' }));
+    } else {
+      return res.status(400).json({ error: 'type must be attendance | grades | earnings' });
+    }
+    res.set('Content-Type', 'text/csv; charset=utf-8');
+    res.set('Content-Disposition', `attachment; filename="${type}-${new Date().toISOString().slice(0,10)}.csv"`);
+    res.send(toCsv(rows));
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── ANNOUNCEMENT: broadcast a message to the course's chat room
 // Body: { courseId, message }
 router.post('/announcement', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {

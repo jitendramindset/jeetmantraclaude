@@ -146,6 +146,69 @@ router.get('/dashboard', authenticateToken, authorizeRole(INSTITUTIONS), async (
 });
 
 // ── FOR TEACHERS: which institutions am I in? ──────────────────────────
+// ── CSV BULK IMPORT: school/coaching uploads name/email[/phone] rows; we
+// auto-create user accounts (random initial password — they reset on first
+// login via /forgot-password) and link them to the institution.
+// Body: { kind: 'student'|'teacher', csv: "name,email,phone\n..." }
+const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
+router.post('/import-csv', authenticateToken, authorizeRole(INSTITUTIONS), async (req, res) => {
+  try {
+    const { kind, csv } = req.body || {};
+    if (!['student', 'teacher'].includes(kind)) return res.status(400).json({ error: 'kind must be student|teacher' });
+    if (!csv || typeof csv !== 'string') return res.status(400).json({ error: 'csv string required' });
+    const lines = csv.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    // Skip header row if it looks like one (contains "email")
+    const start = /email/i.test(lines[0] || '') ? 1 : 0;
+    const results = { created: 0, linked: 0, skipped: 0, errors: [] };
+    for (let i = start; i < lines.length; i++) {
+      // Tiny CSV parser — handles quoted fields. Sufficient for the import
+      // shape (name, email, phone) we expect.
+      const cols = []; let cur = '', q = false;
+      for (const ch of lines[i] + ',') {
+        if (ch === '"') q = !q;
+        else if (ch === ',' && !q) { cols.push(cur.trim().replace(/^"|"$/g, '')); cur = ''; }
+        else cur += ch;
+      }
+      const [name, email, phone] = cols;
+      if (!email) { results.skipped++; continue; }
+      try {
+        // Find or create user.
+        let { data: user } = await supabaseAdmin.from('jeetmantra_users').select('id').eq('email', email).maybeSingle();
+        if (!user) {
+          const tmpPw = crypto.randomBytes(12).toString('base64');
+          const hash = await bcrypt.hash(tmpPw, 10);
+          const id = uuidv4();
+          const { data: created } = await supabaseAdmin.from('jeetmantra_users').insert({
+            id, email, full_name: name || email.split('@')[0],
+            user_type: kind, password_hash: hash, phone: phone || null,
+            created_at: new Date().toISOString()
+          }).select().single();
+          user = created;
+          results.created++;
+        }
+        // Link.
+        const tbl = kind === 'teacher' ? 'institution_teachers' : 'institution_students';
+        const userIdCol = kind === 'teacher' ? 'teacher_id' : 'student_id';
+        const { data: existing } = await supabaseAdmin.from(tbl)
+          .select('id').eq('institution_id', req.user.id).eq(userIdCol, user.id).maybeSingle();
+        if (!existing) {
+          await supabaseAdmin.from(tbl).insert({
+            id: uuidv4(), institution_id: req.user.id, [userIdCol]: user.id,
+            is_active: true, created_at: new Date().toISOString()
+          });
+          results.linked++;
+        }
+      } catch (e) {
+        results.errors.push({ line: i + 1, error: e.message });
+      }
+    }
+    res.json(results);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // Returns every institution this user is linked to — as a teacher OR as a
 // student — so the dashboard can show "you belong to N institutions, switch
 // active one." Single user id, many memberships.

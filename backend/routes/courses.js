@@ -250,4 +250,54 @@ router.get('/:id/students', authenticateToken, async (req, res) => {
   }
 });
 
+// ── COMPLETION CERTIFICATE: serves an HTML certificate the browser can
+// print to PDF. Requires the student to be enrolled with ≥80% progress.
+router.get('/:id/certificate', authenticateToken, async (req, res) => {
+  try {
+    const { id: courseId } = req.params;
+    const { data: enr } = await supabaseAdmin.from('enrollments')
+      .select('*, courses(title, category, level)').eq('course_id', courseId).eq('student_id', req.user.id).maybeSingle();
+    if (!enr) return res.status(403).send('You are not enrolled in this course.');
+    const progress = Number(enr.progress) || 0;
+    if (progress < 80) return res.status(400).send('Certificate available once progress reaches 80% (current: ' + progress + '%).');
+    const { data: user } = await supabaseAdmin.from('jeetmantra_users').select('full_name, email').eq('id', req.user.id).single();
+    const date = new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' });
+    const certId = `JM-${courseId.slice(0,4)}-${req.user.id.slice(0,4)}-${Date.now().toString(36).toUpperCase()}`;
+    const esc = s => String(s||'').replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+    res.set('Content-Type', 'text/html; charset=utf-8');
+    res.send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Certificate — ${esc(enr.courses?.title)}</title>
+<style>
+@page{size:A4 landscape;margin:0}
+body{margin:0;font-family:'Georgia',serif;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f4f1ea}
+.cert{width:1000px;padding:60px;background:#fffdf7;border:16px double #b89d63;text-align:center;box-shadow:0 12px 30px rgba(0,0,0,.15)}
+h1{font-size:48px;color:#6b4e16;margin:0 0 6px;letter-spacing:4px}
+.sub{font-size:14px;color:#8a7044;letter-spacing:3px;text-transform:uppercase;margin-bottom:36px}
+.awarded{font-size:18px;color:#444;margin-bottom:10px}
+.name{font-size:54px;color:#222;font-style:italic;margin:14px 0 22px;border-bottom:2px solid #b89d63;padding-bottom:14px;display:inline-block;min-width:60%}
+.line{font-size:16px;color:#555;line-height:1.6;margin:18px 0}
+.course{font-size:28px;color:#6b4e16;font-weight:600}
+.foot{display:flex;justify-content:space-between;margin-top:50px;font-size:13px;color:#555}
+.sig{border-top:1px solid #888;padding-top:6px;min-width:200px}
+.no-print{position:fixed;top:10px;right:10px}
+@media print{.no-print{display:none}}
+button{padding:8px 14px;border:0;border-radius:6px;background:#6b4e16;color:#fff;cursor:pointer;font-family:sans-serif}
+</style></head><body>
+<div class="no-print"><button onclick="window.print()">🖨 Print / Save as PDF</button></div>
+<div class="cert">
+  <h1>CERTIFICATE</h1><div class="sub">of completion</div>
+  <div class="awarded">This is to certify that</div>
+  <div class="name">${esc(user?.full_name || user?.email || 'Student')}</div>
+  <div class="line">has successfully completed the course</div>
+  <div class="course">${esc(enr.courses?.title || 'Course')}</div>
+  <div class="line">${esc(enr.courses?.category || '')} · ${esc(enr.courses?.level || '')} · ${progress}% complete</div>
+  <div class="foot">
+    <div class="sig">JeetMantra Platform<br>Issued ${date}</div>
+    <div class="sig">Certificate ID<br>${certId}</div>
+  </div>
+</div></body></html>`);
+  } catch (e) {
+    res.status(500).send('Certificate generation failed: ' + e.message);
+  }
+});
+
 module.exports = router;

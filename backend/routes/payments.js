@@ -12,6 +12,47 @@ const RZP_KEY_ID = process.env.RAZORPAY_KEY_ID || '';
 const RZP_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET || '';
 const RZP_MODE = RZP_KEY_ID && RZP_KEY_SECRET ? 'live' : 'demo';
 
+// ── COUPONS: validate a code + apply against an amount. Returns the
+// discounted amount the order should be created with.
+router.post('/coupons/apply', authenticateToken, async (req, res) => {
+  try {
+    const { code, amount, courseId } = req.body || {};
+    if (!code || !amount) return res.status(400).json({ error: 'code + amount required' });
+    const { data: c } = await supabaseAdmin.from('coupons').select('*').eq('code', String(code).toUpperCase()).maybeSingle();
+    if (!c) return res.status(404).json({ error: 'Invalid coupon code' });
+    if (c.expires_at && new Date(c.expires_at) < new Date()) return res.status(400).json({ error: 'Coupon expired' });
+    if (c.used_count >= c.max_uses) return res.status(400).json({ error: 'Coupon exhausted' });
+    if (c.course_id && c.course_id !== courseId) return res.status(400).json({ error: 'Coupon not valid for this course' });
+    const orig = Number(amount);
+    let discounted = orig;
+    if (c.discount_percent) discounted = orig - (orig * Number(c.discount_percent) / 100);
+    else if (c.discount_flat) discounted = orig - Number(c.discount_flat);
+    if (discounted < 0) discounted = 0;
+    res.json({ original: orig, discounted: Math.round(discounted), saved: Math.round(orig - discounted), code: c.code });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Teacher creates a coupon (owner of the course gets to issue codes).
+router.post('/coupons', authenticateToken, async (req, res) => {
+  try {
+    const { code, discountPercent, discountFlat, courseId, maxUses, expiresAt } = req.body || {};
+    if (!code) return res.status(400).json({ error: 'code required' });
+    if (courseId) {
+      const { data: course } = await supabaseAdmin.from('courses').select('teacher_id').eq('id', courseId).single();
+      if (!course || course.teacher_id !== req.user.id) return res.status(403).json({ error: 'Not your course' });
+    }
+    const { error } = await supabaseAdmin.from('coupons').insert({
+      code: String(code).toUpperCase(), owner_id: req.user.id,
+      discount_percent: discountPercent ? Number(discountPercent) : null,
+      discount_flat: discountFlat ? Number(discountFlat) : null,
+      course_id: courseId || null, max_uses: Number(maxUses) || 100,
+      expires_at: expiresAt || null
+    });
+    if (error) return res.status(400).json({ error: error.message });
+    res.status(201).json({ message: 'Coupon created' });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // Public config — anything the browser checkout needs.
 router.get('/config', (req, res) => {
   res.json({
@@ -26,9 +67,21 @@ router.get('/config', (req, res) => {
 // Body: { courseId, amount, currency? } — amount in rupees; converted to paise.
 router.post('/order', authenticateToken, async (req, res) => {
   try {
-    const { courseId, amount, currency } = req.body;
-    const amt = Math.round(Number(amount) * 100);
-    if (!amt || amt < 100) return res.status(400).json({ error: 'amount (₹1 min) required' });
+    const { courseId, amount, currency, couponCode } = req.body;
+    let appliedAmount = Number(amount);
+    let coupon = null;
+    // Re-validate coupon server-side (don't trust client discount).
+    if (couponCode) {
+      const { data: c } = await supabaseAdmin.from('coupons').select('*').eq('code', String(couponCode).toUpperCase()).maybeSingle();
+      if (c && (!c.expires_at || new Date(c.expires_at) > new Date()) && c.used_count < c.max_uses && (!c.course_id || c.course_id === courseId)) {
+        if (c.discount_percent) appliedAmount = appliedAmount - (appliedAmount * Number(c.discount_percent) / 100);
+        else if (c.discount_flat) appliedAmount = appliedAmount - Number(c.discount_flat);
+        if (appliedAmount < 0) appliedAmount = 0;
+        coupon = c;
+      }
+    }
+    const amt = Math.round(appliedAmount * 100);
+    if (!amt || amt < 100) return res.status(400).json({ error: 'amount (₹1 min) required after discount' });
 
     const paymentId = uuidv4();
     await supabaseAdmin.from('payments').insert({
@@ -92,10 +145,76 @@ router.post('/verify', authenticateToken, async (req, res) => {
         });
       }
     }
+    // Increment coupon use_count if one was applied (read from the persisted
+    // payments row's notes — simplest: client sends couponCode again on verify).
+    if (req.body?.couponCode) {
+      await supabaseAdmin.rpc('increment_coupon', { p_code: String(req.body.couponCode).toUpperCase() }).catch(async () => {
+        // RPC may not exist — fall back to read-then-update.
+        const { data: c } = await supabaseAdmin.from('coupons').select('used_count').eq('code', String(req.body.couponCode).toUpperCase()).maybeSingle();
+        if (c) await supabaseAdmin.from('coupons').update({ used_count: (Number(c.used_count) || 0) + 1 }).eq('code', String(req.body.couponCode).toUpperCase());
+      });
+    }
     res.json({ message: 'Payment verified', paymentRowId });
   } catch (e) {
     console.error('verify error', e);
     res.status(500).json({ error: 'Verification failed' });
+  }
+});
+
+// ── WEBHOOK: server-side payment confirmation. Configure this URL in the
+// Razorpay dashboard with the same secret as RAZORPAY_WEBHOOK_SECRET so the
+// X-Razorpay-Signature header can be verified. Independent of the client —
+// even if the user closes the browser, payment.captured arrives here and
+// flips status to paid + auto-enrolls.
+//
+// IMPORTANT: mounted with express.raw() in server.js so the raw body bytes
+// (not the JSON-parsed body) are signed.
+const WEBHOOK_SECRET = process.env.RAZORPAY_WEBHOOK_SECRET || RZP_KEY_SECRET;
+router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+  try {
+    const sig = req.headers['x-razorpay-signature'];
+    const raw = req.body; // Buffer
+    if (!sig || !raw) return res.status(400).end();
+    const expected = crypto.createHmac('sha256', WEBHOOK_SECRET).update(raw).digest('hex');
+    if (expected !== sig) {
+      console.warn('webhook signature mismatch');
+      return res.status(400).end();
+    }
+    const body = JSON.parse(raw.toString('utf8'));
+    const event = body.event;
+    const entity = body.payload?.payment?.entity || {};
+    if (event === 'payment.captured' || event === 'order.paid') {
+      const orderId = entity.order_id;
+      const paymentId = entity.id;
+      // Our /order endpoint stored Razorpay's order id in payments.transaction_id.
+      const { data: row } = await supabaseAdmin.from('payments')
+        .select('*').eq('transaction_id', orderId).maybeSingle();
+      if (row) {
+        await supabaseAdmin.from('payments').update({
+          status: 'paid', transaction_id: paymentId,
+          updated_at: new Date().toISOString()
+        }).eq('id', row.id);
+        if (row.course_id && row.user_id) {
+          const { data: existing } = await supabaseAdmin.from('enrollments')
+            .select('id').eq('student_id', row.user_id).eq('course_id', row.course_id).maybeSingle();
+          if (!existing) {
+            await supabaseAdmin.from('enrollments').insert({
+              id: uuidv4(), student_id: row.user_id, course_id: row.course_id,
+              enrolled_at: new Date().toISOString(), status: 'active'
+            });
+          }
+        }
+      }
+    } else if (event === 'payment.failed') {
+      const orderId = entity.order_id;
+      await supabaseAdmin.from('payments').update({
+        status: 'failed', updated_at: new Date().toISOString()
+      }).eq('transaction_id', orderId);
+    }
+    res.json({ received: true });
+  } catch (e) {
+    console.error('webhook error', e);
+    res.status(500).end();
   }
 });
 

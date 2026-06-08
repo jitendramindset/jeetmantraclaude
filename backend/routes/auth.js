@@ -12,6 +12,51 @@ const router = express.Router();
 // Store OTPs temporarily (in production, use Redis or database)
 const otpStore = {};
 
+// ── In-memory brute-force guard. Keys by IP+email; locks 15 minutes after
+// 6 failed login attempts. Doubles as a rate limiter on /login and /signup.
+// In production swap for Redis so it survives restarts + scales across nodes.
+const _attempts = new Map();
+const LOCK_AFTER = 6, LOCK_MINUTES = 15, WINDOW_MINUTES = 15;
+function _key(req, email) {
+  const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown').split(',')[0].trim();
+  return ip + '|' + String(email || '').toLowerCase();
+}
+function loginThrottle(req, res, next) {
+  const k = _key(req, req.body?.email);
+  const now = Date.now();
+  const rec = _attempts.get(k);
+  if (rec && rec.lockedUntil && rec.lockedUntil > now) {
+    const mins = Math.ceil((rec.lockedUntil - now) / 60000);
+    return res.status(429).json({ error: `Too many failed attempts. Try again in ${mins} min.` });
+  }
+  // Cheap GC — drop entries older than window.
+  if (rec && now - rec.firstAt > WINDOW_MINUTES * 60000) _attempts.delete(k);
+  next();
+}
+function loginRecordFail(req) {
+  const k = _key(req, req.body?.email);
+  const now = Date.now();
+  const rec = _attempts.get(k) || { count: 0, firstAt: now, lockedUntil: 0 };
+  rec.count++;
+  if (rec.count >= LOCK_AFTER) rec.lockedUntil = now + LOCK_MINUTES * 60000;
+  _attempts.set(k, rec);
+}
+function loginRecordSuccess(req) {
+  _attempts.delete(_key(req, req.body?.email));
+}
+
+// Simple per-IP rate limit for /signup + /forgot-password — 10 / hour.
+const _ipHits = new Map();
+function ipLimit(perHour) {
+  return (req, res, next) => {
+    const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown').split(',')[0].trim();
+    const now = Date.now(), hourAgo = now - 60 * 60000;
+    const arr = (_ipHits.get(ip) || []).filter(t => t > hourAgo);
+    if (arr.length >= perHour) return res.status(429).json({ error: 'Rate limited. Try again later.' });
+    arr.push(now); _ipHits.set(ip, arr); next();
+  };
+}
+
 // Generate OTP
 function generateOTP() {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -25,7 +70,7 @@ function sendOTP(phone, otp) {
 }
 
 // Sign up
-router.post('/signup', validate('signup'), async (req, res) => {
+router.post('/signup', ipLimit(10), validate('signup'), async (req, res) => {
   try {
     const { email, password, fullName, role, phone } = req.validatedData;
 
@@ -129,7 +174,7 @@ router.post('/signup', validate('signup'), async (req, res) => {
 });
 
 // Login
-router.post('/login', validate('login'), async (req, res) => {
+router.post('/login', loginThrottle, validate('login'), async (req, res) => {
   try {
     const { email, password } = req.validatedData;
 
@@ -141,6 +186,7 @@ router.post('/login', validate('login'), async (req, res) => {
       .single();
 
     if (!user) {
+      loginRecordFail(req);
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
@@ -169,8 +215,10 @@ router.post('/login', validate('login'), async (req, res) => {
     }
 
     if (!validPassword) {
+      loginRecordFail(req);
       return res.status(401).json({ error: 'Invalid email or password' });
     }
+    loginRecordSuccess(req);
 
     // Generate JWT token
     const token = jwt.sign(
@@ -427,6 +475,123 @@ router.post('/verify-otp', async (req, res) => {
   } catch (error) {
     console.error('OTP verify error:', error);
     res.status(500).json({ error: 'OTP verification failed' });
+  }
+});
+
+// ── Helper: issue + persist a single-use token for password reset / email
+// verify. Returns the random hex string the user clicks in their email.
+async function issueToken(userId, purpose, ttlMinutes) {
+  const token = crypto.randomBytes(32).toString('hex');
+  const expires = new Date(Date.now() + ttlMinutes * 60 * 1000).toISOString();
+  await supabaseAdmin.from('auth_tokens').insert({
+    token, user_id: userId, purpose, expires_at: expires
+  });
+  return token;
+}
+
+// Pretend-mailer. In prod, replace with SendGrid/SES/Resend etc.
+async function sendMail(to, subject, body) {
+  console.log(`📧 to=${to} subject="${subject}"\n${body}\n`);
+  // Hook for production mail provider — left as a noop so dev works without
+  // SMTP credentials.
+  return true;
+}
+
+// ── PASSWORD RESET ─────────────────────────────────────────────────────
+// POST /api/auth/forgot-password { email } — always returns 200 even when the
+// email isn't registered (don't leak account existence). When the user does
+// exist, we email them a link with a single-use token good for 60 minutes.
+router.post('/forgot-password', ipLimit(10), async (req, res) => {
+  try {
+    const { email } = req.body || {};
+    if (!email) return res.status(400).json({ error: 'email required' });
+    const { data: user } = await supabaseAdmin
+      .from('jeetmantra_users').select('id, full_name').eq('email', email).maybeSingle();
+    if (user) {
+      const token = await issueToken(user.id, 'password_reset', 60);
+      const base = process.env.FRONTEND_URL || ('http://localhost:' + (process.env.PORT || 5050));
+      const link = `${base}/reset-password.html?token=${token}`;
+      await sendMail(email, 'Reset your JeetMantra password',
+        `Hi ${user.full_name || ''},\n\nClick to reset (valid for 60 minutes):\n${link}\n\nIf you didn't ask for this, ignore this email.`);
+    }
+    // Uniform response regardless of existence.
+    res.json({ message: 'If that email exists, a reset link has been sent.' });
+  } catch (e) {
+    console.error('forgot-password error', e);
+    res.status(500).json({ error: 'Failed to send reset email' });
+  }
+});
+
+// POST /api/auth/reset-password { token, password }
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { token, password } = req.body || {};
+    if (!token || !password) return res.status(400).json({ error: 'token + password required' });
+    if (String(password).length < 8) return res.status(400).json({ error: 'Password must be ≥8 chars' });
+    const { data: row } = await supabaseAdmin.from('auth_tokens')
+      .select('*').eq('token', token).eq('purpose', 'password_reset').maybeSingle();
+    if (!row) return res.status(400).json({ error: 'Invalid token' });
+    if (row.used_at) return res.status(400).json({ error: 'Token already used' });
+    if (new Date(row.expires_at) < new Date()) return res.status(400).json({ error: 'Token expired' });
+
+    const password_hash = await bcrypt.hash(password, 10);
+    await supabaseAdmin.from('jeetmantra_users').update({ password_hash }).eq('id', row.user_id);
+    await supabaseAdmin.from('auth_tokens').update({ used_at: new Date().toISOString() }).eq('token', token);
+    res.json({ message: 'Password updated. You can log in now.' });
+  } catch (e) {
+    console.error('reset-password error', e);
+    res.status(500).json({ error: 'Reset failed' });
+  }
+});
+
+// ── EMAIL VERIFICATION ────────────────────────────────────────────────
+// POST /api/auth/send-verify-email — for the logged-in user (or unauth via email param)
+router.post('/send-verify-email', async (req, res) => {
+  try {
+    // Accept either an authenticated user OR an explicit email param (useful
+    // immediately after signup before they have a token).
+    let userId = null, email = null;
+    const auth = req.headers.authorization;
+    if (auth?.startsWith('Bearer ')) {
+      try {
+        const decoded = jwt.verify(auth.slice(7), process.env.JWT_SECRET);
+        userId = decoded.id || decoded.userId;
+      } catch (_) {}
+    }
+    if (!userId && req.body?.email) {
+      const { data } = await supabaseAdmin.from('jeetmantra_users').select('id, email').eq('email', req.body.email).maybeSingle();
+      if (data) { userId = data.id; email = data.email; }
+    } else if (userId) {
+      const { data } = await supabaseAdmin.from('jeetmantra_users').select('email').eq('id', userId).single();
+      email = data?.email;
+    }
+    if (!userId || !email) return res.json({ message: 'If that account exists, a verification email has been sent.' });
+
+    const token = await issueToken(userId, 'email_verify', 60 * 24); // 24h
+    const base = process.env.FRONTEND_URL || ('http://localhost:' + (process.env.PORT || 5050));
+    await sendMail(email, 'Verify your JeetMantra email',
+      `Click to verify (valid 24h):\n${base}/verify-email.html?token=${token}`);
+    res.json({ message: 'Verification email sent.' });
+  } catch (e) {
+    res.status(500).json({ error: 'Send failed' });
+  }
+});
+
+// GET /api/auth/verify-email?token=…  (called by the link in the email)
+router.get('/verify-email', async (req, res) => {
+  try {
+    const token = req.query.token;
+    if (!token) return res.status(400).json({ error: 'token required' });
+    const { data: row } = await supabaseAdmin.from('auth_tokens')
+      .select('*').eq('token', token).eq('purpose', 'email_verify').maybeSingle();
+    if (!row) return res.status(400).json({ error: 'Invalid token' });
+    if (row.used_at) return res.status(400).json({ error: 'Token already used' });
+    if (new Date(row.expires_at) < new Date()) return res.status(400).json({ error: 'Token expired' });
+    await supabaseAdmin.from('jeetmantra_users').update({ email_verified: true }).eq('id', row.user_id);
+    await supabaseAdmin.from('auth_tokens').update({ used_at: new Date().toISOString() }).eq('token', token);
+    res.json({ message: 'Email verified.' });
+  } catch (e) {
+    res.status(500).json({ error: 'Verify failed' });
   }
 });
 

@@ -4,7 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>JeetMantra — Dashboard</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#7c3aed">
 <link rel="stylesheet" href="theme.css">
+<script>if('serviceWorker' in navigator) window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));</script>
 <style>
 /* Dashboard-specific styles — uses theme.css design tokens */
 body{display:flex;min-height:100vh}
@@ -1458,7 +1461,11 @@ function extractError(data, fallback){
 }
 async function api(path,method,body){
   const token=localStorage.getItem('jm_token');
-  const r=await fetch(API+path,{method,headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:body?JSON.stringify(body):undefined});
+  const headers={'Content-Type':'application/json','Authorization':'Bearer '+token};
+  // Honor the active institution stash so backend can scope queries.
+  const inst=localStorage.getItem('jm_active_institution');
+  if(inst) headers['X-Active-Institution']=inst;
+  const r=await fetch(API+path,{method,headers,body:body?JSON.stringify(body):undefined});
   const j=await r.json().catch(()=>({}));
   if(!r.ok) throw new Error(extractError(j, 'HTTP '+r.status));
   return j;
