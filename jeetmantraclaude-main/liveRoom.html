@@ -269,9 +269,47 @@ async function endClass() {
     if (_jitsiApi) { try { _jitsiApi.dispose(); } catch(_){} _jitsiApi = null; }
     document.getElementById('btnPause').style.display = 'none';
     document.getElementById('btnEnd').style.display = 'none';
-    document.getElementById('stage').innerHTML = '<div class="placeholder"><div class="icon">✅</div><div style="font-size:18px;font-weight:600">Class ended</div><div style="font-size:13px;margin-top:6px">Attendance saved. You can close this tab.</div></div>';
+    document.getElementById('stage').innerHTML = `
+      <div style="padding:30px;max-width:680px;color:#e4e4f0">
+        <div style="font-size:48px;text-align:center;margin-bottom:14px">✅</div>
+        <h2 style="text-align:center;margin-bottom:20px">Class ended</h2>
+        <div id="summaryWrap">
+          <div style="background:#1a1a25;padding:16px;border-radius:8px;margin-bottom:14px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+              <strong>📝 AI Summary for students</strong>
+              <button class="btn primary" id="genSummaryBtn" onclick="genSummary()">✨ Generate</button>
+            </div>
+            <div id="summaryBody" style="font-size:13px;color:#9090a8">Click Generate to create post-class notes from this session.</div>
+          </div>
+          <textarea id="summaryNotes" placeholder="(optional) paste your own notes / transcript here, then click Generate" rows="3" style="width:100%;padding:8px;background:#1a1a25;color:#e4e4f0;border:1px solid #2a2a3a;border-radius:6px;font-family:inherit"></textarea>
+        </div>
+        <div style="text-align:center;margin-top:18px"><button class="btn" onclick="leaveRoom()">Back to dashboard</button></div>
+      </div>`;
     renderSummary();
   } catch (e) { alert('Failed to end: ' + e.message); document.getElementById('btnEnd').disabled = false; }
+}
+
+async function genSummary(){
+  const btn=document.getElementById('genSummaryBtn');
+  const body=document.getElementById('summaryBody');
+  if(!btn||!body) return;
+  btn.disabled=true; btn.textContent='Thinking…';
+  body.textContent='Generating notes…';
+  try{
+    const transcript=document.getElementById('summaryNotes')?.value || '';
+    const r=await api('/live-classes/'+CLASS_ID+'/summary','POST',{transcript});
+    // Light markdown — turn # / * bullets into <strong> / <li>
+    const html=(r.summary||'').replace(/^### (.*)$/gm,'<strong>$1</strong>')
+      .replace(/^## (.*)$/gm,'<strong>$1</strong>')
+      .replace(/^# (.*)$/gm,'<strong style="font-size:14px">$1</strong>')
+      .replace(/^\* (.*)$/gm,'• $1').replace(/\n/g,'<br>');
+    body.innerHTML=html||'<em>No summary generated</em>';
+    btn.textContent='♻ Regenerate';
+    btn.disabled=false;
+  }catch(e){
+    body.innerHTML='<span style="color:#fca5a5">'+e.message+'</span>';
+    btn.disabled=false; btn.textContent='✨ Generate';
+  }
 }
 
 function leaveRoom() {

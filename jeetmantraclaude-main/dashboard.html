@@ -152,6 +152,10 @@ body{display:flex;min-height:100vh}
   .configure-body table th,.configure-body table td{padding:6px 4px}
   .configure-body .card{padding:16px}
 }
+@media(max-width:900px){
+  #rd-body{grid-template-columns:1fr !important}
+  #rd-body > div:first-child{grid-template-columns:1fr !important}
+}
 @media(max-width:600px){
   .stats-grid{grid-template-columns:1fr 1fr;gap:8px}
   .stat-card .value{font-size:20px}
@@ -588,6 +592,19 @@ body{display:flex;min-height:100vh}
   <div class="configure-body" id="att-body">Loading…</div>
 </div>
 
+<!-- ==================== READING PANEL (student course reader) ==================== -->
+<div class="configure-page" id="readerPage">
+  <div class="configure-breadcrumb">
+    <span class="crumb" onclick="closeReader()">🏠 Dashboard</span>
+    <span class="crumb-sep">/</span>
+    <span class="crumb">My Courses</span>
+    <span class="crumb-sep">/</span>
+    <span class="crumb active" id="rd-crumb">…</span>
+    <div style="margin-left:auto"><button class="btn-sm btn-outline" onclick="closeReader()">← Back</button></div>
+  </div>
+  <div class="configure-body" id="rd-body" style="display:grid;grid-template-columns:1fr 320px;gap:18px">Loading…</div>
+</div>
+
 <!-- ==================== BOOKINGS / PAYMENTS DETAIL ==================== -->
 <div class="configure-page" id="bookingsPage">
   <div class="configure-breadcrumb">
@@ -745,7 +762,7 @@ function renderStudentDash(d){
     const pct=e.progress_percentage||0;
     const meta=e.total_lectures?`${e.attended_lectures||0} / ${e.total_lectures} lectures attended`:'No lectures yet';
     const courseTitle=(e.courses?.title||'Course').replace(/'/g,"\\'");
-    return `<li><div style="flex:1"><div style="font-weight:600">${e.courses?.title||'Course'}</div><div style="font-size:11px;color:var(--jm-text-muted);margin-top:2px">${meta}</div><div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div></div><div class="row-actions"><span class="badge ${pct===100?'badge-green':'badge-blue'}">${pct}%</span><button class="btn-sm btn-outline" onclick="openCourseChat('${e.course_id}','${courseTitle}')">💬 Chat</button><button class="btn-sm btn-outline" onclick="openAttendanceLog('${e.course_id}','${courseTitle}')">🗓 History</button><button class="btn-sm btn-primary" onclick="openStudentCourseView('${e.course_id}')">📚 View</button></div></li>`;
+    return `<li><div style="flex:1"><div style="font-weight:600">${e.courses?.title||'Course'}</div><div style="font-size:11px;color:var(--jm-text-muted);margin-top:2px">${meta}</div><div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div></div><div class="row-actions"><span class="badge ${pct===100?'badge-green':'badge-blue'}">${pct}%</span><button class="btn-sm btn-outline" onclick="openCourseChat('${e.course_id}','${courseTitle}')">💬 Chat</button><button class="btn-sm btn-outline" onclick="openAttendanceLog('${e.course_id}','${courseTitle}')">🗓 History</button><button class="btn-sm btn-primary" onclick="openReader('${e.course_id}','${courseTitle}')">📖 Read</button><button class="btn-sm btn-outline" onclick="openStudentCourseView('${e.course_id}')">📋 List</button></div></li>`;
   }),['📖','No courses yet — <a href="/marketplace.html" style="color:var(--jm-primary)">Browse</a>']);
   renderList('s-hwList',(d.homework||[]).map(h=>`<li><span>${h.title}</span><span class="badge badge-red">${new Date(h.due_date).toLocaleDateString()}</span></li>`),['✅','No pending assignments']);
   renderList('s-liveList',(d.liveClasses||[]).map(c=>{
@@ -2717,7 +2734,11 @@ function renderWizard(){
         <div style="background:var(--jm-primary-tint);padding:14px;border-radius:8px;margin-bottom:18px">
           <div style="font-weight:700;margin-bottom:6px">🤖 AI Quick-fill</div>
           <div style="display:flex;gap:6px;align-items:flex-start"><textarea id="wz-prompt" rows="2" placeholder="Describe your course in a sentence — e.g. '12-week algebra for class 10 CBSE'" style="flex:1"></textarea>${micBtn('wz-prompt')}</div>
-          <button class="btn-sm btn-primary" style="margin-top:8px" onclick="wizAiFill()">✨ Generate</button>
+          <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+            <button class="btn-sm btn-primary" onclick="wizAiFill()">✨ Generate from text</button>
+            <button class="btn-sm btn-outline" onclick="wizScrapeFromUrl()">🔗 Import from URL</button>
+          </div>
+          <div style="font-size:11px;color:var(--jm-text-muted);margin-top:6px">URL = paste a syllabus page, Wikipedia article, YouTube description, or blog post. AI scrapes it and builds a full outline (topics + lectures).</div>
         </div>
         <div class="form-row"><label>Course Title *</label><div style="display:flex"><input id="wz-title" value="${escHtml(w.data.title||'')}" placeholder="e.g. Class 10 Mathematics — Algebra" style="flex:1">${micBtn('wz-title')}</div></div>
         <div style="display:flex;justify-content:space-between;margin-top:24px">
@@ -2777,6 +2798,26 @@ function renderWizard(){
   }
   body.innerHTML=html;
 }
+// Scrape a URL on the server, fill the wizard, and remember the suggested
+// topics so wizCreate can auto-insert them after course creation.
+async function wizScrapeFromUrl(){
+  const url=prompt('Paste a URL to scrape (syllabus, Wikipedia, blog, YouTube description):');
+  if(!url) return;
+  try{
+    toast('🌐 fetching + analyzing…');
+    const r=await api('/ai/course-from-url','POST',{url});
+    const s=r.suggestion||{};
+    const w=window._wiz;
+    if(s.title) { w.data.title=s.title; const el=document.getElementById('wz-title'); if(el) el.value=s.title; }
+    if(s.description) w.data.description=s.description;
+    if(s.category) w.data.category=s.category;
+    if(s.level) w.data.level=s.level;
+    if(s.price!=null) w.data.price=s.price;
+    w.data.suggestedTopics=Array.isArray(s.topics)?s.topics:[];
+    toast('✓ '+(w.data.suggestedTopics.length||0)+' topics ready — review and create');
+  }catch(e){ toast(e.message,true); }
+}
+
 async function wizAiFill(){
   const p=document.getElementById('wz-prompt')?.value?.trim();
   if(!p){ toast('Describe your course first',true); return; }
@@ -2808,6 +2849,23 @@ async function wizCreate(){
       await fetch(API+'/course-content/'+id+'/cover',{
         method:'POST', headers:{Authorization:'Bearer '+localStorage.getItem('jm_token')}, body:fd
       });
+    }
+    // If AI-from-URL suggested topics, create them in one pass so the
+    // teacher lands on a fully-populated Configure tree.
+    if(id && Array.isArray(d.suggestedTopics) && d.suggestedTopics.length){
+      let created=0;
+      for(let i=0;i<d.suggestedTopics.length && i<8;i++){
+        const t=d.suggestedTopics[i];
+        try{
+          await api('/course-content/'+id+'/topics','POST',{
+            title:t.title||('Topic '+(i+1)),
+            description:t.description||'',
+            order_index:i
+          });
+          created++;
+        }catch(_){}
+      }
+      if(created) toast('✓ '+created+' topics auto-added');
     }
     toast('✓ Course created — opening Configure');
     closeWizard();
@@ -2998,6 +3056,118 @@ async function _openMoneyPage(kind){
 }
 
 // ============================================================
+// READING PANEL — student-facing course reader. Left = course content
+// tree (topics → lectures, materials, tests, assignments); right = sticky
+// notes panel that saves to /api/student/notes.
+// ============================================================
+window._reader=null;
+async function openReader(courseId, courseTitle){
+  document.getElementById('readerPage').classList.add('active');
+  document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
+  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
+  document.getElementById('rd-crumb').textContent=courseTitle||'Course';
+  window._reader={ courseId, courseTitle, activeLecture:null };
+  await _renderReader();
+}
+function closeReader(){
+  document.getElementById('readerPage').classList.remove('active');
+  document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='');
+  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='');
+  window._reader=null;
+}
+async function _renderReader(){
+  const r=window._reader; if(!r) return;
+  const body=document.getElementById('rd-body');
+  body.innerHTML='<div style="grid-column:span 2;text-align:center;padding:40px;color:#888">Loading…</div>';
+  try{
+    const [full, assigns, notes] = await Promise.all([
+      api('/course-content/'+r.courseId+'/full','GET'),
+      api('/assignments?courseId='+r.courseId,'GET').catch(()=>({assignments:[]})),
+      api('/student/notes?courseId='+r.courseId,'GET').catch(()=>({notes:[]}))
+    ]);
+    window._readerNotes=notes.notes||[];
+    const c=full.course||{};
+    document.getElementById('rd-crumb').textContent=c.title||'Course';
+    const topicMap={};
+    (full.topics||[]).forEach(t=>{ topicMap[t.id]={...t, lectures:[], materials:[]}; });
+    (full.lectures||[]).forEach(l=>{ if(l.topic_id&&topicMap[l.topic_id]) topicMap[l.topic_id].lectures.push(l); });
+    (full.materials||[]).forEach(m=>{ if(m.topic_id&&topicMap[m.topic_id]) topicMap[m.topic_id].materials.push(m); });
+    const orphanLectures=(full.lectures||[]).filter(l=>!l.topic_id||!topicMap[l.topic_id]);
+    const orphanMaterials=(full.materials||[]).filter(m=>!m.topic_id||!topicMap[m.topic_id]);
+
+    const playerEmbed=lec=>{
+      if(!lec) return '<div class="empty-state"><div class="icon">🎬</div>Pick a lecture from the list to start reading / watching.</div>';
+      const url=lec.video_url||'';
+      let player='';
+      if(/youtube\.com|youtu\.be/.test(url)){
+        const m=url.match(/(?:v=|youtu\.be\/|embed\/)([\w-]{11})/);
+        if(m) player=`<iframe src="https://www.youtube.com/embed/${m[1]}" style="width:100%;aspect-ratio:16/9;border:0;border-radius:8px"></iframe>`;
+      } else if(url){
+        if(/\.(mp4|webm|ogg)$/i.test(url)) player=`<video src="${escHtml(url)}" controls style="width:100%;max-height:480px;border-radius:8px;background:#000"></video>`;
+        else player=`<div style="padding:14px;background:var(--jm-primary-tint);border-radius:8px"><a href="${escHtml(url)}" target="_blank" class="btn-sm btn-primary" style="text-decoration:none">▶ Open lecture link</a></div>`;
+      }
+      return `<div style="margin-bottom:14px"><h2 style="margin-bottom:4px">${escHtml(lec.title||'Lecture')}</h2><div style="color:var(--jm-text-muted);font-size:12px;margin-bottom:10px">${lec.duration?lec.duration+' min':''}</div>${player||'<div class="empty-state">No video attached.</div>'}</div>`;
+    };
+
+    const tocItem=(label, icon, onclick, sub)=>`<div onclick="${onclick}" style="padding:8px 10px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:13px" onmouseover="this.style.background='var(--jm-primary-tint)'" onmouseout="this.style.background=''"><span>${icon}</span><div style="flex:1"><div>${escHtml(label)}</div>${sub?`<div style="font-size:11px;color:var(--jm-text-muted)">${escHtml(sub)}</div>`:''}</div></div>`;
+
+    const toc=`
+      <div style="border-right:1px solid var(--jm-border);padding-right:14px;max-height:calc(100vh - 100px);overflow-y:auto">
+        ${c.cover_image?`<img src="${escHtml(c.cover_image)}" style="width:100%;border-radius:8px;margin-bottom:10px">`:''}
+        <div style="font-weight:700;font-size:15px;margin-bottom:4px">${escHtml(c.title||'Course')}</div>
+        <div style="font-size:12px;color:var(--jm-text-muted);margin-bottom:14px">${escHtml(c.category||'General')} · ${escHtml(c.level||'beginner')}</div>
+        ${Object.values(topicMap).map(t=>`
+          <div style="margin-bottom:10px">
+            <div style="font-weight:600;font-size:13px;padding:6px 4px;border-bottom:1px solid var(--jm-border);margin-bottom:4px">📁 ${escHtml(t.title)}</div>
+            ${t.lectures.map(l=>tocItem(l.title,'🎬',`readerOpenLecture('${l.id}')`,l.duration?l.duration+' min':'')).join('')}
+            ${t.materials.map(m=>tocItem(m.title,m.type==='pdf'?'📄':m.type==='image'?'🖼':'📎',`window.open('${escHtml(m.url||'#')}','_blank')`,m.type)).join('')}
+          </div>`).join('')}
+        ${orphanLectures.length||orphanMaterials.length?`<div style="margin-bottom:10px"><div style="font-weight:600;font-size:13px;padding:6px 4px;border-bottom:1px solid var(--jm-border);margin-bottom:4px">📁 Other</div>${orphanLectures.map(l=>tocItem(l.title,'🎬',`readerOpenLecture('${l.id}')`)).join('')}${orphanMaterials.map(m=>tocItem(m.title,'📎',`window.open('${escHtml(m.url||'#')}','_blank')`)).join('')}</div>`:''}
+        ${(full.tests||[]).length?`<div style="margin-bottom:10px"><div style="font-weight:600;font-size:13px;padding:6px 4px;border-bottom:1px solid var(--jm-border);margin-bottom:4px">✏️ Tests</div>${full.tests.map((t,i)=>{ window._studentTests=full.tests; return tocItem(t.title,'✏️',`openTakeTest(${i})`,t.total_marks+' marks');}).join('')}</div>`:''}
+        ${(assigns.assignments||[]).length?`<div><div style="font-weight:600;font-size:13px;padding:6px 4px;border-bottom:1px solid var(--jm-border);margin-bottom:4px">📝 Assignments</div>${assigns.assignments.map(a=>tocItem(a.title,'📝',`openSubmitAssignment('${a.id}')`,a.due_date?'Due '+new Date(a.due_date).toLocaleDateString():'')).join('')}</div>`:''}
+      </div>`;
+
+    const firstLecture=(full.lectures||[])[0];
+    window._readerFirstLecture=firstLecture;
+
+    const notesPanel=`
+      <div style="background:var(--jm-surface);border:1px solid var(--jm-border);border-radius:10px;padding:14px;position:sticky;top:14px;align-self:start;max-height:calc(100vh - 60px);overflow-y:auto">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><strong>🗒️ My Notes</strong><span style="font-size:11px;color:var(--jm-text-muted)" id="rd-notes-count">${(window._readerNotes||[]).length} saved</span></div>
+        <textarea id="rd-note-input" rows="4" placeholder="Type a note while you watch…" style="width:100%;padding:8px;background:var(--jm-bg);border:1px solid var(--jm-border);border-radius:6px;color:inherit;font-family:inherit;margin-bottom:8px"></textarea>
+        <div style="display:flex;gap:6px;margin-bottom:14px">${micBtn('rd-note-input')}<button class="btn-sm btn-primary" style="flex:1" onclick="readerSaveNote()">💾 Save note</button></div>
+        <div id="rd-notes-list" style="display:flex;flex-direction:column;gap:6px">
+          ${(window._readerNotes||[]).map(n=>`<div style="background:var(--jm-bg);padding:8px;border-radius:6px;font-size:12px;border-left:3px solid var(--jm-primary)"><div>${escHtml(n.content||'')}</div><div style="font-size:10px;color:var(--jm-text-muted);margin-top:4px">${n.created_at?new Date(n.created_at).toLocaleString():''}</div></div>`).join('')||'<div style="font-size:12px;color:var(--jm-text-muted)">No notes yet — write your first one above.</div>'}
+        </div>
+      </div>`;
+
+    body.innerHTML=`
+      <div style="display:grid;grid-template-columns:280px 1fr;gap:14px">
+        ${toc}
+        <div id="rd-main">${playerEmbed(window._reader.activeLecture||firstLecture)}</div>
+      </div>
+      ${notesPanel}`;
+  }catch(e){ body.innerHTML='<div style="color:#b91c1c;padding:20px;grid-column:span 2">'+escHtml(e.message)+'</div>'; }
+}
+function readerOpenLecture(lectureId){
+  // Look up the lecture; render only the right pane (keep notes/toc state).
+  api('/course-content/'+window._reader.courseId+'/full','GET').then(full=>{
+    const lec=(full.lectures||[]).find(l=>l.id===lectureId);
+    if(!lec) return;
+    window._reader.activeLecture=lec;
+    _renderReader();
+  });
+}
+async function readerSaveNote(){
+  const inp=document.getElementById('rd-note-input'); if(!inp||!inp.value.trim()) return;
+  try{
+    const r=await api('/student/notes','POST',{ courseId:window._reader.courseId, content:inp.value.trim(), title:window._reader.activeLecture?.title || '' });
+    window._readerNotes=[r.note||{content:inp.value.trim(), created_at:new Date().toISOString()}, ...(window._readerNotes||[])];
+    inp.value='';
+    _renderReader();
+  }catch(e){ toast(e.message,true); }
+}
+
+// ============================================================
 // RAZORPAY CHECKOUT — UPI / GPay / cards / netbanking via one widget.
 // payCourse(course) is reused by marketplace / course-preview / re-pay-on-fail.
 // In demo mode the backend returns mode:'demo' and we render a minimal modal
@@ -3139,6 +3309,7 @@ document.addEventListener('keydown',(e)=>{
   if(document.getElementById('wizardPage')?.classList.contains('active')){ closeWizard(); return; }
   if(document.getElementById('attGridPage')?.classList.contains('active')){ closeAttGrid(); return; }
   if(document.getElementById('bookingsPage')?.classList.contains('active')){ closeBookings(); return; }
+  if(document.getElementById('readerPage')?.classList.contains('active')){ closeReader(); return; }
 });
 
 loadDashboard();

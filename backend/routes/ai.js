@@ -131,4 +131,83 @@ router.post('/transcribe-summary', authenticateToken, async (req, res) => {
   }
 });
 
+// ── Scrape any public URL (syllabus PDF preview, Wikipedia page, blog post,
+// YouTube description) and expand into a full course outline. Server-side
+// fetch sidesteps CORS; the AI does the heavy lifting of turning prose into
+// structured course data.
+router.post('/course-from-url', authenticateToken, async (req, res) => {
+  try {
+    const { url } = req.body;
+    if (!url || !/^https?:\/\//i.test(url)) return res.status(400).json({ error: 'valid url required' });
+    // Fetch with a polite UA and a 6s timeout — we only need the first chunk
+    // of text, not the full asset.
+    const ctl = new AbortController();
+    const to = setTimeout(() => ctl.abort(), 6000);
+    let text = '';
+    try {
+      const r = await fetch(url, { signal: ctl.signal, headers: { 'User-Agent': 'JeetMantra/1.0' } });
+      const raw = await r.text();
+      // Strip tags / scripts / styles so the AI sees readable prose.
+      text = raw.replace(/<script[\s\S]*?<\/script>/gi, '')
+                .replace(/<style[\s\S]*?<\/style>/gi, '')
+                .replace(/<[^>]+>/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim()
+                .slice(0, 6000); // cap for prompt size
+    } catch (e) {
+      return res.status(400).json({ error: 'Could not fetch URL: ' + e.message });
+    } finally { clearTimeout(to); }
+    if (!text) return res.status(400).json({ error: 'URL returned no readable text' });
+
+    const out = await ai(req.user.id,
+      'You design online courses by reading source material and expanding it into a learning outline. Reply with ONLY a JSON object.',
+      `Read the following text scraped from ${url}. Build a complete course outline as JSON:
+{
+  "title": "marketing-ready course title",
+  "description": "2 paragraphs covering scope and outcomes",
+  "category": "Mathematics|Science|Programming|Languages|Arts|Commerce|General",
+  "level": "beginner|intermediate|advanced",
+  "price": <number in INR>,
+  "topics": [
+    { "title": "Topic 1 title", "description": "1 sentence", "lectures": ["Lecture 1.1", "Lecture 1.2"] },
+    ...up to 8 topics
+  ],
+  "tags": ["tag1", "tag2", "tag3"]
+}
+
+SOURCE TEXT:
+${text}`,
+      { json: true, action: 'course-from-url' });
+    const parsed = safeJson(out.text);
+    if (!parsed) return res.status(502).json({ error: 'AI returned unparseable response', raw: out.text });
+    res.json({ suggestion: parsed, source: url, provider: out.provider });
+  } catch (e) {
+    res.status(e.code === 'RATE_LIMITED' ? 429 : 400).json({ error: e.message, code: e.code });
+  }
+});
+
+// ── Suggest topic list from a course title (when the teacher already named
+// the course and just wants AI to draft chapter titles).
+router.post('/suggest-topics', authenticateToken, async (req, res) => {
+  try {
+    const { title, level, count } = req.body;
+    if (!title) return res.status(400).json({ error: 'title required' });
+    const n = Math.min(20, Math.max(3, Number(count) || 8));
+    const out = await ai(req.user.id,
+      'You write course outlines for teachers. Reply with ONLY a JSON object.',
+      `Suggest ${n} chapter/topic titles for a ${level || 'beginner'}-level course titled "${title}". JSON:
+{
+  "topics": [
+    { "title": "...", "description": "1 sentence", "lectures": ["...", "..."] }
+  ]
+}`,
+      { json: true, action: 'suggest-topics' });
+    const parsed = safeJson(out.text);
+    if (!parsed) return res.status(502).json({ error: 'AI returned unparseable response' });
+    res.json({ topics: parsed.topics || [], provider: out.provider });
+  } catch (e) {
+    res.status(e.code === 'RATE_LIMITED' ? 429 : 400).json({ error: e.message, code: e.code });
+  }
+});
+
 module.exports = router;

@@ -407,4 +407,36 @@ router.get('/:id/attendees', authenticateToken, async (req, res) => {
   }
 });
 
+// ── AI SUMMARY: generate post-class notes from title/description/duration.
+// Called by the teacher after ending the class; stored on live_classes.summary
+// so students see it next time they open the class.
+router.post('/:id/summary', authenticateToken, async (req, res) => {
+  try {
+    const { data: cls } = await supabaseAdmin.from('live_classes').select('*').eq('id', req.params.id).single();
+    if (!cls) return res.status(404).json({ error: 'Class not found' });
+    if (req.user.role !== 'admin' && cls.teacher_id !== req.user.id) return res.status(403).json({ error: 'Not your class' });
+    // If a custom transcript/notes string was provided, prefer that; else
+    // synthesize from the class metadata.
+    const { transcript } = req.body || {};
+    const { ai } = require('../config/aiProvider');
+    let summary = '';
+    try {
+      const dur = cls.started_at && cls.ended_at
+        ? Math.round((new Date(cls.ended_at) - new Date(cls.started_at)) / 60000)
+        : (cls.duration || 60);
+      const out = await ai(req.user.id,
+        'You write concise post-class notes for students. Use markdown headings.',
+        `Class title: ${cls.title}\nDescription: ${cls.description || '(none)'}\nDuration: ${dur} minutes\n${transcript ? 'Transcript / teacher notes:\n' + transcript : ''}\n\nWrite student-facing notes covering: 1) Key points (3-5 bullets), 2) Things to remember, 3) Practice/homework suggestion (1-2 items).`,
+        { action: 'class-summary' });
+      summary = out.text || '';
+    } catch (e) {
+      summary = `# ${cls.title}\n\n${cls.description || ''}\n\nClass duration: ${cls.duration || 60} min. (AI summary unavailable: ${e.message})`;
+    }
+    await supabaseAdmin.from('live_classes').update({ summary, summary_at: new Date().toISOString() }).eq('id', req.params.id);
+    res.json({ summary });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 module.exports = router;
