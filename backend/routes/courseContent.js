@@ -235,7 +235,8 @@ router.get('/:courseId/tests', authenticateToken, async (req, res) => {
 router.post('/:courseId/tests', authenticateToken, async (req, res) => {
   const { allowed } = await ownsCourse(req.params.courseId, req.user);
   if (!allowed) return res.status(403).json({ error: 'Not your course' });
-  const { title, description, totalMarks, durationMinutes, scheduledFor, topicId } = req.body;
+  const { title, description, totalMarks, durationMinutes, scheduledFor, topicId,
+          shuffleQuestions, shuffleOptions, negativeMarks, proctored } = req.body;
   if (!title) return res.status(400).json({ error: 'title required' });
   const { data, error } = await supabaseAdmin.from('course_tests').insert({
     id: uuidv4(),
@@ -245,7 +246,11 @@ router.post('/:courseId/tests', authenticateToken, async (req, res) => {
     description: description || '',
     total_marks: totalMarks || 100,
     duration_minutes: durationMinutes || 60,
-    scheduled_for: scheduledFor || null
+    scheduled_for: scheduledFor || null,
+    shuffle_questions: !!shuffleQuestions,
+    shuffle_options: !!shuffleOptions,
+    negative_marks: Number(negativeMarks) || 0,
+    proctored: !!proctored
   }).select().single();
   if (error) return res.status(400).json({ error: error.message });
   res.status(201).json({ test: data });
@@ -254,7 +259,8 @@ router.post('/:courseId/tests', authenticateToken, async (req, res) => {
 router.put('/tests/:id', authenticateToken, async (req, res) => {
   const { allowed } = await ownsContentItem('course_tests', req.params.id, req.user);
   if (!allowed) return res.status(403).json({ error: 'Not your course' });
-  const { title, description, totalMarks, durationMinutes, scheduledFor, topicId } = req.body;
+  const { title, description, totalMarks, durationMinutes, scheduledFor, topicId,
+          shuffleQuestions, shuffleOptions, negativeMarks, proctored } = req.body;
   const updates = {};
   if (title !== undefined) updates.title = title;
   if (description !== undefined) updates.description = description;
@@ -262,6 +268,10 @@ router.put('/tests/:id', authenticateToken, async (req, res) => {
   if (durationMinutes !== undefined) updates.duration_minutes = Number(durationMinutes);
   if (scheduledFor !== undefined) updates.scheduled_for = scheduledFor || null;
   if (topicId !== undefined) updates.topic_id = topicId || null;
+  if (shuffleQuestions !== undefined) updates.shuffle_questions = !!shuffleQuestions;
+  if (shuffleOptions !== undefined) updates.shuffle_options = !!shuffleOptions;
+  if (negativeMarks !== undefined) updates.negative_marks = Number(negativeMarks);
+  if (proctored !== undefined) updates.proctored = !!proctored;
   const { data, error } = await supabaseAdmin.from('course_tests').update(updates).eq('id', req.params.id).select().single();
   if (error) return res.status(400).json({ error: error.message });
   res.json({ test: data });
@@ -278,38 +288,59 @@ router.delete('/tests/:id', authenticateToken, async (req, res) => {
 // ── QUESTIONS — the actual items inside a test ──────────────────────────
 // GET /api/course-content/tests/:testId/questions
 router.get('/tests/:testId/questions', authenticateToken, async (req, res) => {
-  const { data, error } = await supabaseAdmin
-    .from('course_questions').select('*').eq('test_id', req.params.testId).order('order_index');
+  const [{ data: questions, error }, { data: test }] = await Promise.all([
+    supabaseAdmin.from('course_questions').select('*').eq('test_id', req.params.testId).order('order_index'),
+    supabaseAdmin.from('course_tests').select('shuffle_questions, shuffle_options').eq('id', req.params.testId).single()
+  ]);
   if (error) return res.status(400).json({ error: error.message });
-  // For students viewing during a test, strip correct_answer + explanation.
-  // Teachers + admin see full row.
+  let qs = questions || [];
   if (req.user.role === 'student') {
-    return res.json({ questions: (data || []).map(q => ({ ...q, correct_answer: null, explanation: null })) });
+    // Strip correct answers and (for match) the answer ordering.
+    qs = qs.map(q => {
+      const clean = { ...q, correct_answer: null, explanation: null };
+      if (q.type === 'match' && q.match_pairs) {
+        // Keep the left column in its given order but shuffle the right side so
+        // students can't infer pairs from the array index.
+        const r = [...(q.match_pairs.right || [])].sort(() => Math.random() - 0.5);
+        clean.match_pairs = { left: q.match_pairs.left, right: r };
+      }
+      if (q.type === 'mcq' && Array.isArray(q.options) && test?.shuffle_options) {
+        clean.options = [...q.options].sort(() => Math.random() - 0.5);
+      }
+      return clean;
+    });
+    if (test?.shuffle_questions) qs = [...qs].sort(() => Math.random() - 0.5);
   }
-  res.json({ questions: data || [] });
+  res.json({ questions: qs });
 });
 
 // POST /api/course-content/tests/:testId/questions
+// Supports type ∈ { mcq, true_false, short, long, fill, match } plus an optional
+// section_id, image_url and match_pairs (for type:match).
 router.post('/tests/:testId/questions', authenticateToken, async (req, res) => {
-  // Verify ownership via the test's course
   const { data: test } = await supabaseAdmin.from('course_tests').select('course_id').eq('id', req.params.testId).single();
   if (!test) return res.status(404).json({ error: 'Test not found' });
   const { allowed } = await ownsCourse(test.course_id, req.user);
   if (!allowed) return res.status(403).json({ error: 'Not your course' });
-  const { type, questionText, options, correctAnswer, marks, difficulty, explanation, orderIndex } = req.body;
+  const { type, questionText, options, correctAnswer, marks, difficulty, explanation, orderIndex, sectionId, imageUrl, matchPairs } = req.body;
   if (!questionText) return res.status(400).json({ error: 'questionText required' });
-  // MCQ must carry at least 2 options — otherwise students will see an empty
-  // radio group / fall through to a free-text box that can never auto-grade.
-  if ((type || 'mcq') === 'mcq' && (!Array.isArray(options) || options.length < 2)) {
+  const t = type || 'mcq';
+  if (t === 'mcq' && (!Array.isArray(options) || options.length < 2)) {
     return res.status(400).json({ error: 'MCQ questions require at least 2 options' });
+  }
+  if (t === 'match' && (!matchPairs || !Array.isArray(matchPairs.left) || !Array.isArray(matchPairs.right) || matchPairs.left.length < 2)) {
+    return res.status(400).json({ error: 'Match questions require {left:[], right:[]} arrays with 2+ items' });
   }
   const { data, error } = await supabaseAdmin.from('course_questions').insert({
     id: uuidv4(),
     test_id: req.params.testId,
-    type: type || 'mcq',
+    type: t,
     question_text: questionText,
     options: options || null,
     correct_answer: correctAnswer || null,
+    match_pairs: matchPairs || null,
+    image_url: imageUrl || null,
+    section_id: sectionId || null,
     marks: Number(marks) || 1,
     difficulty: difficulty || 'medium',
     explanation: explanation || null,
@@ -326,12 +357,15 @@ router.put('/questions/:id', authenticateToken, async (req, res) => {
   const { data: test } = await supabaseAdmin.from('course_tests').select('course_id').eq('id', row.test_id).single();
   const { allowed } = await ownsCourse(test.course_id, req.user);
   if (!allowed) return res.status(403).json({ error: 'Not your course' });
-  const { questionText, options, correctAnswer, marks, difficulty, explanation, orderIndex, type } = req.body;
+  const { questionText, options, correctAnswer, marks, difficulty, explanation, orderIndex, type, sectionId, imageUrl, matchPairs } = req.body;
   const updates = {};
   if (type !== undefined) updates.type = type;
   if (questionText !== undefined) updates.question_text = questionText;
   if (options !== undefined) updates.options = options;
   if (correctAnswer !== undefined) updates.correct_answer = correctAnswer;
+  if (matchPairs !== undefined) updates.match_pairs = matchPairs;
+  if (imageUrl !== undefined) updates.image_url = imageUrl;
+  if (sectionId !== undefined) updates.section_id = sectionId;
   if (marks !== undefined) updates.marks = Number(marks);
   if (difficulty !== undefined) updates.difficulty = difficulty;
   if (explanation !== undefined) updates.explanation = explanation;
@@ -378,19 +412,51 @@ router.post('/sessions/:id/submit', authenticateToken, async (req, res) => {
   if (!session) return res.status(404).json({ error: 'Session not found' });
   if (session.student_id !== req.user.id) return res.status(403).json({ error: 'Not your session' });
   if (session.status !== 'in_progress') return res.status(400).json({ error: 'Session already submitted' });
-  // Auto-grade MCQ + true_false (and exact-match short answers).
+  // Auto-grade all six types: mcq, true_false, short, long, fill, match.
+  // Honors course_tests.negative_marks (subtracted on each wrong answer).
   const [{ data: questions }, { data: testRow }] = await Promise.all([
     supabaseAdmin.from('course_questions').select('*').eq('test_id', session.test_id),
-    supabaseAdmin.from('course_tests').select('total_marks').eq('id', session.test_id).single()
+    supabaseAdmin.from('course_tests').select('total_marks, negative_marks').eq('id', session.test_id).single()
   ]);
+  const neg = Number(testRow?.negative_marks) || 0;
+  const norm = s => String(s == null ? '' : s).trim().toLowerCase();
   let score = 0, totalFromQuestions = 0;
   (questions || []).forEach(q => {
-    totalFromQuestions += q.marks || 1;
+    const qMarks = Number(q.marks) || 1;
+    totalFromQuestions += qMarks;
     const a = answers?.[q.id];
-    if (a && q.correct_answer && String(a).trim().toLowerCase() === String(q.correct_answer).trim().toLowerCase()) {
-      score += q.marks || 1;
+    if (a == null || a === '') return; // unattempted — no marks, no negative
+    let correct = false;
+    if (q.type === 'long') {
+      // Essay — never auto-graded; teacher grades manually later.
+      return;
+    } else if (q.type === 'fill') {
+      // correct_answer may be a single string or "|"-separated synonyms.
+      const valid = String(q.correct_answer || '').split('|').map(norm).filter(Boolean);
+      correct = valid.includes(norm(a));
+    } else if (q.type === 'match') {
+      // a is an object { leftItem: studentRight, ... } against q.match_pairs
+      // which stores { left:[], right:[] } in matching index order.
+      const pairs = q.match_pairs || {};
+      const lefts = pairs.left || [];
+      const rights = pairs.right || [];
+      if (lefts.length && typeof a === 'object') {
+        const wrongs = lefts.filter((l, i) => norm(a[l]) !== norm(rights[i])).length;
+        if (wrongs === 0) correct = true;
+        // Partial credit: full marks if all correct; else fractional.
+        if (!correct && lefts.length > 0) {
+          score += qMarks * (lefts.length - wrongs) / lefts.length;
+          return;
+        }
+      }
+    } else {
+      // mcq, true_false, short — exact-match (case-insensitive trim).
+      correct = q.correct_answer != null && norm(a) === norm(q.correct_answer);
     }
+    if (correct) score += qMarks;
+    else if (neg > 0) score -= neg;
   });
+  if (score < 0) score = 0;
   // Prefer the test's authoritative total_marks; fall back to summing question
   // marks if the test row is missing or out of sync.
   const totalMarks = testRow?.total_marks || totalFromQuestions;
@@ -465,6 +531,148 @@ router.get('/:courseId/full', authenticateToken, async (req, res) => {
   ]);
   if (!course) return res.status(404).json({ error: 'Course not found' });
   res.json({ course, topics, lectures, materials, tests });
+});
+
+// ── TEST SECTIONS: sub-divisions of a test with per-section duration ────
+router.get('/tests/:testId/sections', authenticateToken, async (req, res) => {
+  const { data, error } = await supabaseAdmin
+    .from('test_sections').select('*').eq('test_id', req.params.testId).order('order_index');
+  if (error) return res.status(400).json({ error: error.message });
+  res.json({ sections: data || [] });
+});
+
+router.post('/tests/:testId/sections', authenticateToken, async (req, res) => {
+  const { data: test } = await supabaseAdmin.from('course_tests').select('course_id').eq('id', req.params.testId).single();
+  if (!test) return res.status(404).json({ error: 'Test not found' });
+  const { allowed } = await ownsCourse(test.course_id, req.user);
+  if (!allowed) return res.status(403).json({ error: 'Not your course' });
+  const { title, description, durationMinutes, orderIndex } = req.body;
+  if (!title) return res.status(400).json({ error: 'title required' });
+  const { data, error } = await supabaseAdmin.from('test_sections').insert({
+    id: uuidv4(), test_id: req.params.testId, title, description: description || null,
+    duration_minutes: Number(durationMinutes) || null, order_index: Number(orderIndex) || 0
+  }).select().single();
+  if (error) return res.status(400).json({ error: error.message });
+  res.status(201).json({ section: data });
+});
+
+router.put('/sections/:id', authenticateToken, async (req, res) => {
+  const { data: row } = await supabaseAdmin.from('test_sections').select('id, test_id').eq('id', req.params.id).single();
+  if (!row) return res.status(404).json({ error: 'Section not found' });
+  const { data: test } = await supabaseAdmin.from('course_tests').select('course_id').eq('id', row.test_id).single();
+  const { allowed } = await ownsCourse(test.course_id, req.user);
+  if (!allowed) return res.status(403).json({ error: 'Not your course' });
+  const { title, description, durationMinutes, orderIndex } = req.body;
+  const updates = {};
+  if (title !== undefined) updates.title = title;
+  if (description !== undefined) updates.description = description;
+  if (durationMinutes !== undefined) updates.duration_minutes = Number(durationMinutes);
+  if (orderIndex !== undefined) updates.order_index = Number(orderIndex);
+  const { data, error } = await supabaseAdmin.from('test_sections').update(updates).eq('id', req.params.id).select().single();
+  if (error) return res.status(400).json({ error: error.message });
+  res.json({ section: data });
+});
+
+router.delete('/sections/:id', authenticateToken, async (req, res) => {
+  const { data: row } = await supabaseAdmin.from('test_sections').select('id, test_id').eq('id', req.params.id).single();
+  if (!row) return res.status(404).json({ error: 'Section not found' });
+  const { data: test } = await supabaseAdmin.from('course_tests').select('course_id').eq('id', row.test_id).single();
+  const { allowed } = await ownsCourse(test.course_id, req.user);
+  if (!allowed) return res.status(403).json({ error: 'Not your course' });
+  await supabaseAdmin.from('test_sections').delete().eq('id', req.params.id);
+  res.json({ message: 'Section removed' });
+});
+
+// ── QUESTION IMAGE UPLOAD: multipart, stores under uploads/courses/qimg-*.
+const qimgStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadDir),
+  filename: (req, file, cb) => cb(null, 'qimg-' + Date.now() + '-' + file.originalname.replace(/[^\w.-]/g, '_'))
+});
+const qimgUpload = multer({ storage: qimgStorage, limits: { fileSize: 5 * 1024 * 1024 } });
+router.post('/questions/upload-image', authenticateToken, qimgUpload.single('image'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'image file required' });
+  res.json({ url: '/uploads/courses/' + req.file.filename });
+});
+
+// ── QUESTION BANK: reusable questions belonging to the teacher.
+router.get('/question-bank', authenticateToken, async (req, res) => {
+  const { data, error } = await supabaseAdmin
+    .from('question_bank').select('*').eq('owner_id', req.user.id).order('created_at', { ascending: false });
+  if (error) return res.status(400).json({ error: error.message });
+  res.json({ items: data || [] });
+});
+
+router.post('/question-bank', authenticateToken, async (req, res) => {
+  const { type, questionText, options, correctAnswer, matchPairs, marks, difficulty, explanation, imageUrl, tags } = req.body;
+  if (!questionText) return res.status(400).json({ error: 'questionText required' });
+  const { data, error } = await supabaseAdmin.from('question_bank').insert({
+    id: uuidv4(), owner_id: req.user.id, type: type || 'mcq',
+    question_text: questionText, options: options || null,
+    correct_answer: correctAnswer || null, match_pairs: matchPairs || null,
+    marks: Number(marks) || 1, difficulty: difficulty || 'medium',
+    explanation: explanation || null, image_url: imageUrl || null,
+    tags: Array.isArray(tags) ? tags : null
+  }).select().single();
+  if (error) return res.status(400).json({ error: error.message });
+  res.status(201).json({ item: data });
+});
+
+router.delete('/question-bank/:id', authenticateToken, async (req, res) => {
+  const { data: row } = await supabaseAdmin.from('question_bank').select('owner_id').eq('id', req.params.id).single();
+  if (!row || row.owner_id !== req.user.id) return res.status(403).json({ error: 'Not your bank item' });
+  await supabaseAdmin.from('question_bank').delete().eq('id', req.params.id);
+  res.json({ message: 'Removed' });
+});
+
+// Copy a bank item into a specific test as a question.
+router.post('/tests/:testId/questions/from-bank/:bankId', authenticateToken, async (req, res) => {
+  const { data: test } = await supabaseAdmin.from('course_tests').select('course_id').eq('id', req.params.testId).single();
+  if (!test) return res.status(404).json({ error: 'Test not found' });
+  const { allowed } = await ownsCourse(test.course_id, req.user);
+  if (!allowed) return res.status(403).json({ error: 'Not your course' });
+  const { data: bank } = await supabaseAdmin.from('question_bank').select('*').eq('id', req.params.bankId).single();
+  if (!bank || bank.owner_id !== req.user.id) return res.status(403).json({ error: 'Not your bank item' });
+  const { data, error } = await supabaseAdmin.from('course_questions').insert({
+    id: uuidv4(), test_id: req.params.testId, type: bank.type,
+    question_text: bank.question_text, options: bank.options,
+    correct_answer: bank.correct_answer, match_pairs: bank.match_pairs,
+    image_url: bank.image_url, marks: bank.marks, difficulty: bank.difficulty,
+    explanation: bank.explanation, order_index: 0
+  }).select().single();
+  if (error) return res.status(400).json({ error: error.message });
+  res.status(201).json({ question: data });
+});
+
+// ── PROCTORING: students log suspicious events (tab-switch, fullscreen exit,
+// face-not-visible) during a test session; teachers fetch the timeline.
+router.post('/sessions/:id/proctor-event', authenticateToken, async (req, res) => {
+  const { data: session } = await supabaseAdmin.from('test_sessions').select('student_id').eq('id', req.params.id).single();
+  if (!session) return res.status(404).json({ error: 'Session not found' });
+  if (session.student_id !== req.user.id) return res.status(403).json({ error: 'Not your session' });
+  const { eventType, metadata } = req.body || {};
+  const { data, error } = await supabaseAdmin.from('proctoring_events').insert({
+    id: uuidv4(), session_id: req.params.id, student_id: req.user.id,
+    event_type: eventType || 'unknown', metadata: metadata || null
+  }).select().single();
+  if (error) return res.status(400).json({ error: error.message });
+  res.status(201).json({ event: data });
+});
+
+router.get('/sessions/:id/proctor-events', authenticateToken, async (req, res) => {
+  const { data: session } = await supabaseAdmin.from('test_sessions').select('*, course_tests(course_id)').eq('id', req.params.id).single();
+  if (!session) return res.status(404).json({ error: 'Session not found' });
+  // Student can view their own; teacher can view if they own the course.
+  if (session.student_id !== req.user.id) {
+    const courseId = session.course_tests?.course_id;
+    if (courseId) {
+      const { allowed } = await ownsCourse(courseId, req.user);
+      if (!allowed) return res.status(403).json({ error: 'Not your session' });
+    } else if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+  }
+  const { data } = await supabaseAdmin.from('proctoring_events').select('*').eq('session_id', req.params.id).order('occurred_at');
+  res.json({ events: data || [] });
 });
 
 module.exports = router;

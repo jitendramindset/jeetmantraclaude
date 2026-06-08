@@ -1479,7 +1479,12 @@ function openModal(type,ctx){
     </div>`;
   overlay.classList.add('show');
 }
-function closeModal(){document.getElementById('actionOverlay').classList.remove('show');}
+function closeModal(){
+  document.getElementById('actionOverlay').classList.remove('show');
+  // If a proctored test was open and is now being closed without submitting,
+  // tear down camera + listeners so they don't leak.
+  if(typeof _disableProctoring==='function') _disableProctoring();
+}
 // ============================================================
 // VOICE INPUT — Web Speech API helper.
 // Pass it the id of any input/textarea; it toggles dictation and types
@@ -1943,19 +1948,24 @@ async function openTakeTest(testIdx){
         <div class="modal-actions"><button class="btn-sm btn-outline" onclick="closeModal()">Cancel</button><button class="btn-sm btn-primary" onclick="submitSelfTest('${t.id}')">Submit</button></div>`;
       return;
     }
+    const proctBanner=t.proctored?'<div style="background:#7f1d1d;color:#fecaca;padding:8px 12px;border-radius:6px;margin-bottom:10px;font-size:12px">📷 This is a proctored test — camera will activate, tab-switching is logged.</div>':'';
+    const negNote=t.negative_marks>0?'<div style="background:#78350f;color:#fed7aa;padding:6px 10px;border-radius:6px;margin-bottom:10px;font-size:12px">⚠️ Negative marking: −'+t.negative_marks+' per wrong answer.</div>':'';
     body.innerHTML=`
+      ${proctBanner}${negNote}
       <div style="margin-bottom:10px;font-size:12px;color:var(--jm-text-muted)">${questions.length} questions · ${ss.resumed?'Resumed — previous answers restored':'Started'} session</div>
       ${questions.map((q,i)=>_renderQuestionForStudent(q,i)).join('')}
       <div class="modal-actions" style="position:sticky;bottom:0;background:var(--jm-surface);padding-top:14px;border-top:1px solid var(--jm-border);margin-top:14px">
         <button class="btn-sm btn-outline" onclick="closeModal()">Save & Close</button>
         <button class="btn-sm btn-primary" onclick="submitTestSession()">📤 Submit Test</button>
       </div>`;
+    // KaTeX render + activate proctoring if required.
+    _renderMath(body);
+    _enableProctoring(ss.session, t);
   }catch(e){ body.innerHTML='<div style="color:#b91c1c">'+escHtml(e.message)+'</div>'; }
 }
 
 function _renderQuestionForStudent(q, idx){
   const onchange="window._takeTestAnswers['"+q.id+"']=this.value";
-  // Restore the prior selection if the student is resuming.
   const prior=(window._takeTestAnswers||{})[q.id];
   let body='';
   if(q.type==='mcq' && Array.isArray(q.options)){
@@ -1973,17 +1983,65 @@ function _renderQuestionForStudent(q, idx){
     body=`
       <label style="display:flex;align-items:center;gap:8px;padding:8px;border:1.5px solid var(--jm-border);border-radius:8px;margin-bottom:6px;cursor:pointer"><input type="radio" name="q-${q.id}" value="true" onchange="${onchange}"${t}> ✅ True</label>
       <label style="display:flex;align-items:center;gap:8px;padding:8px;border:1.5px solid var(--jm-border);border-radius:8px;cursor:pointer"><input type="radio" name="q-${q.id}" value="false" onchange="${onchange}"${f}> ❌ False</label>`;
+  } else if(q.type==='fill'){
+    body=`<input type="text" oninput="${onchange}" placeholder="Type your answer…" value="${escHtml(prior||'')}" style="width:100%;padding:10px;font-size:15px;border:2px solid var(--jm-primary);border-radius:6px">`;
+  } else if(q.type==='match' && q.match_pairs){
+    const pairs=q.match_pairs;
+    const priorMap=(typeof prior==='object'&&prior)?prior:{};
+    window._takeTestAnswers[q.id]=priorMap; // ensure container exists
+    body=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      ${(pairs.left||[]).map((l,i)=>{
+        return `<div style="padding:8px;background:var(--jm-bg);border:1px solid var(--jm-border);border-radius:6px;font-weight:600">${escHtml(l)}</div>
+          <select onchange="window._takeTestAnswers['${q.id}']['${l.replace(/'/g,'&#39;')}']=this.value" style="padding:8px;border:1px solid var(--jm-border);border-radius:6px">
+            <option value="">— select match —</option>
+            ${(pairs.right||[]).map(r=>`<option value="${escHtml(r)}" ${priorMap[l]===r?'selected':''}>${escHtml(r)}</option>`).join('')}
+          </select>`;
+      }).join('')}
+    </div>`;
   } else {
     const rows=q.type==='long'?5:2;
     body=`<textarea rows="${rows}" oninput="${onchange}" placeholder="Type your answer…" style="width:100%">${escHtml(prior||'')}</textarea>`;
   }
+  const img=q.image_url?`<img src="${escHtml(q.image_url)}" style="max-width:100%;max-height:240px;border-radius:6px;margin-bottom:10px">`:'';
   return `<div style="background:var(--jm-surface);border:1px solid var(--jm-border);border-radius:10px;padding:14px;margin-bottom:12px">
-    <div style="display:flex;justify-content:space-between;margin-bottom:8px">
-      <strong>Q${idx+1}. ${escHtml(q.question_text)}</strong>
+    <div style="display:flex;justify-content:space-between;margin-bottom:8px;gap:6px;flex-wrap:wrap">
+      <strong style="flex:1;min-width:0">Q${idx+1}. ${escHtml(q.question_text)}</strong>
       <span class="badge badge-muted">${q.marks||1} mark${(q.marks||1)>1?'s':''}</span>
     </div>
-    ${body}
+    ${img}${body}
   </div>`;
+}
+
+// Proctoring widget — activates only when test.proctored === true. Acquires
+// camera, watches tab-visibility / fullscreen exit / right-click and POSTs
+// each as a proctoring_event for the active session.
+let _proctorStream=null;
+async function _enableProctoring(session, test){
+  if(!test?.proctored || !session) return;
+  try{
+    _proctorStream=await navigator.mediaDevices.getUserMedia({video:true,audio:false});
+    // Small floating camera preview
+    const cam=document.createElement('video');
+    cam.id='proctor-cam'; cam.autoplay=true; cam.muted=true;
+    cam.srcObject=_proctorStream;
+    cam.style.cssText='position:fixed;bottom:14px;right:14px;width:160px;height:120px;border:2px solid var(--jm-primary);border-radius:8px;background:#000;z-index:9999;object-fit:cover';
+    document.body.appendChild(cam);
+  }catch(e){ toast('Camera required for proctored test: '+e.message,true); }
+  const log=(eventType,metadata)=>api('/course-content/sessions/'+session.id+'/proctor-event','POST',{eventType,metadata}).catch(()=>{});
+  log('test_started',{ua:navigator.userAgent});
+  document.addEventListener('visibilitychange',window._proctorVisHandler=()=>{
+    if(document.hidden) log('tab_switched_away',{at:new Date().toISOString()});
+  });
+  document.addEventListener('contextmenu',window._proctorCtxHandler=e=>{ e.preventDefault(); log('right_click_blocked',{}); });
+  window._proctorCopyHandler=e=>{ e.preventDefault(); log('copy_blocked',{}); };
+  document.addEventListener('copy',window._proctorCopyHandler);
+}
+function _disableProctoring(){
+  if(_proctorStream){ _proctorStream.getTracks().forEach(t=>t.stop()); _proctorStream=null; }
+  document.getElementById('proctor-cam')?.remove();
+  if(window._proctorVisHandler) document.removeEventListener('visibilitychange',window._proctorVisHandler);
+  if(window._proctorCtxHandler) document.removeEventListener('contextmenu',window._proctorCtxHandler);
+  if(window._proctorCopyHandler) document.removeEventListener('copy',window._proctorCopyHandler);
 }
 
 async function submitTestSession(){
@@ -1992,6 +2050,7 @@ async function submitTestSession(){
   try{
     const r=await api('/course-content/sessions/'+session.id+'/submit','POST',{answers:window._takeTestAnswers||{}});
     toast(`✓ Submitted — ${r.scoreEarned}/${r.totalMarks}`);
+    _disableProctoring();
     closeModal();
     loadDashboard();
   }catch(e){ toast(e.message,true); }
@@ -2484,90 +2543,252 @@ async function openQuestionEditor(testId, testTitle){
   document.querySelector('#actionModal h3').textContent='📝 Questions: '+testTitle;
   await _renderQuestionEditor();
 }
+// ── KaTeX bootstrap — load once, then call _renderMath() on any DOM node.
+window._katexReady = null;
+function _ensureKatex(){
+  if(window._katexReady) return window._katexReady;
+  window._katexReady = new Promise(resolve=>{
+    const css=document.createElement('link'); css.rel='stylesheet';
+    css.href='https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css';
+    document.head.appendChild(css);
+    const s1=document.createElement('script');
+    s1.src='https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js';
+    s1.onload=()=>{
+      const s2=document.createElement('script');
+      s2.src='https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js';
+      s2.onload=()=>resolve();
+      document.head.appendChild(s2);
+    };
+    document.head.appendChild(s1);
+  });
+  return window._katexReady;
+}
+async function _renderMath(node){
+  try{
+    await _ensureKatex();
+    if(window.renderMathInElement) window.renderMathInElement(node||document.body,{
+      delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}],
+      throwOnError:false
+    });
+  }catch(_){}
+}
+
+let _qeType='mcq', _qeImageUrl=null, _qeSections=[];
 async function _renderQuestionEditor(){
   const body=document.getElementById('qe-body');
   if(!body) return;
   try{
-    const r=await api('/course-content/tests/'+_qeTestId+'/questions','GET');
+    const [r, secs, testInfo] = await Promise.all([
+      api('/course-content/tests/'+_qeTestId+'/questions','GET'),
+      api('/course-content/tests/'+_qeTestId+'/sections','GET').catch(()=>({sections:[]})),
+      api('/course-content/'+(_qeCourseId||'')+'/tests','GET').catch(()=>({tests:[]}))
+    ]);
     const qs=r.questions||[];
+    _qeSections=secs.sections||[];
+    const test=(testInfo.tests||[]).find(t=>t.id===_qeTestId)||{};
+    window._qeTestRow=test;
     body.innerHTML=`
-      <div style="background:var(--jm-primary-tint);padding:12px;border-radius:8px;margin-bottom:14px;font-size:13px">
-        <strong>${qs.length}</strong> question${qs.length===1?'':'s'} ·
-        <strong>${qs.reduce((s,q)=>s+(q.marks||1),0)}</strong> total marks
+      <div style="background:var(--jm-primary-tint);padding:12px;border-radius:8px;margin-bottom:14px;font-size:13px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+        <div><strong>${qs.length}</strong> question${qs.length===1?'':'s'} · <strong>${qs.reduce((s,q)=>s+(Number(q.marks)||1),0)}</strong> total marks · <strong>${_qeSections.length}</strong> sections</div>
+        <button class="btn-sm btn-outline" onclick="qeOpenSettings()">⚙ Test settings</button>
       </div>
-      ${qs.map((q,i)=>_renderQeRow(q,i)).join('')}
-      ${_renderQeAddForm()}`;
+      ${_renderQeSectionsBar()}
+      ${qs.map((q,i)=>_renderQeRow(q,i)).join('') || '<div class="empty-state"><div class="icon">❓</div>No questions yet — add the first one below.</div>'}
+      ${_renderQeAddForm()}
+      <div style="margin-top:14px;padding:12px;border:1px dashed var(--jm-border);border-radius:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><strong>📚 Question Bank</strong><button class="btn-sm btn-outline" onclick="qeOpenBank()">Browse / Manage</button></div>
+        <div style="font-size:12px;color:var(--jm-text-muted)">Reusable questions you've saved — copy any into this test with one click.</div>
+      </div>`;
+    qeBindType();
+    _renderMath(body);
   }catch(e){ body.innerHTML='<div style="color:#b91c1c">'+escHtml(e.message)+'</div>'; }
+}
+function _renderQeSectionsBar(){
+  if(!_qeSections.length) return `<div style="margin-bottom:14px;padding:10px;background:var(--jm-bg);border:1px dashed var(--jm-border);border-radius:8px;font-size:12px;display:flex;justify-content:space-between;align-items:center"><span style="color:var(--jm-text-muted)">No sections — add one to group questions with their own time limit.</span><button class="btn-sm btn-outline" onclick="qeAddSection()">+ Add section</button></div>`;
+  return `<div style="margin-bottom:14px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+    ${_qeSections.map(s=>`<span style="padding:6px 10px;background:var(--jm-bg);border:1px solid var(--jm-border);border-radius:99px;font-size:12px"><strong>${escHtml(s.title)}</strong> ${s.duration_minutes?'· '+s.duration_minutes+' min':''} <button onclick="qeDelSection('${s.id}')" style="background:none;border:0;cursor:pointer;color:var(--jm-text-muted)">×</button></span>`).join('')}
+    <button class="btn-sm btn-outline" onclick="qeAddSection()">+ Add section</button>
+  </div>`;
 }
 function _renderQeRow(q,i){
   const opts=Array.isArray(q.options)?q.options:[];
-  const optList = q.type==='mcq' ? opts.map((o,j)=>`<div style="font-size:12px;padding:2px 0"><strong>${String.fromCharCode(65+j)}.</strong> ${escHtml(o)}${q.correct_answer===o?' <span class="badge badge-green">correct</span>':''}</div>`).join('') :
-                  q.type==='true_false' ? `<div style="font-size:12px">Answer: <span class="badge badge-green">${escHtml(q.correct_answer||'?')}</span></div>` :
-                  q.correct_answer?`<div style="font-size:12px">Expected: <em>${escHtml(q.correct_answer)}</em></div>`:'';
+  let preview='';
+  if(q.type==='mcq') preview=opts.map((o,j)=>`<div style="font-size:12px;padding:2px 0"><strong>${String.fromCharCode(65+j)}.</strong> ${escHtml(o)}${q.correct_answer===o?' <span class="badge badge-green">correct</span>':''}</div>`).join('');
+  else if(q.type==='true_false') preview=`<div style="font-size:12px">Answer: <span class="badge badge-green">${escHtml(q.correct_answer||'?')}</span></div>`;
+  else if(q.type==='fill') preview=`<div style="font-size:12px">Blanks: <em>${escHtml(q.correct_answer||'')}</em></div>`;
+  else if(q.type==='match') {
+    const m=q.match_pairs||{};
+    preview=`<div style="font-size:12px">Pairs:<br>${(m.left||[]).map((l,j)=>`${escHtml(l)} → ${escHtml((m.right||[])[j]||'')}`).join('<br>')}</div>`;
+  } else if(q.correct_answer) preview=`<div style="font-size:12px">Expected: <em>${escHtml(q.correct_answer)}</em></div>`;
+  const img=q.image_url?`<img src="${escHtml(q.image_url)}" style="max-width:200px;max-height:120px;border-radius:6px;margin-bottom:6px">`:'';
   return `<div style="border:1px solid var(--jm-border);border-radius:10px;padding:12px;margin-bottom:10px">
-    <div style="display:flex;justify-content:space-between;margin-bottom:6px">
-      <strong>Q${i+1}. ${escHtml(q.question_text)}</strong>
-      <div class="row-actions"><span class="badge badge-muted">${q.type}</span> <span class="badge badge-blue">${q.marks||1} marks</span> <button class="btn-sm btn-outline" onclick="qeDelete('${q.id}')">×</button></div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:6px;gap:8px;flex-wrap:wrap">
+      <strong style="flex:1;min-width:0">Q${i+1}. ${escHtml(q.question_text)}</strong>
+      <div class="row-actions"><span class="badge badge-muted">${q.type}</span><span class="badge badge-blue">${q.marks||1} marks</span><button class="btn-sm btn-outline" onclick="qeSaveToBank('${q.id}')">⭐ Bank</button><button class="btn-sm btn-outline" onclick="qeDelete('${q.id}')">×</button></div>
     </div>
-    ${optList}
+    ${img}${preview}
   </div>`;
 }
+// Six-type picker — clicking a card sets _qeType + re-renders the type-specific fields.
 function _renderQeAddForm(){
+  const card=(t,icon,name,desc)=>`<div data-qtype="${t}" class="qtype-card" onclick="qeSelectType('${t}')" style="background:var(--jm-bg);border:2px solid ${_qeType===t?'var(--jm-primary)':'var(--jm-border)'};border-radius:10px;padding:10px;text-align:center;cursor:pointer"><div style="font-size:18px;margin-bottom:2px">${icon}</div><div style="font-size:11px;font-weight:600">${name}</div><div style="font-size:10px;color:var(--jm-text-muted)">${desc}</div></div>`;
+  const secOpts=_qeSections.map(s=>`<option value="${s.id}">${escHtml(s.title)}</option>`).join('');
   return `<div style="border:2px dashed var(--jm-primary);border-radius:10px;padding:14px;margin-top:10px;background:var(--jm-primary-tint)">
     <div style="font-weight:700;margin-bottom:10px">➕ Add Question</div>
-    <div class="form-row"><label>Question *</label><div style="display:flex;align-items:flex-start"><textarea id="qe-text" rows="2" placeholder="What is …?" style="flex:1"></textarea>${micBtn('qe-text')}</div></div>
+    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:14px">
+      ${card('mcq','🔘','MCQ','choices')}
+      ${card('true_false','✅','T / F','binary')}
+      ${card('short','✏️','Short','1-2 lines')}
+      ${card('long','📄','Long','essay (manual)')}
+      ${card('fill','⬜','Fill blank','complete')}
+      ${card('match','🔗','Match','columns')}
+    </div>
+    <div class="form-row"><label>Question (supports $LaTeX$) *</label><div style="display:flex;align-items:flex-start"><textarea id="qe-text" rows="2" placeholder="What is the value of \$\\sqrt{16}\$?" style="flex:1"></textarea>${micBtn('qe-text')}</div></div>
+    <div class="form-row"><label>Image (optional)</label><div style="display:flex;gap:6px;align-items:center"><input type="file" id="qe-image" accept="image/*" onchange="qeUploadImage(this)" style="flex:1"><span id="qe-image-preview" style="font-size:11px;color:var(--jm-text-muted)">${_qeImageUrl?'✓ uploaded':''}</span></div></div>
     <div class="grid-2">
-      <div class="form-row"><label>Type</label><select id="qe-type" onchange="qeToggleType()">
-        <option value="mcq">MCQ (4 options)</option>
-        <option value="true_false">True / False</option>
-        <option value="short">Short answer</option>
-        <option value="long">Long answer</option>
-      </select></div>
       <div class="form-row"><label>Marks</label><input id="qe-marks" type="number" value="1" min="1"></div>
+      ${_qeSections.length?`<div class="form-row"><label>Section</label><select id="qe-section"><option value="">— No section —</option>${secOpts}</select></div>`:''}
     </div>
-    <div id="qe-options-wrap">
-      <div class="form-row"><label>Options (one per line)</label><textarea id="qe-options" rows="4" placeholder="3
-4
-5
-6"></textarea></div>
-      <div class="form-row"><label>Correct answer (must match one option, or true/false)</label><input id="qe-correct" placeholder="4"></div>
-    </div>
+    <div id="qe-options-wrap"></div>
     <div class="form-row"><label>Explanation (optional)</label><textarea id="qe-expl" rows="2"></textarea></div>
-    <div style="display:flex;gap:8px">
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn-sm btn-primary" onclick="qeAdd()">➕ Add Question</button>
-      <button class="btn-sm btn-outline" onclick="qeAiSuggest()">🤖 AI suggest from topic</button>
+      <button class="btn-sm btn-outline" onclick="qeAiSuggest()">🤖 AI suggest</button>
+      <button class="btn-sm btn-outline" onclick="qeOpenBank()">📚 From bank</button>
     </div>
   </div>`;
 }
-function qeToggleType(){
-  const type=val('qe-type');
+function qeBindType(){ qeSelectType(_qeType); }
+function qeSelectType(type){
+  _qeType=type;
+  document.querySelectorAll('.qtype-card').forEach(c=>{ c.style.borderColor=c.dataset.qtype===type?'var(--jm-primary)':'var(--jm-border)'; });
   const wrap=document.getElementById('qe-options-wrap');
+  if(!wrap) return;
   if(type==='mcq'){
     wrap.innerHTML=`<div class="form-row"><label>Options (one per line, 2-6)</label><textarea id="qe-options" rows="4" placeholder="Option A&#10;Option B&#10;Option C&#10;Option D"></textarea></div>
       <div class="form-row"><label>Correct answer (must match one option exactly)</label><input id="qe-correct"></div>`;
   } else if(type==='true_false'){
     wrap.innerHTML=`<div class="form-row"><label>Correct answer</label><select id="qe-correct"><option value="true">true</option><option value="false">false</option></select></div>`;
+  } else if(type==='fill'){
+    wrap.innerHTML=`<div class="form-row"><label>Expected answer(s) — separate synonyms with |</label><input id="qe-correct" placeholder="e.g. paris|Paris|PARIS"></div>`;
+  } else if(type==='match'){
+    wrap.innerHTML=`<div class="grid-2">
+      <div class="form-row"><label>Left column (one per line)</label><textarea id="qe-match-left" rows="4" placeholder="Apple&#10;Banana&#10;Cherry"></textarea></div>
+      <div class="form-row"><label>Right column (matching order)</label><textarea id="qe-match-right" rows="4" placeholder="Red&#10;Yellow&#10;Crimson"></textarea></div>
+    </div>
+    <div style="font-size:11px;color:var(--jm-text-muted);margin-top:-6px;margin-bottom:10px">Line N on the right is the correct match for line N on the left. Right column is shuffled before showing students.</div>`;
+  } else if(type==='long'){
+    wrap.innerHTML=`<div style="font-size:12px;padding:8px;background:var(--jm-bg);border-radius:6px;color:var(--jm-text-muted)">Essay — graded manually by the teacher after submission. No correct-answer field.</div>`;
   } else {
-    wrap.innerHTML=`<div class="form-row"><label>Expected answer (used for auto-grading exact match)</label><input id="qe-correct" placeholder="(optional)"></div>`;
+    wrap.innerHTML=`<div class="form-row"><label>Expected answer (case-insensitive exact match)</label><input id="qe-correct" placeholder="(optional)"></div>`;
   }
 }
+async function qeUploadImage(input){
+  if(!input.files?.[0]) return;
+  const fd=new FormData(); fd.append('image',input.files[0]);
+  try{
+    const r=await fetch(API+'/course-content/questions/upload-image',{method:'POST',headers:{Authorization:'Bearer '+localStorage.getItem('jm_token')},body:fd});
+    const j=await r.json(); if(!r.ok) throw new Error(extractError(j,'Upload failed'));
+    _qeImageUrl=j.url;
+    document.getElementById('qe-image-preview').innerHTML='✓ uploaded <img src="'+escHtml(j.url)+'" style="height:30px;border-radius:4px;vertical-align:middle;margin-left:6px">';
+  }catch(e){ toast(e.message,true); }
+}
 async function qeAdd(){
-  const type=val('qe-type'), text=val('qe-text');
+  const type=_qeType, text=val('qe-text');
   if(!text){ toast('Question text required',true); return; }
-  let options=null;
+  let options=null, matchPairs=null, correctAnswer=null;
   if(type==='mcq'){
-    options=val('qe-options').split(/\n/).map(s=>s.trim()).filter(Boolean);
+    options=(document.getElementById('qe-options')?.value||'').split(/\n/).map(s=>s.trim()).filter(Boolean);
     if(options.length<2){ toast('At least 2 options required',true); return; }
+    correctAnswer=val('qe-correct');
+  } else if(type==='match'){
+    const left=(document.getElementById('qe-match-left')?.value||'').split(/\n/).map(s=>s.trim()).filter(Boolean);
+    const right=(document.getElementById('qe-match-right')?.value||'').split(/\n/).map(s=>s.trim()).filter(Boolean);
+    if(left.length<2||left.length!==right.length){ toast('Left and Right must have same count, 2+ items',true); return; }
+    matchPairs={left,right};
+  } else if(type!=='long'){
+    correctAnswer=val('qe-correct');
   }
   try{
     await api('/course-content/tests/'+_qeTestId+'/questions','POST',{
-      type, questionText:text, options,
-      correctAnswer:val('qe-correct'),
-      marks:Number(val('qe-marks'))||1,
-      explanation:val('qe-expl')
+      type, questionText:text, options, matchPairs, correctAnswer,
+      marks:Number(val('qe-marks'))||1, explanation:val('qe-expl'),
+      sectionId:val('qe-section')||null, imageUrl:_qeImageUrl
     });
+    _qeImageUrl=null;
     toast('✓ Question added');
     await _renderQuestionEditor();
+  }catch(e){ toast(e.message,true); }
+}
+async function qeAddSection(){
+  const title=prompt('Section title:'); if(!title) return;
+  const dur=prompt('Duration in minutes (blank = none):');
+  try{ await api('/course-content/tests/'+_qeTestId+'/sections','POST',{title,durationMinutes:dur?Number(dur):null,orderIndex:_qeSections.length}); _renderQuestionEditor(); }
+  catch(e){ toast(e.message,true); }
+}
+async function qeDelSection(id){
+  if(!confirm('Remove this section?')) return;
+  try{ await api('/course-content/sections/'+id,'DELETE'); _renderQuestionEditor(); }catch(e){ toast(e.message,true); }
+}
+async function qeSaveToBank(qid){
+  // Find the row and re-POST it to the question bank.
+  try{
+    const r=await api('/course-content/tests/'+_qeTestId+'/questions','GET');
+    const q=(r.questions||[]).find(x=>x.id===qid); if(!q) return;
+    await api('/course-content/question-bank','POST',{
+      type:q.type, questionText:q.question_text, options:q.options,
+      correctAnswer:q.correct_answer, matchPairs:q.match_pairs,
+      marks:q.marks, difficulty:q.difficulty, explanation:q.explanation, imageUrl:q.image_url
+    });
+    toast('⭐ saved to question bank');
+  }catch(e){ toast(e.message,true); }
+}
+async function qeOpenBank(){
+  try{
+    const r=await api('/course-content/question-bank','GET');
+    const items=r.items||[];
+    const html=items.length
+      ? items.map(b=>`<div style="border:1px solid var(--jm-border);border-radius:8px;padding:10px;margin-bottom:8px"><div style="display:flex;justify-content:space-between;gap:6px"><div style="flex:1"><strong>${escHtml(b.question_text)}</strong><div style="font-size:11px;color:var(--jm-text-muted);margin-top:3px">${b.type} · ${b.marks} marks</div></div><div class="row-actions"><button class="btn-sm btn-primary" onclick="qeCopyFromBank('${b.id}')">+ Add</button><button class="btn-sm btn-outline" onclick="qeDeleteBank('${b.id}')">×</button></div></div></div>`).join('')
+      : '<div class="empty-state"><div class="icon">📚</div>No saved questions yet. Add one to a test, then click ⭐ Bank.</div>';
+    document.getElementById('qe-body').innerHTML=`<div style="margin-bottom:14px"><button class="btn-sm btn-outline" onclick="_renderQuestionEditor()">← Back to test</button></div><h3 style="margin-bottom:10px">📚 Question Bank (${items.length})</h3>${html}`;
+  }catch(e){ toast(e.message,true); }
+}
+async function qeCopyFromBank(bankId){
+  try{ await api('/course-content/tests/'+_qeTestId+'/questions/from-bank/'+bankId,'POST',{}); toast('✓ Added to test'); _renderQuestionEditor(); }catch(e){ toast(e.message,true); }
+}
+async function qeDeleteBank(id){
+  if(!confirm('Delete from bank?')) return;
+  try{ await api('/course-content/question-bank/'+id,'DELETE'); qeOpenBank(); }catch(e){ toast(e.message,true); }
+}
+async function qeOpenSettings(){
+  const t=window._qeTestRow||{};
+  const html=`<div style="margin-bottom:14px"><button class="btn-sm btn-outline" onclick="_renderQuestionEditor()">← Back</button></div>
+    <h3 style="margin-bottom:10px">⚙ Test Settings — ${escHtml(t.title||'Test')}</h3>
+    <div class="grid-2">
+      <div class="form-row"><label>Total Marks</label><input id="ts-marks" type="number" value="${t.total_marks||100}"></div>
+      <div class="form-row"><label>Duration (min)</label><input id="ts-dur" type="number" value="${t.duration_minutes||60}"></div>
+    </div>
+    <div class="form-row"><label>Negative marks per wrong (0 to disable)</label><input id="ts-neg" type="number" step="0.25" value="${t.negative_marks||0}"></div>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px">
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px"><input type="checkbox" id="ts-shufq" ${t.shuffle_questions?'checked':''}> 🔀 Shuffle questions</label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px"><input type="checkbox" id="ts-shufo" ${t.shuffle_options?'checked':''}> 🔀 Shuffle MCQ options</label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px"><input type="checkbox" id="ts-proc" ${t.proctored?'checked':''}> 📷 Proctored (camera + tab-switch detection)</label>
+    </div>
+    <button class="btn-sm btn-primary" onclick="qeSaveSettings()">💾 Save settings</button>`;
+  document.getElementById('qe-body').innerHTML=html;
+}
+async function qeSaveSettings(){
+  try{
+    await api('/course-content/tests/'+_qeTestId,'PUT',{
+      totalMarks:Number(val('ts-marks'))||100,
+      durationMinutes:Number(val('ts-dur'))||60,
+      negativeMarks:Number(val('ts-neg'))||0,
+      shuffleQuestions:document.getElementById('ts-shufq')?.checked,
+      shuffleOptions:document.getElementById('ts-shufo')?.checked,
+      proctored:document.getElementById('ts-proc')?.checked
+    });
+    toast('✓ Settings saved');
+    _renderQuestionEditor();
   }catch(e){ toast(e.message,true); }
 }
 async function qeDelete(id){
