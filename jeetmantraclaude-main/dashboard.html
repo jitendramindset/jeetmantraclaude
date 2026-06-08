@@ -48,6 +48,37 @@ html[data-theme="dark"]{
   --jm-text:#e8eaf0;--jm-text-strong:#fff;--jm-text-muted:#9aa0b0;--jm-text-subtle:#6b7080;
   --jm-primary-tint:rgba(124,58,237,.18);--jm-shadow:0 8px 24px rgba(0,0,0,.4);--jm-shadow-sm:0 1px 3px rgba(0,0,0,.4)
 }
+/* ── COMMAND PALETTE (Ctrl/⌘+K) ───────────────────────────────────── */
+.cmdk-overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);backdrop-filter:blur(6px);z-index:9000;align-items:flex-start;justify-content:center;padding-top:14vh}
+.cmdk-overlay.show{display:flex}
+.cmdk{background:var(--jm-surface);width:min(620px,92vw);border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.3);border:1px solid var(--jm-border);overflow:hidden}
+.cmdk input{width:100%;padding:18px 20px;font-size:16px;border:0;outline:0;background:transparent;color:var(--jm-text);border-bottom:1px solid var(--jm-border)}
+.cmdk .results{max-height:50vh;overflow-y:auto}
+.cmdk .res-item{display:flex;align-items:center;gap:12px;padding:11px 18px;cursor:pointer;font-size:14px;color:var(--jm-text)}
+.cmdk .res-item:hover,.cmdk .res-item.sel{background:var(--jm-primary-tint);color:var(--jm-primary)}
+.cmdk .res-cat{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--jm-text-muted);font-weight:700;padding:8px 18px 4px}
+.cmdk-foot{padding:8px 14px;border-top:1px solid var(--jm-border);font-size:11px;color:var(--jm-text-muted);display:flex;justify-content:space-between}
+/* ── MOBILE BOTTOM NAV ─────────────────────────────────────────────── */
+.bottom-nav{display:none;position:fixed;left:0;right:0;bottom:0;background:var(--jm-surface);border-top:1px solid var(--jm-border);z-index:80;padding:6px 4px;box-shadow:0 -2px 12px rgba(0,0,0,.06)}
+.bottom-nav .bn-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 4px;font-size:10px;color:var(--jm-text-muted);cursor:pointer;border-radius:8px}
+.bottom-nav .bn-item .ic{font-size:20px}
+.bottom-nav .bn-item.active{color:var(--jm-primary);background:var(--jm-primary-tint)}
+@media(max-width:768px){
+  .bottom-nav{display:flex}
+  .main{padding-bottom:64px}
+}
+/* ── NOTIFICATION CENTER DROPDOWN ─────────────────────────────────── */
+.notif-dropdown{display:none;position:absolute;top:46px;right:0;width:340px;max-width:calc(100vw - 24px);background:var(--jm-surface);border:1px solid var(--jm-border);border-radius:12px;box-shadow:0 16px 40px rgba(0,0,0,.18);z-index:120;max-height:70vh;overflow:hidden;flex-direction:column}
+.notif-dropdown.show{display:flex}
+.notif-dropdown header{padding:14px 16px;border-bottom:1px solid var(--jm-border);font-weight:800;font-size:13px;display:flex;justify-content:space-between;align-items:center}
+.notif-dropdown .group{padding:8px 16px 4px;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--jm-text-muted);font-weight:700;background:var(--jm-bg)}
+.notif-dropdown .item{padding:10px 16px;border-bottom:1px solid var(--jm-border);font-size:13px;display:flex;gap:10px;cursor:pointer}
+.notif-dropdown .item:hover{background:var(--jm-primary-tint)}
+.notif-dropdown .item .meta{font-size:11px;color:var(--jm-text-muted);margin-top:2px}
+/* Quick actions strip on teacher dashboard */
+.quick-actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.quick-actions .qa{padding:10px 14px;border-radius:10px;background:linear-gradient(135deg,var(--qc,#7c3aed),color-mix(in oklab,var(--qc,#7c3aed),#a855f7 30%));color:#fff;font-size:13px;font-weight:700;border:0;cursor:pointer;display:flex;align-items:center;gap:6px;box-shadow:0 2px 8px rgba(124,58,237,.18);transition:transform .12s,box-shadow .12s}
+.quick-actions .qa:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(124,58,237,.25)}
 /* Stat card with coloured top accent strip (--sc) — adds depth + meaning.
    Default accent is the primary brand; cards can pass --sc:#10b981 etc. */
 .stat-card{position:relative;background:var(--jm-surface);border-radius:var(--jm-radius);padding:22px 20px 18px;border:1px solid var(--jm-border);box-shadow:var(--jm-shadow-sm);overflow:hidden;transition:transform .15s,box-shadow .15s;--sc:var(--jm-primary)}
@@ -244,6 +275,19 @@ html[data-theme="dark"]{
 </head>
 <body>
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<!-- ==================== COMMAND PALETTE (Ctrl+K) ==================== -->
+<div class="cmdk-overlay" id="cmdkOverlay" onclick="if(event.target===this)closeCmdK()">
+  <div class="cmdk" onkeydown="cmdkKey(event)">
+    <input id="cmdkInput" placeholder="Search courses, classes, students, settings… (try 'live', 'attendance')" oninput="renderCmdK(this.value)" autocomplete="off">
+    <div class="results" id="cmdkResults"></div>
+    <div class="cmdk-foot"><span>↑↓ navigate · ⏎ open · esc close</span><span>⌘K / Ctrl+K</span></div>
+  </div>
+</div>
+
+<!-- Mobile bottom nav — top-5 actions per role -->
+<nav class="bottom-nav" id="bottomNav"></nav>
+
 <div class="sidebar" id="sidebar">
   <div class="sidebar-logo">
     <h2>Jeet<span class="accent">Mantra</span></h2>
@@ -276,7 +320,9 @@ html[data-theme="dark"]{
       </select>
       <button class="icon-btn" onclick="openAiKey()" title="AI assistant settings" style="border:none">🤖</button>
       <button class="icon-btn" onclick="openWall('me')" title="Activity wall" style="border:none">📰</button>
-      <span class="icon-btn">🔔</span>
+      <span class="icon-btn" onclick="toggleNotifs(event)" style="position:relative;cursor:pointer">🔔<span id="notifDot" style="display:none;position:absolute;top:6px;right:6px;width:8px;height:8px;border-radius:50%;background:#ef4444"></span>
+        <div class="notif-dropdown" id="notifDropdown" onclick="event.stopPropagation()"></div>
+      </span>
       <a href="/marketplace.html" class="icon-btn" title="Marketplace">🛒</a>
     </div>
   </div>
@@ -761,6 +807,8 @@ const NAV={
     {i:'🗓',l:'Attendance',action:'openAttendanceReport()'},
     {i:'🏫',l:'My Institutions',action:'openMyInstitutions()'},
     {i:'💳',l:'Payments',action:'openPayments()'},
+    {i:'💳',l:'Wallet',action:'openWallet()'},
+    {i:'⚡',l:'Plans',action:'openPlans()'},
     {i:'🛒',l:'Marketplace',h:'/marketplace.html'},
     {i:'⚙️',l:'Settings',action:'openSettings()'},
     {i:'👤',l:'Profile',action:'openProfilePage()'}
@@ -777,6 +825,8 @@ const NAV={
     {i:'📝',l:'Essay grading',action:'openEssayInbox()'},
     {i:'⚙️',l:'Settings',action:'openSettings()'},
     {i:'🏫',l:'My Institutions',action:'openMyInstitutions()'},
+    {i:'💳',l:'Wallet',action:'openWallet()'},
+    {i:'⚡',l:'Plans',action:'openPlans()'},
     {i:'🛒',l:'Marketplace',h:'/marketplace.html'},
     {i:'⚙️',l:'Settings',action:'openSettings()'},
     {i:'👤',l:'Profile',action:'openProfilePage()'}
@@ -785,6 +835,8 @@ const NAV={
     {i:'🏠',l:'Dashboard',t:'top',a:true},
     {i:'📅',l:'Bookings',t:'bookings'},
     {i:'💰',l:'Earnings',t:'earnings'},
+    {i:'💳',l:'Wallet',action:'openWallet()'},
+    {i:'⚡',l:'Plans',action:'openPlans()'},
     {i:'🛒',l:'Marketplace',h:'/marketplace.html'},
     {i:'⚙️',l:'Settings',action:'openSettings()'},
     {i:'👤',l:'Profile',action:'openProfilePage()'}
@@ -1094,12 +1146,14 @@ async function loadDashboard(){
     const sec=document.getElementById('section-'+role);
     if(sec)sec.classList.add('visible');
     if(role==='student'){renderStudentDash(d); loadNotes(); loadStudentHistory(); loadWall(); startTimeTracking(); renderContinueLearning();}
-    if(role==='parent'){renderParentDash();}
     else if(role==='teacher')renderTeacherDash(d);
     else if(role==='partner')renderPartnerDash(d);
     else if(role==='school'){renderSchoolDash(d); loadInstitutionTeachers(); loadInstitutionStudents();}
     else if(role==='coaching'){renderCoachingDash(d); loadInstitutionTeachers(); loadInstitutionStudents();}
     else if(role==='admin')renderAdminDash(d);
+    else if(role==='parent')renderParentDash();
+    // EduOS UI polish — applies after the role section renders.
+    try{ renderGreeting(); injectQuickActions(); renderTodaySchedule(); buildBottomNav(role); }catch(_){}
   }catch(e){
     document.getElementById('loadingState').innerHTML='<div class="empty-state"><div class="icon">⚠️</div><div>Could not load dashboard.</div><div style="font-size:12px;margin-top:8px;color:#888">Make sure backend is running: cd backend && npm start</div></div>';
   }
@@ -4186,6 +4240,341 @@ async function stChangePassword(){
     toast('✓ Reset link sent (check email)');
   }catch(_){ toast('Failed to send reset link',true); }
 }
+
+// ============================================================
+// WALLET — balance + topup + transactions list. Phase 2B.
+// ============================================================
+async function openWallet(){
+  document.getElementById('bookingsPage').classList.add('active');
+  document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
+  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
+  document.getElementById('bk-crumb').textContent='Wallet';
+  const body=document.getElementById('bk-body');
+  body.innerHTML='<div style="text-align:center;padding:40px;color:#888">Loading…</div>';
+  try{
+    const r=await api('/wallet','GET');
+    const refCode=await api('/wallet/referrals/my-code','GET').catch(()=>({code:'—'}));
+    body.innerHTML=`<div style="max-width:900px;margin:0 auto">
+      <h2 style="margin-bottom:14px">💰 My Wallet</h2>
+      <div class="stats-grid" style="margin-bottom:18px">
+        <div class="stat-card" style="--sc:#10b981"><div class="label">Balance</div><div class="value">${fmt(r.balance||0)}</div><div class="sub">Available</div></div>
+        <div class="stat-card" style="--sc:#7c3aed"><div class="label">Your referral code</div><div class="value" style="font-size:18px;font-family:monospace">${escHtml(refCode.code||'—')}</div><div class="sub">Share to earn ₹100</div></div>
+        <div class="stat-card" style="--sc:#f59e0b"><div class="label">Transactions</div><div class="value">${(r.transactions||[]).length}</div><div class="sub">Last 30</div></div>
+      </div>
+      <div class="card" style="padding:18px;margin-bottom:14px">
+        <div style="font-weight:700;margin-bottom:10px">Add money</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          ${[100,500,1000,2000,5000].map(a=>`<button class="btn-sm btn-outline" onclick="walletTopup(${a})">+ ₹${a}</button>`).join('')}
+          <button class="btn-sm btn-primary" onclick="walletTopup(null)">Custom amount</button>
+        </div>
+      </div>
+      <div class="card" style="padding:18px;margin-bottom:14px">
+        <div style="font-weight:700;margin-bottom:10px">Apply a referral code</div>
+        <div style="display:flex;gap:6px"><input id="ref-code-in" placeholder="e.g. JMABC123" style="flex:1;padding:10px;border:1.5px solid var(--jm-border);border-radius:6px"><button class="btn-sm btn-primary" onclick="applyReferral()">Apply</button></div>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden">
+        <div style="padding:14px 16px;font-weight:700;border-bottom:1px solid var(--jm-border)">Recent transactions</div>
+        ${(r.transactions||[]).length?`<table style="width:100%;border-collapse:collapse">
+          <thead><tr style="font-size:11px;color:var(--jm-text-muted);text-transform:uppercase;border-bottom:1px solid var(--jm-border)"><th style="text-align:left;padding:10px 14px">Date</th><th style="text-align:left;padding:10px 14px">Type</th><th style="text-align:left;padding:10px 14px">Notes</th><th style="text-align:right;padding:10px 14px">Amount</th><th style="text-align:right;padding:10px 14px">Balance</th></tr></thead><tbody>
+          ${r.transactions.map(t=>`<tr style="border-bottom:1px solid var(--jm-border);font-size:13px">
+            <td style="padding:10px 14px">${new Date(t.created_at).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</td>
+            <td style="padding:10px 14px"><span class="badge ${t.amount>=0?'badge-green':'badge-red'}">${escHtml(t.type)}</span></td>
+            <td style="padding:10px 14px;color:var(--jm-text-muted)">${escHtml(t.notes||'—')}</td>
+            <td style="padding:10px 14px;text-align:right;font-weight:700;color:${t.amount>=0?'#10b981':'#ef4444'}">${t.amount>=0?'+':''}${fmt(t.amount)}</td>
+            <td style="padding:10px 14px;text-align:right;color:var(--jm-text-muted)">${fmt(t.balance_after||0)}</td>
+          </tr>`).join('')}
+          </tbody></table>`:'<div class="empty-state" style="padding:30px"><div class="icon">💸</div>No transactions yet</div>'}
+      </div>
+    </div>`;
+  }catch(e){ body.innerHTML='<div style="color:#b91c1c;padding:20px">'+escHtml(e.message)+'</div>'; }
+}
+async function walletTopup(presetAmount){
+  let amount=presetAmount;
+  if(amount==null){ amount=Number(prompt('Top-up amount (min ₹50):','500')); }
+  if(!amount||amount<50){ toast('Min ₹50',true); return; }
+  try{
+    const order=await api('/wallet/topup/order','POST',{amount});
+    if(order.mode==='demo'){
+      if(!confirm('DEMO: simulate ₹'+amount+' top-up?')) return;
+      await api('/wallet/topup/verify','POST',{razorpayOrderId:order.orderId, amount});
+      toast('✓ ₹'+amount+' credited');
+      openWallet();
+      return;
+    }
+    await new Promise((res,rej)=>{ if(window.Razorpay)return res(); const s=document.createElement('script'); s.src='https://checkout.razorpay.com/v1/checkout.js'; s.onload=res; s.onerror=()=>rej(new Error('rzp script')); document.head.appendChild(s); });
+    const u=JSON.parse(localStorage.getItem('jm_user')||'{}');
+    new Razorpay({
+      key:order.keyId, order_id:order.orderId, amount:order.amount, currency:order.currency,
+      name:'JeetMantra wallet', description:'Top-up',
+      prefill:{name:u.fullName||'', email:u.email||'', contact:u.phone||''},
+      theme:{color:'#7c3aed'},
+      handler:async function(r){
+        try{
+          await api('/wallet/topup/verify','POST',{razorpayOrderId:r.razorpay_order_id, razorpayPaymentId:r.razorpay_payment_id, razorpaySignature:r.razorpay_signature, amount});
+          toast('✓ Wallet credited');
+          openWallet();
+        }catch(e){ toast(e.message,true); }
+      }
+    }).open();
+  }catch(e){ toast(e.message,true); }
+}
+async function applyReferral(){
+  const code=document.getElementById('ref-code-in')?.value?.trim();
+  if(!code) return;
+  try{ const r=await api('/wallet/referrals/apply','POST',{code}); toast(r.message); openWallet(); }
+  catch(e){ toast(e.message,true); }
+}
+
+// ============================================================
+// SaaS PLANS page — Free / Basic / Pro / Enterprise.
+// ============================================================
+async function openPlans(){
+  document.getElementById('bookingsPage').classList.add('active');
+  document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
+  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
+  document.getElementById('bk-crumb').textContent='Plans';
+  const body=document.getElementById('bk-body');
+  body.innerHTML='<div style="text-align:center;padding:40px;color:#888">Loading…</div>';
+  try{
+    const [r,cur]=await Promise.all([
+      api('/wallet/plans','GET'),
+      api('/wallet/subscription','GET').catch(()=>({subscription:null}))
+    ]);
+    const plans=r.plans||[];
+    const current=cur.subscription;
+    const planColor={free:'#94a3b8',basic:'#0ea5e9',pro:'#7c3aed',enterprise:'#10b981'};
+    body.innerHTML=`<div style="max-width:1200px;margin:0 auto">
+      <h2 style="margin-bottom:6px">⚡ SaaS plans</h2>
+      <div style="color:var(--jm-text-muted);font-size:13px;margin-bottom:18px">Scale your institute with the right plan. Switch any time.</div>
+      ${current?`<div class="card" style="padding:14px;margin-bottom:18px;display:flex;align-items:center;gap:10px;background:var(--jm-primary-tint)"><span style="font-size:22px">✅</span><div><div style="font-weight:700">Current plan: ${escHtml(current.plan_code||current.plan_name||'')}</div><div style="font-size:12px;color:var(--jm-text-muted)">Active until ${current.expires_at?new Date(current.expires_at).toLocaleDateString('en-IN'):'—'}</div></div></div>`:''}
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px">
+        ${plans.map(p=>{
+          const isCurrent=current && current.plan_code===p.code;
+          const c=planColor[p.code]||'#7c3aed';
+          return `<div class="card" style="padding:22px;border-top:4px solid ${c};position:relative;${isCurrent?'box-shadow:0 0 0 2px '+c:''}">
+            ${p.code==='pro'?'<div style="position:absolute;top:-10px;right:14px;background:'+c+';color:#fff;padding:3px 10px;border-radius:99px;font-size:10px;font-weight:800;letter-spacing:.05em">MOST POPULAR</div>':''}
+            <div style="font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:${c};margin-bottom:4px">${escHtml(p.name)}</div>
+            <div style="font-size:32px;font-weight:800;letter-spacing:-.02em">${p.price_monthly==0?'Free':'₹'+p.price_monthly}<span style="font-size:13px;color:var(--jm-text-muted);font-weight:500">/mo</span></div>
+            <div style="font-size:11px;color:var(--jm-text-muted);margin-bottom:14px">${p.price_yearly?'or ₹'+p.price_yearly+' / yr (save '+Math.round((1-p.price_yearly/(p.price_monthly*12))*100)+'%)':''}</div>
+            <ul style="list-style:none;padding:0;margin:0 0 16px;font-size:13px">
+              ${(p.features||[]).map(f=>`<li style="padding:4px 0;display:flex;gap:8px"><span style="color:${c}">✓</span>${escHtml(f)}</li>`).join('')}
+            </ul>
+            ${isCurrent?`<button class="btn-sm btn-outline" style="width:100%" disabled>Current plan</button>`:`<button class="btn-sm btn-primary" style="width:100%;background:linear-gradient(135deg,${c},color-mix(in oklab,${c},#a855f7 30%))" onclick="subscribe('${p.code}','monthly')">Choose ${escHtml(p.name)}</button>`}
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }catch(e){ body.innerHTML='<div style="color:#b91c1c;padding:20px">'+escHtml(e.message)+'</div>'; }
+}
+async function subscribe(planCode, billingPeriod){
+  if(!confirm('Subscribe to '+planCode+' ('+billingPeriod+')? In demo mode this activates instantly.')) return;
+  try{ await api('/wallet/subscribe','POST',{planCode, billingPeriod}); toast('✓ Subscribed to '+planCode); openPlans(); }
+  catch(e){ toast(e.message,true); }
+}
+
+// ============================================================
+// COMMAND PALETTE — Ctrl/⌘+K. Searches an in-memory action registry.
+// ============================================================
+let _cmdkSel=0;
+const CMDK_ACTIONS=()=>{
+  const a=[
+    {c:'Navigate', l:'🏠 Dashboard',    f:()=>navScroll(null,null)},
+    {c:'Navigate', l:'📚 My Courses',   f:()=>{const el=[...document.querySelectorAll('.nav-item')].find(x=>/courses/i.test(x.textContent));el?.click();}},
+    {c:'Navigate', l:'📡 Live Classes', f:()=>{const el=[...document.querySelectorAll('.nav-item')].find(x=>/live/i.test(x.textContent));el?.click();}},
+    {c:'Navigate', l:'📅 Calendar',     f:()=>typeof openCalendar==='function'&&openCalendar()},
+    {c:'Navigate', l:'📹 Recordings',   f:()=>typeof openRecordings==='function'&&openRecordings()},
+    {c:'Navigate', l:'📊 Bookings',     f:()=>typeof openBookings==='function'&&openBookings()},
+    {c:'Navigate', l:'💰 Payments',     f:()=>typeof openPayments==='function'&&openPayments()},
+    {c:'Navigate', l:'🧾 Billing',      f:()=>typeof openBilling==='function'&&openBilling()},
+    {c:'Navigate', l:'💳 Wallet',       f:()=>typeof openWallet==='function'&&openWallet()},
+    {c:'Navigate', l:'⚡ SaaS plans',   f:()=>typeof openPlans==='function'&&openPlans()},
+    {c:'Navigate', l:'🗓 Attendance report', f:()=>typeof openAttendanceReport==='function'&&openAttendanceReport()},
+    {c:'Navigate', l:'⚙️ Settings',     f:()=>typeof openSettings==='function'&&openSettings()},
+    {c:'Navigate', l:'👤 Profile',      f:()=>typeof openProfilePage==='function'&&openProfilePage()},
+    {c:'Action',   l:'➕ New course',    f:()=>typeof openWizard==='function'&&openWizard()},
+    {c:'Action',   l:'📝 Take attendance', f:()=>typeof openAttGrid==='function'&&openAttGrid()},
+    {c:'Action',   l:'🤖 Lesson planner', f:()=>typeof openLessonPlanner==='function'&&openLessonPlanner()},
+    {c:'Action',   l:'🛒 Marketplace',  f:()=>{window.location.href='/marketplace.html';}},
+    {c:'Action',   l:'🚪 Log out',      f:()=>logout()}
+  ];
+  return a;
+};
+function openCmdK(){
+  document.getElementById('cmdkOverlay').classList.add('show');
+  setTimeout(()=>{ const i=document.getElementById('cmdkInput'); if(i){ i.value=''; i.focus(); } },20);
+  _cmdkSel=0;
+  renderCmdK('');
+}
+function closeCmdK(){ document.getElementById('cmdkOverlay').classList.remove('show'); }
+function renderCmdK(q){
+  q=(q||'').toLowerCase();
+  const all=CMDK_ACTIONS();
+  const matches=q?all.filter(a=>a.l.toLowerCase().includes(q)||a.c.toLowerCase().includes(q)):all;
+  _cmdkSel=Math.min(_cmdkSel, Math.max(0,matches.length-1));
+  // Group by category
+  const cats={}; matches.forEach(a=>{ (cats[a.c]=cats[a.c]||[]).push(a); });
+  let i=-1;
+  document.getElementById('cmdkResults').innerHTML=Object.entries(cats).map(([cat,items])=>
+    `<div class="res-cat">${escHtml(cat)}</div>${items.map(a=>{ i++; return `<div class="res-item ${i===_cmdkSel?'sel':''}" data-idx="${i}" onclick="cmdkRun(${i})">${escHtml(a.l)}</div>`;}).join('')}`
+  ).join('') || '<div style="padding:30px;text-align:center;color:#888;font-size:13px">No matches</div>';
+}
+function cmdkRun(idx){
+  const q=document.getElementById('cmdkInput')?.value||'';
+  const all=CMDK_ACTIONS();
+  const matches=q?all.filter(a=>a.l.toLowerCase().includes(q.toLowerCase())||a.c.toLowerCase().includes(q.toLowerCase())):all;
+  if(matches[idx]){ closeCmdK(); matches[idx].f(); }
+}
+function cmdkKey(e){
+  if(e.key==='Escape'){ closeCmdK(); return; }
+  if(e.key==='ArrowDown'){ _cmdkSel++; renderCmdK(document.getElementById('cmdkInput').value); e.preventDefault(); return; }
+  if(e.key==='ArrowUp'){ _cmdkSel=Math.max(0,_cmdkSel-1); renderCmdK(document.getElementById('cmdkInput').value); e.preventDefault(); return; }
+  if(e.key==='Enter'){ cmdkRun(_cmdkSel); e.preventDefault(); return; }
+}
+// Bind Ctrl/⌘+K globally.
+document.addEventListener('keydown', e=>{
+  if((e.ctrlKey||e.metaKey) && (e.key==='k'||e.key==='K')){ e.preventDefault(); openCmdK(); }
+});
+
+// ============================================================
+// GREETING — top of dashboard. Replaces "Teacher Dashboard" with
+// "Good morning, <name>" + a tiny subtitle.
+// ============================================================
+function renderGreeting(){
+  const u=JSON.parse(localStorage.getItem('jm_user')||'{}');
+  const h=new Date().getHours();
+  const greet = h<5?'Working late':h<12?'Good morning':h<17?'Good afternoon':h<21?'Good evening':'Hi night owl';
+  const name=(u.fullName||u.full_name||u.email||'').split(' ')[0]||'there';
+  const el=document.getElementById('pageTitle');
+  if(el){ el.innerHTML=`${greet}, <span style="background:linear-gradient(135deg,var(--jm-primary),#ec4899);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent">${escHtml(name)}</span> 👋`; el.style.fontSize='18px'; }
+}
+
+// ============================================================
+// QUICK ACTIONS bar — teacher dashboard top.
+// ============================================================
+function injectQuickActions(){
+  const role=(JSON.parse(localStorage.getItem('jm_user')||'{}').user_type)||(JSON.parse(localStorage.getItem('jm_user')||'{}').role)||'student';
+  const isCreator=['teacher','partner','school','coaching','admin','content_creator','corporate_trainer'].includes(role);
+  if(!isCreator) return;
+  const sec=document.getElementById('section-'+role);
+  if(!sec || sec.querySelector('.quick-actions')) return;
+  const bar=document.createElement('div');
+  bar.className='quick-actions';
+  bar.innerHTML=`
+    <button class="qa" style="--qc:#7c3aed" onclick="openWizard()">➕ New course</button>
+    <button class="qa" style="--qc:#ec4899" onclick="openModal('scheduleLive')">📡 Schedule live</button>
+    <button class="qa" style="--qc:#0ea5e9" onclick="openAttGrid()">📝 Attendance</button>
+    <button class="qa" style="--qc:#10b981" onclick="openCalendar()">📅 Calendar</button>
+    <button class="qa" style="--qc:#f59e0b" onclick="openLessonPlanner()">🤖 AI lesson plan</button>`;
+  const statsGrid=sec.querySelector('.stats-grid');
+  if(statsGrid) statsGrid.insertAdjacentElement('afterend', bar);
+  else sec.prepend(bar);
+}
+
+// ============================================================
+// TODAY'S SCHEDULE — student/teacher dashboard widget.
+// ============================================================
+async function renderTodaySchedule(){
+  const role=(JSON.parse(localStorage.getItem('jm_user')||'{}').user_type)||(JSON.parse(localStorage.getItem('jm_user')||'{}').role)||'student';
+  let events=[];
+  try{
+    if(['teacher','partner','school','coaching','admin','content_creator','corporate_trainer'].includes(role)){
+      const r=await api('/teacher/timetable?from='+new Date().toISOString().slice(0,10)+'T00:00:00Z&to='+new Date(Date.now()+24*3600*1000).toISOString().slice(0,10)+'T00:00:00Z','GET').catch(()=>({events:[]}));
+      events=r.events||[];
+    } else if(role==='student'){
+      const r=await api('/live-classes/upcoming','GET').catch(()=>({liveClasses:[]}));
+      events=(r.liveClasses||[]).slice(0,4).map(l=>({type:'live', title:l.title, start:l.scheduled_time, course_title:l.courses?.title}));
+    }
+  }catch(_){}
+  // Inject into the role-section as a top widget if not already there.
+  const sec=document.getElementById('section-'+role);
+  if(!sec || sec.querySelector('#today-schedule')) return;
+  if(!events.length) return;
+  const wid=document.createElement('div');
+  wid.id='today-schedule'; wid.className='section'; wid.style.setProperty('--sc','#0ea5e9');
+  wid.innerHTML=`<div class="section-title">📅 Today &amp; tomorrow</div>
+    <div class="card" style="padding:0">${events.slice(0,6).map(e=>{
+      const c=e.type==='live'?'#7c3aed':e.type==='test'?'#ef4444':'#0ea5e9';
+      const t=new Date(e.start).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+      return `<div style="padding:12px 16px;border-bottom:1px solid var(--jm-border);display:flex;align-items:center;gap:12px">
+        <div style="width:6px;height:36px;background:${c};border-radius:3px"></div>
+        <div style="flex:1"><div style="font-weight:600;font-size:14px">${escHtml(e.title)}</div><div style="font-size:11px;color:var(--jm-text-muted)">${escHtml(e.course_title||'')} · ${t}</div></div>
+        <span class="badge badge-muted" style="text-transform:uppercase">${e.type}</span>
+      </div>`;
+    }).join('')}</div>`;
+  const statsGrid=sec.querySelector('.stats-grid');
+  if(statsGrid) statsGrid.insertAdjacentElement('afterend', wid);
+}
+
+// ============================================================
+// BOTTOM NAV — mobile only, surfaces 5 role-specific actions.
+// ============================================================
+function buildBottomNav(role){
+  const nav=document.getElementById('bottomNav'); if(!nav) return;
+  const PRESETS={
+    student:[
+      {i:'🏠',l:'Home', f:()=>navScroll(null,null)},
+      {i:'📚',l:'Courses', f:()=>navScroll(null,'sec-student-courses')},
+      {i:'📡',l:'Live', f:()=>navScroll(null,'sec-student-live')},
+      {i:'✏️',l:'Tests', f:()=>navScroll(null,'sec-student-hw')},
+      {i:'👤',l:'Profile', f:()=>openProfilePage()}
+    ],
+    teacher:[
+      {i:'🏠',l:'Home', f:()=>navScroll(null,null)},
+      {i:'📚',l:'Courses', f:()=>navScroll(null,'sec-teacher-courses')},
+      {i:'📡',l:'Live', f:()=>navScroll(null,'sec-teacher-live')},
+      {i:'📅',l:'Calendar', f:()=>openCalendar()},
+      {i:'👤',l:'Profile', f:()=>openProfilePage()}
+    ],
+    parent:[
+      {i:'🏠',l:'Home', f:()=>navScroll(null,null)},
+      {i:'👨‍👩‍👧',l:'Kids', f:()=>navScroll(null,'sec-parent-children')},
+      {i:'📈',l:'Snap', f:()=>navScroll(null,'sec-parent-snapshot')},
+      {i:'📅',l:'Calendar', f:()=>openCalendar()},
+      {i:'👤',l:'Profile', f:()=>openProfilePage()}
+    ]
+  };
+  const items=PRESETS[role]||PRESETS.teacher;
+  nav.innerHTML=items.map((it,i)=>`<div class="bn-item${i===0?' active':''}" onclick="(${it.f.toString()})(); document.querySelectorAll('.bn-item').forEach(x=>x.classList.remove('active'));this.classList.add('active')"><div class="ic">${it.i}</div>${it.l}</div>`).join('');
+}
+
+// ============================================================
+// NOTIFICATION CENTER — pulls /activity/me and groups by type.
+// ============================================================
+async function toggleNotifs(ev){
+  if(ev) ev.stopPropagation();
+  const dd=document.getElementById('notifDropdown');
+  if(dd.classList.contains('show')){ dd.classList.remove('show'); return; }
+  try{
+    const r=await api('/activity/me','GET');
+    const items=(r.activities||r.events||r.feed||[]).slice(0,30);
+    const groups={Classes:[],Payments:[],Tests:[],Announcements:[],Other:[]};
+    items.forEach(it=>{
+      const e=String(it.event_type||it.type||'');
+      if(/live|class/i.test(e)) groups.Classes.push(it);
+      else if(/payment|enroll/i.test(e)) groups.Payments.push(it);
+      else if(/test|submission|assignment/i.test(e)) groups.Tests.push(it);
+      else if(/announcement|broadcast/i.test(e)) groups.Announcements.push(it);
+      else groups.Other.push(it);
+    });
+    let html=`<header>🔔 Notifications<button class="btn-sm btn-outline" onclick="document.getElementById('notifDropdown').classList.remove('show')" style="padding:2px 8px;font-size:11px">close</button></header>`;
+    let total=0;
+    Object.entries(groups).forEach(([g,arr])=>{
+      if(!arr.length) return;
+      html+=`<div class="group">${g} (${arr.length})</div>`;
+      html+=arr.slice(0,6).map(it=>{
+        total++;
+        const when=it.created_at||it.occurred_at;
+        return `<div class="item"><div style="flex:1"><div>${escHtml(it.message||it.event_type||'event')}</div><div class="meta">${when?new Date(when).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):''}</div></div></div>`;
+      }).join('');
+    });
+    if(!total) html+='<div style="padding:24px;text-align:center;color:var(--jm-text-muted);font-size:13px">No notifications yet</div>';
+    dd.innerHTML=html;
+    dd.classList.add('show');
+    document.getElementById('notifDot').style.display='none';
+    setTimeout(()=>document.addEventListener('click',_closeNotifsOnce,{once:true}),100);
+  }catch(_){ /* non-fatal */ }
+}
+function _closeNotifsOnce(){ document.getElementById('notifDropdown')?.classList.remove('show'); }
 
 // ============================================================
 // PARENT — link a child + view snapshot.
