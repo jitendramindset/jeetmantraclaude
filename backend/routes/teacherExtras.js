@@ -110,6 +110,132 @@ router.post('/live-classes/recurring', authenticateToken, authorizeRole(CREATOR_
   }
 });
 
+// ── ATTENDANCE ROSTER: enrollments hydrated with student name + any existing
+// attendance rows for that date — used by the bulk-mark grid UI.
+router.get('/attendance/roster/:courseId', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const date = req.query.date || new Date().toISOString().slice(0, 10);
+    const { data: course } = await supabaseAdmin.from('courses').select('teacher_id, title').eq('id', courseId).single();
+    if (!course || course.teacher_id !== req.user.id) return res.status(403).json({ error: 'Not your course' });
+    const { data: enrollments } = await supabaseAdmin.from('enrollments').select('*').eq('course_id', courseId);
+    const studentIds = (enrollments || []).map(e => e.student_id);
+    let studentMap = {};
+    if (studentIds.length) {
+      const { data: students } = await supabaseAdmin.from('jeetmantra_users').select('id, full_name, email').in('id', studentIds);
+      studentMap = Object.fromEntries((students || []).map(s => [s.id, s]));
+    }
+    // Existing attendance rows for this date (so the grid can pre-select state)
+    const { data: existing } = await supabaseAdmin
+      .from('attendance').select('*').eq('course_id', courseId).eq('date', date);
+    const existingByEnr = Object.fromEntries((existing || []).map(a => [a.enrollment_id, a]));
+    const roster = (enrollments || []).map(e => ({
+      enrollment_id: e.id,
+      student_id: e.student_id,
+      student_name: studentMap[e.student_id]?.full_name || e.student_id.slice(0, 8),
+      student_email: studentMap[e.student_id]?.email || '',
+      status: existingByEnr[e.id]?.status || null,
+      attendance_id: existingByEnr[e.id]?.id || null
+    }));
+    res.json({ course: { id: courseId, title: course.title }, date, roster });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── BULK ATTENDANCE (mixed status): mark each student with their own status.
+// Body: { courseId, classDate, marks: [{ enrollmentId, status }] }
+// Existing rows for the same (enrollment, date) are UPDATED, not duplicated.
+router.post('/attendance/bulk-mixed', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
+  try {
+    const { courseId, classDate, marks } = req.body;
+    if (!courseId || !classDate || !Array.isArray(marks) || !marks.length)
+      return res.status(400).json({ error: 'courseId, classDate, marks[] required' });
+    const { data: course } = await supabaseAdmin.from('courses').select('teacher_id').eq('id', courseId).single();
+    if (!course || course.teacher_id !== req.user.id) return res.status(403).json({ error: 'Not your course' });
+    const enrIds = marks.map(m => m.enrollmentId);
+    const { data: enrollments } = await supabaseAdmin.from('enrollments').select('*').in('id', enrIds).eq('course_id', courseId);
+    const enrById = Object.fromEntries((enrollments || []).map(e => [e.id, e]));
+    const { data: existing } = await supabaseAdmin.from('attendance')
+      .select('id, enrollment_id').eq('course_id', courseId).eq('date', classDate);
+    const existingByEnr = Object.fromEntries((existing || []).map(a => [a.enrollment_id, a.id]));
+    let updated = 0, inserted = 0;
+    for (const m of marks) {
+      const enr = enrById[m.enrollmentId];
+      if (!enr) continue;
+      const status = ['present', 'absent', 'late'].includes(m.status) ? m.status : 'present';
+      const existingId = existingByEnr[m.enrollmentId];
+      if (existingId) {
+        await supabaseAdmin.from('attendance').update({ status }).eq('id', existingId);
+        updated++;
+      } else {
+        await supabaseAdmin.from('attendance').insert({
+          id: uuidv4(),
+          enrollment_id: enr.id,
+          course_id: courseId,
+          student_id: enr.student_id,
+          status,
+          date: classDate,
+          recorded_by: req.user.id,
+          created_at: new Date().toISOString()
+        });
+        inserted++;
+      }
+    }
+    res.status(201).json({ message: 'Attendance saved', updated, inserted });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── BOOKINGS (full): bookings for the teacher's courses, hydrated with
+// student name + course title — what the dashboard's Bookings page reads.
+router.get('/bookings', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
+  try {
+    const { data: courses } = await supabaseAdmin.from('courses').select('id, title').eq('teacher_id', req.user.id);
+    const courseIds = (courses || []).map(c => c.id);
+    if (!courseIds.length) return res.json({ bookings: [] });
+    const courseById = Object.fromEntries((courses || []).map(c => [c.id, c]));
+    const { data: bookings } = await supabaseAdmin.from('bookings').select('*').in('course_id', courseIds).order('created_at', { ascending: false });
+    const studentIds = [...new Set((bookings || []).map(b => b.student_id).filter(Boolean))];
+    let studentMap = {};
+    if (studentIds.length) {
+      const { data: students } = await supabaseAdmin.from('jeetmantra_users').select('id, full_name, email, phone').in('id', studentIds);
+      studentMap = Object.fromEntries((students || []).map(s => [s.id, s]));
+    }
+    const enriched = (bookings || []).map(b => ({
+      ...b,
+      course_title: courseById[b.course_id]?.title || '—',
+      student_name: studentMap[b.student_id]?.full_name || '—',
+      student_email: studentMap[b.student_id]?.email || '',
+      student_phone: studentMap[b.student_id]?.phone || ''
+    }));
+    res.json({ bookings: enriched });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── PAYMENTS + EARNINGS combined view for teacher.
+router.get('/payments', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
+  try {
+    const [{ data: earnings }, { data: payments }] = await Promise.all([
+      supabaseAdmin.from('earnings').select('*').eq('user_id', req.user.id).order('date', { ascending: false }),
+      supabaseAdmin.from('payments').select('*').eq('user_id', req.user.id).order('created_at', { ascending: false })
+    ]);
+    const total = (earnings || []).reduce((s, e) => s + parseFloat(e.amount || 0), 0);
+    const pending = (payments || []).filter(p => p.status === 'pending').reduce((s, p) => s + parseFloat(p.amount || 0), 0);
+    const paid = (payments || []).filter(p => p.status === 'paid' || p.status === 'completed').reduce((s, p) => s + parseFloat(p.amount || 0), 0);
+    res.json({
+      earnings: earnings || [],
+      payments: payments || [],
+      summary: { totalEarned: total, pending, paid }
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── BULK ATTENDANCE: mark every enrollment present (or with override list)
 // Body: { courseId, classDate, status?, enrollmentIds? }
 router.post('/attendance/bulk', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {

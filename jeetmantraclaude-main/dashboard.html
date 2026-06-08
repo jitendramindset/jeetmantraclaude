@@ -261,7 +261,7 @@ body{display:flex;min-height:100vh}
       <div class="grid-2">
         <div class="section" id="sec-teacher-courses">
           <div class="section-title">📚 My Courses
-            <div class="actions"><button class="btn-sm btn-primary" onclick="openModal('createCourse')">+ New Course</button></div>
+            <div class="actions"><button class="btn-sm btn-primary" onclick="openWizard()">+ New Course</button></div>
           </div>
           <div class="card"><ul class="item-list" id="t-coursesList"><li style="width:100%"><div class="empty-state"><div class="icon">📖</div>No courses yet</div></li></ul></div>
         </div>
@@ -287,7 +287,7 @@ body{display:flex;min-height:100vh}
         </div>
         <div class="section" id="sec-teacher-bookings">
           <div class="section-title">📊 Recent Bookings
-            <div class="actions"><button class="btn-sm btn-outline" onclick="openModal('takeAttendance')">📝 Take Attendance</button></div>
+            <div class="actions"><button class="btn-sm btn-outline" onclick="openAttGrid()">📝 Take Attendance</button></div>
           </div>
           <div class="card"><ul class="item-list" id="t-bookingsList"><li style="width:100%"><div class="empty-state"><div class="icon">📅</div>No bookings</div></li></ul></div>
         </div>
@@ -313,8 +313,8 @@ body{display:flex;min-height:100vh}
         <div class="section" id="sec-partner-myCourses">
           <div class="section-title">📚 My Services / Courses
             <div class="actions">
-              <button class="btn-sm btn-primary" onclick="openModal('createCourse')">+ New Course</button>
-              <button class="btn-sm btn-outline" onclick="openModal('takeAttendance')">📝 Attendance</button>
+              <button class="btn-sm btn-primary" onclick="openWizard()">+ New Course</button>
+              <button class="btn-sm btn-outline" onclick="openAttGrid()">📝 Attendance</button>
             </div>
           </div>
           <div class="card"><ul class="item-list" id="pm-coursesList"><li style="width:100%"><div class="empty-state"><div class="icon">📖</div>Loading…</div></li></ul></div>
@@ -361,8 +361,8 @@ body{display:flex;min-height:100vh}
         <div class="section" id="sec-school-myCourses">
           <div class="section-title">📚 My School Courses
             <div class="actions">
-              <button class="btn-sm btn-primary" onclick="openModal('createCourse')">+ New Course</button>
-              <button class="btn-sm btn-outline" onclick="openModal('takeAttendance')">📝 Attendance</button>
+              <button class="btn-sm btn-primary" onclick="openWizard()">+ New Course</button>
+              <button class="btn-sm btn-outline" onclick="openAttGrid()">📝 Attendance</button>
             </div>
           </div>
           <div class="card"><ul class="item-list" id="sm-coursesList"><li style="width:100%"><div class="empty-state"><div class="icon">📖</div>Loading…</div></li></ul></div>
@@ -423,8 +423,8 @@ body{display:flex;min-height:100vh}
         <div class="section" id="sec-coaching-myCourses">
           <div class="section-title">📚 My Center Courses
             <div class="actions">
-              <button class="btn-sm btn-primary" onclick="openModal('createCourse')">+ New Course</button>
-              <button class="btn-sm btn-outline" onclick="openModal('takeAttendance')">📝 Attendance</button>
+              <button class="btn-sm btn-primary" onclick="openWizard()">+ New Course</button>
+              <button class="btn-sm btn-outline" onclick="openAttGrid()">📝 Attendance</button>
             </div>
           </div>
           <div class="card"><ul class="item-list" id="cm-coursesList"><li style="width:100%"><div class="empty-state"><div class="icon">📖</div>Loading…</div></li></ul></div>
@@ -538,6 +538,39 @@ body{display:flex;min-height:100vh}
     </div>
   </div>
   <div class="configure-body" id="cfg-body">Loading…</div>
+</div>
+
+<!-- ==================== COURSE WIZARD (step-by-step) ==================== -->
+<div class="configure-page" id="wizardPage">
+  <div class="configure-breadcrumb">
+    <span class="crumb" onclick="closeWizard()">🏠 Dashboard</span>
+    <span class="crumb-sep">/</span>
+    <span class="crumb active">New Course</span>
+    <div style="margin-left:auto"><button class="btn-sm btn-outline" onclick="closeWizard()">← Back</button></div>
+  </div>
+  <div class="configure-body" id="wiz-body">Loading…</div>
+</div>
+
+<!-- ==================== BULK ATTENDANCE GRID ==================== -->
+<div class="configure-page" id="attGridPage">
+  <div class="configure-breadcrumb">
+    <span class="crumb" onclick="closeAttGrid()">🏠 Dashboard</span>
+    <span class="crumb-sep">/</span>
+    <span class="crumb active">Mark Attendance</span>
+    <div style="margin-left:auto"><button class="btn-sm btn-outline" onclick="closeAttGrid()">← Back</button></div>
+  </div>
+  <div class="configure-body" id="att-body">Loading…</div>
+</div>
+
+<!-- ==================== BOOKINGS / PAYMENTS DETAIL ==================== -->
+<div class="configure-page" id="bookingsPage">
+  <div class="configure-breadcrumb">
+    <span class="crumb" onclick="closeBookings()">🏠 Dashboard</span>
+    <span class="crumb-sep">/</span>
+    <span class="crumb active" id="bk-crumb">Bookings</span>
+    <div style="margin-left:auto"><button class="btn-sm btn-outline" onclick="closeBookings()">← Back</button></div>
+  </div>
+  <div class="configure-body" id="bk-body">Loading…</div>
 </div>
 
 <script>
@@ -764,8 +797,8 @@ function renderTeacherDash(d){
     const badge=s==='live'?'badge-green':(s==='completed'?'badge-blue':'badge-yellow');
     return `<li><span>${c.title}</span><div class="row-actions"><span class="badge ${badge}">${s}</span>${rosterBtn}${actions}</div></li>`;
   }),['📺','No live classes']);
-  renderList('t-bookingsList',(d.bookings||[]).map(b=>`<li><span>Booking ${b.id?.slice(0,8)}</span><span class="badge badge-yellow">${b.status}</span></li>`),['📅','No bookings']);
-  renderList('t-earningsList',(d.earnings||[]).map(e=>`<li><span>${e.source||'Earning'}</span><span class="badge badge-green">${fmt(e.amount)}</span></li>`),['💸','No earnings yet']);
+  renderList('t-bookingsList',(d.bookings||[]).slice(0,6).map(b=>`<li><span>Booking ${b.id?.slice(0,8)}</span><div class="row-actions"><span class="badge badge-yellow">${b.status||'pending'}</span><button class="btn-sm btn-outline" onclick="openBookings()">View →</button></div></li>`).concat(['<li style="width:100%;text-align:center"><button class="btn-sm btn-primary" onclick="openBookings()">📋 See All Bookings</button></li>']),['📅','No bookings']);
+  renderList('t-earningsList',(d.earnings||[]).slice(0,5).map(e=>`<li><span>${e.source||'Earning'}</span><span class="badge badge-green">${fmt(e.amount)}</span></li>`).concat(['<li style="width:100%;text-align:center"><button class="btn-sm btn-primary" onclick="openPayments()">💰 Open Payments Page</button></li>']),['💸','No earnings yet']);
   renderProfile('t-profile',[['Total Earnings',fmt(d.totalEarnings)],['Courses Published',(d.courses||[]).length]]);
 }
 function renderPartnerDash(d){
@@ -2579,21 +2612,340 @@ function _withButtonLoading(handler){
     }
   };
 }
-const startLive=_withButtonLoading(async (id)=>{
-  try{ await api('/live-classes/'+id+'/start','POST',{}); toast('Class started'); loadDashboard(); }
-  catch(e){ toast(e.message,true); }
-});
-const endLive=_withButtonLoading(async (id)=>{
-  try{ await api('/live-classes/'+id+'/end','POST',{}); toast('Class ended'); loadDashboard(); }
-  catch(e){ toast(e.message,true); }
-});
-const joinLive=_withButtonLoading(async (id)=>{
+// startLive / endLive / joinLive — all route through the in-browser live-room page.
+// The room itself (liveRoom.html) handles the status POSTs, Jitsi WebRTC bridge,
+// attendance polling and pause/end controls. Opening the room in the same tab
+// lets the back button return to the dashboard cleanly.
+function startLive(id){ window.location.href='/liveRoom.html?class='+id; }
+function endLive(id){ window.location.href='/liveRoom.html?class='+id; }
+function joinLive(id){ window.location.href='/liveRoom.html?class='+id; }
+
+// ============================================================
+// COURSE-CREATION WIZARD — 4 steps, inline page (no modal):
+//   1. Basics: title + AI quick-fill
+//   2. Category / level / price
+//   3. Cover image + description
+//   4. Review + create + jump to Configure
+// State lives on window._wiz; each step renders into #wiz-body.
+// ============================================================
+window._wiz = null;
+function openWizard(){
+  window._wiz = { step:1, data:{ title:'', category:'General', level:'beginner', price:0, description:'', cover:null } };
+  document.getElementById('wizardPage').classList.add('active');
+  document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
+  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
+  renderWizard();
+}
+function closeWizard(){
+  document.getElementById('wizardPage').classList.remove('active');
+  document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='');
+  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='');
+  window._wiz=null;
+}
+function wizStep(n){
+  // Save current field values into state before navigating
+  wizCaptureFields();
+  window._wiz.step = Math.max(1, Math.min(4, n));
+  renderWizard();
+}
+function wizCaptureFields(){
+  const w=window._wiz; if(!w) return;
+  const get=id=>document.getElementById(id)?.value;
+  if(w.step===1){ if(get('wz-title')!=null) w.data.title=get('wz-title'); }
+  if(w.step===2){
+    if(get('wz-cat')!=null) w.data.category=get('wz-cat')||'General';
+    if(get('wz-level')!=null) w.data.level=get('wz-level');
+    if(get('wz-price')!=null) w.data.price=Number(get('wz-price'))||0;
+  }
+  if(w.step===3){
+    if(get('wz-desc')!=null) w.data.description=get('wz-desc');
+    const f=document.getElementById('wz-cover')?.files?.[0]; if(f) w.data.cover=f;
+  }
+}
+function renderWizard(){
+  const w=window._wiz; if(!w) return;
+  const body=document.getElementById('wiz-body');
+  const dot=(n,label)=>`<div style="flex:1;text-align:center;padding:10px 6px;border-radius:8px;background:${w.step===n?'var(--jm-primary)':'var(--jm-primary-tint)'};color:${w.step===n?'#fff':'var(--jm-text-strong)'};font-weight:600;font-size:13px">${n}. ${label}</div>`;
+  const stepBar=`<div style="display:flex;gap:8px;margin-bottom:24px">${dot(1,'Basics')}${dot(2,'Pricing')}${dot(3,'Description')}${dot(4,'Review')}</div>`;
+  let html='';
+  if(w.step===1){
+    html=`
+      <div class="card" style="max-width:720px;margin:0 auto;padding:24px">
+        ${stepBar}
+        <h2 style="margin-bottom:6px">📚 What are you teaching?</h2>
+        <div style="color:var(--jm-text-muted);margin-bottom:18px;font-size:14px">Start with the title — you'll add lectures and tests later.</div>
+        <div style="background:var(--jm-primary-tint);padding:14px;border-radius:8px;margin-bottom:18px">
+          <div style="font-weight:700;margin-bottom:6px">🤖 AI Quick-fill</div>
+          <div style="display:flex;gap:6px;align-items:flex-start"><textarea id="wz-prompt" rows="2" placeholder="Describe your course in a sentence — e.g. '12-week algebra for class 10 CBSE'" style="flex:1"></textarea>${micBtn('wz-prompt')}</div>
+          <button class="btn-sm btn-primary" style="margin-top:8px" onclick="wizAiFill()">✨ Generate</button>
+        </div>
+        <div class="form-row"><label>Course Title *</label><div style="display:flex"><input id="wz-title" value="${escHtml(w.data.title||'')}" placeholder="e.g. Class 10 Mathematics — Algebra" style="flex:1">${micBtn('wz-title')}</div></div>
+        <div style="display:flex;justify-content:space-between;margin-top:24px">
+          <button class="btn-sm btn-outline" onclick="closeWizard()">Cancel</button>
+          <button class="btn-sm btn-primary" onclick="wizStep(2)">Next: Pricing →</button>
+        </div>
+      </div>`;
+  } else if(w.step===2){
+    html=`
+      <div class="card" style="max-width:720px;margin:0 auto;padding:24px">
+        ${stepBar}
+        <h2 style="margin-bottom:6px">💰 Category &amp; pricing</h2>
+        <div style="color:var(--jm-text-muted);margin-bottom:18px;font-size:14px">Set the subject area, difficulty and price. Free courses are perfectly fine — just leave price 0.</div>
+        <div class="grid-2">
+          <div class="form-row"><label>Category</label><input id="wz-cat" value="${escHtml(w.data.category||'General')}" placeholder="e.g. Mathematics"></div>
+          <div class="form-row"><label>Level</label><select id="wz-level"><option value="beginner" ${w.data.level==='beginner'?'selected':''}>Beginner</option><option value="intermediate" ${w.data.level==='intermediate'?'selected':''}>Intermediate</option><option value="advanced" ${w.data.level==='advanced'?'selected':''}>Advanced</option></select></div>
+        </div>
+        <div class="form-row"><label>Price (₹)</label><input id="wz-price" type="number" min="0" value="${w.data.price||0}"></div>
+        <div style="display:flex;justify-content:space-between;margin-top:24px">
+          <button class="btn-sm btn-outline" onclick="wizStep(1)">← Back</button>
+          <button class="btn-sm btn-primary" onclick="wizStep(3)">Next: Description →</button>
+        </div>
+      </div>`;
+  } else if(w.step===3){
+    html=`
+      <div class="card" style="max-width:720px;margin:0 auto;padding:24px">
+        ${stepBar}
+        <h2 style="margin-bottom:6px">📝 Description &amp; cover image</h2>
+        <div style="color:var(--jm-text-muted);margin-bottom:18px;font-size:14px">Tell students what they'll learn. Optional cover image makes your listing more discoverable.</div>
+        <div class="form-row"><label>Description</label><div style="display:flex"><textarea id="wz-desc" rows="5" style="flex:1" placeholder="What will students learn? Topics covered, prerequisites…">${escHtml(w.data.description||'')}</textarea>${micBtn('wz-desc')}</div></div>
+        <div class="form-row"><label>Cover Image (optional)</label><input id="wz-cover" type="file" accept="image/*">${w.data.cover?`<div style="color:var(--jm-text-muted);font-size:12px;margin-top:4px">Selected: ${escHtml(w.data.cover.name)}</div>`:''}</div>
+        <div style="display:flex;justify-content:space-between;margin-top:24px">
+          <button class="btn-sm btn-outline" onclick="wizStep(2)">← Back</button>
+          <button class="btn-sm btn-primary" onclick="wizStep(4)">Next: Review →</button>
+        </div>
+      </div>`;
+  } else if(w.step===4){
+    const d=w.data;
+    html=`
+      <div class="card" style="max-width:720px;margin:0 auto;padding:24px">
+        ${stepBar}
+        <h2 style="margin-bottom:6px">✅ Review &amp; create</h2>
+        <div style="color:var(--jm-text-muted);margin-bottom:18px;font-size:14px">Look it over — once created, you'll jump straight into ⚙️ Configure to add topics, lectures, tests and assignments.</div>
+        <table style="width:100%;border-collapse:collapse;margin-bottom:18px">
+          <tr><td style="padding:10px;border-bottom:1px solid var(--jm-border);color:var(--jm-text-muted);width:30%">Title</td><td style="padding:10px;border-bottom:1px solid var(--jm-border);font-weight:600">${escHtml(d.title||'—')}</td></tr>
+          <tr><td style="padding:10px;border-bottom:1px solid var(--jm-border);color:var(--jm-text-muted)">Category</td><td style="padding:10px;border-bottom:1px solid var(--jm-border)">${escHtml(d.category)} · ${escHtml(d.level)}</td></tr>
+          <tr><td style="padding:10px;border-bottom:1px solid var(--jm-border);color:var(--jm-text-muted)">Price</td><td style="padding:10px;border-bottom:1px solid var(--jm-border)">${d.price?'₹'+d.price:'Free'}</td></tr>
+          <tr><td style="padding:10px;border-bottom:1px solid var(--jm-border);color:var(--jm-text-muted)">Description</td><td style="padding:10px;border-bottom:1px solid var(--jm-border)">${escHtml(d.description||'—').slice(0,300)}</td></tr>
+          <tr><td style="padding:10px;color:var(--jm-text-muted)">Cover</td><td style="padding:10px">${d.cover?escHtml(d.cover.name):'—'}</td></tr>
+        </table>
+        <div id="wz-msg" class="msg"></div>
+        <div style="display:flex;justify-content:space-between;margin-top:18px">
+          <button class="btn-sm btn-outline" onclick="wizStep(3)">← Back</button>
+          <button class="btn-sm btn-primary" id="wz-create" onclick="wizCreate()">🚀 Create Course</button>
+        </div>
+      </div>`;
+  }
+  body.innerHTML=html;
+}
+async function wizAiFill(){
+  const p=document.getElementById('wz-prompt')?.value?.trim();
+  if(!p){ toast('Describe your course first',true); return; }
   try{
-    const r=await api('/live-classes/'+id+'/join','POST',{});
-    if(r.meetingLink){ window.open(r.meetingLink,'_blank'); }
-    toast(r.message||'Joined');
-  }catch(e){ toast(e.message,true); }
-});
+    toast('🤖 generating…');
+    const r=await api('/ai/create-course','POST',{description:p});
+    const s=r.suggestion||{};
+    if(s.title) document.getElementById('wz-title').value=s.title;
+    window._wiz.data.title=s.title||window._wiz.data.title;
+    window._wiz.data.description=s.description||window._wiz.data.description;
+    window._wiz.data.category=s.category||window._wiz.data.category;
+    window._wiz.data.level=s.level||window._wiz.data.level;
+    if(s.price!=null) window._wiz.data.price=s.price;
+    toast('✓ filled — keep clicking Next to review');
+  }catch(e){ toast(e.message||'AI failed', true); }
+}
+async function wizCreate(){
+  wizCaptureFields();
+  const d=window._wiz.data;
+  if(!d.title){ toast('Title required',true); wizStep(1); return; }
+  const btn=document.getElementById('wz-create'); btn.disabled=true; btn.textContent='Creating…';
+  try{
+    const r=await api('/courses','POST',{
+      title:d.title, description:d.description, category:d.category, level:d.level, price:d.price
+    });
+    const id=r.course?.id;
+    if(d.cover && id){
+      const fd=new FormData(); fd.append('cover',d.cover);
+      await fetch(API+'/course-content/'+id+'/cover',{
+        method:'POST', headers:{Authorization:'Bearer '+localStorage.getItem('jm_token')}, body:fd
+      });
+    }
+    toast('✓ Course created — opening Configure');
+    closeWizard();
+    if(id){ openConfigure(id); }
+    else { loadDashboard(); }
+  }catch(e){
+    document.getElementById('wz-msg').className='msg error';
+    document.getElementById('wz-msg').textContent=e.message;
+    btn.disabled=false; btn.textContent='🚀 Create Course';
+  }
+}
+
+// ============================================================
+// BULK ATTENDANCE GRID — course × date × student matrix.
+// ============================================================
+window._att = null;
+async function openAttGrid(courseId){
+  document.getElementById('attGridPage').classList.add('active');
+  document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
+  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
+  const courses=window._teacherCourses||[];
+  if(!courses.length){
+    document.getElementById('att-body').innerHTML='<div class="card" style="max-width:600px;margin:40px auto;padding:24px;text-align:center"><div style="font-size:48px">📚</div><div style="font-weight:600;margin-top:10px">No courses yet</div><div style="color:var(--jm-text-muted);margin-top:6px">Create a course first to mark attendance.</div></div>';
+    return;
+  }
+  window._att={ courseId: courseId||courses[0].id, date: new Date().toISOString().slice(0,10), roster:[] };
+  await renderAttGrid();
+}
+function closeAttGrid(){
+  document.getElementById('attGridPage').classList.remove('active');
+  document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='');
+  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='');
+  window._att=null;
+}
+async function renderAttGrid(){
+  const body=document.getElementById('att-body');
+  const a=window._att; if(!a) return;
+  const courses=window._teacherCourses||[];
+  const courseOpts=courses.map(c=>`<option value="${c.id}" ${c.id===a.courseId?'selected':''}>${escHtml(c.title)}</option>`).join('');
+  body.innerHTML=`
+    <div class="card" style="max-width:900px;margin:0 auto;padding:20px">
+      <h2 style="margin-bottom:14px">📝 Mark Attendance</h2>
+      <div class="grid-2">
+        <div class="form-row"><label>Course</label><select id="att-course" onchange="attChange()">${courseOpts}</select></div>
+        <div class="form-row"><label>Date</label><input id="att-date" type="date" value="${a.date}" onchange="attChange()"></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+        <button class="btn-sm btn-outline" onclick="attMarkAll('present')">✅ All Present</button>
+        <button class="btn-sm btn-outline" onclick="attMarkAll('absent')">❌ All Absent</button>
+        <button class="btn-sm btn-outline" onclick="attMarkAll('late')">⏰ All Late</button>
+        <button class="btn-sm btn-outline" onclick="attMarkAll(null)">↺ Clear</button>
+      </div>
+      <div id="att-roster">Loading roster…</div>
+      <div style="display:flex;justify-content:space-between;margin-top:18px">
+        <button class="btn-sm btn-outline" onclick="closeAttGrid()">Cancel</button>
+        <button class="btn-sm btn-primary" id="att-save" onclick="attSave()">💾 Save Attendance</button>
+      </div>
+    </div>`;
+  await attReload();
+}
+async function attReload(){
+  const a=window._att; if(!a) return;
+  const wrap=document.getElementById('att-roster');
+  wrap.innerHTML='<div style="color:var(--jm-text-muted)">Loading roster…</div>';
+  try{
+    const r=await api('/teacher/attendance/roster/'+a.courseId+'?date='+a.date,'GET');
+    a.roster=r.roster||[];
+    if(!a.roster.length){
+      wrap.innerHTML='<div class="empty-state"><div class="icon">👥</div>No students enrolled in this course yet.</div>';
+      return;
+    }
+    wrap.innerHTML=`<table style="width:100%;border-collapse:collapse">
+      <thead><tr style="text-align:left;color:var(--jm-text-muted);font-size:12px;border-bottom:1px solid var(--jm-border)">
+        <th style="padding:8px">#</th><th style="padding:8px">Student</th><th style="padding:8px;text-align:center">Present</th><th style="padding:8px;text-align:center">Absent</th><th style="padding:8px;text-align:center">Late</th>
+      </tr></thead><tbody>
+      ${a.roster.map((s,i)=>`<tr style="border-bottom:1px solid var(--jm-border)" id="att-row-${i}">
+        <td style="padding:8px;color:var(--jm-text-muted)">${i+1}</td>
+        <td style="padding:8px"><div style="font-weight:600">${escHtml(s.student_name)}</div><div style="font-size:11px;color:var(--jm-text-muted)">${escHtml(s.student_email||'')}</div></td>
+        <td style="padding:8px;text-align:center"><input type="radio" name="att-${i}" value="present" ${s.status==='present'?'checked':''} onchange="attSet(${i},'present')"></td>
+        <td style="padding:8px;text-align:center"><input type="radio" name="att-${i}" value="absent" ${s.status==='absent'?'checked':''} onchange="attSet(${i},'absent')"></td>
+        <td style="padding:8px;text-align:center"><input type="radio" name="att-${i}" value="late" ${s.status==='late'?'checked':''} onchange="attSet(${i},'late')"></td>
+      </tr>`).join('')}
+      </tbody></table>
+      <div style="margin-top:10px;font-size:12px;color:var(--jm-text-muted)">${a.roster.length} students · ${a.roster.filter(s=>s.status).length} marked</div>`;
+  }catch(e){ wrap.innerHTML='<div style="color:#b91c1c">'+escHtml(e.message)+'</div>'; }
+}
+function attChange(){
+  window._att.courseId=document.getElementById('att-course').value;
+  window._att.date=document.getElementById('att-date').value;
+  attReload();
+}
+function attSet(i,status){ window._att.roster[i].status=status; }
+function attMarkAll(status){
+  (window._att.roster||[]).forEach((s,i)=>{
+    s.status=status;
+    document.querySelectorAll(`input[name="att-${i}"]`).forEach(r=>r.checked=(status&&r.value===status));
+  });
+}
+async function attSave(){
+  const a=window._att; if(!a) return;
+  const marks=a.roster.filter(s=>s.status).map(s=>({enrollmentId:s.enrollment_id, status:s.status}));
+  if(!marks.length){ toast('Mark at least one student',true); return; }
+  const btn=document.getElementById('att-save'); btn.disabled=true; btn.textContent='Saving…';
+  try{
+    const r=await api('/teacher/attendance/bulk-mixed','POST',{courseId:a.courseId, classDate:a.date, marks});
+    toast(`✓ Saved (${r.updated||0} updated, ${r.inserted||0} new)`);
+    btn.disabled=false; btn.textContent='💾 Save Attendance';
+  }catch(e){ toast(e.message,true); btn.disabled=false; btn.textContent='💾 Save Attendance'; }
+}
+
+// ============================================================
+// BOOKINGS + PAYMENTS pages.
+// ============================================================
+async function openBookings(){ await _openMoneyPage('bookings'); }
+async function openPayments(){ await _openMoneyPage('payments'); }
+function closeBookings(){
+  document.getElementById('bookingsPage').classList.remove('active');
+  document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='');
+  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='');
+}
+async function _openMoneyPage(kind){
+  document.getElementById('bookingsPage').classList.add('active');
+  document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
+  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
+  document.getElementById('bk-crumb').textContent=kind==='payments'?'Payments':'Bookings';
+  const body=document.getElementById('bk-body');
+  body.innerHTML='<div style="text-align:center;padding:40px;color:#888">Loading…</div>';
+  try{
+    if(kind==='payments'){
+      const r=await api('/teacher/payments','GET');
+      const s=r.summary||{};
+      body.innerHTML=`
+        <div style="max-width:1000px;margin:0 auto">
+          <h2 style="margin-bottom:14px">💰 Payments &amp; Earnings</h2>
+          <div class="stats-grid" style="margin-bottom:18px">
+            <div class="stat-card"><div class="label">Total Earned</div><div class="value">${fmt(s.totalEarned||0)}</div><div class="sub">All time</div></div>
+            <div class="stat-card"><div class="label">Paid Out</div><div class="value">${fmt(s.paid||0)}</div><div class="sub">Cleared</div></div>
+            <div class="stat-card"><div class="label">Pending</div><div class="value">${fmt(s.pending||0)}</div><div class="sub">Processing</div></div>
+            <div class="stat-card"><div class="label">Transactions</div><div class="value">${(r.payments||[]).length}</div><div class="sub">All time</div></div>
+          </div>
+          <div class="section"><div class="section-title">💸 Earnings (${(r.earnings||[]).length})</div>
+            <div class="card">${(r.earnings||[]).length ? `<table style="width:100%;border-collapse:collapse">
+              <thead><tr style="text-align:left;color:var(--jm-text-muted);font-size:12px;border-bottom:1px solid var(--jm-border)"><th style="padding:8px">Date</th><th style="padding:8px">Source</th><th style="padding:8px;text-align:right">Amount</th></tr></thead><tbody>
+              ${(r.earnings||[]).map(e=>`<tr style="border-bottom:1px solid var(--jm-border)"><td style="padding:8px">${e.date?new Date(e.date).toLocaleDateString():'—'}</td><td style="padding:8px">${escHtml(e.source||'—')}</td><td style="padding:8px;text-align:right;font-weight:600;color:var(--jm-success)">${fmt(e.amount)}</td></tr>`).join('')}
+              </tbody></table>` : '<div class="empty-state"><div class="icon">💸</div>No earnings yet.</div>'}</div></div>
+          <div class="section"><div class="section-title">🏦 Payment Transactions (${(r.payments||[]).length})</div>
+            <div class="card">${(r.payments||[]).length ? `<table style="width:100%;border-collapse:collapse">
+              <thead><tr style="text-align:left;color:var(--jm-text-muted);font-size:12px;border-bottom:1px solid var(--jm-border)"><th style="padding:8px">Date</th><th style="padding:8px">Reference</th><th style="padding:8px">Status</th><th style="padding:8px;text-align:right">Amount</th></tr></thead><tbody>
+              ${(r.payments||[]).map(p=>`<tr style="border-bottom:1px solid var(--jm-border)"><td style="padding:8px">${p.created_at?new Date(p.created_at).toLocaleDateString():'—'}</td><td style="padding:8px;font-family:monospace;font-size:11px">${escHtml((p.id||'').slice(0,12))}</td><td style="padding:8px"><span class="badge ${p.status==='paid'||p.status==='completed'?'badge-green':'badge-yellow'}">${p.status||'pending'}</span></td><td style="padding:8px;text-align:right;font-weight:600">${fmt(p.amount)}</td></tr>`).join('')}
+              </tbody></table>` : '<div class="empty-state"><div class="icon">🏦</div>No transactions.</div>'}</div></div>
+        </div>`;
+    } else {
+      const r=await api('/teacher/bookings','GET');
+      const bookings=r.bookings||[];
+      const stat=k=>bookings.filter(b=>b.status===k).length;
+      body.innerHTML=`
+        <div style="max-width:1000px;margin:0 auto">
+          <h2 style="margin-bottom:14px">📅 Bookings (${bookings.length})</h2>
+          <div class="stats-grid" style="margin-bottom:18px">
+            <div class="stat-card"><div class="label">Total</div><div class="value">${bookings.length}</div><div class="sub">All bookings</div></div>
+            <div class="stat-card"><div class="label">Confirmed</div><div class="value">${stat('confirmed')}</div><div class="sub">Active</div></div>
+            <div class="stat-card"><div class="label">Pending</div><div class="value">${stat('pending')}</div><div class="sub">Awaiting</div></div>
+            <div class="stat-card"><div class="label">Cancelled</div><div class="value">${stat('cancelled')}</div><div class="sub">Refunded</div></div>
+          </div>
+          <div class="card">${bookings.length ? `<table style="width:100%;border-collapse:collapse">
+            <thead><tr style="text-align:left;color:var(--jm-text-muted);font-size:12px;border-bottom:1px solid var(--jm-border)"><th style="padding:10px">Date</th><th style="padding:10px">Student</th><th style="padding:10px">Course</th><th style="padding:10px">Status</th><th style="padding:10px;text-align:right">Amount</th></tr></thead><tbody>
+            ${bookings.map(b=>`<tr style="border-bottom:1px solid var(--jm-border)">
+              <td style="padding:10px">${b.created_at?new Date(b.created_at).toLocaleDateString():'—'}</td>
+              <td style="padding:10px"><div style="font-weight:600">${escHtml(b.student_name)}</div><div style="font-size:11px;color:var(--jm-text-muted)">${escHtml(b.student_email||'')} ${b.student_phone?'· '+escHtml(b.student_phone):''}</div></td>
+              <td style="padding:10px">${escHtml(b.course_title)}</td>
+              <td style="padding:10px"><span class="badge ${b.status==='confirmed'?'badge-green':b.status==='cancelled'?'badge-red':'badge-yellow'}">${b.status||'pending'}</span></td>
+              <td style="padding:10px;text-align:right;font-weight:600">${b.amount?fmt(b.amount):'—'}</td>
+            </tr>`).join('')}
+            </tbody></table>` : '<div class="empty-state"><div class="icon">📅</div>No bookings yet.</div>'}</div>
+        </div>`;
+    }
+  }catch(e){ body.innerHTML='<div style="color:#b91c1c;padding:20px">'+escHtml(e.message)+'</div>'; }
+}
 
 // Keyboard: Escape closes any open modal OR the configure page.
 document.addEventListener('keydown',(e)=>{
@@ -2601,9 +2953,10 @@ document.addEventListener('keydown',(e)=>{
   if(document.getElementById('actionOverlay')?.classList.contains('show')){
     closeModal(); return;
   }
-  if(document.getElementById('configurePage')?.classList.contains('active')){
-    closeConfigurePage();
-  }
+  if(document.getElementById('configurePage')?.classList.contains('active')){ closeConfigurePage(); return; }
+  if(document.getElementById('wizardPage')?.classList.contains('active')){ closeWizard(); return; }
+  if(document.getElementById('attGridPage')?.classList.contains('active')){ closeAttGrid(); return; }
+  if(document.getElementById('bookingsPage')?.classList.contains('active')){ closeBookings(); return; }
 });
 
 loadDashboard();
