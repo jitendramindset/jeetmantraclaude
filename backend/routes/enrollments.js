@@ -88,8 +88,9 @@ router.post('/', authenticateToken, async (req, res) => {
 // Get course students (teacher only)
 router.get('/course/:courseId/students', authenticateToken, async (req, res) => {
   try {
-    // Verify teacher owns this course
-    const { data: course } = await supabase
+    // Verify teacher owns this course (admin client — anon key is invalid on
+    // self-hosted; service client always works).
+    const { data: course } = await supabaseAdmin
       .from('courses')
       .select('teacher_id')
       .eq('id', req.params.courseId)
@@ -99,27 +100,26 @@ router.get('/course/:courseId/students', authenticateToken, async (req, res) => 
       return res.status(403).json({ error: 'Not authorized' });
     }
 
-    const { data: enrollments, error } = await supabase
+    // Fetch enrollments, then hydrate student profiles with a SEPARATE lookup —
+    // the users(...) FK embed fails because jeetmantra_users.id is VARCHAR.
+    const { data: enrollments, error } = await supabaseAdmin
       .from('enrollments')
-      .select(`
-        *,
-        users (
-          id,
-          full_name,
-          email,
-          phone,
-          profile_image
-        )
-      `)
+      .select('*')
       .eq('course_id', req.params.courseId);
 
     if (error) {
       return res.status(500).json({ error: 'Failed to fetch students' });
     }
-
+    const ids = [...new Set((enrollments || []).map(e => e.student_id).filter(Boolean))];
+    let userMap = {};
+    if (ids.length) {
+      const { data: users } = await supabaseAdmin
+        .from('jeetmantra_users').select('id, full_name, email, phone, profile_image').in('id', ids);
+      userMap = Object.fromEntries((users || []).map(u => [u.id, u]));
+    }
     res.json({
       message: 'Students fetched successfully',
-      students: enrollments
+      students: (enrollments || []).map(e => ({ ...e, users: userMap[e.student_id] || null }))
     });
   } catch (error) {
     console.error('Students fetch error:', error);

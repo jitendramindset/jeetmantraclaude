@@ -423,18 +423,40 @@
       .admin-container {
         grid-template-columns: 1fr;
       }
-
+      /* Don't HIDE the sidebar (that traps the user on one tab) — turn it into
+         a horizontal scrolling nav strip at the top so every tab stays reachable. */
       .admin-sidebar {
-        display: none;
+        display: block;
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        border-right: none;
+        border-bottom: 1px solid var(--border, #252a35);
       }
-
+      .admin-header { display: none; }
+      .admin-nav {
+        display: flex;
+        flex-direction: row;
+        overflow-x: auto;
+        gap: 6px;
+        padding: 8px;
+        -webkit-overflow-scrolling: touch;
+      }
+      .admin-nav-item {
+        white-space: nowrap;
+        flex: 0 0 auto;
+      }
       .stats-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr 1fr;
       }
-
       .form-grid {
         grid-template-columns: 1fr;
       }
+    }
+    @media (max-width: 480px) {
+      .stats-grid { grid-template-columns: 1fr; }
+      .admin-main, .admin-content { padding: 12px !important; }
+      table { font-size: 12px; }
     }
   </style>
 </head>
