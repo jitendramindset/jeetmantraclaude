@@ -167,6 +167,27 @@ router.post('/:id/submit', authenticateToken, upload.single('file'), async (req,
   }
 });
 
+// PUT /api/assignments/:id — teacher edits the assignment TEMPLATE (title/desc/due)
+router.put('/:id', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
+  try {
+    const { data: row } = await supabaseAdmin.from('assignments').select('teacher_id, student_id').eq('id', req.params.id).single();
+    if (!row) return res.status(404).json({ error: 'Assignment not found' });
+    if (row.teacher_id !== req.user.id && req.user.role !== 'admin') return res.status(403).json({ error: 'Not your assignment' });
+    if (row.student_id) return res.status(400).json({ error: 'Cannot edit a student submission via this route — use /grade instead' });
+    const { title, description, dueDate, topicId } = req.body;
+    const updates = { updated_at: new Date().toISOString() };
+    if (title !== undefined) updates.title = title;
+    if (description !== undefined) updates.description = description;
+    if (dueDate !== undefined) updates.due_date = dueDate;
+    if (topicId !== undefined) updates.topic_id = topicId || null;
+    const { data, error } = await supabaseAdmin.from('assignments').update(updates).eq('id', req.params.id).select().single();
+    if (error) return res.status(400).json({ error: error.message });
+    res.json({ assignment: data });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // PUT /api/assignments/:id/grade — teacher grades a per-student submission
 router.put('/:id/grade', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
   try {

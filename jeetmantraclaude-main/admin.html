@@ -690,7 +690,7 @@
 <script>
 // ==================== STATE & CONFIG ====================
 // Use local backend API instead of webhooks
-const BACKEND_API_URL = 'http://localhost:5000/api';
+const BACKEND_API_URL = window.location.origin+'/api';
 const N8N_WEBHOOK_URL = 'http://localhost:5678/webhook'; // Fallback
 let currentUser = null;
 let allUsers = [];

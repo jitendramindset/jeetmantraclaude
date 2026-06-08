@@ -40,6 +40,15 @@ async function ownsCourse(courseId, user) {
   return { course, allowed };
 }
 
+// Look up a content row by id, then check ownership of its course.
+// Used by every PUT/DELETE on a single resource so non-owners can't mutate.
+async function ownsContentItem(table, id, user) {
+  const { data: row } = await supabaseAdmin.from(table).select('id, course_id').eq('id', id).single();
+  if (!row) return { row: null, allowed: false };
+  const { allowed, course } = await ownsCourse(row.course_id, user);
+  return { row, allowed, course };
+}
+
 // ── COVER IMAGE UPLOAD ─────────────────────────────────────────────────
 // POST /api/course-content/:courseId/cover — multipart with field "cover"
 router.post('/:courseId/cover', authenticateToken, upload.single('cover'), async (req, res) => {
@@ -78,7 +87,23 @@ router.post('/:courseId/topics', authenticateToken, async (req, res) => {
   res.status(201).json({ topic: data });
 });
 
+// PUT /api/course-content/topics/:id — edit title/description/order
+router.put('/topics/:id', authenticateToken, async (req, res) => {
+  const { allowed } = await ownsContentItem('course_topics', req.params.id, req.user);
+  if (!allowed) return res.status(403).json({ error: 'Not your course' });
+  const { title, description, orderIndex } = req.body;
+  const updates = {};
+  if (title !== undefined) updates.title = title;
+  if (description !== undefined) updates.description = description;
+  if (orderIndex !== undefined) updates.order_index = orderIndex;
+  const { data, error } = await supabaseAdmin.from('course_topics').update(updates).eq('id', req.params.id).select().single();
+  if (error) return res.status(400).json({ error: error.message });
+  res.json({ topic: data });
+});
+
 router.delete('/topics/:id', authenticateToken, async (req, res) => {
+  const { allowed } = await ownsContentItem('course_topics', req.params.id, req.user);
+  if (!allowed) return res.status(403).json({ error: 'Not your course' });
   const { error } = await supabaseAdmin.from('course_topics').delete().eq('id', req.params.id);
   if (error) return res.status(400).json({ error: error.message });
   res.json({ message: 'Topic removed' });
@@ -115,7 +140,27 @@ router.post('/:courseId/lectures', authenticateToken, upload.single('video'), as
   res.status(201).json({ lecture: data });
 });
 
+router.put('/lectures/:id', authenticateToken, async (req, res) => {
+  const { allowed } = await ownsContentItem('course_lectures', req.params.id, req.user);
+  if (!allowed) return res.status(403).json({ error: 'Not your course' });
+  const { title, description, videoUrl, duration, isRecorded, lectureDate, orderIndex, topicId } = req.body;
+  const updates = {};
+  if (title !== undefined) updates.title = title;
+  if (description !== undefined) updates.description = description;
+  if (videoUrl !== undefined) updates.video_url = videoUrl;
+  if (duration !== undefined) updates.duration = Number(duration);
+  if (isRecorded !== undefined) updates.is_recorded = isRecorded === true || isRecorded === 'true';
+  if (lectureDate !== undefined) updates.lecture_date = lectureDate;
+  if (orderIndex !== undefined) updates.order_index = Number(orderIndex);
+  if (topicId !== undefined) updates.topic_id = topicId || null;
+  const { data, error } = await supabaseAdmin.from('course_lectures').update(updates).eq('id', req.params.id).select().single();
+  if (error) return res.status(400).json({ error: error.message });
+  res.json({ lecture: data });
+});
+
 router.delete('/lectures/:id', authenticateToken, async (req, res) => {
+  const { allowed } = await ownsContentItem('course_lectures', req.params.id, req.user);
+  if (!allowed) return res.status(403).json({ error: 'Not your course' });
   const { error } = await supabaseAdmin.from('course_lectures').delete().eq('id', req.params.id);
   if (error) return res.status(400).json({ error: error.message });
   res.json({ message: 'Lecture removed' });
@@ -157,7 +202,23 @@ router.post('/:courseId/materials', authenticateToken, upload.single('file'), as
   }
 });
 
+router.put('/materials/:id', authenticateToken, async (req, res) => {
+  const { allowed } = await ownsContentItem('course_materials', req.params.id, req.user);
+  if (!allowed) return res.status(403).json({ error: 'Not your course' });
+  const { title, type, url, topicId } = req.body;
+  const updates = {};
+  if (title !== undefined) updates.title = title;
+  if (type !== undefined) updates.type = type;
+  if (url !== undefined) updates.url = url;
+  if (topicId !== undefined) updates.topic_id = topicId || null;
+  const { data, error } = await supabaseAdmin.from('course_materials').update(updates).eq('id', req.params.id).select().single();
+  if (error) return res.status(400).json({ error: error.message });
+  res.json({ material: data });
+});
+
 router.delete('/materials/:id', authenticateToken, async (req, res) => {
+  const { allowed } = await ownsContentItem('course_materials', req.params.id, req.user);
+  if (!allowed) return res.status(403).json({ error: 'Not your course' });
   const { error } = await supabaseAdmin.from('course_materials').delete().eq('id', req.params.id);
   if (error) return res.status(400).json({ error: error.message });
   res.json({ message: 'Material removed' });
@@ -188,6 +249,30 @@ router.post('/:courseId/tests', authenticateToken, async (req, res) => {
   }).select().single();
   if (error) return res.status(400).json({ error: error.message });
   res.status(201).json({ test: data });
+});
+
+router.put('/tests/:id', authenticateToken, async (req, res) => {
+  const { allowed } = await ownsContentItem('course_tests', req.params.id, req.user);
+  if (!allowed) return res.status(403).json({ error: 'Not your course' });
+  const { title, description, totalMarks, durationMinutes, scheduledFor, topicId } = req.body;
+  const updates = {};
+  if (title !== undefined) updates.title = title;
+  if (description !== undefined) updates.description = description;
+  if (totalMarks !== undefined) updates.total_marks = Number(totalMarks);
+  if (durationMinutes !== undefined) updates.duration_minutes = Number(durationMinutes);
+  if (scheduledFor !== undefined) updates.scheduled_for = scheduledFor || null;
+  if (topicId !== undefined) updates.topic_id = topicId || null;
+  const { data, error } = await supabaseAdmin.from('course_tests').update(updates).eq('id', req.params.id).select().single();
+  if (error) return res.status(400).json({ error: error.message });
+  res.json({ test: data });
+});
+
+router.delete('/tests/:id', authenticateToken, async (req, res) => {
+  const { allowed } = await ownsContentItem('course_tests', req.params.id, req.user);
+  if (!allowed) return res.status(403).json({ error: 'Not your course' });
+  const { error } = await supabaseAdmin.from('course_tests').delete().eq('id', req.params.id);
+  if (error) return res.status(400).json({ error: error.message });
+  res.json({ message: 'Test removed' });
 });
 
 router.post('/tests/:testId/submit', authenticateToken, async (req, res) => {

@@ -20,6 +20,10 @@ const courseContentRoutes = require('./routes/courseContent');
 const studentExtrasRoutes = require('./routes/studentExtras');
 const institutionsRoutes = require('./routes/institutions');
 const assignmentsRoutes = require('./routes/assignments');
+const aiRoutes = require('./routes/ai');
+const chatRoutes = require('./routes/chat');
+const activityRoutes = require('./routes/activity');
+const teacherExtrasRoutes = require('./routes/teacherExtras');
 const { cacheMiddleware, syncMiddleware } = require('./middleware/datasync');
 
 const app = express();
@@ -73,6 +77,10 @@ app.use('/api/course-content', courseContentRoutes);
 app.use('/api/student', studentExtrasRoutes);
 app.use('/api/institutions', institutionsRoutes);
 app.use('/api/assignments', assignmentsRoutes);
+app.use('/api/ai', aiRoutes);
+app.use('/api/chat', chatRoutes);
+app.use('/api/activity', activityRoutes);
+app.use('/api/teacher', teacherExtrasRoutes);
 
 // LevelDB sync queue endpoint
 app.get('/api/sync/queue', async (req, res) => {

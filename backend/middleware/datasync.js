@@ -16,6 +16,7 @@
 const crypto = require('crypto');
 const { cacheGet, cacheSet, del, list, SyncQueue } = require('../config/leveldb');
 const { triggerN8n } = require('../config/n8nConfig');
+const { logEvent } = require('../routes/activity');
 
 const queue = new SyncQueue();
 
@@ -29,8 +30,9 @@ const CACHE_TTL = {
 };
 const DEFAULT_TTL = 60;
 
-// Routes that must NEVER be cached (auth, OTP, anything sensitive/volatile).
-const NO_CACHE_PREFIXES = ['/api/auth', '/api/sync', '/api/n8n', '/api/webhooks'];
+// Routes that must NEVER be cached (auth, OTP, feeds, chat — anything that
+// must be fresh on every read).
+const NO_CACHE_PREFIXES = ['/api/auth', '/api/sync', '/api/n8n', '/api/webhooks', '/api/activity', '/api/chat'];
 
 function shouldCache(path) {
   return !NO_CACHE_PREFIXES.some(p => path.startsWith(p));
@@ -114,7 +116,10 @@ function syncMiddleware(req, res, next) {
       // Invalidate related GET caches so stale reads don't linger.
       invalidate(fullPath).catch(() => {});
       // Fire the optional n8n addon (non-blocking).
-      triggerN8n(eventName(fullPath, req.method), op).catch(() => {});
+      const evt = eventName(fullPath, req.method);
+      triggerN8n(evt, op).catch(() => {});
+      // Drop an activity_feed row for events worth surfacing on a wall.
+      try { logActivityFromWrite(evt, fullPath, req, body); } catch (_) {}
     }
     return originalJson(body);
   };
@@ -159,6 +164,31 @@ function eventName(fullPath, method) {
   const seg = fullPath.replace(/^\/api\//, '').split('/')[0];
   const verb = { POST: 'created', PUT: 'updated', PATCH: 'updated', DELETE: 'deleted' }[method] || 'changed';
   return `${seg}.${verb}`;
+}
+
+// Map an event to an activity_feed row with a human-readable message.
+// Only certain "wall-worthy" events are recorded — random profile edits etc.
+// aren't useful on a feed.
+function logActivityFromWrite(evt, fullPath, req, body) {
+  const actor = req.user?.id || req.user?.userId || null;
+  const map = {
+    'courses.created':           () => ({ msg: '📚 Created a new course', courseId: body?.course?.id }),
+    'live-classes.created':      () => ({ msg: '📡 Scheduled a live class', courseId: body?.liveClass?.course_id }),
+    'enrollments.created':       () => ({ msg: '🎓 Enrolled in a course', courseId: body?.enrollment?.course_id }),
+    'attendance.created':        () => ({ msg: '✅ Marked attendance', courseId: body?.attendance?.course_id, targetUser: body?.attendance?.student_id }),
+    'assignments.created':       () => ({ msg: '📝 Posted a new assignment', courseId: body?.assignment?.course_id }),
+    'marketplace.created':       () => ({ msg: '🛒 Listed a course on the marketplace' }),
+  };
+  const m = map[evt];
+  if (!m) return;
+  const { msg, courseId, targetUser } = m();
+  logEvent({
+    eventType: evt,
+    actorId: actor,
+    targetUserId: targetUser || null,
+    courseId: courseId || null,
+    message: msg
+  }).catch(() => {});
 }
 
 module.exports = { cacheMiddleware, syncMiddleware };

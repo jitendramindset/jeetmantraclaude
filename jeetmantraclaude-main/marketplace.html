@@ -209,7 +209,7 @@ select.filter-select{background:var(--jm-surface);border:1.5px solid var(--jm-bo
 </div>
 
 <script>
-const API='http://localhost:5000/api';
+const API=window.location.origin+'/api';
 let allListings=[],filteredListings=[],currentCategory='all',currentLevel='',currentSort='newest';
 let selectedListingId=null,purchasedIds=new Set();
 const token=localStorage.getItem('jm_token');

@@ -135,7 +135,27 @@ input:focus,select:focus{border-color:var(--jm-primary);box-shadow:0 0 0 3px rgb
 </div>
 
 <script>
-const API = 'http://localhost:5000/api';
+const API = window.location.origin+'/api';
+
+// Extract a human-readable message from any error shape the backend may
+// return — never let an object stringify to "[object Object]".
+function extractError(data, fallback) {
+  if (!data) return fallback;
+  if (typeof data === 'string') return data;
+  // { error: "string" }
+  if (typeof data.error === 'string') return data.error;
+  // { error: { message: "..." } } or nested objects
+  if (data.error && typeof data.error === 'object') {
+    return data.error.message || data.error.error || JSON.stringify(data.error);
+  }
+  // { message: "..." } (some APIs)
+  if (typeof data.message === 'string' && data.message !== 'Internal Server Error') return data.message;
+  // Validation: { error: 'Validation failed', details: [{field, message}] }
+  if (Array.isArray(data.details) && data.details.length) {
+    return data.details.map(d => `${d.field || 'field'}: ${d.message || d}`).join('; ');
+  }
+  return fallback;
+}
 
 function switchTab(tab) {
   document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', (i===0&&tab==='login')||(i===1&&tab==='signup')));
@@ -184,7 +204,7 @@ async function doLogin() {
       body: JSON.stringify({ email, password })
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Login failed');
+    if (!res.ok) throw new Error(extractError(data, 'Login failed'));
     storeAuth(data.token, data.user);
     showMsg('✅ Login successful! Redirecting...', 'success');
     redirectToDashboard(data.user.role);
@@ -216,7 +236,7 @@ async function doSignup() {
       body: JSON.stringify({ email, password, fullName, role, phone: phone || undefined })
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Signup failed');
+    if (!res.ok) throw new Error(extractError(data, 'Signup failed'));
     storeAuth(data.token, data.user);
     showMsg('✅ Account created! Redirecting...', 'success');
     redirectToDashboard(data.user.role);
@@ -243,7 +263,7 @@ async function sendOTP() {
       body: JSON.stringify({ phone })
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error);
+    if (!res.ok) throw new Error(extractError(data, 'Could not send OTP'));
     document.getElementById('otpVerifyGroup').style.display = 'block';
     showMsg('OTP sent to **' + data.phone + ' (check console for dev OTP)', 'success');
   } catch (e) {
@@ -261,7 +281,7 @@ async function verifyOTP() {
       body: JSON.stringify({ phone, otp })
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error);
+    if (!res.ok) throw new Error(extractError(data, 'OTP verification failed'));
     storeAuth(data.token, data.user);
     showMsg('✅ Verified! Redirecting...', 'success');
     redirectToDashboard(data.user.role);

@@ -5,7 +5,8 @@
       "name": "jeetmantra-backend",
       "runtimeExecutable": "node",
       "runtimeArgs": ["start-server.js"],
-      "port": 5000,
+      "env": { "PORT": "5050" },
+      "port": 5050,
       "autoPort": false
     }
   ]

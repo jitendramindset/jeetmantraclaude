@@ -94,6 +94,51 @@ body{display:flex;min-height:100vh}
 .modal .msg{padding:10px 14px;border-radius:var(--jm-radius-sm);font-size:13px;margin-bottom:12px;display:none;font-weight:600}
 .modal .msg.error{background:#fef2f2;color:#b91c1c;border:1px solid #fca5a5;display:block}
 .modal .msg.success{background:#f0fdf4;color:#15803d;border:1px solid #86efac;display:block}
+/* ============================================================
+   CONFIGURE PAGE — full-screen tree/folder view (no modal)
+   Inspired by Examforge: nav between pages, breadcrumb back,
+   collapsible folder rows.
+   ============================================================ */
+.configure-page{display:none;background:var(--jm-bg);min-height:100vh}
+.configure-page.active{display:flex;flex-direction:column}
+.configure-breadcrumb{position:sticky;top:0;background:var(--jm-surface);border-bottom:1px solid var(--jm-border);padding:14px 28px;display:flex;align-items:center;gap:14px;z-index:50;box-shadow:var(--jm-shadow-sm)}
+.configure-breadcrumb .crumb{font-size:13px;color:var(--jm-text-muted);cursor:pointer}
+.configure-breadcrumb .crumb:hover{color:var(--jm-primary)}
+.configure-breadcrumb .crumb.active{color:var(--jm-text);font-weight:700}
+.configure-breadcrumb .crumb-sep{color:var(--jm-text-subtle)}
+.configure-body{flex:1;padding:24px 28px;max-width:1100px;margin:0 auto;width:100%}
+.cfg-header{margin-bottom:24px;display:flex;align-items:center;gap:14px}
+.cfg-header img{width:64px;height:64px;object-fit:cover;border-radius:10px;border:1px solid var(--jm-border)}
+.cfg-header h2{font-size:22px;font-weight:800;letter-spacing:-0.02em}
+.cfg-header .sub{font-size:12px;color:var(--jm-text-muted);margin-top:2px}
+/* Tree folder rows */
+.tree-section{margin-bottom:24px;background:var(--jm-surface);border:1px solid var(--jm-border);border-radius:var(--jm-radius)}
+.tree-section .tree-header{padding:12px 16px;display:flex;align-items:center;gap:10px;cursor:pointer;border-bottom:1px solid transparent}
+.tree-section.expanded .tree-header{border-bottom-color:var(--jm-border)}
+.tree-section .tree-header:hover{background:var(--jm-surface-2)}
+.tree-section .caret{font-size:12px;color:var(--jm-text-muted);transition:transform .2s;width:14px;display:inline-block}
+.tree-section.expanded .caret{transform:rotate(90deg)}
+.tree-section .tree-title{font-weight:700;font-size:15px;flex:1}
+.tree-section .tree-count{font-size:11px;color:var(--jm-text-muted);background:var(--jm-surface-2);padding:2px 8px;border-radius:var(--jm-radius-pill)}
+.tree-section .tree-actions{display:flex;gap:6px}
+.tree-section .tree-body{display:none;padding:6px 0}
+.tree-section.expanded .tree-body{display:block}
+/* Items inside a tree */
+.tree-item{display:flex;align-items:center;gap:10px;padding:10px 16px 10px 40px;border-bottom:1px solid var(--jm-border)}
+.tree-item:last-child{border-bottom:none}
+.tree-item:hover{background:var(--jm-surface-2)}
+.tree-item .item-icon{font-size:14px;width:18px;text-align:center}
+.tree-item .item-title{flex:1;font-size:14px}
+.tree-item .item-meta{font-size:11px;color:var(--jm-text-muted)}
+.tree-item .item-actions{display:flex;gap:4px}
+.tree-item .item-actions button{padding:4px 8px;font-size:11px}
+/* Inline edit form */
+.tree-inline-form{padding:12px 16px 12px 40px;background:var(--jm-primary-tint);border-bottom:1px solid var(--jm-border)}
+.tree-inline-form .form-row{margin-bottom:8px}
+.tree-inline-form input,.tree-inline-form textarea,.tree-inline-form select{padding:8px 10px;font-size:13px}
+.tree-inline-form .form-actions{display:flex;gap:6px;margin-top:8px}
+/* Empty state inside tree */
+.tree-empty{padding:14px 16px 14px 40px;font-size:12px;color:var(--jm-text-muted);font-style:italic}
 /* Toast */
 .toast{position:fixed;top:20px;right:20px;background:var(--jm-surface);border:1px solid var(--jm-border);border-left:4px solid var(--jm-success);border-radius:var(--jm-radius-sm);padding:14px 18px;box-shadow:var(--jm-shadow);font-size:14px;font-weight:600;color:var(--jm-text);z-index:300;animation:slideIn .3s}
 .toast.error{border-left-color:var(--jm-danger)}
@@ -136,6 +181,8 @@ body{display:flex;min-height:100vh}
       <input type="text" placeholder="Search courses..." oninput="debounceSearch(this.value)">
     </div>
     <div class="topbar-actions">
+      <button class="icon-btn" onclick="openAiKey()" title="AI assistant settings" style="border:none">🤖</button>
+      <button class="icon-btn" onclick="openWall('me')" title="Activity wall" style="border:none">📰</button>
       <span class="icon-btn">🔔</span>
       <a href="/marketplace.html" class="icon-btn" title="Marketplace">🛒</a>
     </div>
@@ -185,6 +232,12 @@ body{display:flex;min-height:100vh}
           <div class="card"><ul class="item-list" id="s-submissionsList"><li style="width:100%"><div class="empty-state"><div class="icon">📤</div>Loading…</div></li></ul></div>
         </div>
       </div>
+      <div class="section" id="sec-student-wall">
+        <div class="section-title">📰 Activity Wall
+          <div class="actions"><button class="btn-sm btn-outline" onclick="openWall('me')">View All →</button></div>
+        </div>
+        <div class="card"><ul class="item-list" id="s-wallList"><li style="width:100%"><div class="empty-state"><div class="icon">📰</div>Loading…</div></li></ul></div>
+      </div>
       <div class="section" id="sec-student-notes">
         <div class="section-title">📝 My Notes
           <div class="actions"><button class="btn-sm btn-primary" onclick="openModal('addNote')">+ New Note</button></div>
@@ -223,7 +276,11 @@ body{display:flex;min-height:100vh}
       <div class="grid-2">
         <div class="section" id="sec-teacher-live">
           <div class="section-title">📡 Live Classes
-            <div class="actions"><button class="btn-sm btn-primary" onclick="openModal('scheduleLive')">+ Schedule Class</button></div>
+            <div class="actions">
+              <button class="btn-sm btn-outline" onclick="openTimetable(0)">📅 Timetable</button>
+              <button class="btn-sm btn-outline" onclick="openModal('scheduleRecurring')">🔁 Recurring</button>
+              <button class="btn-sm btn-primary" onclick="openModal('scheduleLive')">+ Schedule Class</button>
+            </div>
           </div>
           <div class="card"><ul class="item-list" id="t-liveList"><li style="width:100%"><div class="empty-state"><div class="icon">📺</div>None scheduled</div></li></ul></div>
         </div>
@@ -467,8 +524,23 @@ body{display:flex;min-height:100vh}
   </div>
 </div>
 
+<!-- ==================== CONFIGURE COURSE PAGE (full-screen, no modal) ==================== -->
+<div class="configure-page" id="configurePage">
+  <div class="configure-breadcrumb">
+    <span class="crumb" onclick="closeConfigurePage()">🏠 Dashboard</span>
+    <span class="crumb-sep">/</span>
+    <span class="crumb">My Courses</span>
+    <span class="crumb-sep">/</span>
+    <span class="crumb active" id="cfg-crumb-title">…</span>
+    <div style="margin-left:auto;display:flex;gap:8px">
+      <button class="btn-sm btn-outline" onclick="closeConfigurePage()">← Back</button>
+    </div>
+  </div>
+  <div class="configure-body" id="cfg-body">Loading…</div>
+</div>
+
 <script>
-const API='http://localhost:5000/api';
+const API=window.location.origin+'/api';
 let currentUser=null,allUsers=[];
 // Each nav item: {i: icon, l: label, t?: in-page section key, h?: external URL, a?: active}
 // "t" maps to a section id `sec-{role}-{t}` (or 'top' to scroll back up).
@@ -582,7 +654,7 @@ function renderStudentDash(d){
     const pct=e.progress_percentage||0;
     const meta=e.total_lectures?`${e.attended_lectures||0} / ${e.total_lectures} lectures attended`:'No lectures yet';
     const courseTitle=(e.courses?.title||'Course').replace(/'/g,"\\'");
-    return `<li><div style="flex:1"><div style="font-weight:600">${e.courses?.title||'Course'}</div><div style="font-size:11px;color:var(--jm-text-muted);margin-top:2px">${meta}</div><div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div></div><div class="row-actions"><span class="badge ${pct===100?'badge-green':'badge-blue'}">${pct}%</span><button class="btn-sm btn-outline" onclick="openAttendanceLog('${e.course_id}','${courseTitle}')">🗓 History</button><button class="btn-sm btn-primary" onclick="openStudentCourseView('${e.course_id}')">📚 View</button></div></li>`;
+    return `<li><div style="flex:1"><div style="font-weight:600">${e.courses?.title||'Course'}</div><div style="font-size:11px;color:var(--jm-text-muted);margin-top:2px">${meta}</div><div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div></div><div class="row-actions"><span class="badge ${pct===100?'badge-green':'badge-blue'}">${pct}%</span><button class="btn-sm btn-outline" onclick="openCourseChat('${e.course_id}','${courseTitle}')">💬 Chat</button><button class="btn-sm btn-outline" onclick="openAttendanceLog('${e.course_id}','${courseTitle}')">🗓 History</button><button class="btn-sm btn-primary" onclick="openStudentCourseView('${e.course_id}')">📚 View</button></div></li>`;
   }),['📖','No courses yet — <a href="/marketplace.html" style="color:var(--jm-primary)">Browse</a>']);
   renderList('s-hwList',(d.homework||[]).map(h=>`<li><span>${h.title}</span><span class="badge badge-red">${new Date(h.due_date).toLocaleDateString()}</span></li>`),['✅','No pending assignments']);
   renderList('s-liveList',(d.liveClasses||[]).map(c=>{
@@ -612,6 +684,7 @@ function renderCreatorBlock(prefix, d){
     const t=c.title.replace(/'/g,"\\'");
     return `<li><span>${c.title}</span><div class="row-actions">
       <span class="badge ${c.is_active?'badge-green':'badge-red'}">${c.is_active?'Active':'Inactive'}</span>
+      <button class="btn-sm btn-outline" onclick="openCourseChat('${c.id}','${t}')">💬 Chat</button>
       <button class="btn-sm btn-outline" onclick="openCourseStudents('${c.id}','${t}')">👥 Students</button>
       <button class="btn-sm btn-outline" onclick="openAttendanceLog('${c.id}','${t}')">🗓 History</button>
       <button class="btn-sm btn-outline" onclick="openEditCourse(window._teacherCoursesById['${c.id}'])">✏️ Edit</button>
@@ -645,7 +718,10 @@ function renderTeacherDash(d){
     const courseTitle=c.title.replace(/'/g,"\\'");
     return `<li><span>${c.title}</span><div class="row-actions">
       <span class="badge ${c.is_active?'badge-green':'badge-red'}">${c.is_active?'Active':'Inactive'}</span>
+      <button class="btn-sm btn-outline" onclick="openCourseChat('${c.id}','${courseTitle}')">💬 Chat</button>
+      <button class="btn-sm btn-outline" onclick="openAnnouncement('${c.id}','${courseTitle}')">📢 Announce</button>
       <button class="btn-sm btn-outline" onclick="openCourseStudents('${c.id}','${courseTitle}')">👥 Students</button>
+      <button class="btn-sm btn-outline" onclick="bulkMarkPresent('${c.id}')">☑️ All Present</button>
       <button class="btn-sm btn-outline" onclick="openAttendanceLog('${c.id}','${courseTitle}')">🗓 History</button>
       <button class="btn-sm btn-outline" onclick="openEditCourse(window._teacherCoursesById['${c.id}'])">✏️ Edit</button>
       <button class="btn-sm btn-outline" onclick="openConfigure('${c.id}')">⚙️ Configure</button>
@@ -741,7 +817,7 @@ async function loadDashboard(){
     document.getElementById('loadingState').style.display='none';
     const sec=document.getElementById('section-'+role);
     if(sec)sec.classList.add('visible');
-    if(role==='student'){renderStudentDash(d); loadNotes(); loadStudentHistory(); startTimeTracking();}
+    if(role==='student'){renderStudentDash(d); loadNotes(); loadStudentHistory(); loadWall(); startTimeTracking();}
     else if(role==='teacher')renderTeacherDash(d);
     else if(role==='partner')renderPartnerDash(d);
     else if(role==='school'){renderSchoolDash(d); loadInstitutionTeachers(); loadInstitutionStudents();}
@@ -769,6 +845,88 @@ function logout(){localStorage.removeItem('jm_token');localStorage.removeItem('j
 let _modalCtx={};
 
 const MODAL_DEFS={
+  // ── AI key settings (in profile + signup)
+  aiKey: {
+    title:'🤖 AI Assistant Settings',
+    body:()=>`<div id="aikey-body">Loading…</div>`,
+    submit:async()=>'(use Save button)'
+  },
+  // ── Course chat panel
+  courseChat: {
+    title:'💬 Course Chat',
+    body:()=>`<div id="chat-body" style="display:flex;flex-direction:column;min-height:400px">
+      <div id="chat-messages" style="flex:1;overflow-y:auto;max-height:340px;padding:6px 0;border-bottom:1px solid var(--jm-border);margin-bottom:10px">Loading…</div>
+      <div style="display:flex;gap:6px;align-items:flex-end">
+        <textarea id="chat-input" rows="2" placeholder="Type a message…" style="flex:1"></textarea>
+        ${micBtn('chat-input')}
+        <button class="btn-sm btn-primary" onclick="sendChat()">Send →</button>
+      </div>
+    </div>`,
+    submit:async()=>'(use Send button)'
+  },
+  // ── TEACHER: timetable / weekly calendar view
+  timetable: {
+    title:'📅 My Timetable',
+    body:()=>`<div id="tt-body">Loading…</div>`,
+    submit:async()=>'(close)'
+  },
+  // ── TEACHER: bulk schedule a recurring live class
+  scheduleRecurring: {
+    title:'🔁 Schedule Recurring Live Class',
+    body:()=>{
+      const opts=(window._teacherCourses||[]).map(c=>`<option value="${c.id}">${c.title}</option>`).join('')||'<option value="">No courses yet</option>';
+      const tomorrow=new Date();tomorrow.setDate(tomorrow.getDate()+1);tomorrow.setHours(10,0,0,0);
+      return `
+      <div class="form-row"><label>Course *</label><select id="m-course">${opts}</select></div>
+      <div class="form-row"><label>Title *</label><input id="m-title" placeholder="e.g. Weekly Math Live"></div>
+      <div class="grid-2">
+        <div class="form-row"><label>First Class Date+Time *</label><input id="m-start" type="datetime-local" value="${tomorrow.toISOString().slice(0,16)}"></div>
+        <div class="form-row"><label>Duration (min)</label><input id="m-dur" type="number" value="60" min="15"></div>
+      </div>
+      <div class="form-row"><label>Days of Week *</label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          ${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map((d,i)=>`<label style="display:flex;align-items:center;gap:4px;padding:6px 10px;border:1px solid var(--jm-border);border-radius:8px;cursor:pointer"><input type="checkbox" name="m-dow" value="${i}" ${[1,3,5].includes(i)?'checked':''}/>${d}</label>`).join('')}
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="form-row"><label>Number of Weeks *</label><input id="m-weeks" type="number" value="4" min="1" max="52"></div>
+        <div class="form-row"><label>Meeting Link</label><input id="m-link" placeholder="https://meet…"></div>
+      </div>`;
+    },
+    submit:async()=>{
+      const days=[...document.querySelectorAll('input[name="m-dow"]:checked')].map(c=>parseInt(c.value));
+      if(!days.length) throw new Error('Pick at least one day of the week');
+      if(!val('m-course')) throw new Error('Pick a course');
+      if(!val('m-title')) throw new Error('Title required');
+      const r=await api('/teacher/live-classes/recurring','POST',{
+        courseId:val('m-course'), title:val('m-title'),
+        startTime: new Date(val('m-start')).toISOString(),
+        duration: Number(val('m-dur'))||60,
+        meetingLink: val('m-link'),
+        daysOfWeek: days,
+        weeks: Number(val('m-weeks'))||4
+      });
+      return 'Scheduled '+r.created+' classes';
+    }
+  },
+  // ── TEACHER: course-wide announcement
+  announcement: {
+    title:'📢 Course Announcement',
+    body:()=>`
+      <div class="form-row"><label>Message *</label><div style="display:flex;align-items:flex-start"><textarea id="m-msg" rows="4" placeholder="Type your announcement…" style="flex:1"></textarea>${micBtn('m-msg')}</div></div>
+      <div style="font-size:12px;color:var(--jm-text-muted)">This is sent to the course chat and visible to every enrolled student.</div>`,
+    submit:async()=>{
+      if(!val('m-msg')) throw new Error('Message required');
+      await api('/teacher/announcement','POST',{courseId:_modalCtx.courseId, message:val('m-msg')});
+      return 'Announcement sent';
+    }
+  },
+  // ── Activity wall viewer
+  wallView: {
+    title:'📰 Activity Wall',
+    body:()=>`<div id="wall-body">Loading…</div>`,
+    submit:async()=>'(close)'
+  },
   // ── TEACHER: edit existing course (title, desc, price, etc.)
   editCourse: {
     title:'✏️ Edit Course',
@@ -867,7 +1025,7 @@ const MODAL_DEFS={
       if(file) fd.append('file',file);
       const r=await fetch(API+'/assignments/'+aid+'/submit',{method:'POST',headers:{Authorization:'Bearer '+token},body:fd});
       const j=await r.json();
-      if(!r.ok) throw new Error(j.error||'Submit failed');
+      if(!r.ok) throw new Error(extractError(j,'Submit failed'));
       return 'Submitted!';
     }
   },
@@ -923,15 +1081,24 @@ const MODAL_DEFS={
   createCourse: {
     title:'📚 Create a New Course',
     body:()=>`
-      <div class="form-row"><label>Title *</label><input id="m-title" placeholder="e.g. Class 10 Mathematics"></div>
-      <div class="form-row"><label>Description</label><textarea id="m-desc" rows="3" placeholder="What students will learn"></textarea></div>
+      <div style="background:var(--jm-primary-tint);padding:14px;border-radius:8px;margin-bottom:14px">
+        <div style="font-weight:700;margin-bottom:6px">🤖 AI Quick-fill</div>
+        <div style="display:flex;gap:6px"><textarea id="m-prompt" rows="2" placeholder="Describe your course in a sentence or two — e.g. 'A 12-week algebra course for class 10 CBSE students with focus on word problems.'" style="flex:1"></textarea></div>
+        <div style="display:flex;gap:6px;margin-top:6px;align-items:center">
+          ${micBtn('m-prompt')}
+          <button type="button" class="btn-sm btn-primary" onclick="aiFillCourse()">✨ Generate</button>
+          <span style="font-size:11px;color:var(--jm-text-muted)">or type the fields manually below</span>
+        </div>
+      </div>
+      <div class="form-row"><label>Title *</label><div style="display:flex;align-items:center"><input id="m-title" placeholder="e.g. Class 10 Mathematics">${micBtn('m-title')}</div></div>
+      <div class="form-row"><label>Description</label><div style="display:flex;align-items:flex-start"><textarea id="m-desc" rows="3" placeholder="What students will learn" style="flex:1"></textarea>${micBtn('m-desc')}</div></div>
       <div class="grid-2">
         <div class="form-row"><label>Category</label><input id="m-cat" placeholder="Math" value="General"></div>
         <div class="form-row"><label>Level</label><select id="m-level"><option value="beginner">Beginner</option><option value="intermediate">Intermediate</option><option value="advanced">Advanced</option></select></div>
       </div>
       <div class="form-row"><label>Price (₹)</label><input id="m-price" type="number" min="0" value="0"></div>
       <div class="form-row"><label>Cover Image (optional)</label><input id="m-cover" type="file" accept="image/*"></div>
-      <div style="font-size:12px;color:var(--jm-text-muted)">Tip: you can configure topics, lectures, materials, and tests after the course is created.</div>`,
+      <div style="font-size:12px;color:var(--jm-text-muted)">After creating, you can add topics, lectures, materials, tests and assignments via ⚙️ Configure.</div>`,
     submit:async ()=>{
       const body={title:val('m-title'),description:val('m-desc'),category:val('m-cat')||'General',level:val('m-level'),price:Number(val('m-price'))||0};
       if(!body.title) throw new Error('Title is required');
@@ -1059,7 +1226,7 @@ const MODAL_DEFS={
       if(file) fd.append('video',file);
       const r=await fetch(API+'/course-content/'+courseId+'/lectures',{method:'POST',headers:{Authorization:'Bearer '+token},body:fd});
       const j=await r.json();
-      if(!r.ok) throw new Error(j.error||'Add failed');
+      if(!r.ok) throw new Error(extractError(j,'Add failed'));
       _reopenConfigure(courseId);
       return 'Lecture added';
     }
@@ -1089,7 +1256,7 @@ const MODAL_DEFS={
       if(file) fd.append('file',file);
       const r=await fetch(API+'/course-content/'+courseId+'/materials',{ method:'POST',headers:{'Authorization':'Bearer '+token},body:fd });
       const j=await r.json();
-      if(!r.ok) throw new Error(j.error||'Upload failed');
+      if(!r.ok) throw new Error(extractError(j,'Upload failed'));
       _reopenConfigure(courseId);
       return 'Material added';
     }
@@ -1160,11 +1327,24 @@ const MODAL_DEFS={
 };
 
 function val(id){return document.getElementById(id)?.value?.trim()||'';}
+// Extract a human-readable error message from any backend response shape.
+// Without this, an `{ error: {...object...} }` body causes the toast to read
+// '[object Object]' — happened when the dashboard was loaded on a port where
+// a different backend was running.
+function extractError(data, fallback){
+  if(!data) return fallback;
+  if(typeof data==='string') return data;
+  if(typeof data.error==='string') return data.error;
+  if(data.error && typeof data.error==='object') return data.error.message||data.error.error||JSON.stringify(data.error);
+  if(typeof data.message==='string' && data.message!=='Internal Server Error') return data.message;
+  if(Array.isArray(data.details)&&data.details.length) return data.details.map(d=>`${d.field||'field'}: ${d.message||d}`).join('; ');
+  return fallback;
+}
 async function api(path,method,body){
   const token=localStorage.getItem('jm_token');
   const r=await fetch(API+path,{method,headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:body?JSON.stringify(body):undefined});
   const j=await r.json().catch(()=>({}));
-  if(!r.ok) throw new Error(j.error||j.message||('HTTP '+r.status));
+  if(!r.ok) throw new Error(extractError(j, 'HTTP '+r.status));
   return j;
 }
 function openModal(type,ctx){
@@ -1184,6 +1364,74 @@ function openModal(type,ctx){
   overlay.classList.add('show');
 }
 function closeModal(){document.getElementById('actionOverlay').classList.remove('show');}
+// ============================================================
+// VOICE INPUT — Web Speech API helper.
+// Pass it the id of any input/textarea; it toggles dictation and types
+// the recognized text into the field. Adds a 🎤 button automatically.
+// ============================================================
+let _activeRecognition=null;
+function startVoiceFor(fieldId){
+  const el=document.getElementById(fieldId);
+  if(!el){ toast('No such field',true); return; }
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){ toast('Voice not supported in this browser',true); return; }
+  if(_activeRecognition){_activeRecognition.stop();_activeRecognition=null;return;}
+  const rec=new SR();
+  rec.lang='en-IN';
+  rec.interimResults=true;
+  rec.continuous=false;
+  const original=el.value;
+  rec.onresult=(e)=>{
+    let interim='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      const t=e.results[i][0].transcript;
+      if(e.results[i].isFinal) el.value=(original?original+' ':'')+t;
+      else interim+=t;
+    }
+    if(interim) el.value=(original?original+' ':'')+interim;
+  };
+  rec.onerror=()=>{toast('Voice error',true);_activeRecognition=null;};
+  rec.onend=()=>{_activeRecognition=null;toast('🎤 stopped');};
+  _activeRecognition=rec;
+  rec.start();
+  toast('🎤 listening… (click again to stop)');
+}
+// Inline-html helper: builds a small 🎤 button users can place next to any input.
+function micBtn(fieldId){ return `<button type="button" class="btn-sm btn-outline" style="margin-left:6px;padding:6px 10px" onclick="startVoiceFor('${fieldId}')" title="Dictate">🎤</button>`; }
+
+// ============================================================
+// AI ASSIST — generic "describe → fill the form" helper.
+// Calls /api/ai/generate (or specific endpoints) using the user's AI key.
+// ============================================================
+async function aiAssist(prompt, opts){
+  try{
+    toast('🤖 thinking…');
+    const r=await api(opts?.path||'/ai/generate','POST',{ prompt, json: !!opts?.json });
+    return r;
+  }catch(e){ toast(e.message,true); throw e; }
+}
+
+// AI Quick-fill on the Create Course modal — calls /api/ai/create-course
+// with the description and fills the form fields with the suggestion.
+async function aiFillCourse(){
+  const prompt=val('m-prompt');
+  if(!prompt){ toast('Describe your course first',true); return; }
+  try{
+    toast('🤖 generating…');
+    const r=await api('/ai/create-course','POST',{description:prompt});
+    const s=r.suggestion||{};
+    if(s.title) document.getElementById('m-title').value=s.title;
+    if(s.description) document.getElementById('m-desc').value=s.description;
+    if(s.category) document.getElementById('m-cat').value=s.category;
+    if(s.level) document.getElementById('m-level').value=s.level;
+    if(s.price!=null) document.getElementById('m-price').value=s.price;
+    toast('✓ filled — review and edit if needed');
+  }catch(e){
+    // The error may be a friendly rate-limit / no-key message — bubble it up.
+    toast(e.message||'AI generation failed', true);
+  }
+}
+
 // Sub-modals invoked from inside Configure should re-open Configure on success
 // rather than close the overlay entirely — keeps the user in the editing flow.
 const CONFIGURE_SUB_ACTIONS=new Set(['addTopic','addLecture','addMaterial','addTest','addAssignment']);
@@ -1216,15 +1464,234 @@ function toast(text,isErr){
   setTimeout(()=>t.remove(),3500);
 }
 
-// ── Configure-course modal: fetches /full and renders tabs for topics,
-// lectures, materials, tests; each tab has a "+ Add" button that re-uses
-// the addTopic/addLecture/addMaterial/addTest modal types and rebounds.
+// ── Configure-course page: REPLACES the dashboard with a full-page tree view.
+// No modals — inline forms for add/edit. Tree groups items under their topics
+// with collapsible folders; each row has inline ✏️ Edit / × Delete / ↑↓.
+let _cfgCourseId=null;
+let _cfgExpanded=new Set(['topics','lectures','materials','tests','assignments']);
+let _cfgEditing=null; // { type, id }
+let _cfgAdding=null;  // { type, topicId? }
+
 async function openConfigure(courseId){
-  _modalCtx={courseId};
-  openModal('configureCourse',{courseId});
+  _cfgCourseId=courseId;
+  document.getElementById('configurePage').classList.add('active');
+  document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
+  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
   await _reopenConfigure(courseId);
 }
+function closeConfigurePage(){
+  document.getElementById('configurePage').classList.remove('active');
+  document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='');
+  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='');
+  _cfgCourseId=null; _cfgEditing=null; _cfgAdding=null;
+}
+// ── Full-page tree renderer (replaces the Configure modal). Each tree
+// section is a collapsible "folder" containing items + an inline add form +
+// inline edit. Same /api/course-content/:id/full endpoint as before.
+async function _renderConfigurePage(courseId){
+  const body=document.getElementById('cfg-body');
+  if(!body) return;
+  body.innerHTML='<div style="text-align:center;padding:40px;color:#888">Loading…</div>';
+  try{
+    const [full, assignsR] = await Promise.all([
+      api('/course-content/'+courseId+'/full','GET'),
+      api('/assignments?courseId='+courseId,'GET').catch(()=>({assignments:[]}))
+    ]);
+    const c=full.course||{};
+    const assigns=(assignsR.assignments||[]).filter(a=>!a.student_id);
+    document.getElementById('cfg-crumb-title').textContent=c.title||'Course';
+    window._configureTopics=full.topics||[];
+    window._configureItems={topics:full.topics, lectures:full.lectures, materials:full.materials, tests:full.tests, assignments:assigns};
+
+    // Stash the course object so the Edit button can read it by id WITHOUT
+    // inlining JSON.stringify (which broke when the title had quotes/HTML and
+    // was a stored-XSS vector).
+    window._teacherCoursesById = window._teacherCoursesById || {};
+    window._teacherCoursesById[courseId] = c;
+    // Header
+    let html=`
+      <div class="cfg-header">
+        ${c.cover_image?`<img src="${escHtml(c.cover_image)}">`:'<div style="width:64px;height:64px;border-radius:10px;background:var(--jm-primary-tint);display:flex;align-items:center;justify-content:center;font-size:28px">📚</div>'}
+        <div>
+          <h2>${escHtml(c.title||'Course')}</h2>
+          <div class="sub">${escHtml(c.category||'General')} · ${escHtml(c.level||'beginner')} · ₹${c.price||0} · ${c.is_active?'✅ Active':'⏸ Inactive'}</div>
+        </div>
+        <div style="margin-left:auto;display:flex;gap:8px">
+          <button class="btn-sm btn-outline" onclick="openEditCourse(window._teacherCoursesById['${courseId}'])">✏️ Edit Course</button>
+          <button class="btn-sm btn-outline" onclick="openCourseStudents('${courseId}', window._teacherCoursesById['${courseId}']?.title||'Course')">👥 Students</button>
+          <button class="btn-sm btn-outline" onclick="openCourseChat('${courseId}', window._teacherCoursesById['${courseId}']?.title||'Course')">💬 Chat</button>
+        </div>
+      </div>`;
+
+    // Helper: render one tree section (folder)
+    const section=(key, icon, label, items, fields)=>{
+      const expanded=_cfgExpanded.has(key);
+      const editing=_cfgEditing?.type===key;
+      const adding=_cfgAdding?.type===key;
+      return `<div class="tree-section ${expanded?'expanded':''}" id="tree-${key}">
+        <div class="tree-header" onclick="toggleTree('${key}')">
+          <span class="caret">▶</span><span style="font-size:18px">${icon}</span>
+          <span class="tree-title">${label}</span>
+          <span class="tree-count">${(items||[]).length}</span>
+          <div class="tree-actions" onclick="event.stopPropagation()">
+            <button class="btn-sm btn-primary" onclick="cfgStartAdd('${key}','${courseId}')">+ Add</button>
+          </div>
+        </div>
+        <div class="tree-body">
+          ${adding ? _renderInlineForm(key, null, courseId, fields) : ''}
+          ${(items||[]).length ? items.map((it,i,arr)=>{
+            if(editing && _cfgEditing.id===it.id) return _renderInlineForm(key, it, courseId, fields);
+            return _renderTreeItem(key, it, i, arr, courseId);
+          }).join('') : '<div class="tree-empty">Nothing yet. Click + Add to create the first one.</div>'}
+        </div>
+      </div>`;
+    };
+
+    html+=section('topics','🗂','Topics', full.topics, ['title:Title*','description:Description']);
+    html+=section('lectures','🎬','Lectures', full.lectures, ['title:Title*','video_url:Video URL','duration:Duration (min)','topic_id:Topic']);
+    html+=section('materials','📎','Materials', full.materials, ['title:Title*','type:Type','url:URL','topic_id:Topic']);
+    html+=section('tests','✏️','Tests', full.tests, ['title:Title*','total_marks:Total Marks','duration_minutes:Duration (min)']);
+    html+=section('assignments','📝','Assignments', assigns, ['title:Title*','description:Description','due_date:Due Date']);
+
+    body.innerHTML=html;
+  }catch(e){ body.innerHTML='<div style="color:#b91c1c;padding:20px">Error: '+e.message+'</div>'; }
+}
+
+function toggleTree(key){
+  if(_cfgExpanded.has(key)) _cfgExpanded.delete(key);
+  else _cfgExpanded.add(key);
+  _renderConfigurePage(_cfgCourseId);
+}
+
+function _renderTreeItem(key, it, idx, arr, courseId){
+  const title=escHtml(it.title||'—');
+  const metas={
+    topics: escHtml(it.description||''),
+    lectures: escHtml((it.duration?it.duration+' min':'')+(it.is_recorded?' · recorded':' · live')+(it.video_url?' · '+it.video_url.slice(0,30)+'…':'')),
+    materials: escHtml(it.type+(it.url?' · '+it.url.slice(0,40)+'…':'')),
+    tests: (it.total_marks||100)+' marks · '+(it.duration_minutes||60)+' min',
+    assignments: it.due_date?'Due '+new Date(it.due_date).toLocaleDateString():''
+  };
+  const icons={topics:'📁',lectures:'🎬',materials:'📎',tests:'✏️',assignments:'📝'};
+  const canReorder=key==='topics'||key==='lectures';
+  const prev=arr[idx-1], next=arr[idx+1];
+  const single=key.slice(0,-1);
+  // Swap with neighbour instead of bumping ±1 (preserves legitimate 0).
+  const reorderBtns=canReorder?`${prev?`<button class="btn-sm btn-outline" onclick="reorderSwap('${single}','${it.id}','${prev.id}','${courseId}')">↑</button>`:''}${next?`<button class="btn-sm btn-outline" onclick="reorderSwap('${single}','${it.id}','${next.id}','${courseId}')">↓</button>`:''}`:'';
+  const submissionsBtn=key==='assignments'?`<button class="btn-sm btn-outline" onclick="openSubmissions('${it.id}', window._configureItems?.assignments?.find(a=>a.id==='${it.id}')?.title||'')">📥 Submissions</button>`:'';
+  return `<div class="tree-item">
+    <span class="item-icon">${icons[key]}</span>
+    <div style="flex:1">
+      <div class="item-title">${title}</div>
+      ${metas[key]?`<div class="item-meta">${metas[key]}</div>`:''}
+    </div>
+    <div class="item-actions">${reorderBtns}${submissionsBtn}
+      <button class="btn-sm btn-outline" onclick="cfgStartEdit('${key}','${it.id}','${courseId}')">✏️</button>
+      <button class="btn-sm btn-outline" onclick="cfgDelete('${key}','${it.id}','${courseId}')">×</button>
+    </div>
+  </div>`;
+}
+
+function cfgStartAdd(key, courseId){
+  _cfgAdding={type:key};
+  _cfgEditing=null;
+  if(!_cfgExpanded.has(key))_cfgExpanded.add(key);
+  _renderConfigurePage(courseId);
+}
+function cfgStartEdit(key, id, courseId){
+  _cfgEditing={type:key, id};
+  _cfgAdding=null;
+  if(!_cfgExpanded.has(key))_cfgExpanded.add(key);
+  _renderConfigurePage(courseId);
+}
+function cfgCancel(courseId){
+  _cfgAdding=null; _cfgEditing=null;
+  _renderConfigurePage(courseId);
+}
+async function cfgDelete(key, id, courseId){
+  if(!confirm('Delete this '+key.slice(0,-1)+'?'))return;
+  try{ await api('/course-content/'+key+'/'+id,'DELETE'); toast('Deleted'); _renderConfigurePage(courseId); }
+  catch(e){ toast(e.message,true); }
+}
+
+// Render an inline add or edit form inside a tree section.
+function _renderInlineForm(key, existingItem, courseId, fields){
+  const isEdit=!!existingItem;
+  const id='inl-'+key;
+  const topicOpts=(window._configureTopics||[]).map(t=>`<option value="${t.id}" ${existingItem?.topic_id===t.id?'selected':''}>${t.title}</option>`).join('');
+  let inputs='';
+  const FIELD_DEF={
+    'title:Title*':`<div class="form-row"><label>Title *</label><div style="display:flex;align-items:center"><input id="${id}-title" value="${(existingItem?.title||'').replace(/"/g,'&quot;')}" placeholder="Title…">${micBtn(id+'-title')}</div></div>`,
+    'description:Description':`<div class="form-row"><label>Description</label><div style="display:flex;align-items:flex-start"><textarea id="${id}-desc" rows="2">${existingItem?.description||''}</textarea>${micBtn(id+'-desc')}</div></div>`,
+    'video_url:Video URL':`<div class="form-row"><label>Video URL or upload</label><input id="${id}-video" value="${existingItem?.video_url||''}" placeholder="https://…"><input type="file" id="${id}-file" accept="video/*" style="margin-top:6px"></div>`,
+    'duration:Duration (min)':`<div class="form-row"><label>Duration (min)</label><input type="number" id="${id}-dur" value="${existingItem?.duration||30}"></div>`,
+    'topic_id:Topic':`<div class="form-row"><label>Topic</label><select id="${id}-topic"><option value="">— No topic —</option>${topicOpts}</select></div>`,
+    'type:Type':`<div class="form-row"><label>Type</label><select id="${id}-type">${['file','link','image','pdf','note'].map(t=>`<option value="${t}" ${existingItem?.type===t?'selected':''}>${t}</option>`).join('')}</select></div>`,
+    'url:URL':`<div class="form-row"><label>URL</label><input id="${id}-url" value="${existingItem?.url||''}" placeholder="https://…"></div>`,
+    'total_marks:Total Marks':`<div class="form-row"><label>Total Marks</label><input type="number" id="${id}-marks" value="${existingItem?.total_marks||100}"></div>`,
+    'duration_minutes:Duration (min)':`<div class="form-row"><label>Duration (min)</label><input type="number" id="${id}-dmin" value="${existingItem?.duration_minutes||60}"></div>`,
+    'due_date:Due Date':`<div class="form-row"><label>Due Date *</label><input id="${id}-due" type="datetime-local" value="${existingItem?.due_date?new Date(existingItem.due_date).toISOString().slice(0,16):new Date(Date.now()+7*86400000).toISOString().slice(0,16)}"></div>`
+  };
+  fields.forEach(f=>{ inputs+=FIELD_DEF[f]||''; });
+
+  return `<div class="tree-inline-form">
+    <div style="font-weight:700;font-size:13px;margin-bottom:8px;color:var(--jm-primary)">${isEdit?'✏️ Edit':'➕ Add'} ${key.slice(0,-1)}</div>
+    ${inputs}
+    <div class="form-actions">
+      <button class="btn-sm btn-primary" onclick="cfgSubmit('${key}','${courseId}',${isEdit?`'${existingItem.id}'`:'null'})">${isEdit?'Save':'Add'}</button>
+      <button class="btn-sm btn-outline" onclick="cfgCancel('${courseId}')">Cancel</button>
+    </div>
+  </div>`;
+}
+
+// Submit an inline add or edit form. Builds the request body from the form
+// fields' current values (using the same naming convention as the form).
+async function cfgSubmit(key, courseId, existingId){
+  const id='inl-'+key;
+  const get=(s)=>document.getElementById(id+s)?.value;
+  try{
+    let path, method='POST', body={};
+    if(key==='topics'){
+      body={title:get('-title'),description:get('-desc')};
+      path=existingId?`/course-content/topics/${existingId}`:`/course-content/${courseId}/topics`;
+    } else if(key==='lectures'){
+      const file=document.getElementById(id+'-file')?.files?.[0];
+      if(file && !existingId){
+        // multipart create
+        const fd=new FormData();
+        fd.append('title',get('-title')); fd.append('topicId',get('-topic')||''); fd.append('videoUrl',get('-video')||''); fd.append('duration',get('-dur')||30); fd.append('video',file);
+        const token=localStorage.getItem('jm_token');
+        const r=await fetch(API+`/course-content/${courseId}/lectures`,{method:'POST',headers:{Authorization:'Bearer '+token},body:fd});
+        if(!r.ok){const j=await r.json().catch(()=>({}));throw new Error(extractError(j,'Add failed'));}
+        toast(existingId?'Updated':'Added'); _cfgAdding=null; _cfgEditing=null; _renderConfigurePage(courseId); return;
+      }
+      body={title:get('-title'),topicId:get('-topic')||null,videoUrl:get('-video'),duration:Number(get('-dur'))||30};
+      path=existingId?`/course-content/lectures/${existingId}`:`/course-content/${courseId}/lectures`;
+    } else if(key==='materials'){
+      body={title:get('-title'),type:get('-type'),url:get('-url'),topicId:get('-topic')||null};
+      path=existingId?`/course-content/materials/${existingId}`:`/course-content/${courseId}/materials`;
+    } else if(key==='tests'){
+      body={title:get('-title'),totalMarks:Number(get('-marks'))||100,durationMinutes:Number(get('-dmin'))||60};
+      path=existingId?`/course-content/tests/${existingId}`:`/course-content/${courseId}/tests`;
+    } else if(key==='assignments'){
+      body={title:get('-title'),description:get('-desc'),dueDate:new Date(get('-due')).toISOString()};
+      if(!existingId) body.courseId=courseId;
+      path=existingId?`/assignments/${existingId}`:`/assignments`;
+    }
+    if(existingId) method='PUT';
+    if(!body.title) throw new Error('Title required');
+    await api(path, method, body);
+    toast(existingId?'✓ Updated':'✓ Added');
+    _cfgAdding=null; _cfgEditing=null;
+    _renderConfigurePage(courseId);
+  }catch(e){ toast(e.message,true); }
+}
+
 async function _reopenConfigure(courseId){
+  // When configurePage is active, render into cfg-body (tree view).
+  // When the old modal is the active surface, render into cc-body (legacy).
+  const isPage=document.getElementById('configurePage')?.classList.contains('active');
+  if(isPage){ return _renderConfigurePage(courseId); }
   const body=document.getElementById('cc-body');
   if(!body)return;
   try{
@@ -1233,11 +1700,25 @@ async function _reopenConfigure(courseId){
     // Also fetch assignment templates for this course (5th tab)
     let assigns=[];
     try{ const a=await api('/assignments?courseId='+courseId,'GET'); assigns=(a.assignments||[]).filter(x=>!x.student_id); }catch(_){}
+    // Stash items so the Edit modal can look them up by id
+    window._configureItems={ topics:r.topics, lectures:r.lectures, materials:r.materials, tests:r.tests };
+    // Reorder by SWAPPING positions with neighbour, never bumping order_index
+    // outside its valid range (preserves legitimate 0; avoids duplicate
+    // indexes when multiple rows happen to share a value).
+    const reorderBtns=(arr,t,id,idx)=>{
+      const prev=arr[idx-1], next=arr[idx+1];
+      // Use the neighbour's current order_index AS-IS (swap), not ±1.
+      // The server-side PUT will simply set this row's order_index to that
+      // value; we then nudge the neighbour by recomputing on the next render.
+      const upBtn=prev?`<button class="btn-sm btn-outline" onclick="reorderSwap('${t}','${id}','${prev.id}','${courseId}')" title="Move up">↑</button>`:'';
+      const dnBtn=next?`<button class="btn-sm btn-outline" onclick="reorderSwap('${t}','${id}','${next.id}','${courseId}')" title="Move down">↓</button>`:'';
+      return upBtn+dnBtn;
+    };
     const tabs=[
-      {key:'topics',label:'Topics',items:r.topics,render:t=>`<div style="display:flex;justify-content:space-between;padding:8px 10px;border-bottom:1px solid var(--jm-border)"><span><strong>${t.title}</strong>${t.description?' — <span style="color:var(--jm-text-muted)">'+t.description+'</span>':''}</span><button class="btn-sm btn-outline" onclick="delContent('topics','${t.id}','${courseId}')">×</button></div>`,add:'addTopic'},
-      {key:'lectures',label:'Lectures',items:r.lectures,render:l=>`<div style="display:flex;justify-content:space-between;padding:8px 10px;border-bottom:1px solid var(--jm-border)"><span><strong>${l.title}</strong>${l.duration?' <span class="badge badge-blue">'+l.duration+' min</span>':''}${l.is_recorded?' <span class="badge badge-green">recorded</span>':''}</span><button class="btn-sm btn-outline" onclick="delContent('lectures','${l.id}','${courseId}')">×</button></div>`,add:'addLecture'},
-      {key:'materials',label:'Materials',items:r.materials,render:m=>`<div style="display:flex;justify-content:space-between;padding:8px 10px;border-bottom:1px solid var(--jm-border)"><span><strong>${m.title}</strong> <span class="badge badge-muted">${m.type}</span>${m.url?' <a href="'+m.url+'" target="_blank">open</a>':''}</span><button class="btn-sm btn-outline" onclick="delContent('materials','${m.id}','${courseId}')">×</button></div>`,add:'addMaterial'},
-      {key:'tests',label:'Tests',items:r.tests,render:t=>`<div style="display:flex;justify-content:space-between;padding:8px 10px;border-bottom:1px solid var(--jm-border)"><span><strong>${t.title}</strong> <span class="badge badge-muted">${t.total_marks} marks · ${t.duration_minutes} min</span></span></div>`,add:'addTest'},
+      {key:'topics',label:'Topics',items:r.topics,render:(t,i,arr)=>`<div style="display:flex;justify-content:space-between;padding:8px 10px;border-bottom:1px solid var(--jm-border);align-items:center"><span><strong>${t.title}</strong>${t.description?' — <span style="color:var(--jm-text-muted)">'+t.description+'</span>':''}</span><div class="row-actions">${reorderBtns(arr,'topic',t.id,i)}<button class="btn-sm btn-outline" onclick="editContent('topic',window._configureItems.topics[${i}],'${courseId}')">✏️</button><button class="btn-sm btn-outline" onclick="delContent('topics','${t.id}','${courseId}')">×</button></div></div>`,add:'addTopic'},
+      {key:'lectures',label:'Lectures',items:r.lectures,render:(l,i,arr)=>`<div style="display:flex;justify-content:space-between;padding:8px 10px;border-bottom:1px solid var(--jm-border);align-items:center"><span><strong>${l.title}</strong>${l.duration?' <span class="badge badge-blue">'+l.duration+' min</span>':''}${l.is_recorded?' <span class="badge badge-green">recorded</span>':''}</span><div class="row-actions">${reorderBtns(arr,'lecture',l.id,i)}<button class="btn-sm btn-outline" onclick="editContent('lecture',window._configureItems.lectures[${i}],'${courseId}')">✏️</button><button class="btn-sm btn-outline" onclick="delContent('lectures','${l.id}','${courseId}')">×</button></div></div>`,add:'addLecture'},
+      {key:'materials',label:'Materials',items:r.materials,render:(m,i)=>`<div style="display:flex;justify-content:space-between;padding:8px 10px;border-bottom:1px solid var(--jm-border);align-items:center"><span><strong>${m.title}</strong> <span class="badge badge-muted">${m.type}</span>${m.url?' <a href="'+m.url+'" target="_blank">open</a>':''}</span><div class="row-actions"><button class="btn-sm btn-outline" onclick="editContent('material',window._configureItems.materials[${i}],'${courseId}')">✏️</button><button class="btn-sm btn-outline" onclick="delContent('materials','${m.id}','${courseId}')">×</button></div></div>`,add:'addMaterial'},
+      {key:'tests',label:'Tests',items:r.tests,render:(t,i)=>`<div style="display:flex;justify-content:space-between;padding:8px 10px;border-bottom:1px solid var(--jm-border);align-items:center"><span><strong>${t.title}</strong> <span class="badge badge-muted">${t.total_marks} marks · ${t.duration_minutes} min</span></span><div class="row-actions"><button class="btn-sm btn-outline" onclick="editContent('test',window._configureItems.tests[${i}],'${courseId}')">✏️</button><button class="btn-sm btn-outline" onclick="delContent('tests','${t.id}','${courseId}')">×</button></div></div>`,add:'addTest'},
       {key:'assignments',label:'Assignments',items:assigns,render:a=>`<div style="display:flex;justify-content:space-between;padding:8px 10px;border-bottom:1px solid var(--jm-border);align-items:center"><span><strong>${a.title}</strong> <span class="badge badge-muted">Due ${new Date(a.due_date).toLocaleDateString()}</span></span><button class="btn-sm btn-outline" onclick="openSubmissions('${a.id}','${a.title.replace(/'/g,"\\'")}')">📥 Submissions</button></div>`,add:'addAssignment'}
     ];
     body.innerHTML=`
@@ -1429,8 +1910,11 @@ async function openCourseStudents(courseId, title){
       body.innerHTML='<div style="text-align:center;padding:20px;color:var(--jm-text-muted)">No enrolled students yet.</div>';
       return;
     }
+    // Stash students so the CSV export button can read them
+    window._lastStudentRoster={students:r.students,title:r.course?.title};
     body.innerHTML=`
-      <div style="margin-bottom:10px;font-size:12px;color:var(--jm-text-muted)">${r.students.length} enrolled · ${r.students.filter(s=>s.progress_percentage===100).length} completed</div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:10px"><div style="font-size:12px;color:var(--jm-text-muted)">${r.students.length} enrolled · ${r.students.filter(s=>s.progress_percentage===100).length} completed</div>
+      <button class="btn-sm btn-outline" onclick="exportRosterCsv(window._lastStudentRoster.students, window._lastStudentRoster.title)">📥 Export CSV</button></div>
       ${r.students.map(s=>`
         <div style="display:flex;justify-content:space-between;padding:10px;border-bottom:1px solid var(--jm-border);align-items:center">
           <div style="flex:1">
@@ -1520,6 +2004,285 @@ async function loadInstitutionStudents(){
   }catch(e){}
 }
 
+// ── AI KEY SETTINGS — open/save/clear personal AI provider + key ───────
+async function openAiKey(){
+  openModal('aiKey');
+  const body=document.getElementById('aikey-body');
+  if(!body) return;
+  try{
+    const [status, usage]=await Promise.all([api('/ai/key','GET'), api('/ai/usage','GET')]);
+    const used=usage.todayCalls||0, lim=usage.freeLimit||5;
+    body.innerHTML=`
+      <div style="background:var(--jm-primary-tint);padding:12px;border-radius:8px;margin-bottom:14px;font-size:13px">
+        <strong>Today's usage:</strong> ${used} / ${lim} calls on the FREE plan${status.hasKey?' <span class="badge badge-green">your own key — unlimited</span>':''}
+      </div>
+      <div class="form-row"><label>Provider</label><select id="m-aiprov">
+        <option value="">— pick one —</option>
+        ${['openai','anthropic','gemini','openrouter'].map(p=>`<option value="${p}" ${status.provider===p?'selected':''}>${p}</option>`).join('')}
+      </select></div>
+      <div class="form-row"><label>API Key</label><input id="m-aikey" type="password" placeholder="${status.hasKey?'(set — type to overwrite)':'sk-…'}"></div>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button class="btn-sm btn-primary" onclick="saveAiKey()">Save Key</button>
+        <button class="btn-sm btn-outline" onclick="clearAiKey()">Remove Key</button>
+      </div>
+      <div style="font-size:12px;color:var(--jm-text-muted);margin-top:10px">Your key is encrypted at rest. Without your own key the platform falls back to ${lim} shared-quota calls per day.</div>`;
+  }catch(e){ body.innerHTML='<div style="color:#b91c1c">Error: '+e.message+'</div>'; }
+}
+async function saveAiKey(){
+  const provider=val('m-aiprov');
+  const apiKey=val('m-aikey');
+  if(!provider||!apiKey){ toast('Provider and key required',true); return; }
+  try{ await api('/ai/key','POST',{provider,apiKey}); toast('✓ Saved'); openAiKey(); }
+  catch(e){ toast(e.message,true); }
+}
+async function clearAiKey(){
+  if(!confirm('Remove your AI key?'))return;
+  try{ await api('/ai/key','POST',{clear:true}); toast('✓ Removed'); openAiKey(); }
+  catch(e){ toast(e.message,true); }
+}
+
+// ── COURSE CHAT — open the per-course group chat ──────────────────────
+let _activeChat=null;
+async function openCourseChat(courseId, title){
+  _modalCtx={courseId};
+  openModal('courseChat');
+  document.querySelector('#actionModal h3').textContent='💬 '+(title||'Chat');
+  try{
+    const r=await api('/chat/rooms/course/'+courseId,'GET');
+    _activeChat=r.room;
+    await renderChat();
+  }catch(e){ document.getElementById('chat-messages').innerHTML='<div style="color:#b91c1c">'+e.message+'</div>'; }
+}
+// Escape any string before inserting into HTML to prevent stored XSS.
+function escHtml(s){
+  return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+async function renderChat(){
+  if(!_activeChat) return;
+  try{
+    const r=await api('/chat/rooms/'+_activeChat.id+'/messages','GET');
+    const el=document.getElementById('chat-messages');
+    if(!el) return;
+    if(!r.messages?.length){ el.innerHTML='<div style="text-align:center;color:var(--jm-text-muted);padding:20px">No messages yet — say hi!</div>'; return; }
+    el.innerHTML=r.messages.map(m=>{
+      const mine=m.sender_id===JSON.parse(localStorage.getItem('jm_user')||'{}').id;
+      return `<div style="margin-bottom:10px;display:flex;${mine?'justify-content:flex-end':''}">
+        <div style="max-width:75%;padding:8px 12px;border-radius:12px;background:${mine?'var(--jm-primary)':'var(--jm-surface-2)'};color:${mine?'#fff':'var(--jm-text)'}">
+          ${!mine?`<div style="font-size:11px;font-weight:600;margin-bottom:2px;opacity:.8">${escHtml(m.sender_name)}</div>`:''}
+          <div style="font-size:13px;white-space:pre-wrap">${escHtml(m.content||'')}</div>
+          <div style="font-size:10px;opacity:.6;margin-top:2px">${new Date(m.created_at).toLocaleTimeString()}</div>
+        </div>
+      </div>`;
+    }).join('');
+    el.scrollTop=el.scrollHeight;
+  }catch(e){}
+}
+async function sendChat(){
+  const text=val('chat-input');
+  if(!text||!_activeChat){ return; }
+  document.getElementById('chat-input').value='';
+  try{
+    await api('/chat/rooms/'+_activeChat.id+'/messages','POST',{content:text});
+    await renderChat();
+  }catch(e){ toast(e.message,true); }
+}
+
+// ── ACTIVITY WALL ──────────────────────────────────────────────────────
+async function openWall(scope, id){
+  openModal('wallView');
+  const body=document.getElementById('wall-body');
+  if(!body) return;
+  try{
+    const path=scope==='course'?('/activity/course/'+id):'/activity/me';
+    const r=await api(path,'GET');
+    if(!r.feed?.length){ body.innerHTML='<div style="text-align:center;padding:30px;color:var(--jm-text-muted)">No activity yet.</div>'; return; }
+    body.innerHTML=r.feed.map(e=>`
+      <div style="padding:12px;border-bottom:1px solid var(--jm-border);display:flex;gap:12px">
+        <div style="font-size:20px">${e.message?.split(' ')[0]||'•'}</div>
+        <div style="flex:1">
+          <div style="font-size:13px">${e.message||e.event_type}</div>
+          <div style="font-size:11px;color:var(--jm-text-muted);margin-top:2px">${e.actor_name?e.actor_name+' · ':''}${new Date(e.created_at).toLocaleString()}</div>
+        </div>
+      </div>`).join('');
+  }catch(e){ body.innerHTML='<div style="color:#b91c1c">'+e.message+'</div>'; }
+}
+
+// ── TEACHER TIMETABLE — week view of all upcoming classes/assignments/tests
+let _ttWeekOffset=0;
+function _weekStart(offset){
+  const d=new Date(); const dow=d.getDay();
+  d.setDate(d.getDate()-dow+(offset*7));
+  d.setHours(0,0,0,0); return d;
+}
+async function openTimetable(weekOffset){
+  _ttWeekOffset=weekOffset||0;
+  openModal('timetable');
+  await _renderTimetable();
+}
+async function _renderTimetable(){
+  const body=document.getElementById('tt-body');
+  if(!body) return;
+  body.innerHTML='Loading…';
+  const start=_weekStart(_ttWeekOffset);
+  const end=new Date(start); end.setDate(end.getDate()+7);
+  try{
+    const r=await api('/teacher/timetable?from='+start.toISOString()+'&to='+end.toISOString(),'GET');
+    const days=Array.from({length:7},(_,i)=>{const d=new Date(start);d.setDate(d.getDate()+i);return d;});
+    const byDay={}; days.forEach(d=>byDay[d.toDateString()]=[]);
+    (r.events||[]).forEach(e=>{
+      const k=new Date(e.start).toDateString();
+      if(byDay[k]) byDay[k].push(e);
+    });
+    const ICON={live:'📡',assignment:'📝',test:'✏️'};
+    body.innerHTML=`
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <button class="btn-sm btn-outline" onclick="openTimetable(${_ttWeekOffset-1})">← Prev</button>
+        <div style="font-weight:700">${start.toLocaleDateString()} — ${new Date(end-1).toLocaleDateString()}</div>
+        <div style="display:flex;gap:6px">
+          <button class="btn-sm btn-outline" onclick="openTimetable(0)">Today</button>
+          <button class="btn-sm btn-outline" onclick="openTimetable(${_ttWeekOffset+1})">Next →</button>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--jm-text-muted);margin-bottom:10px">${(r.events||[]).length} total events this week</div>
+      ${days.map(d=>{
+        const k=d.toDateString();
+        const items=byDay[k]||[];
+        const isToday=d.toDateString()===new Date().toDateString();
+        return `<div style="margin-bottom:14px">
+          <div style="font-weight:700;font-size:13px;padding:6px 10px;background:${isToday?'var(--jm-primary-tint)':'var(--jm-surface-2)'};border-radius:6px">${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()]} · ${d.toLocaleDateString()}${isToday?' · Today':''}</div>
+          ${items.length ? items.map(e=>`
+            <div style="display:flex;justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--jm-border);align-items:center">
+              <div><div>${ICON[e.type]||'•'} <strong>${e.title}</strong></div><div style="font-size:11px;color:var(--jm-text-muted)">${new Date(e.start).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}${e.duration?' · '+e.duration+' min':''}${e.course_title?' · '+e.course_title:''}</div></div>
+              <span class="badge ${e.type==='live'?'badge-blue':e.type==='assignment'?'badge-yellow':'badge-green'}">${e.type}${e.status?' '+e.status:''}</span>
+            </div>`).join('') : '<div style="padding:8px 12px;color:var(--jm-text-muted);font-size:12px">Nothing scheduled.</div>'}
+        </div>`;
+      }).join('')}`;
+  }catch(e){ body.innerHTML='<div style="color:#b91c1c">Error: '+e.message+'</div>'; }
+}
+
+// ── TEACHER ANNOUNCEMENT — open announcement modal for a course
+function openAnnouncement(courseId, title){
+  openModal('announcement',{courseId,courseTitle:title});
+}
+
+// ── BULK ATTENDANCE — mark every enrolled student present today
+async function bulkMarkPresent(courseId){
+  if(!confirm('Mark every enrolled student PRESENT for today?'))return;
+  try{
+    const today=new Date().toISOString().slice(0,10);
+    const r=await api('/teacher/attendance/bulk','POST',{courseId, classDate:today});
+    toast('✓ '+r.created+' students marked present');
+  }catch(e){ toast(e.message,true); }
+}
+
+// ── EDIT existing course content (topic / lecture / material / test)
+async function editContent(type, item, courseId){
+  const def=({
+    topic: { title:'✏️ Edit Topic', map:i=>({title:i.title,description:i.description}), put:i=>({title:val('m-title'),description:val('m-desc')}),
+             body:i=>`<div class="form-row"><label>Title *</label><input id="m-title" value="${(i.title||'').replace(/"/g,'&quot;')}"></div>
+                     <div class="form-row"><label>Description</label><textarea id="m-desc" rows="3">${i.description||''}</textarea></div>` },
+    lecture:{ title:'✏️ Edit Lecture', body:i=>`
+                <div class="form-row"><label>Title *</label><input id="m-title" value="${(i.title||'').replace(/"/g,'&quot;')}"></div>
+                <div class="form-row"><label>Video URL</label><input id="m-video" value="${i.video_url||''}"></div>
+                <div class="grid-2">
+                  <div class="form-row"><label>Duration (min)</label><input id="m-dur" type="number" value="${i.duration||30}"></div>
+                  <div class="form-row"><label>Type</label><select id="m-rec"><option value="true" ${i.is_recorded!==false?'selected':''}>Recorded</option><option value="false" ${i.is_recorded===false?'selected':''}>Scheduled</option></select></div>
+                </div>`,
+             put:()=>({title:val('m-title'),videoUrl:val('m-video'),duration:Number(val('m-dur'))||30,isRecorded:val('m-rec')==='true'}) },
+    material:{ title:'✏️ Edit Material', body:i=>`
+                <div class="form-row"><label>Title *</label><input id="m-title" value="${(i.title||'').replace(/"/g,'&quot;')}"></div>
+                <div class="form-row"><label>Type</label><select id="m-type">${['file','link','image','pdf','note'].map(t=>`<option value="${t}" ${i.type===t?'selected':''}>${t}</option>`).join('')}</select></div>
+                <div class="form-row"><label>URL</label><input id="m-url" value="${i.url||''}"></div>`,
+              put:()=>({title:val('m-title'),type:val('m-type'),url:val('m-url')}) },
+    test:    { title:'✏️ Edit Test', body:i=>`
+                <div class="form-row"><label>Title *</label><input id="m-title" value="${(i.title||'').replace(/"/g,'&quot;')}"></div>
+                <div class="grid-2">
+                  <div class="form-row"><label>Total Marks</label><input id="m-marks" type="number" value="${i.total_marks||100}"></div>
+                  <div class="form-row"><label>Duration (min)</label><input id="m-dur" type="number" value="${i.duration_minutes||60}"></div>
+                </div>`,
+              put:()=>({title:val('m-title'),totalMarks:Number(val('m-marks')),durationMinutes:Number(val('m-dur'))}) }
+  })[type];
+  if(!def) return;
+  // Build a dynamic modal type once-off
+  MODAL_DEFS['_edit_'+type]={ title:def.title, body:()=>def.body(item), submit:async()=>{
+    if(!val('m-title')) throw new Error('Title required');
+    const pluralEndpoint={topic:'topics',lecture:'lectures',material:'materials',test:'tests'}[type];
+    await api('/course-content/'+pluralEndpoint+'/'+item.id,'PUT',def.put());
+    _reopenConfigure(courseId);
+    return 'Updated';
+  }};
+  CONFIGURE_SUB_ACTIONS.add('_edit_'+type);
+  openModal('_edit_'+type,{item,courseId});
+}
+
+// ── REORDER topics/lectures
+async function reorder(type, id, newOrderIndex, courseId){
+  const plural={topic:'topics',lecture:'lectures'}[type];
+  if(!plural) return;
+  try{
+    await api('/course-content/'+plural+'/'+id,'PUT',{orderIndex:newOrderIndex});
+    _reopenConfigure(courseId);
+  }catch(e){ toast(e.message,true); }
+}
+
+// Swap order_index values between two rows so the user-visible order changes
+// without ever pushing a value outside its current range. Handles the legit-0
+// case correctly because we never compute (val||default)±1.
+async function reorderSwap(type, aId, bId, courseId){
+  const plural={topic:'topics',lecture:'lectures'}[type];
+  if(!plural) return;
+  const items = (window._configureItems||{})[plural] || [];
+  const a = items.find(x=>x.id===aId);
+  const b = items.find(x=>x.id===bId);
+  if(!a||!b){ toast('Could not find rows to swap',true); return; }
+  // If both rows have the same order_index (or all zeros), assign distinct
+  // values based on their current array positions.
+  const aIdx=items.indexOf(a), bIdx=items.indexOf(b);
+  let aNew, bNew;
+  if(a.order_index===b.order_index){
+    aNew=bIdx; bNew=aIdx;
+  } else {
+    aNew=b.order_index|0; bNew=a.order_index|0;
+  }
+  try{
+    await Promise.all([
+      api('/course-content/'+plural+'/'+aId,'PUT',{orderIndex:aNew}),
+      api('/course-content/'+plural+'/'+bId,'PUT',{orderIndex:bNew})
+    ]);
+    _reopenConfigure(courseId);
+  }catch(e){ toast(e.message,true); }
+}
+
+// ── CSV EXPORT of class roster
+function exportRosterCsv(students, courseTitle){
+  const rows=[['Name','Email','Progress %','Attended','Total Lectures','Last Attendance']];
+  students.forEach(s=>rows.push([
+    s.full_name||'', s.email||'',
+    s.progress_percentage||0,
+    s.attended_lectures||0,
+    s.total_lectures||0,
+    s.last_attendance_date||''
+  ]));
+  const csv=rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=(courseTitle||'roster').replace(/[^a-z0-9]+/gi,'_')+'.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  toast('CSV downloaded');
+}
+
+// ── Student activity wall — small embedded version ─────────────────────
+async function loadWall(){
+  try{
+    const r=await api('/activity/me','GET');
+    const el=document.getElementById('s-wallList'); if(!el) return;
+    if(!r.feed?.length){ el.innerHTML='<li style="width:100%"><div class="empty-state"><div class="icon">📰</div>No activity yet — start a course!</div></li>'; return; }
+    el.innerHTML=r.feed.slice(0,6).map(e=>`<li><div style="flex:1"><div>${e.message||e.event_type}</div><div style="font-size:11px;color:var(--jm-text-muted)">${e.actor_name?e.actor_name+' · ':''}${new Date(e.created_at).toLocaleString()}</div></div></li>`).join('');
+  }catch(e){}
+}
+
 // ── Notes panel: list + delete ─────────────────────────────────────────
 async function loadNotes(){
   try{
@@ -1595,10 +2358,14 @@ const joinLive=_withButtonLoading(async (id)=>{
   }catch(e){ toast(e.message,true); }
 });
 
-// Keyboard: Escape closes any open modal.
+// Keyboard: Escape closes any open modal OR the configure page.
 document.addEventListener('keydown',(e)=>{
-  if(e.key==='Escape'&&document.getElementById('actionOverlay')?.classList.contains('show')){
-    closeModal();
+  if(e.key!=='Escape')return;
+  if(document.getElementById('actionOverlay')?.classList.contains('show')){
+    closeModal(); return;
+  }
+  if(document.getElementById('configurePage')?.classList.contains('active')){
+    closeConfigurePage();
   }
 });
 
