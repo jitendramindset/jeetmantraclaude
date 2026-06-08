@@ -294,4 +294,63 @@ router.get('/progress/:courseId', authenticateToken, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ── WISHLIST: ♡ a course from marketplace. Student-only writes; reads
+// return the list with hydrated course info.
+const { v4: uuidv4w } = require('uuid');
+router.get('/wishlist', authenticateToken, async (req, res) => {
+  try {
+    const { data: rows } = await supabaseAdmin.from('course_wishlist')
+      .select('*').eq('student_id', req.user.id).order('created_at', { ascending: false });
+    const ids = (rows || []).map(r => r.course_id);
+    if (!ids.length) return res.json({ items: [] });
+    const { data: courses } = await supabaseAdmin.from('courses')
+      .select('id, title, description, category, level, price, cover_image, teacher_id').in('id', ids);
+    const byId = Object.fromEntries((courses || []).map(c => [c.id, c]));
+    res.json({ items: (rows || []).map(r => ({ ...r, course: byId[r.course_id] || null })) });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.post('/wishlist/:courseId', authenticateToken, async (req, res) => {
+  try {
+    const { data: existing } = await supabaseAdmin.from('course_wishlist')
+      .select('id').eq('student_id', req.user.id).eq('course_id', req.params.courseId).maybeSingle();
+    if (existing) return res.json({ message: 'Already on wishlist', id: existing.id });
+    const { data, error } = await supabaseAdmin.from('course_wishlist').insert({
+      id: uuidv4w(), student_id: req.user.id, course_id: req.params.courseId
+    }).select().single();
+    if (error) return res.status(400).json({ error: error.message });
+    res.status(201).json({ item: data });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.delete('/wishlist/:courseId', authenticateToken, async (req, res) => {
+  try {
+    await supabaseAdmin.from('course_wishlist').delete()
+      .eq('student_id', req.user.id).eq('course_id', req.params.courseId);
+    res.json({ message: 'Removed' });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── COURSE COMPARISON: GET /api/student/compare?ids=a,b,c — returns up to
+// 3 courses with side-by-side stats (price, rating, lecture count, etc.).
+router.get('/compare', authenticateToken, async (req, res) => {
+  try {
+    const ids = String(req.query.ids || '').split(',').filter(Boolean).slice(0, 3);
+    if (ids.length < 2) return res.status(400).json({ error: 'pass 2-3 course ids in ?ids=a,b,c' });
+    const { data: courses } = await supabaseAdmin.from('courses')
+      .select('*').in('id', ids);
+    const out = await Promise.all((courses || []).map(async c => {
+      const [{ count: lectures }, { count: tests }, { count: reviews }, { data: revs }] = await Promise.all([
+        supabaseAdmin.from('course_lectures').select('id', { count: 'exact', head: true }).eq('course_id', c.id),
+        supabaseAdmin.from('course_tests').select('id', { count: 'exact', head: true }).eq('course_id', c.id),
+        supabaseAdmin.from('course_reviews').select('id', { count: 'exact', head: true }).eq('course_id', c.id),
+        supabaseAdmin.from('course_reviews').select('rating').eq('course_id', c.id)
+      ]);
+      const avgRating = revs && revs.length ? +(revs.reduce((s, r) => s + r.rating, 0) / revs.length).toFixed(1) : null;
+      return { ...c, lectures, tests, reviews, avgRating };
+    }));
+    res.json({ courses: out });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 module.exports = router;

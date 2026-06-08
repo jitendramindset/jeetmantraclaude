@@ -575,6 +575,26 @@ html[data-theme="dark"]{
       </div>
     </div>
 
+    <!-- PARENT -->
+    <div class="role-section" id="section-parent">
+      <div class="stats-grid">
+        <div class="stat-card" style="--sc:#7c3aed"><div class="label">Children</div><div class="value" id="pa-children">0</div><div class="sub">Linked</div></div>
+        <div class="stat-card" style="--sc:#10b981"><div class="label">Avg attendance</div><div class="value" id="pa-att">—</div><div class="sub">Across kids</div></div>
+        <div class="stat-card" style="--sc:#f59e0b"><div class="label">Active courses</div><div class="value" id="pa-courses">0</div><div class="sub">Enrolled</div></div>
+        <div class="stat-card" style="--sc:#ec4899"><div class="label">Recent grades</div><div class="value" id="pa-grades">—</div><div class="sub">Latest test</div></div>
+      </div>
+      <div class="section" id="sec-parent-children" style="--sc:#7c3aed">
+        <div class="section-title">👨‍👩‍👧 My Children
+          <div class="actions"><button class="btn-sm btn-primary" onclick="paLinkChild()">+ Link a child</button></div>
+        </div>
+        <div class="card"><div id="pa-childList"><div class="empty-state"><div class="icon">👨‍👩‍👧</div>No children linked yet. Click + Link a child to start.</div></div></div>
+      </div>
+      <div class="section" id="sec-parent-snapshot" style="--sc:#10b981">
+        <div class="section-title">📈 Snapshot</div>
+        <div class="card" id="pa-snapshot"><div style="color:var(--jm-text-muted);font-size:13px;text-align:center;padding:18px">Pick a child above to see their snapshot.</div></div>
+      </div>
+    </div>
+
     <!-- ADMIN -->
     <div class="role-section" id="section-admin">
       <div class="stats-grid">
@@ -776,6 +796,14 @@ const NAV={
     {i:'💳',l:'Payments',t:'payments'},
     {i:'🛒',l:'Browse Marketplace',h:'/marketplace.html'},
     {i:'🏫',l:'Profile',t:'profile'}
+  ],
+  parent:[
+    {i:'🏠',l:'Dashboard',t:'top',a:true},
+    {i:'👨‍👩‍👧',l:'My Children',t:'children'},
+    {i:'📈',l:'Snapshot',t:'snapshot'},
+    {i:'📅',l:'Calendar',action:'openCalendar()'},
+    {i:'⚙️',l:'Settings',action:'openSettings()'},
+    {i:'👤',l:'Profile',action:'openProfilePage()'}
   ],
   coaching:[
     {i:'🏠',l:'Dashboard',t:'top',a:true},
@@ -1066,6 +1094,7 @@ async function loadDashboard(){
     const sec=document.getElementById('section-'+role);
     if(sec)sec.classList.add('visible');
     if(role==='student'){renderStudentDash(d); loadNotes(); loadStudentHistory(); loadWall(); startTimeTracking(); renderContinueLearning();}
+    if(role==='parent'){renderParentDash();}
     else if(role==='teacher')renderTeacherDash(d);
     else if(role==='partner')renderPartnerDash(d);
     else if(role==='school'){renderSchoolDash(d); loadInstitutionTeachers(); loadInstitutionStudents();}
@@ -4156,6 +4185,84 @@ async function stChangePassword(){
     await fetch(API+'/auth/forgot-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:u.email})});
     toast('✓ Reset link sent (check email)');
   }catch(_){ toast('Failed to send reset link',true); }
+}
+
+// ============================================================
+// PARENT — link a child + view snapshot.
+// ============================================================
+async function paLinkChild(){
+  const email=prompt("Child's email (must already have a student account):");
+  if(!email) return;
+  const relation=prompt('Relation (father / mother / guardian) — optional:','parent');
+  try{
+    await api('/parent/link','POST',{studentEmail:email, relation});
+    toast('✓ Linked');
+    renderParentDash();
+  }catch(e){ toast(e.message,true); }
+}
+async function renderParentDash(){
+  try{
+    const r=await api('/parent/children','GET');
+    const kids=r.children||[];
+    document.getElementById('pa-children').textContent=kids.length;
+    const list=document.getElementById('pa-childList');
+    if(!kids.length){
+      list.innerHTML='<div class="empty-state"><div class="icon">👨‍👩‍👧</div>No children linked yet. Click + Link a child to start.</div>';
+      return;
+    }
+    list.innerHTML=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px">${
+      kids.map(k=>`<div class="card" style="padding:14px;cursor:pointer" onclick="paOpenSnapshot('${k.student_id}')">
+        <div style="display:flex;align-items:center;gap:10px">
+          ${k.profile_image?`<img src="${escHtml(k.profile_image)}" style="width:42px;height:42px;border-radius:50%;object-fit:cover">`:'<div style="width:42px;height:42px;border-radius:50%;background:var(--jm-primary-tint);display:flex;align-items:center;justify-content:center;font-size:20px">👦</div>'}
+          <div style="flex:1;min-width:0"><div style="font-weight:700">${escHtml(k.full_name||'')}</div><div style="font-size:11px;color:var(--jm-text-muted)">${escHtml(k.relation||'parent')}</div></div>
+        </div>
+      </div>`).join('')
+    }</div>`;
+  }catch(e){ /* non-fatal */ }
+}
+async function paOpenSnapshot(studentId){
+  const host=document.getElementById('pa-snapshot');
+  host.innerHTML='<div style="text-align:center;padding:16px;color:var(--jm-text-muted)">Loading…</div>';
+  try{
+    const r=await api('/parent/child/'+studentId+'/snapshot','GET');
+    const c=r.child||{}, att=r.attendance||{}, subs=r.recentTestScores||[], enr=r.enrollments||[];
+    document.getElementById('pa-att').textContent=(att.percentage||0)+'%';
+    document.getElementById('pa-courses').textContent=enr.length;
+    document.getElementById('pa-grades').textContent=subs[0]?subs[0].score:'—';
+    host.innerHTML=`<div style="padding:16px">
+      <div style="font-weight:700;margin-bottom:12px">${escHtml(c.full_name||'')} · ${escHtml(c.email||'')}</div>
+      <div class="grid-2">
+        <div><strong>Attendance:</strong> ${att.present||0} / ${att.total||0} (${att.percentage||0}%)</div>
+        <div><strong>Active courses:</strong> ${enr.length}</div>
+      </div>
+      ${enr.length?`<div style="margin-top:14px"><strong style="font-size:12px;text-transform:uppercase;color:var(--jm-text-muted)">Courses</strong>${enr.map(e=>`<div style="padding:8px 0;border-bottom:1px solid var(--jm-border);display:flex;align-items:center;gap:10px">${e.course?.cover_image?`<img src="${escHtml(e.course.cover_image)}" style="width:36px;height:36px;border-radius:6px;object-fit:cover">`:''}<div><div style="font-weight:600;font-size:13px">${escHtml(e.course?.title||'Course')}</div><div class="progress-bar"><div class="progress-fill" style="width:${e.progress||0}%"></div></div></div></div>`).join('')}</div>`:''}
+      ${subs.length?`<div style="margin-top:14px"><strong style="font-size:12px;text-transform:uppercase;color:var(--jm-text-muted)">Recent test scores</strong>${subs.slice(0,5).map(s=>`<div style="padding:8px 0;border-bottom:1px solid var(--jm-border);display:flex;justify-content:space-between"><span>${s.submitted_at?new Date(s.submitted_at).toLocaleDateString():''}</span><span style="font-weight:700">${s.score}</span></div>`).join('')}</div>`:''}
+    </div>`;
+  }catch(e){ host.innerHTML='<div style="color:#b91c1c;padding:14px">'+escHtml(e.message)+'</div>'; }
+}
+
+// ============================================================
+// COURSE REVIEWS + WISHLIST helpers (student-facing).
+// ============================================================
+async function rateCourse(courseId){
+  const rating=Number(prompt('Rate this course 1-5:','5'));
+  if(!rating||rating<1||rating>5) return;
+  const review=prompt('Add a short review (optional):','')||'';
+  try{
+    await api('/courses/'+courseId+'/reviews','POST',{rating, review});
+    toast('✓ Thanks for your review');
+  }catch(e){ toast(e.message,true); }
+}
+async function toggleWishlist(courseId, btn){
+  try{
+    if(btn?.dataset?.wished==='1'){
+      await api('/student/wishlist/'+courseId,'DELETE');
+      btn.textContent='♡'; btn.dataset.wished='0';
+    } else {
+      await api('/student/wishlist/'+courseId,'POST',{});
+      if(btn){ btn.textContent='❤️'; btn.dataset.wished='1'; }
+    }
+  }catch(e){ toast(e.message,true); }
 }
 
 // ============================================================

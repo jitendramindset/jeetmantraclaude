@@ -354,4 +354,49 @@ button{padding:8px 14px;border:0;border-radius:6px;background:#6b4e16;color:#fff
   }
 });
 
+// ── COURSE REVIEWS — student rates 1-5 with optional text. One review per
+// student per course (UNIQUE constraint at the DB). Marketplace cards read
+// average + count from here.
+router.get('/:id/reviews', async (req, res) => {
+  try {
+    const { data: rows } = await supabaseAdmin.from('course_reviews')
+      .select('*').eq('course_id', req.params.id).order('created_at', { ascending: false });
+    const ids = (rows || []).map(r => r.student_id);
+    let users = {};
+    if (ids.length) {
+      const { data: u } = await supabaseAdmin.from('jeetmantra_users').select('id, full_name, profile_image').in('id', ids);
+      users = Object.fromEntries((u || []).map(x => [x.id, x]));
+    }
+    const reviews = (rows || []).map(r => ({ ...r, user: users[r.student_id] || null }));
+    const avg = reviews.length ? +(reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(2) : 0;
+    res.json({ reviews, average: avg, count: reviews.length });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.post('/:id/reviews', authenticateToken, async (req, res) => {
+  try {
+    const { rating, review } = req.body || {};
+    const r = Number(rating);
+    if (!r || r < 1 || r > 5) return res.status(400).json({ error: 'rating must be 1-5' });
+    // Must be enrolled in the course to review.
+    const { data: enr } = await supabaseAdmin.from('enrollments')
+      .select('id').eq('course_id', req.params.id).eq('student_id', req.user.id).maybeSingle();
+    if (!enr) return res.status(403).json({ error: 'Enroll first before reviewing' });
+    // UPSERT — students can update their own review.
+    const { data: existing } = await supabaseAdmin.from('course_reviews')
+      .select('id').eq('course_id', req.params.id).eq('student_id', req.user.id).maybeSingle();
+    if (existing) {
+      const { data, error } = await supabaseAdmin.from('course_reviews').update({ rating: r, review: review || null })
+        .eq('id', existing.id).select().single();
+      if (error) return res.status(400).json({ error: error.message });
+      return res.json({ review: data, updated: true });
+    }
+    const { data, error } = await supabaseAdmin.from('course_reviews').insert({
+      id: uuidv4(), course_id: req.params.id, student_id: req.user.id, rating: r, review: review || null
+    }).select().single();
+    if (error) return res.status(400).json({ error: error.message });
+    res.status(201).json({ review: data });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 module.exports = router;

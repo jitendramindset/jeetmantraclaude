@@ -6,7 +6,9 @@ const schemas = {
     email: Joi.string().email({ tlds: { allow: false } }).required(),
     password: Joi.string().min(8).required(),
     fullName: Joi.string().required(),
-    role: Joi.string().valid('student', 'teacher', 'partner', 'admin', 'school', 'coaching').required(),
+    // EduOS roles — 10 user types per the platform vision.
+    role: Joi.string().valid('student', 'teacher', 'partner', 'admin', 'school', 'coaching',
+                              'parent', 'corporate_trainer', 'content_creator', 'franchise').required(),
     phone: Joi.string().allow('').optional(),
     academicLevel: Joi.string().allow('').optional(),
     skills: Joi.array().items(Joi.string()).optional(),
