@@ -102,8 +102,11 @@ body{display:flex;min-height:100vh}
    Inspired by Examforge: nav between pages, breadcrumb back,
    collapsible folder rows.
    ============================================================ */
-.configure-page{display:none;background:var(--jm-bg);min-height:100vh}
-.configure-page.active{display:flex;flex-direction:column}
+.configure-page{display:none;background:var(--jm-bg)}
+/* Full-viewport overlay. Fixed positioning so the still-present .main
+   (flex:1, margin-left:250px) can't push these pages to the right. Covers
+   the sidebar too, so it reads as a proper full-screen page on every size. */
+.configure-page.active{display:flex;flex-direction:column;position:fixed;inset:0;z-index:200;overflow-y:auto;background:var(--jm-bg)}
 .configure-breadcrumb{position:sticky;top:0;background:var(--jm-surface);border-bottom:1px solid var(--jm-border);padding:14px 28px;display:flex;align-items:center;gap:14px;z-index:50;box-shadow:var(--jm-shadow-sm)}
 .configure-breadcrumb .crumb{font-size:13px;color:var(--jm-text-muted);cursor:pointer}
 .configure-breadcrumb .crumb:hover{color:var(--jm-primary)}
