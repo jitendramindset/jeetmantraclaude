@@ -170,6 +170,44 @@ router.get('/submission-history', authenticateToken, async (req, res) => {
   }
 });
 
+// ── CONTINUE LEARNING — what the student should pick up next.
+// Returns the lecture immediately after their last-completed one in each
+// enrolled course (or the first lecture if nothing completed yet).
+router.get('/continue-learning', authenticateToken, async (req, res) => {
+  try {
+    const { data: enrollments } = await supabaseAdmin.from('enrollments')
+      .select('course_id, progress').eq('student_id', req.user.id);
+    const courseIds = (enrollments || []).map(e => e.course_id);
+    if (!courseIds.length) return res.json({ items: [] });
+    const [{ data: courses }, { data: allLectures }, { data: done }] = await Promise.all([
+      supabaseAdmin.from('courses').select('id, title, cover_image').in('id', courseIds),
+      supabaseAdmin.from('course_lectures').select('*').in('course_id', courseIds).order('order_index'),
+      supabaseAdmin.from('lecture_progress').select('lecture_id, course_id').eq('student_id', req.user.id)
+    ]);
+    const doneSet = new Set((done || []).map(d => d.lecture_id));
+    const courseById = Object.fromEntries((courses || []).map(c => [c.id, c]));
+    const lecturesByCourse = {};
+    (allLectures || []).forEach(l => { (lecturesByCourse[l.course_id] = lecturesByCourse[l.course_id] || []).push(l); });
+    const items = courseIds.map(cid => {
+      const lectures = lecturesByCourse[cid] || [];
+      const next = lectures.find(l => !doneSet.has(l.id));
+      if (!next) return null;
+      const enr = enrollments.find(e => e.course_id === cid);
+      return {
+        course_id: cid,
+        course_title: courseById[cid]?.title || 'Course',
+        cover_image: courseById[cid]?.cover_image || null,
+        next_lecture_id: next.id, next_lecture_title: next.title,
+        next_lecture_duration: next.duration || null,
+        progress: enr?.progress || 0,
+        completed: lectures.filter(l => doneSet.has(l.id)).length,
+        total: lectures.length
+      };
+    }).filter(Boolean);
+    res.json({ items });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ── ATTENDANCE REPORT CARD — per-course attendance % + present/absent/late
 // breakdown for the logged-in student (or any student if teacher passes ?studentId).
 router.get('/attendance-report', authenticateToken, async (req, res) => {

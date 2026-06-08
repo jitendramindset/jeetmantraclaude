@@ -78,10 +78,13 @@ router.get('/:courseId/topics', authenticateToken, async (req, res) => {
 router.post('/:courseId/topics', authenticateToken, async (req, res) => {
   const { allowed } = await ownsCourse(req.params.courseId, req.user);
   if (!allowed) return res.status(403).json({ error: 'Not your course' });
-  const { title, description, order_index } = req.body;
+  const { title, description, order_index, imageUrl, attachmentUrl, linkUrl, notes } = req.body;
   if (!title) return res.status(400).json({ error: 'title required' });
   const { data, error } = await supabaseAdmin.from('course_topics').insert({
-    id: uuidv4(), course_id: req.params.courseId, title, description: description || '', order_index: order_index || 0
+    id: uuidv4(), course_id: req.params.courseId, title,
+    description: description || '', order_index: order_index || 0,
+    image_url: imageUrl || null, attachment_url: attachmentUrl || null,
+    link_url: linkUrl || null, notes: notes || null
   }).select().single();
   if (error) return res.status(400).json({ error: error.message });
   res.status(201).json({ topic: data });
@@ -91,11 +94,15 @@ router.post('/:courseId/topics', authenticateToken, async (req, res) => {
 router.put('/topics/:id', authenticateToken, async (req, res) => {
   const { allowed } = await ownsContentItem('course_topics', req.params.id, req.user);
   if (!allowed) return res.status(403).json({ error: 'Not your course' });
-  const { title, description, orderIndex } = req.body;
+  const { title, description, orderIndex, imageUrl, attachmentUrl, linkUrl, notes } = req.body;
   const updates = {};
   if (title !== undefined) updates.title = title;
   if (description !== undefined) updates.description = description;
   if (orderIndex !== undefined) updates.order_index = orderIndex;
+  if (imageUrl !== undefined) updates.image_url = imageUrl;
+  if (attachmentUrl !== undefined) updates.attachment_url = attachmentUrl;
+  if (linkUrl !== undefined) updates.link_url = linkUrl;
+  if (notes !== undefined) updates.notes = notes;
   const { data, error } = await supabaseAdmin.from('course_topics').update(updates).eq('id', req.params.id).select().single();
   if (error) return res.status(400).json({ error: error.message });
   res.json({ topic: data });
@@ -612,6 +619,18 @@ const qimgUpload = multer({ storage: qimgStorage, limits: { fileSize: 5 * 1024 *
 router.post('/questions/upload-image', authenticateToken, qimgUpload.single('image'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'image file required' });
   res.json({ url: '/uploads/courses/' + req.file.filename });
+});
+
+// ── Generic media upload (topic image, topic attachment, profile photo, etc.).
+// Returns a URL the caller can store on any row. 20 MB cap.
+const mediaStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadDir),
+  filename: (req, file, cb) => cb(null, 'media-' + Date.now() + '-' + file.originalname.replace(/[^\w.-]/g, '_'))
+});
+const mediaUpload = multer({ storage: mediaStorage, limits: { fileSize: 20 * 1024 * 1024 } });
+router.post('/upload', authenticateToken, mediaUpload.single('file'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'file required' });
+  res.json({ url: '/uploads/courses/' + req.file.filename, name: req.file.originalname, size: req.file.size });
 });
 
 // ── QUESTION BANK: reusable questions belonging to the teacher.

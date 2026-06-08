@@ -53,6 +53,8 @@ body{font-family:-apple-system,'Segoe UI',sans-serif;background:var(--jm-bg);col
 <body>
 <div class="live-topbar">
   <button class="btn" onclick="leaveRoom()">← Leave</button>
+  <button class="btn" onclick="copyInvite()" title="Copy invite link">🔗 Invite</button>
+  <button class="btn" onclick="toggleWhiteboard()" title="Whiteboard for explanation">🖍 Board</button>
   <div style="flex:1">
     <div class="title" id="classTitle">Loading…</div>
     <div class="sub" id="classSub">—</div>
@@ -365,6 +367,73 @@ async function genSummary(){
     btn.disabled=false; btn.textContent='✨ Generate';
   }
 }
+
+// ── INVITE LINK: copy the current room URL so the teacher can share via
+// chat / WhatsApp / email. Students open it and land directly in the room.
+async function copyInvite() {
+  const url = window.location.href;
+  try {
+    await navigator.clipboard.writeText(url);
+    alert('✓ Invite link copied:\n' + url);
+  } catch (_) {
+    prompt('Copy this invite link:', url);
+  }
+}
+
+// ── WHITEBOARD: a transparent canvas overlay over the stage that the
+// teacher (or anyone) can draw on with mouse/touch. Lightweight — useful
+// for explaining a concept; doesn't try to be a multi-user board.
+let _wb = null;
+function toggleWhiteboard() {
+  if (_wb) { _wb.root.remove(); _wb = null; return; }
+  const stage = document.getElementById('stage');
+  const root = document.createElement('div');
+  root.style.cssText = 'position:absolute;inset:0;display:flex;flex-direction:column;background:rgba(255,255,255,.96);z-index:30';
+  root.innerHTML = `
+    <div style="padding:8px 12px;display:flex;gap:8px;align-items:center;border-bottom:1px solid #e5e3ed;background:#fff;flex-wrap:wrap">
+      <strong style="color:#1a1325;flex:1;min-width:0">🖍 Whiteboard</strong>
+      <input type="color" id="wb-color" value="#7c3aed" style="width:36px;height:32px;padding:0;border:1px solid #ccc;border-radius:4px">
+      <select id="wb-size" style="padding:4px 8px;border:1px solid #ccc;border-radius:4px;color:#1a1325">
+        <option value="2">Thin</option><option value="5" selected>Medium</option><option value="10">Thick</option>
+      </select>
+      <button class="btn" id="wb-mode-pen" style="background:#7c3aed;color:#fff" onclick="wbMode('pen')">✏️ Pen</button>
+      <button class="btn" onclick="wbMode('erase')" style="color:#1a1325;background:#f3f4f6">🧹 Erase</button>
+      <button class="btn" onclick="wbClear()" style="color:#1a1325;background:#f3f4f6">Clear</button>
+      <button class="btn" onclick="toggleWhiteboard()" style="color:#1a1325;background:#f3f4f6">× Close</button>
+    </div>
+    <canvas id="wb-canvas" style="flex:1;cursor:crosshair;touch-action:none;background:#fff"></canvas>`;
+  stage.style.position = 'relative';
+  stage.appendChild(root);
+  const canvas = root.querySelector('#wb-canvas');
+  const ctx = canvas.getContext('2d');
+  function resize() {
+    const r = canvas.getBoundingClientRect();
+    const img = canvas.width ? ctx.getImageData(0, 0, canvas.width, canvas.height) : null;
+    canvas.width = r.width; canvas.height = r.height;
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    if (img) ctx.putImageData(img, 0, 0);
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  }
+  resize(); window.addEventListener('resize', resize);
+  let drawing = false, mode = 'pen';
+  const pt = e => { const r = canvas.getBoundingClientRect(); const t = e.touches?.[0] || e; return { x: t.clientX - r.left, y: t.clientY - r.top }; };
+  function start(e) { e.preventDefault(); drawing = true; const p = pt(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); }
+  function move(e) {
+    if (!drawing) return; e.preventDefault();
+    const p = pt(e);
+    ctx.strokeStyle = mode === 'erase' ? '#fff' : document.getElementById('wb-color').value;
+    ctx.lineWidth = mode === 'erase' ? 24 : Number(document.getElementById('wb-size').value);
+    ctx.lineTo(p.x, p.y); ctx.stroke();
+  }
+  function end() { drawing = false; }
+  canvas.addEventListener('mousedown', start); canvas.addEventListener('mousemove', move);
+  canvas.addEventListener('mouseup', end); canvas.addEventListener('mouseleave', end);
+  canvas.addEventListener('touchstart', start); canvas.addEventListener('touchmove', move);
+  canvas.addEventListener('touchend', end);
+  _wb = { root, canvas, ctx, setMode: m => { mode = m; document.getElementById('wb-mode-pen').style.background = m === 'pen' ? '#7c3aed' : '#f3f4f6'; document.getElementById('wb-mode-pen').style.color = m === 'pen' ? '#fff' : '#1a1325'; } };
+}
+function wbMode(m) { if (_wb) _wb.setMode(m); }
+function wbClear() { if (!_wb) return; const c = _wb.canvas; _wb.ctx.fillStyle = '#fff'; _wb.ctx.fillRect(0, 0, c.width, c.height); }
 
 function leaveRoom() {
   if (_jitsiApi) { try { _jitsiApi.dispose(); } catch(_){} }

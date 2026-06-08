@@ -252,6 +252,12 @@ body{display:flex;min-height:100vh}
         <div class="stat-card"><div class="label">Assignments Due</div><div class="value" id="s-assignments">0</div><div class="sub">Pending</div></div>
         <div class="stat-card"><div class="label">Skills Tracked</div><div class="value" id="s-skills">0</div><div class="sub">This week</div></div>
       </div>
+      <div class="section" id="sec-student-continue">
+        <div class="section-title">▶ Continue learning
+          <div class="actions"><button class="btn-sm btn-outline" onclick="openCalendar()">📅 Calendar</button></div>
+        </div>
+        <div class="card"><ul class="item-list" id="s-continueList" style="display:flex;flex-direction:column;gap:8px"><li style="width:100%"><div class="empty-state"><div class="icon">📖</div>Nothing in progress yet</div></li></ul></div>
+      </div>
       <div class="grid-2">
         <div class="section" id="sec-student-courses">
           <div class="section-title">📚 My Courses
@@ -611,6 +617,27 @@ body{display:flex;min-height:100vh}
   <div class="configure-body" id="att-body">Loading…</div>
 </div>
 
+<!-- ==================== CALENDAR (month view) + PROFILE PAGE ==================== -->
+<div class="configure-page" id="calendarPage">
+  <div class="configure-breadcrumb">
+    <span class="crumb" onclick="closeCalendar()">🏠 Dashboard</span>
+    <span class="crumb-sep">/</span>
+    <span class="crumb active">Calendar</span>
+    <div style="margin-left:auto"><button class="btn-sm btn-outline" onclick="closeCalendar()">← Back</button></div>
+  </div>
+  <div class="configure-body" id="cal-body">Loading…</div>
+</div>
+
+<div class="configure-page" id="profilePage">
+  <div class="configure-breadcrumb">
+    <span class="crumb" onclick="closeProfilePage()">🏠 Dashboard</span>
+    <span class="crumb-sep">/</span>
+    <span class="crumb active">Profile</span>
+    <div style="margin-left:auto"><button class="btn-sm btn-outline" onclick="closeProfilePage()">← Back</button></div>
+  </div>
+  <div class="configure-body" id="pf-body">Loading…</div>
+</div>
+
 <!-- ==================== READING PANEL (student course reader) ==================== -->
 <div class="configure-page" id="readerPage">
   <div class="configure-breadcrumb">
@@ -652,26 +679,27 @@ const NAV={
     {i:'🏫',l:'My Institutions',action:'openMyInstitutions()'},
     {i:'💳',l:'Payments',action:'openPayments()'},
     {i:'🛒',l:'Marketplace',h:'/marketplace.html'},
-    {i:'👤',l:'Profile',t:'profile'}
+    {i:'👤',l:'Profile',action:'openProfilePage()'}
   ],
   teacher:[
     {i:'🏠',l:'Dashboard',t:'top',a:true},
     {i:'📚',l:'My Courses',t:'courses'},
     {i:'📡',l:'Live Classes',t:'live'},
+    {i:'📅',l:'Calendar',action:'openCalendar()'},
     {i:'📹',l:'Recordings',action:'openRecordings()'},
     {i:'📊',l:'Bookings',action:'openBookings()'},
     {i:'💰',l:'Payments',action:'openPayments()'},
     {i:'📝',l:'Essay grading',action:'openEssayInbox()'},
     {i:'🏫',l:'My Institutions',action:'openMyInstitutions()'},
     {i:'🛒',l:'Marketplace',h:'/marketplace.html'},
-    {i:'👤',l:'Profile',t:'profile'}
+    {i:'👤',l:'Profile',action:'openProfilePage()'}
   ],
   partner:[
     {i:'🏠',l:'Dashboard',t:'top',a:true},
     {i:'📅',l:'Bookings',t:'bookings'},
     {i:'💰',l:'Earnings',t:'earnings'},
     {i:'🛒',l:'Marketplace',h:'/marketplace.html'},
-    {i:'👤',l:'Profile',t:'profile'}
+    {i:'👤',l:'Profile',action:'openProfilePage()'}
   ],
   school:[
     {i:'🏠',l:'Dashboard',t:'top',a:true},
@@ -958,7 +986,7 @@ async function loadDashboard(){
     document.getElementById('loadingState').style.display='none';
     const sec=document.getElementById('section-'+role);
     if(sec)sec.classList.add('visible');
-    if(role==='student'){renderStudentDash(d); loadNotes(); loadStudentHistory(); loadWall(); startTimeTracking();}
+    if(role==='student'){renderStudentDash(d); loadNotes(); loadStudentHistory(); loadWall(); startTimeTracking(); renderContinueLearning();}
     else if(role==='teacher')renderTeacherDash(d);
     else if(role==='partner')renderPartnerDash(d);
     else if(role==='school'){renderSchoolDash(d); loadInstitutionTeachers(); loadInstitutionStudents();}
@@ -3953,6 +3981,194 @@ function setActiveInstitution(id){
   openMyInstitutions();
 }
 
+// ============================================================
+// CALENDAR (month view) — visualizes live classes, assignments and tests
+// across a month. Honors the hierarchy "calendar view to manage timetable".
+// ============================================================
+let _calCursor=null; // {y,m}
+async function openCalendar(){
+  document.getElementById('calendarPage').classList.add('active');
+  document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
+  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
+  const now=new Date();
+  _calCursor={ y:now.getFullYear(), m:now.getMonth()+1 };
+  await _renderCalendar();
+}
+function closeCalendar(){
+  document.getElementById('calendarPage').classList.remove('active');
+  document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='');
+  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='');
+}
+function calPrev(){ if(_calCursor.m===1){_calCursor.m=12;_calCursor.y--;} else _calCursor.m--; _renderCalendar(); }
+function calNext(){ if(_calCursor.m===12){_calCursor.m=1;_calCursor.y++;} else _calCursor.m++; _renderCalendar(); }
+async function _renderCalendar(){
+  const body=document.getElementById('cal-body');
+  body.innerHTML='<div style="text-align:center;padding:40px;color:#888">Loading…</div>';
+  try{
+    const r=await api(`/teacher/calendar?year=${_calCursor.y}&month=${_calCursor.m}`,'GET');
+    const days=r.days||{};
+    const monthName=new Date(_calCursor.y, _calCursor.m-1, 1).toLocaleString('en-IN',{month:'long',year:'numeric'});
+    // Build a grid that starts on Monday and pads to full weeks.
+    const firstDow=(new Date(_calCursor.y, _calCursor.m-1, 1).getDay()+6)%7; // 0=Mon
+    const daysInMonth=new Date(_calCursor.y, _calCursor.m, 0).getDate();
+    const cells=[];
+    for(let i=0;i<firstDow;i++) cells.push(null);
+    for(let d=1; d<=daysInMonth; d++) cells.push(d);
+    while(cells.length%7) cells.push(null);
+    const today=new Date(); const todayIso=today.toISOString().slice(0,10);
+    const html=`
+      <div style="max-width:1200px;margin:0 auto">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap">
+          <button class="btn-sm btn-outline" onclick="calPrev()">← Prev</button>
+          <h2 style="margin:0;flex:1;min-width:0">📅 ${escHtml(monthName)}</h2>
+          <button class="btn-sm btn-outline" onclick="calNext()">Next →</button>
+        </div>
+        <div class="card" style="padding:14px">
+          <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;font-size:11px;color:var(--jm-text-muted);font-weight:700;text-transform:uppercase;margin-bottom:6px">
+            ${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d=>`<div style="text-align:center">${d}</div>`).join('')}
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px">
+            ${cells.map(d=>{
+              if(d===null) return '<div style="min-height:84px"></div>';
+              const iso=`${_calCursor.y}-${String(_calCursor.m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+              const evs=days[iso]||[];
+              const isToday=iso===todayIso;
+              const pill=ev=>{
+                const c=ev.type==='live'?'#7c3aed':ev.type==='test'?'#ef4444':'#0ea5e9';
+                const t=new Date(ev.time).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+                return `<div title="${escHtml(ev.course_title||'')}" style="background:${c};color:#fff;font-size:10px;padding:2px 5px;border-radius:4px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><strong>${t}</strong> ${escHtml(ev.title)}</div>`;
+              };
+              return `<div style="min-height:84px;background:${isToday?'var(--jm-primary-tint)':'var(--jm-bg)'};border:1px solid var(--jm-border);border-radius:6px;padding:4px;overflow:hidden">
+                <div style="font-size:11px;font-weight:700;color:${isToday?'var(--jm-primary)':'var(--jm-text-muted)'};margin-bottom:2px">${d}</div>
+                ${evs.slice(0,4).map(pill).join('')}
+                ${evs.length>4?`<div style="font-size:10px;color:var(--jm-text-muted)">+${evs.length-4} more</div>`:''}
+              </div>`;
+            }).join('')}
+          </div>
+          <div style="margin-top:14px;display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--jm-text-muted)">
+            <span><span style="display:inline-block;width:10px;height:10px;background:#7c3aed;border-radius:2px;vertical-align:middle"></span> Live class</span>
+            <span><span style="display:inline-block;width:10px;height:10px;background:#ef4444;border-radius:2px;vertical-align:middle"></span> Test</span>
+            <span><span style="display:inline-block;width:10px;height:10px;background:#0ea5e9;border-radius:2px;vertical-align:middle"></span> Assignment due</span>
+          </div>
+        </div>
+      </div>`;
+    body.innerHTML=html;
+  }catch(e){ body.innerHTML='<div style="color:#b91c1c;padding:20px">'+escHtml(e.message)+'</div>'; }
+}
+
+// ============================================================
+// PROFILE PAGE — basic details + ADDRESS (mandatory email + phone).
+// Replaces the old updateProfile modal with a full inline page so address
+// fields and the photo upload have proper room.
+// ============================================================
+async function openProfilePage(){
+  document.getElementById('profilePage').classList.add('active');
+  document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
+  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
+  const body=document.getElementById('pf-body');
+  body.innerHTML='<div style="text-align:center;padding:40px;color:#888">Loading…</div>';
+  try{
+    const r=await api('/users/profile','GET');
+    const u=r.user||r||{};
+    body.innerHTML=`<div style="max-width:760px;margin:0 auto">
+      <div class="card" style="padding:20px;margin-bottom:14px">
+        <h2 style="margin-bottom:14px">👤 Your profile</h2>
+        <div style="display:flex;gap:14px;align-items:center;margin-bottom:18px;flex-wrap:wrap">
+          ${u.profile_image?`<img src="${escHtml(u.profile_image)}" style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:2px solid var(--jm-border)">`:'<div style="width:72px;height:72px;border-radius:50%;background:var(--jm-primary-tint);display:flex;align-items:center;justify-content:center;font-size:28px">👤</div>'}
+          <div><div style="font-weight:700;font-size:16px">${escHtml(u.full_name||'')}</div><div style="font-size:12px;color:var(--jm-text-muted)">${escHtml(u.user_type||u.role||'')}</div></div>
+          <div style="margin-left:auto"><input type="file" id="pf-photo" accept="image/*" onchange="pfUploadPhoto(this)" style="font-size:12px"></div>
+        </div>
+        <div class="grid-2">
+          <div class="form-row"><label>Full name</label><input id="pf-name" value="${escHtml(u.full_name||'')}"></div>
+          <div class="form-row"><label>Date of birth</label><input id="pf-dob" type="date" value="${u.date_of_birth||''}"></div>
+        </div>
+        <div class="grid-2">
+          <div class="form-row"><label>Email <span style="color:#ef4444">*</span></label><input id="pf-email" type="email" value="${escHtml(u.email||'')}" required></div>
+          <div class="form-row"><label>Mobile <span style="color:#ef4444">*</span></label><input id="pf-phone" type="tel" value="${escHtml(u.phone||'')}" required></div>
+        </div>
+        <div class="form-row"><label>Bio</label><textarea id="pf-bio" rows="3" placeholder="A short bio">${escHtml(u.bio||'')}</textarea></div>
+        <h3 style="font-size:14px;margin:14px 0 8px;color:var(--jm-text-muted);text-transform:uppercase;letter-spacing:.05em">Address</h3>
+        <div class="form-row"><label>Street</label><input id="pf-street" value="${escHtml(u.street||'')}"></div>
+        <div class="grid-2">
+          <div class="form-row"><label>City</label><input id="pf-city" value="${escHtml(u.city||'')}"></div>
+          <div class="form-row"><label>State / region</label><input id="pf-state" value="${escHtml(u.state_region||'')}"></div>
+        </div>
+        <div class="grid-2">
+          <div class="form-row"><label>Postal code</label><input id="pf-postal" value="${escHtml(u.postal_code||'')}"></div>
+          <div class="form-row"><label>Country</label><input id="pf-country" value="${escHtml(u.country||'India')}"></div>
+        </div>
+        <div id="pf-msg" class="msg" style="margin:10px 0"></div>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button class="btn-sm btn-outline" onclick="closeProfilePage()">Cancel</button>
+          <button class="btn-sm btn-primary" onclick="pfSave()">💾 Save profile</button>
+        </div>
+      </div>
+    </div>`;
+  }catch(e){ body.innerHTML='<div style="color:#b91c1c;padding:20px">'+escHtml(e.message)+'</div>'; }
+}
+function closeProfilePage(){
+  document.getElementById('profilePage').classList.remove('active');
+  document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='');
+  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='');
+}
+async function pfUploadPhoto(input){
+  if(!input.files?.[0]) return;
+  const fd=new FormData(); fd.append('file',input.files[0]);
+  try{
+    const r=await fetch(API+'/course-content/upload',{method:'POST',headers:{Authorization:'Bearer '+localStorage.getItem('jm_token')},body:fd});
+    const j=await r.json(); if(!r.ok) throw new Error(j.error||'Upload failed');
+    await api('/users/profile','PUT',{profileImage:j.url});
+    toast('✓ Photo updated'); openProfilePage();
+  }catch(e){ toast(e.message,true); }
+}
+async function pfSave(){
+  const email=val('pf-email'), phone=val('pf-phone');
+  const msg=document.getElementById('pf-msg');
+  msg.className='msg'; msg.textContent='';
+  if(!email||!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ msg.className='msg error'; msg.textContent='A valid email is required'; return; }
+  if(!phone){ msg.className='msg error'; msg.textContent='Mobile number is required'; return; }
+  try{
+    await api('/users/profile','PUT',{
+      fullName:val('pf-name'), email, phone,
+      dateOfBirth:val('pf-dob')||null, bio:val('pf-bio'),
+      street:val('pf-street'), city:val('pf-city'),
+      state:val('pf-state'), postalCode:val('pf-postal'), country:val('pf-country')
+    });
+    msg.className='msg success'; msg.textContent='✓ Profile saved';
+    // Refresh local user stash so the topbar/sidebar reflect the new name.
+    const u=JSON.parse(localStorage.getItem('jm_user')||'{}');
+    localStorage.setItem('jm_user',JSON.stringify({...u, fullName:val('pf-name'), email, phone}));
+  }catch(e){ msg.className='msg error'; msg.textContent=e.message; }
+}
+
+// ============================================================
+// CONTINUE LEARNING — student dashboard card showing the next lecture in
+// every enrolled course. Click to jump straight into the reader.
+// ============================================================
+async function renderContinueLearning(){
+  const host=document.getElementById('s-continueList'); if(!host) return;
+  try{
+    const r=await api('/student/continue-learning','GET');
+    const items=r.items||[];
+    if(!items.length){
+      host.innerHTML='<li style="width:100%"><div class="empty-state"><div class="icon">📖</div>Nothing in progress yet</div></li>';
+      return;
+    }
+    host.innerHTML=items.map(it=>`<li style="width:100%;padding:0;border:0">
+      <div class="card" style="padding:12px;display:flex;align-items:center;gap:12px;width:100%">
+        ${it.cover_image?`<img src="${escHtml(it.cover_image)}" style="width:56px;height:56px;border-radius:6px;object-fit:cover">`:'<div style="width:56px;height:56px;border-radius:6px;background:var(--jm-primary-tint);display:flex;align-items:center;justify-content:center;font-size:24px">📚</div>'}
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:600;font-size:13px">${escHtml(it.course_title)}</div>
+          <div style="font-size:11px;color:var(--jm-text-muted);margin:2px 0">Up next: ${escHtml(it.next_lecture_title)}${it.next_lecture_duration?' · '+it.next_lecture_duration+' min':''}</div>
+          <div class="progress-bar"><div class="progress-fill" style="width:${it.progress}%"></div></div>
+          <div style="font-size:10px;color:var(--jm-text-muted);margin-top:2px">${it.completed}/${it.total} lectures · ${it.progress}%</div>
+        </div>
+        <button class="btn-sm btn-primary" onclick="openReader('${it.course_id}','${escHtml(it.course_title).replace(/'/g,'&#39;')}')">▶ Continue</button>
+      </div>
+    </li>`).join('');
+  }catch(_){ /* non-fatal */ }
+}
+
 // Keyboard: Escape closes any open modal OR the configure page.
 document.addEventListener('keydown',(e)=>{
   if(e.key!=='Escape')return;
@@ -3964,6 +4180,8 @@ document.addEventListener('keydown',(e)=>{
   if(document.getElementById('attGridPage')?.classList.contains('active')){ closeAttGrid(); return; }
   if(document.getElementById('bookingsPage')?.classList.contains('active')){ closeBookings(); return; }
   if(document.getElementById('readerPage')?.classList.contains('active')){ closeReader(); return; }
+  if(document.getElementById('calendarPage')?.classList.contains('active')){ closeCalendar(); return; }
+  if(document.getElementById('profilePage')?.classList.contains('active')){ closeProfilePage(); return; }
 });
 
 loadDashboard();

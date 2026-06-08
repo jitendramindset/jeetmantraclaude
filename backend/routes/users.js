@@ -38,12 +38,30 @@ router.get('/profile', authenticateToken, async (req, res) => {
 // whole update.
 router.put('/profile', authenticateToken, async (req, res) => {
   try {
-    const { fullName, phone, bio } = req.body;
+    const { fullName, phone, email, bio, dateOfBirth, profileImage,
+            street, city, state, postalCode, country } = req.body;
+
+    // Server-side enforcement: phone + email are mandatory on profile.
+    // If the request explicitly sets either to empty, reject it.
+    if (phone !== undefined && !String(phone).trim()) {
+      return res.status(400).json({ error: 'Phone is required' });
+    }
+    if (email !== undefined && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(email))) {
+      return res.status(400).json({ error: 'A valid email is required' });
+    }
 
     const updates = {
       ...(fullName && { full_name: fullName }),
       ...(phone && { phone }),
-      ...(bio && { bio }),
+      ...(email && { email }),
+      ...(bio !== undefined && { bio }),
+      ...(dateOfBirth && { date_of_birth: dateOfBirth }),
+      ...(profileImage && { profile_image: profileImage }),
+      ...(street !== undefined && { street }),
+      ...(city !== undefined && { city }),
+      ...(state !== undefined && { state_region: state }),
+      ...(postalCode !== undefined && { postal_code: postalCode }),
+      ...(country !== undefined && { country }),
       updated_at: new Date().toISOString()
     };
 

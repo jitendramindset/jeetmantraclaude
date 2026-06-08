@@ -344,6 +344,54 @@ router.get('/tests/:testId/analytics', authenticateToken, authorizeRole(CREATOR_
   }
 });
 
+// ── CALENDAR MONTH: events for a calendar grid (default: current month).
+// Returns live classes, assignment due dates and tests in {YYYY-MM-DD: [...]}.
+router.get('/calendar', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
+  try {
+    const year = Number(req.query.year) || new Date().getFullYear();
+    const month = Number(req.query.month) || (new Date().getMonth() + 1); // 1..12
+    const from = new Date(Date.UTC(year, month - 1, 1));
+    const to = new Date(Date.UTC(year, month, 0, 23, 59, 59));
+
+    const { data: courses } = await supabaseAdmin.from('courses').select('id, title').eq('teacher_id', req.user.id);
+    const courseIds = (courses || []).map(c => c.id);
+    if (!courseIds.length) return res.json({ year, month, days: {} });
+    const courseTitleById = Object.fromEntries((courses || []).map(c => [c.id, c.title]));
+
+    const [live, assignments, tests] = await Promise.all([
+      supabaseAdmin.from('live_classes')
+        .select('id, title, scheduled_time, duration, status, course_id, topic_id')
+        .in('course_id', courseIds).gte('scheduled_time', from.toISOString()).lte('scheduled_time', to.toISOString()),
+      supabaseAdmin.from('assignments')
+        .select('id, title, due_date, course_id, student_id')
+        .in('course_id', courseIds).gte('due_date', from.toISOString()).lte('due_date', to.toISOString()).is('student_id', null),
+      supabaseAdmin.from('course_tests')
+        .select('id, title, scheduled_for, duration_minutes, course_id')
+        .not('scheduled_for', 'is', null).in('course_id', courseIds)
+        .gte('scheduled_for', from.toISOString()).lte('scheduled_for', to.toISOString())
+    ]);
+
+    // Group by YYYY-MM-DD.
+    const days = {};
+    const put = (dateIso, ev) => { const k = dateIso.slice(0, 10); (days[k] = days[k] || []).push(ev); };
+    (live.data || []).forEach(l => put(l.scheduled_time, {
+      type: 'live', id: l.id, title: l.title, time: l.scheduled_time, duration: l.duration,
+      course_title: courseTitleById[l.course_id], status: l.status
+    }));
+    (assignments.data || []).forEach(a => put(a.due_date, {
+      type: 'assignment', id: a.id, title: a.title, time: a.due_date,
+      course_title: courseTitleById[a.course_id]
+    }));
+    (tests.data || []).forEach(t => put(t.scheduled_for, {
+      type: 'test', id: t.id, title: t.title, time: t.scheduled_for, duration: t.duration_minutes,
+      course_title: courseTitleById[t.course_id]
+    }));
+    res.json({ year, month, days });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── BOOKING DETAIL + CANCEL/RESCHEDULE/REFUND ─────────────────────────
 router.get('/bookings/:id', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
   try {
