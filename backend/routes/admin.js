@@ -1,8 +1,21 @@
 const express = require('express');
 const { supabase, supabaseAdmin } = require('../config/supabase');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
+const { v4: uuidv4 } = require('uuid');
 
 const router = express.Router();
+
+// Safe audit logger — Supabase's query builder is a thenable WITHOUT .catch(),
+// so we await inside try/catch instead of chaining .catch() (which throws
+// "supabaseAdmin.from(...).insert(...).catch is not a function").
+async function auditLog(actorId, action, targetId, metadata) {
+  try {
+    await supabaseAdmin.from('audit_log').insert({
+      id: uuidv4(), actor_id: actorId, action, target_id: targetId || null,
+      metadata: metadata || null, occurred_at: new Date().toISOString()
+    });
+  } catch (_) { /* audit is best-effort */ }
+}
 
 // Get all users (admin only)
 router.get('/users', authenticateToken, authorizeRole(['admin']), async (req, res) => {
@@ -160,10 +173,7 @@ router.put('/users/:userId', authenticateToken, authorizeRole(['admin']), async 
     if (status !== undefined) updates.status = status;
     const { data, error } = await supabaseAdmin.from('jeetmantra_users').update(updates).eq('id', req.params.userId).select().single();
     if (error) return res.status(400).json({ error: error.message });
-    await supabaseAdmin.from('audit_log').insert({
-      id: require('uuid').v4(), actor_id: req.user.id, action: 'user.update',
-      target_id: req.params.userId, metadata: updates, occurred_at: new Date().toISOString()
-    }).catch(() => {});
+    await auditLog(req.user.id, 'user.update', req.params.userId, updates);
     delete data.password_hash;
     res.json({ user: data });
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -173,10 +183,7 @@ router.delete('/users/:userId', authenticateToken, authorizeRole(['admin']), asy
   try {
     if (req.params.userId === req.user.id) return res.status(400).json({ error: "Can't delete your own admin account" });
     await supabaseAdmin.from('jeetmantra_users').update({ status: 'deleted', updated_at: new Date().toISOString() }).eq('id', req.params.userId);
-    await supabaseAdmin.from('audit_log').insert({
-      id: require('uuid').v4(), actor_id: req.user.id, action: 'user.delete',
-      target_id: req.params.userId, occurred_at: new Date().toISOString()
-    }).catch(() => {});
+    await auditLog(req.user.id, 'user.delete', req.params.userId);
     res.json({ message: 'User soft-deleted' });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -186,6 +193,41 @@ router.get('/audit', authenticateToken, authorizeRole(['admin']), async (req, re
     const limit = Math.min(200, Number(req.query.limit) || 100);
     const { data } = await supabaseAdmin.from('audit_log').select('*').order('occurred_at', { ascending: false }).limit(limit);
     res.json({ events: data || [] });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── PLATFORM SETTINGS (commission rate etc.) — stored as key/value rows in
+// platform_settings. GET returns current; PUT upserts.
+router.get('/settings', authenticateToken, authorizeRole(['admin']), async (req, res) => {
+  try {
+    const { data } = await supabaseAdmin.from('platform_settings').select('*');
+    const map = Object.fromEntries((data || []).map(r => [r.key, r.value]));
+    res.json({ settings: map });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+router.put('/settings', authenticateToken, authorizeRole(['admin']), async (req, res) => {
+  try {
+    const updates = req.body || {};
+    for (const [key, value] of Object.entries(updates)) {
+      const { data: existing } = await supabaseAdmin.from('platform_settings').select('key').eq('key', key).maybeSingle();
+      if (existing) await supabaseAdmin.from('platform_settings').update({ value: String(value) }).eq('key', key);
+      else await supabaseAdmin.from('platform_settings').insert({ key, value: String(value) });
+    }
+    await auditLog(req.user.id, 'settings.update', null, updates);
+    res.json({ message: 'Settings saved' });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── CONTENT MODERATION: list flagged courses + remove (deactivate) one.
+router.post('/courses/:id/moderate', authenticateToken, authorizeRole(['admin']), async (req, res) => {
+  try {
+    const { action } = req.body || {}; // 'deactivate' | 'activate' | 'delete'
+    const updates = action === 'delete'
+      ? { archived: true, is_active: false }
+      : { is_active: action === 'activate' };
+    await supabaseAdmin.from('courses').update({ ...updates, updated_at: new Date().toISOString() }).eq('id', req.params.id);
+    await auditLog(req.user.id, 'course.moderate', req.params.id, { action });
+    res.json({ message: 'Moderation applied' });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

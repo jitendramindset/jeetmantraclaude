@@ -233,6 +233,51 @@ router.post('/tutor', authenticateToken, async (req, res) => {
   }
 });
 
+// ── AI LESSON PLAN: turn a topic into a structured lesson plan.
+router.post('/lesson-plan', authenticateToken, async (req, res) => {
+  try {
+    const { topic, durationMinutes, level } = req.body || {};
+    if (!topic) return res.status(400).json({ error: 'topic required' });
+    const out = await ai(req.user.id,
+      'You are an instructional designer. Reply ONLY with a JSON object.',
+      `Create a ${durationMinutes || 45}-minute lesson plan for "${topic}" at ${level || 'beginner'} level. JSON:
+{
+  "title": "...",
+  "objectives": ["...", "..."],
+  "segments": [ { "minutes": 5, "activity": "warm-up", "detail": "..." } ],
+  "materials": ["..."],
+  "assessment": "how to check understanding",
+  "homework": "..."
+}`,
+      { json: true, action: 'lesson-plan' });
+    const parsed = safeJson(out.text);
+    if (!parsed) return res.status(502).json({ error: 'AI returned unparseable response', raw: out.text });
+    res.json({ plan: parsed, provider: out.provider });
+  } catch (e) {
+    res.status(e.code === 'RATE_LIMITED' ? 429 : 400).json({ error: e.message, code: e.code });
+  }
+});
+
+// ── AI PRACTICE QUESTIONS: generate N practice questions for a student on a
+// topic (or their weak topics, passed in).
+router.post('/practice-questions', authenticateToken, async (req, res) => {
+  try {
+    const { topic, count, level } = req.body || {};
+    if (!topic) return res.status(400).json({ error: 'topic required' });
+    const n = Math.min(10, Math.max(1, Number(count) || 5));
+    const out = await ai(req.user.id,
+      'You write practice questions with answers + explanations. Reply ONLY with a JSON object.',
+      `Generate ${n} practice questions on "${topic}" (${level || 'beginner'}). JSON:
+{ "questions": [ { "question": "...", "answer": "...", "explanation": "..." } ] }`,
+      { json: true, action: 'practice-questions' });
+    const parsed = safeJson(out.text);
+    if (!parsed) return res.status(502).json({ error: 'AI returned unparseable response' });
+    res.json({ questions: parsed.questions || [], provider: out.provider });
+  } catch (e) {
+    res.status(e.code === 'RATE_LIMITED' ? 429 : 400).json({ error: e.message, code: e.code });
+  }
+});
+
 // ── AI ESSAY GRADER: returns {score, feedback} for a long-answer response.
 router.post('/grade-essay', authenticateToken, async (req, res) => {
   try {

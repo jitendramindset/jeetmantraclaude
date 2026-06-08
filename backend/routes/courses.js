@@ -136,7 +136,7 @@ router.put('/:id', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, 
       return res.status(403).json({ error: 'Not authorized to update this course' });
     }
 
-    const { title, description, category, level, price, startDate, endDate, maxStudents, batchTiming, coverImage, is_active } = req.body;
+    const { title, description, category, level, price, startDate, endDate, maxStudents, batchTiming, coverImage, is_active, archived } = req.body;
     const updates = {
       ...(title && { title }),
       ...(description && { description }),
@@ -149,6 +149,7 @@ router.put('/:id', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, 
       ...(batchTiming && { batch_timing: batchTiming }),
       ...(coverImage && { cover_image: coverImage }),
       ...(typeof is_active !== 'undefined' && { is_active }),
+      ...(typeof archived !== 'undefined' && { archived }),
       updated_at: new Date().toISOString()
     };
 
@@ -247,6 +248,59 @@ router.get('/:id/students', authenticateToken, async (req, res) => {
     res.json({ course, students: rows });
   } catch (e) {
     res.status(500).json({ error: e.message });
+  }
+});
+
+// ── DUPLICATE COURSE: deep-copies a course + its topics/lectures/materials/
+// tests/questions into a new "(Copy)" course owned by the same teacher.
+router.post('/:id/duplicate', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
+  try {
+    const srcId = req.params.id;
+    const { data: src } = await supabaseAdmin.from('courses').select('*').eq('id', srcId).single();
+    if (!src) return res.status(404).json({ error: 'Course not found' });
+    if (src.teacher_id !== req.user.id) return res.status(403).json({ error: 'Not your course' });
+
+    const newId = uuidv4();
+    const { id, created_at, updated_at, ...rest } = src;
+    await supabaseAdmin.from('courses').insert({
+      ...rest, id: newId, title: (src.title || 'Course') + ' (Copy)',
+      is_active: false, created_at: new Date().toISOString()
+    });
+
+    // Copy topics, remembering old→new id map so child rows can re-link.
+    const topicMap = {};
+    const { data: topics } = await supabaseAdmin.from('course_topics').select('*').eq('course_id', srcId);
+    for (const t of (topics || [])) {
+      const nt = uuidv4(); topicMap[t.id] = nt;
+      const { id: _i, created_at: _c, ...tr } = t;
+      await supabaseAdmin.from('course_topics').insert({ ...tr, id: nt, course_id: newId });
+    }
+    const { data: lectures } = await supabaseAdmin.from('course_lectures').select('*').eq('course_id', srcId);
+    for (const l of (lectures || [])) {
+      const { id: _i, created_at: _c, ...lr } = l;
+      await supabaseAdmin.from('course_lectures').insert({ ...lr, id: uuidv4(), course_id: newId, topic_id: topicMap[l.topic_id] || null });
+    }
+    const { data: materials } = await supabaseAdmin.from('course_materials').select('*').eq('course_id', srcId);
+    for (const m of (materials || [])) {
+      const { id: _i, created_at: _c, ...mr } = m;
+      await supabaseAdmin.from('course_materials').insert({ ...mr, id: uuidv4(), course_id: newId, topic_id: topicMap[m.topic_id] || null });
+    }
+    // Copy tests + their questions.
+    const { data: tests } = await supabaseAdmin.from('course_tests').select('*').eq('course_id', srcId);
+    for (const t of (tests || [])) {
+      const nt = uuidv4();
+      const { id: _i, created_at: _c, ...tr } = t;
+      await supabaseAdmin.from('course_tests').insert({ ...tr, id: nt, course_id: newId, topic_id: topicMap[t.topic_id] || null });
+      const { data: qs } = await supabaseAdmin.from('course_questions').select('*').eq('test_id', t.id);
+      for (const q of (qs || [])) {
+        const { id: _qi, created_at: _qc, ...qr } = q;
+        await supabaseAdmin.from('course_questions').insert({ ...qr, id: uuidv4(), test_id: nt, section_id: null });
+      }
+    }
+    res.status(201).json({ message: 'Course duplicated', courseId: newId });
+  } catch (e) {
+    console.error('duplicate error', e);
+    res.status(500).json({ error: 'Duplication failed: ' + e.message });
   }
 });
 

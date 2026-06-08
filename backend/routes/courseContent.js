@@ -290,26 +290,29 @@ router.delete('/tests/:id', authenticateToken, async (req, res) => {
 router.get('/tests/:testId/questions', authenticateToken, async (req, res) => {
   const [{ data: questions, error }, { data: test }] = await Promise.all([
     supabaseAdmin.from('course_questions').select('*').eq('test_id', req.params.testId).order('order_index'),
-    supabaseAdmin.from('course_tests').select('shuffle_questions, shuffle_options').eq('id', req.params.testId).single()
+    supabaseAdmin.from('course_tests').select('shuffle_questions, shuffle_options, pool_size').eq('id', req.params.testId).single()
   ]);
   if (error) return res.status(400).json({ error: error.message });
   let qs = questions || [];
   if (req.user.role === 'student') {
-    // Strip correct answers and (for match) the answer ordering.
+    // Strip correct answers and (for match/multi) the answer ordering.
     qs = qs.map(q => {
       const clean = { ...q, correct_answer: null, explanation: null };
       if (q.type === 'match' && q.match_pairs) {
-        // Keep the left column in its given order but shuffle the right side so
-        // students can't infer pairs from the array index.
         const r = [...(q.match_pairs.right || [])].sort(() => Math.random() - 0.5);
         clean.match_pairs = { left: q.match_pairs.left, right: r };
       }
-      if (q.type === 'mcq' && Array.isArray(q.options) && test?.shuffle_options) {
+      // MCQ + multi-select both shuffle their option list when enabled.
+      if ((q.type === 'mcq' || q.type === 'multi') && Array.isArray(q.options) && test?.shuffle_options) {
         clean.options = [...q.options].sort(() => Math.random() - 0.5);
       }
       return clean;
     });
     if (test?.shuffle_questions) qs = [...qs].sort(() => Math.random() - 0.5);
+    // Question pool: if pool_size set and < total, serve a random subset.
+    if (test?.pool_size && test.pool_size > 0 && test.pool_size < qs.length) {
+      qs = [...qs].sort(() => Math.random() - 0.5).slice(0, test.pool_size);
+    }
   }
   res.json({ questions: qs });
 });
@@ -434,6 +437,23 @@ router.post('/sessions/:id/submit', authenticateToken, async (req, res) => {
       // correct_answer may be a single string or "|"-separated synonyms.
       const valid = String(q.correct_answer || '').split('|').map(norm).filter(Boolean);
       correct = valid.includes(norm(a));
+    } else if (q.type === 'multi') {
+      // Multi-select: correct_answer is "|"-separated set of right options;
+      // student answer is an array (or "|"-joined). Full marks only if the
+      // chosen set equals the correct set exactly; partial credit otherwise
+      // (correct picks − wrong picks, floored at 0, scaled by marks).
+      const correctSet = new Set(String(q.correct_answer || '').split('|').map(norm).filter(Boolean));
+      const chosen = Array.isArray(a) ? a.map(norm) : String(a).split('|').map(norm).filter(Boolean);
+      const chosenSet = new Set(chosen);
+      const hits = [...chosenSet].filter(x => correctSet.has(x)).length;
+      const wrong = [...chosenSet].filter(x => !correctSet.has(x)).length;
+      if (hits === correctSet.size && wrong === 0) { correct = true; }
+      else if (correctSet.size > 0) {
+        const partial = Math.max(0, (hits - wrong)) / correctSet.size;
+        if (partial > 0) { score += qMarks * partial; return; }
+        if (neg > 0) score -= neg;
+        return;
+      }
     } else if (q.type === 'match') {
       // a is an object { leftItem: studentRight, ... } against q.match_pairs
       // which stores { left:[], right:[] } in matching index order.

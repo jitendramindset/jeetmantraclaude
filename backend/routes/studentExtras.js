@@ -170,6 +170,55 @@ router.get('/submission-history', authenticateToken, async (req, res) => {
   }
 });
 
+// ── ATTENDANCE REPORT CARD — per-course attendance % + present/absent/late
+// breakdown for the logged-in student (or any student if teacher passes ?studentId).
+router.get('/attendance-report', authenticateToken, async (req, res) => {
+  try {
+    const studentId = (req.user.role !== 'student' && req.query.studentId) ? req.query.studentId : req.user.id;
+    const { data: rows } = await supabaseAdmin.from('attendance').select('*').eq('student_id', studentId);
+    // Group by course.
+    const byCourse = {};
+    (rows || []).forEach(r => {
+      const c = byCourse[r.course_id] || { course_id: r.course_id, total: 0, present: 0, absent: 0, late: 0 };
+      c.total++; if (r.status === 'present') c.present++; else if (r.status === 'absent') c.absent++; else if (r.status === 'late') c.late++;
+      byCourse[r.course_id] = c;
+    });
+    const courseIds = Object.keys(byCourse);
+    let titleMap = {};
+    if (courseIds.length) {
+      const { data: courses } = await supabaseAdmin.from('courses').select('id, title').in('id', courseIds);
+      titleMap = Object.fromEntries((courses || []).map(c => [c.id, c.title]));
+    }
+    const report = Object.values(byCourse).map(c => ({
+      ...c, course_title: titleMap[c.course_id] || 'Course',
+      percentage: c.total ? Math.round(100 * c.present / c.total) : 0
+    }));
+    const grandTotal = report.reduce((a, c) => a + c.total, 0);
+    const grandPresent = report.reduce((a, c) => a + c.present, 0);
+    res.json({ report, overall: { total: grandTotal, present: grandPresent, percentage: grandTotal ? Math.round(100 * grandPresent / grandTotal) : 0 } });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── PER-LECTURE NOTE — student saves a private note tied to a lecture.
+// (Reuses the existing notes table with a lecture_id reference.)
+router.put('/lectures/:lectureId/note', authenticateToken, async (req, res) => {
+  try {
+    const { note } = req.body || {};
+    // Store on lecture_progress.note? Simpler: a dedicated student note row.
+    const { data: existing } = await supabaseAdmin.from('student_notes')
+      .select('id').eq('student_id', req.user.id).eq('lecture_id', req.params.lectureId).maybeSingle();
+    if (existing) {
+      await supabaseAdmin.from('student_notes').update({ content: note, updated_at: new Date().toISOString() }).eq('id', existing.id);
+    } else {
+      await supabaseAdmin.from('student_notes').insert({
+        id: require('uuid').v4(), student_id: req.user.id, lecture_id: req.params.lectureId,
+        title: 'Lecture note', content: note, created_at: new Date().toISOString()
+      });
+    }
+    res.json({ message: 'Note saved' });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ── LESSON PROGRESS — student marks a lecture complete; we recompute the
 // course's progress % into enrollments.progress so the dashboard / reader
 // reflect it immediately and the certificate gate (≥80%) works.

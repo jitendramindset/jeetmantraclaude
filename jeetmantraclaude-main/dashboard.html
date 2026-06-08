@@ -631,6 +631,7 @@ const NAV={
     {i:'📡',l:'Live Classes',t:'live'},
     {i:'📝',l:'Assignments',t:'hw'},
     {i:'🗒️',l:'Notes',t:'notes'},
+    {i:'🗓',l:'Attendance',action:'openAttendanceReport()'},
     {i:'🏫',l:'My Institutions',action:'openMyInstitutions()'},
     {i:'💳',l:'Payments',action:'openPayments()'},
     {i:'🛒',l:'Marketplace',h:'/marketplace.html'},
@@ -801,6 +802,8 @@ function renderCreatorBlock(prefix, d){
       <button class="btn-sm btn-outline" onclick="openAttendanceLog('${c.id}','${t}')">🗓 History</button>
       <button class="btn-sm btn-outline" onclick="openEditCourse(window._teacherCoursesById['${c.id}'])">✏️ Edit</button>
       <button class="btn-sm btn-outline" onclick="openConfigure('${c.id}')">⚙️ Configure</button>
+      <button class="btn-sm btn-outline" onclick="duplicateCourse('${c.id}')">📑 Duplicate</button>
+      <button class="btn-sm btn-outline" onclick="archiveCourse('${c.id}',${c.archived?true:false})">${c.archived?'♻ Unarchive':'🗄 Archive'}</button>
     </div></li>`;
   }),['📖','No courses yet — click + New Course to start']);
   // Live classes list
@@ -837,6 +840,8 @@ function renderTeacherDash(d){
       <button class="btn-sm btn-outline" onclick="openAttendanceLog('${c.id}','${courseTitle}')">🗓 History</button>
       <button class="btn-sm btn-outline" onclick="openEditCourse(window._teacherCoursesById['${c.id}'])">✏️ Edit</button>
       <button class="btn-sm btn-outline" onclick="openConfigure('${c.id}')">⚙️ Configure</button>
+      <button class="btn-sm btn-outline" onclick="duplicateCourse('${c.id}')">📑 Duplicate</button>
+      <button class="btn-sm btn-outline" onclick="archiveCourse('${c.id}',${c.archived?true:false})">${c.archived?'♻ Unarchive':'🗄 Archive'}</button>
     </div></li>`;
   }),['📖','No courses created']);
   renderList('t-listingsList',(d.marketplaceListings||[]).map(l=>`<li><span>${l.courses?.title||'Course'}</span><span class="badge badge-green">${fmt(l.price)}</span></li>`),['🏪','No marketplace listings']);
@@ -1986,6 +1991,20 @@ function _renderQuestionForStudent(q, idx){
         <span>${escHtml(opt)}</span>
       </label>`;
     }).join('');
+  } else if(q.type==='multi' && Array.isArray(q.options)){
+    // Checkboxes — answer stored as an array. Maintain the array in-place.
+    const priorArr=Array.isArray(prior)?prior:[];
+    window._takeTestAnswers[q.id]=priorArr;
+    body=q.options.map((opt,i)=>{
+      const v=String.fromCharCode(65+i);
+      const checked=priorArr.includes(opt)?' checked':'';
+      const oc="(function(cb){var a=window._takeTestAnswers['"+q.id+"'];if(!Array.isArray(a)){a=[];window._takeTestAnswers['"+q.id+"']=a;}var v=cb.value;var k=a.indexOf(v);if(cb.checked&&k<0)a.push(v);else if(!cb.checked&&k>=0)a.splice(k,1);})(this)";
+      return `<label style="display:flex;align-items:center;gap:8px;padding:8px;border:1.5px solid var(--jm-border);border-radius:8px;margin-bottom:6px;cursor:pointer">
+        <input type="checkbox" value="${escHtml(opt)}" onchange="${oc}"${checked}>
+        <span style="font-weight:700;color:var(--jm-primary);min-width:18px">${v}.</span>
+        <span>${escHtml(opt)}</span>
+      </label>`;
+    }).join('');
   } else if(q.type==='true_false'){
     const t=String(prior)==='true'?' checked':'', f=String(prior)==='false'?' checked':'';
     body=`
@@ -2644,7 +2663,8 @@ function _renderQeAddForm(){
   return `<div style="border:2px dashed var(--jm-primary);border-radius:10px;padding:14px;margin-top:10px;background:var(--jm-primary-tint)">
     <div style="font-weight:700;margin-bottom:10px">➕ Add Question</div>
     <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:14px">
-      ${card('mcq','🔘','MCQ','choices')}
+      ${card('mcq','🔘','MCQ','single')}
+      ${card('multi','☑️','Multi','many right')}
       ${card('true_false','✅','T / F','binary')}
       ${card('short','✏️','Short','1-2 lines')}
       ${card('long','📄','Long','essay (manual)')}
@@ -2675,6 +2695,10 @@ function qeSelectType(type){
   if(type==='mcq'){
     wrap.innerHTML=`<div class="form-row"><label>Options (one per line, 2-6)</label><textarea id="qe-options" rows="4" placeholder="Option A&#10;Option B&#10;Option C&#10;Option D"></textarea></div>
       <div class="form-row"><label>Correct answer (must match one option exactly)</label><input id="qe-correct"></div>`;
+  } else if(type==='multi'){
+    wrap.innerHTML=`<div class="form-row"><label>Options (one per line, 2-8)</label><textarea id="qe-options" rows="4" placeholder="Option A&#10;Option B&#10;Option C&#10;Option D"></textarea></div>
+      <div class="form-row"><label>Correct answers — separate multiple with | (pipe)</label><input id="qe-correct" placeholder="Option A|Option C"></div>
+      <div style="font-size:11px;color:var(--jm-text-muted);margin-top:-6px;margin-bottom:10px">Student picks checkboxes. Full marks for the exact set; partial credit for (right − wrong) picks.</div>`;
   } else if(type==='true_false'){
     wrap.innerHTML=`<div class="form-row"><label>Correct answer</label><select id="qe-correct"><option value="true">true</option><option value="false">false</option></select></div>`;
   } else if(type==='fill'){
@@ -2705,7 +2729,7 @@ async function qeAdd(){
   const type=_qeType, text=val('qe-text');
   if(!text){ toast('Question text required',true); return; }
   let options=null, matchPairs=null, correctAnswer=null;
-  if(type==='mcq'){
+  if(type==='mcq'||type==='multi'){
     options=(document.getElementById('qe-options')?.value||'').split(/\n/).map(s=>s.trim()).filter(Boolean);
     if(options.length<2){ toast('At least 2 options required',true); return; }
     correctAnswer=val('qe-correct');
@@ -3288,6 +3312,79 @@ async function _openMoneyPage(kind){
             </tbody></table>` : '<div class="empty-state"><div class="icon">📅</div>No bookings yet.</div>'}</div>
         </div>`;
     }
+  }catch(e){ body.innerHTML='<div style="color:#b91c1c;padding:20px">'+escHtml(e.message)+'</div>'; }
+}
+
+// ── Course archive / duplicate (teacher) ──────────────────────────────
+async function duplicateCourse(id){
+  if(!confirm('Duplicate this course with all its content?')) return;
+  try{ const r=await api('/courses/'+id+'/duplicate','POST',{}); toast('✓ Duplicated'); if(r.courseId) openConfigure(r.courseId); else loadDashboard(); }
+  catch(e){ toast(e.message,true); }
+}
+async function archiveCourse(id, isArchived){
+  try{ await api('/courses/'+id,'PUT',{archived:!isArchived}); toast(isArchived?'♻ Unarchived':'🗄 Archived'); loadDashboard(); }
+  catch(e){ toast(e.message,true); }
+}
+
+// ── Proctor-events viewer (teacher) — opens a drawer of a session's flags ──
+async function openProctorEvents(sessionId){
+  try{
+    const r=await api('/course-content/sessions/'+sessionId+'/proctor-events','GET');
+    const ev=r.events||[];
+    const overlay=document.createElement('div');
+    overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9998;display:flex;align-items:center;justify-content:center;padding:20px';
+    overlay.onclick=e=>{ if(e.target===overlay) overlay.remove(); };
+    overlay.innerHTML=`<div style="background:var(--jm-surface);max-width:480px;width:100%;border-radius:12px;padding:22px;max-height:85vh;overflow-y:auto">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><h3>📷 Proctoring events (${ev.length})</h3><button onclick="this.closest('[style*=position]').remove()" style="border:0;background:none;font-size:20px;cursor:pointer">×</button></div>
+      ${ev.length?ev.map(e=>`<div style="padding:8px;border-bottom:1px solid var(--jm-border);font-size:13px;display:flex;justify-content:space-between;gap:8px"><span><span class="badge ${e.event_type.includes('block')?'badge-yellow':e.event_type.includes('tab')?'badge-red':'badge-muted'}">${escHtml(e.event_type)}</span></span><span style="color:var(--jm-text-muted);font-size:11px">${e.occurred_at?new Date(e.occurred_at).toLocaleTimeString():''}</span></div>`).join(''):'<div class="empty-state"><div class="icon">✅</div>No suspicious events — clean session.</div>'}
+    </div>`;
+    document.body.appendChild(overlay);
+  }catch(e){ toast(e.message,true); }
+}
+
+// ── AI lesson plan generator (teacher) ─────────────────────────────────
+async function openLessonPlanner(){
+  const topic=prompt('Topic for the lesson plan:');
+  if(!topic) return;
+  try{
+    toast('🤖 designing lesson…');
+    const r=await api('/ai/lesson-plan','POST',{topic, durationMinutes:45, level:'beginner'});
+    const p=r.plan||{};
+    const overlay=document.createElement('div');
+    overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9998;display:flex;align-items:center;justify-content:center;padding:20px';
+    overlay.onclick=e=>{ if(e.target===overlay) overlay.remove(); };
+    overlay.innerHTML=`<div style="background:var(--jm-surface);max-width:560px;width:100%;border-radius:12px;padding:24px;max-height:88vh;overflow-y:auto">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><h3>📋 ${escHtml(p.title||topic)}</h3><button onclick="this.closest('[style*=position]').remove()" style="border:0;background:none;font-size:20px;cursor:pointer">×</button></div>
+      ${p.objectives?'<div style="margin-bottom:10px"><strong>Objectives</strong><ul style="margin:6px 0 0 18px;font-size:13px">'+p.objectives.map(o=>'<li>'+escHtml(o)+'</li>').join('')+'</ul></div>':''}
+      ${p.segments?'<div style="margin-bottom:10px"><strong>Timeline</strong>'+p.segments.map(s=>`<div style="font-size:13px;padding:6px 0;border-bottom:1px solid var(--jm-border)"><span class="badge badge-blue">${s.minutes||'?'} min</span> <strong>${escHtml(s.activity||'')}</strong> — ${escHtml(s.detail||'')}</div>`).join('')+'</div>':''}
+      ${p.assessment?'<div style="margin-bottom:8px;font-size:13px"><strong>Assessment:</strong> '+escHtml(p.assessment)+'</div>':''}
+      ${p.homework?'<div style="font-size:13px"><strong>Homework:</strong> '+escHtml(p.homework)+'</div>':''}
+    </div>`;
+    document.body.appendChild(overlay);
+  }catch(e){ toast(e.message,true); }
+}
+
+// ── Attendance report card (student) ───────────────────────────────────
+async function openAttendanceReport(){
+  document.getElementById('bookingsPage').classList.add('active');
+  document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
+  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
+  document.getElementById('bk-crumb').textContent='Attendance report';
+  const body=document.getElementById('bk-body');
+  body.innerHTML='<div style="text-align:center;padding:40px;color:#888">Loading…</div>';
+  try{
+    const r=await api('/student/attendance-report','GET');
+    const rep=r.report||[]; const o=r.overall||{};
+    body.innerHTML=`<div style="max-width:800px;margin:0 auto">
+      <h2 style="margin-bottom:14px">🗓 Attendance report</h2>
+      <div class="stats-grid" style="margin-bottom:18px">
+        <div class="stat-card"><div class="label">Overall</div><div class="value">${o.percentage||0}%</div><div class="sub">${o.present||0}/${o.total||0} present</div></div>
+      </div>
+      ${rep.length?`<div class="card"><table style="width:100%;border-collapse:collapse">
+        <thead><tr style="text-align:left;color:var(--jm-text-muted);font-size:12px;border-bottom:1px solid var(--jm-border)"><th style="padding:8px">Course</th><th style="padding:8px;text-align:center">Present</th><th style="padding:8px;text-align:center">Absent</th><th style="padding:8px;text-align:center">Late</th><th style="padding:8px;text-align:center">%</th></tr></thead><tbody>
+        ${rep.map(c=>{const col=c.percentage>=75?'#10b981':c.percentage>=50?'#f59e0b':'#ef4444';return `<tr style="border-bottom:1px solid var(--jm-border)"><td style="padding:8px">${escHtml(c.course_title)}</td><td style="padding:8px;text-align:center">${c.present}</td><td style="padding:8px;text-align:center">${c.absent}</td><td style="padding:8px;text-align:center">${c.late}</td><td style="padding:8px;text-align:center"><span style="padding:3px 10px;border-radius:99px;background:${col};color:#fff;font-weight:600;font-size:12px">${c.percentage}%</span></td></tr>`;}).join('')}
+        </tbody></table></div>`:'<div class="empty-state"><div class="icon">🗓</div>No attendance records yet.</div>'}
+    </div>`;
   }catch(e){ body.innerHTML='<div style="color:#b91c1c;padding:20px">'+escHtml(e.message)+'</div>'; }
 }
 

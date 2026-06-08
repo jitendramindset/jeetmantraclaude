@@ -416,6 +416,11 @@
       .form-row { grid-template-columns: 1fr; }
       .button-group { flex-direction: column; }
     }
+    @media (max-width: 480px) {
+      .signup-content { padding: 18px 14px; }
+      .role-grid, .role-cards { grid-template-columns: 1fr !important; }
+      input, select, textarea { font-size: 16px; }  /* prevent iOS zoom */
+    }
   </style>
 </head>
 <body>

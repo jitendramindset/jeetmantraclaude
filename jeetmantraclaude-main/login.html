@@ -48,6 +48,14 @@ input:focus,select:focus{border-color:var(--jm-primary);box-shadow:0 0 0 3px rgb
 .switch{text-align:center;margin-top:20px;font-size:13px;color:var(--jm-text-muted)}
 .switch a{color:var(--jm-primary);text-decoration:none;font-weight:600}
 .loading{display:none;text-align:center;color:var(--jm-text-muted);font-size:14px;margin-top:8px}
+@media(max-width:480px){
+  body{padding:12px}
+  .card{padding:22px 18px;border-radius:12px}
+  .role-grid{grid-template-columns:1fr 1fr}
+  .social-btns{grid-template-columns:1fr}
+  input,select{font-size:16px}        /* ≥16px prevents iOS zoom-on-focus */
+  .btn{font-size:16px}
+}
 </style>
 </head>
 <body>
