@@ -76,7 +76,7 @@ router.post('/', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, re
 // Get all live classes for a course
 router.get('/course/:courseId', async (req, res) => {
   try {
-    const { data: liveClasses, error } = await supabase
+    const { data: liveClasses, error } = await supabaseAdmin
       .from('live_classes')
       .select('*')
       .eq('course_id', req.params.courseId)
@@ -111,7 +111,7 @@ router.get('/upcoming', authenticateToken, async (req, res) => {
     const now = new Date().toISOString();
 
     // Get enrolled courses
-    const { data: enrollments } = await supabase
+    const { data: enrollments } = await supabaseAdmin
       .from('enrollments')
       .select('course_id')
       .eq('student_id', req.user.id);
@@ -125,10 +125,11 @@ router.get('/upcoming', authenticateToken, async (req, res) => {
 
     const courseIds = enrollments.map(e => e.course_id);
 
-    // Get upcoming live classes
-    const { data: liveClasses, error } = await supabase
+    // Get upcoming live classes (admin client; resolve course titles separately
+    // since the users/courses FK embeds are unreliable on self-hosted).
+    const { data: liveClasses, error } = await supabaseAdmin
       .from('live_classes')
-      .select('*, courses (title)')
+      .select('*')
       .in('course_id', courseIds)
       .gt('scheduled_time', now)
       .order('scheduled_time', { ascending: true })
@@ -137,10 +138,16 @@ router.get('/upcoming', authenticateToken, async (req, res) => {
     if (error) {
       return res.status(500).json({ error: 'Failed to fetch live classes' });
     }
-
+    // Hydrate course titles.
+    const cids = [...new Set((liveClasses || []).map(l => l.course_id))];
+    let titleMap = {};
+    if (cids.length) {
+      const { data: courses } = await supabaseAdmin.from('courses').select('id, title').in('id', cids);
+      titleMap = Object.fromEntries((courses || []).map(c => [c.id, c.title]));
+    }
     res.json({
       message: 'Upcoming live classes fetched successfully',
-      liveClasses: liveClasses || []
+      liveClasses: (liveClasses || []).map(l => ({ ...l, courses: { title: titleMap[l.course_id] || '' } }))
     });
   } catch (error) {
     console.error('Upcoming classes fetch error:', error);
@@ -148,12 +155,15 @@ router.get('/upcoming', authenticateToken, async (req, res) => {
   }
 });
 
-// Get single live class details
+// Get single live class details.
+// Uses supabaseAdmin (the self-hosted anon key is invalid) and resolves the
+// course title + teacher name with separate lookups — the `users` FK embed
+// fails because jeetmantra_users.id is VARCHAR (no FK relationship).
 router.get('/:classId', async (req, res) => {
   try {
-    const { data: liveClass, error } = await supabase
+    const { data: liveClass } = await supabaseAdmin
       .from('live_classes')
-      .select('*, courses (title), users (full_name, profile_image)')
+      .select('*')
       .eq('id', req.params.classId)
       .single();
 
@@ -161,16 +171,18 @@ router.get('/:classId', async (req, res) => {
       return res.status(404).json({ error: 'Live class not found' });
     }
 
-    // Get attendees count
-    const { count: attendeesCount } = await supabase
-      .from('class_attendees')
-      .select('*', { count: 'exact' })
-      .eq('class_id', req.params.classId);
+    const [{ data: course }, { data: teacher }, { count: attendeesCount }] = await Promise.all([
+      supabaseAdmin.from('courses').select('title').eq('id', liveClass.course_id).maybeSingle(),
+      supabaseAdmin.from('jeetmantra_users').select('full_name, profile_image').eq('id', liveClass.teacher_id).maybeSingle(),
+      supabaseAdmin.from('class_attendees').select('*', { count: 'exact', head: true }).eq('class_id', req.params.classId)
+    ]);
 
     res.json({
       message: 'Live class details fetched successfully',
       liveClass: {
         ...liveClass,
+        courses: course || null,
+        teacher: teacher || null,
         attendeesCount: attendeesCount || 0
       }
     });
@@ -402,6 +414,65 @@ router.get('/:id/attendees', authenticateToken, async (req, res) => {
       class: cls,
       attendees: (rows || []).map(r => ({ ...r, ...byId[r.student_id] }))
     });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── RECORDING UPLOAD: teacher uploads the recorded .webm after class. Stored
+// under uploads/recordings; the URL is saved on the live class so students can
+// replay it from the Recordings library.
+const recDir = path.join(uploadDir, 'recordings');
+if (!fs.existsSync(recDir)) fs.mkdirSync(recDir, { recursive: true });
+const recStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, recDir),
+  filename: (req, file, cb) => cb(null, 'rec-' + req.params.classId + '-' + Date.now() + '.webm')
+});
+const recUpload = multer({ storage: recStorage, limits: { fileSize: 500 * 1024 * 1024 } });
+router.post('/:classId/recording', authenticateToken, authorizeRole(CREATOR_ROLES), recUpload.single('recording'), async (req, res) => {
+  try {
+    const { data: cls } = await supabaseAdmin.from('live_classes').select('teacher_id').eq('id', req.params.classId).single();
+    if (!cls) return res.status(404).json({ error: 'Class not found' });
+    if (cls.teacher_id !== req.user.id && req.user.role !== 'admin') return res.status(403).json({ error: 'Not your class' });
+    // Either a file upload OR an external URL (e.g. a Jitsi/Dropbox link).
+    let url = req.body.recordingUrl || null;
+    if (req.file) url = '/uploads/recordings/' + req.file.filename;
+    if (!url) return res.status(400).json({ error: 'recording file or recordingUrl required' });
+    const { data, error } = await supabaseAdmin.from('live_classes').update({
+      recording_url: url, recording_uploaded_at: new Date().toISOString()
+    }).eq('id', req.params.classId).select().single();
+    if (error) return res.status(400).json({ error: error.message });
+    res.json({ message: 'Recording saved', recordingUrl: url, liveClass: data });
+  } catch (e) {
+    console.error('recording upload error', e);
+    res.status(500).json({ error: 'Recording upload failed' });
+  }
+});
+
+// ── RECORDINGS LIBRARY: past classes that have a recording. Teachers see
+// their own; students see recordings for courses they're enrolled in.
+router.get('/recordings/list', authenticateToken, async (req, res) => {
+  try {
+    let courseIds = [];
+    if (req.user.role === 'student') {
+      const { data: enr } = await supabaseAdmin.from('enrollments').select('course_id').eq('student_id', req.user.id);
+      courseIds = (enr || []).map(e => e.course_id);
+    } else {
+      const { data: courses } = await supabaseAdmin.from('courses').select('id').eq('teacher_id', req.user.id);
+      courseIds = (courses || []).map(c => c.id);
+    }
+    if (!courseIds.length) return res.json({ recordings: [] });
+    const { data: rows } = await supabaseAdmin.from('live_classes')
+      .select('*').in('course_id', courseIds).not('recording_url', 'is', null)
+      .order('recording_uploaded_at', { ascending: false });
+    // Hydrate course titles.
+    const cids = [...new Set((rows || []).map(r => r.course_id))];
+    let titleMap = {};
+    if (cids.length) {
+      const { data: courses } = await supabaseAdmin.from('courses').select('id, title').in('id', cids);
+      titleMap = Object.fromEntries((courses || []).map(c => [c.id, c.title]));
+    }
+    res.json({ recordings: (rows || []).map(r => ({ ...r, course_title: titleMap[r.course_id] || '' })) });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

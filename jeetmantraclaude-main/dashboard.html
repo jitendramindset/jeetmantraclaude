@@ -629,6 +629,7 @@ const NAV={
     {i:'🏠',l:'Dashboard',t:'top',a:true},
     {i:'📚',l:'My Courses',t:'courses'},
     {i:'📡',l:'Live Classes',t:'live'},
+    {i:'📹',l:'Recordings',action:'openRecordings()'},
     {i:'📝',l:'Assignments',t:'hw'},
     {i:'🗒️',l:'Notes',t:'notes'},
     {i:'🗓',l:'Attendance',action:'openAttendanceReport()'},
@@ -641,6 +642,7 @@ const NAV={
     {i:'🏠',l:'Dashboard',t:'top',a:true},
     {i:'📚',l:'My Courses',t:'courses'},
     {i:'📡',l:'Live Classes',t:'live'},
+    {i:'📹',l:'Recordings',action:'openRecordings()'},
     {i:'📊',l:'Bookings',action:'openBookings()'},
     {i:'💰',l:'Payments',action:'openPayments()'},
     {i:'📝',l:'Essay grading',action:'openEssayInbox()'},
@@ -3312,6 +3314,36 @@ async function _openMoneyPage(kind){
             </tbody></table>` : '<div class="empty-state"><div class="icon">📅</div>No bookings yet.</div>'}</div>
         </div>`;
     }
+  }catch(e){ body.innerHTML='<div style="color:#b91c1c;padding:20px">'+escHtml(e.message)+'</div>'; }
+}
+
+// ── RECORDINGS LIBRARY — past live classes that have a recording. Student
+// and teacher both see this (scoped server-side). Opens a full page with
+// inline video players.
+async function openRecordings(){
+  document.getElementById('bookingsPage').classList.add('active');
+  document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
+  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
+  document.getElementById('bk-crumb').textContent='Recordings';
+  const body=document.getElementById('bk-body');
+  body.innerHTML='<div style="text-align:center;padding:40px;color:#888">Loading…</div>';
+  try{
+    const r=await api('/live-classes/recordings/list','GET');
+    const recs=r.recordings||[];
+    if(!recs.length){
+      body.innerHTML='<div class="card" style="max-width:600px;margin:40px auto;padding:24px;text-align:center"><div style="font-size:48px">📹</div><div style="font-weight:600;margin-top:10px">No recordings yet</div><div style="color:var(--jm-text-muted);margin-top:6px">Recorded live classes appear here. Teachers can record from inside a live class with the ⏺ Record button.</div></div>';
+      return;
+    }
+    body.innerHTML=`<div style="max-width:1000px;margin:0 auto">
+      <h2 style="margin-bottom:14px">📹 Class Recordings (${recs.length})</h2>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px">
+        ${recs.map(rc=>`<div class="card" style="padding:14px">
+          <video src="${escHtml(rc.recording_url)}" controls preload="metadata" style="width:100%;border-radius:8px;background:#000;max-height:200px"></video>
+          <div style="font-weight:600;margin-top:8px">${escHtml(rc.title||'Live Class')}</div>
+          <div style="font-size:12px;color:var(--jm-text-muted)">${escHtml(rc.course_title||'')} · ${rc.recording_uploaded_at?new Date(rc.recording_uploaded_at).toLocaleString():''}</div>
+          <a href="${escHtml(rc.recording_url)}" download class="btn-sm btn-outline" style="text-decoration:none;margin-top:8px;display:inline-block">⬇ Download</a>
+        </div>`).join('')}
+      </div></div>`;
   }catch(e){ body.innerHTML='<div style="color:#b91c1c;padding:20px">'+escHtml(e.message)+'</div>'; }
 }
 

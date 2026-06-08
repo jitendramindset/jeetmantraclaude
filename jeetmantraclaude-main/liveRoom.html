@@ -62,6 +62,7 @@ body{font-family:-apple-system,'Segoe UI',sans-serif;background:var(--jm-bg);col
   <div class="controls" id="teacherControls" style="display:none">
     <button class="btn primary" id="btnStart" onclick="startClass()">▶ Start Class</button>
     <button class="btn warn" id="btnPause" onclick="togglePause()" style="display:none">⏸ Pause</button>
+    <button class="btn" id="btnRecord" onclick="toggleRecording()" style="display:none">⏺ Record</button>
     <button class="btn danger" id="btnEnd" onclick="endClass()" style="display:none">⏹ End Class</button>
   </div>
   <button class="btn sidebar-toggle-btn" onclick="toggleSidebar()" id="sidebarToggle">📋</button>
@@ -211,6 +212,7 @@ async function loadClass() {
         document.getElementById('btnStart').style.display = 'none';
         document.getElementById('btnPause').style.display = '';
         document.getElementById('btnEnd').style.display = '';
+        document.getElementById('btnRecord').style.display = '';
         _startedAt = _class.started_at ? new Date(_class.started_at) : new Date();
         startTimer();
         await mountJitsi();
@@ -241,8 +243,55 @@ async function startClass() {
     document.getElementById('btnStart').style.display = 'none';
     document.getElementById('btnPause').style.display = '';
     document.getElementById('btnEnd').style.display = '';
+    document.getElementById('btnRecord').style.display = '';
     await mountJitsi();
   } catch (e) { alert('Failed to start: ' + e.message); document.getElementById('btnStart').disabled = false; }
+}
+
+// ── RECORDING: capture screen + mic via MediaRecorder, upload .webm on stop.
+// This is the Zoom-style "record the session" feature; the file lands in our
+// own uploads/recordings and the URL is saved on the live class.
+let _recorder = null, _recChunks = [], _recStream = null;
+async function toggleRecording() {
+  const btn = document.getElementById('btnRecord');
+  if (_recorder && _recorder.state === 'recording') {
+    _recorder.stop();
+    return;
+  }
+  try {
+    // Capture the screen/tab (video) + system or mic audio.
+    const display = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 15 }, audio: true });
+    let mic = null;
+    try { mic = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch (_) {}
+    // Mix display + mic audio tracks into one stream.
+    const tracks = [...display.getVideoTracks(), ...display.getAudioTracks()];
+    if (mic) tracks.push(...mic.getAudioTracks());
+    _recStream = new MediaStream(tracks);
+    _recChunks = [];
+    _recorder = new MediaRecorder(_recStream, { mimeType: 'video/webm;codecs=vp8,opus' });
+    _recorder.ondataavailable = e => { if (e.data && e.data.size) _recChunks.push(e.data); };
+    _recorder.onstop = async () => {
+      btn.textContent = '⬆ Uploading…'; btn.disabled = true;
+      _recStream.getTracks().forEach(t => t.stop());
+      const blob = new Blob(_recChunks, { type: 'video/webm' });
+      const fd = new FormData(); fd.append('recording', blob, 'class.webm');
+      try {
+        const r = await fetch(API + '/live-classes/' + CLASS_ID + '/recording', {
+          method: 'POST', headers: { Authorization: 'Bearer ' + TOKEN }, body: fd
+        });
+        const j = await r.json();
+        if (!r.ok) throw new Error(j.error || 'upload failed');
+        btn.textContent = '✓ Saved'; setTimeout(() => { btn.textContent = '⏺ Record'; btn.disabled = false; }, 2500);
+      } catch (e) { alert('Recording upload failed: ' + e.message); btn.textContent = '⏺ Record'; btn.disabled = false; }
+      _recorder = null;
+    };
+    // Stop automatically if the teacher ends screen-share from the browser UI.
+    display.getVideoTracks()[0].addEventListener('ended', () => { if (_recorder && _recorder.state === 'recording') _recorder.stop(); });
+    _recorder.start(1000);
+    btn.textContent = '⏹ Stop rec'; btn.classList.add('danger');
+  } catch (e) {
+    alert('Could not start recording: ' + e.message);
+  }
 }
 
 function togglePause() {
@@ -263,8 +312,11 @@ function togglePause() {
 
 async function endClass() {
   if (!confirm('End the class for everyone?')) return;
+  // Stop + upload any in-progress recording before ending.
+  if (_recorder && _recorder.state === 'recording') { _recorder.stop(); }
   try {
     document.getElementById('btnEnd').disabled = true;
+    document.getElementById('btnRecord').style.display = 'none';
     await api('/live-classes/' + CLASS_ID + '/end', 'POST', {});
     setStatus('completed');
     clearInterval(_timerInterval);
