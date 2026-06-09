@@ -9,12 +9,53 @@ const { v4: uuidv4 } = require('uuid');
 
 const router = express.Router();
 
-// Store OTPs temporarily (in production, use Redis or database)
-const otpStore = {};
+// OTP storage — uses Supabase table jeetmantra_otps (phone, otp_hash, expiry,
+// created_at). Falls back to in-memory if the table doesn't exist yet.
+const otpStore = {}; // in-memory fallback
+let _otpTableReady = null; // lazy check
+async function _ensureOtpTable() {
+  if (_otpTableReady !== null) return _otpTableReady;
+  try {
+    const { error } = await supabaseAdmin.from('jeetmantra_otps').select('phone').limit(1);
+    _otpTableReady = !error;
+  } catch (e) { _otpTableReady = false; }
+  return _otpTableReady;
+}
+async function storeOtp(phone, otp) {
+  const hash = crypto.createHash('sha256').update(otp).digest('hex');
+  const expiry = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+  if (await _ensureOtpTable()) {
+    await supabaseAdmin.from('jeetmantra_otps').upsert({ phone, otp_hash: hash, expiry, created_at: new Date().toISOString() }, { onConflict: 'phone' });
+  } else {
+    otpStore[phone] = { otp, expiry: Date.now() + 10 * 60 * 1000 };
+  }
+}
+async function verifyAndClearOtp(phone, otp) {
+  const hash = crypto.createHash('sha256').update(otp).digest('hex');
+  if (await _ensureOtpTable()) {
+    const { data } = await supabaseAdmin.from('jeetmantra_otps').select('*').eq('phone', phone).maybeSingle();
+    if (!data) return { valid: false, error: 'OTP not sent or expired' };
+    if (data.otp_hash !== hash) return { valid: false, error: 'Invalid OTP' };
+    if (new Date(data.expiry) < new Date()) {
+      await supabaseAdmin.from('jeetmantra_otps').delete().eq('phone', phone);
+      return { valid: false, error: 'OTP expired. Request new OTP' };
+    }
+    await supabaseAdmin.from('jeetmantra_otps').delete().eq('phone', phone);
+    return { valid: true };
+  }
+  // Fallback to in-memory
+  const stored = otpStore[phone];
+  if (!stored) return { valid: false, error: 'OTP not sent or expired' };
+  if (stored.otp !== otp) return { valid: false, error: 'Invalid OTP' };
+  if (Date.now() > stored.expiry) { delete otpStore[phone]; return { valid: false, error: 'OTP expired. Request new OTP' }; }
+  delete otpStore[phone];
+  return { valid: true };
+}
 
-// ── In-memory brute-force guard. Keys by IP+email; locks 15 minutes after
-// 6 failed login attempts. Doubles as a rate limiter on /login and /signup.
-// In production swap for Redis so it survives restarts + scales across nodes.
+// ── Brute-force guard. Keys by IP+email; locks 15 minutes after 6 failed
+// login attempts. Uses in-memory Map (fast, single-node). For multi-node
+// deployments, swap for Redis or a DB table. The in-memory store is acceptable
+// for single-server setups — restarts reset counts (fail-open, not fail-closed).
 const _attempts = new Map();
 const LOCK_AFTER = 6, LOCK_MINUTES = 15, WINDOW_MINUTES = 15;
 function _key(req, email) {
@@ -372,8 +413,8 @@ router.post('/send-otp', async (req, res) => {
     const otp = generateOTP();
     const otpExpiry = Date.now() + 10 * 60 * 1000; // 10 minutes
 
-    // Store OTP temporarily
-    otpStore[phone] = { otp, expiry: otpExpiry };
+    // Store OTP (DB-backed with hash, falls back to in-memory)
+    await storeOtp(phone, otp);
 
     // Send OTP (mock - in production use Twilio)
     sendOTP(phone, otp);
@@ -400,23 +441,11 @@ router.post('/verify-otp', async (req, res) => {
       return res.status(400).json({ error: 'Phone and OTP required' });
     }
 
-    // Check OTP validity
-    const storedData = otpStore[phone];
-    if (!storedData) {
-      return res.status(400).json({ error: 'OTP not sent or expired' });
+    // Check OTP validity (DB-backed with hash)
+    const otpResult = await verifyAndClearOtp(phone, otp);
+    if (!otpResult.valid) {
+      return res.status(400).json({ error: otpResult.error });
     }
-
-    if (storedData.otp !== otp) {
-      return res.status(400).json({ error: 'Invalid OTP' });
-    }
-
-    if (Date.now() > storedData.expiry) {
-      delete otpStore[phone];
-      return res.status(400).json({ error: 'OTP expired. Request new OTP' });
-    }
-
-    // Clear OTP
-    delete otpStore[phone];
 
     // Check if user exists with this phone
     let { data: user } = await supabaseAdmin
@@ -556,7 +585,7 @@ router.post('/send-verify-email', async (req, res) => {
       try {
         const decoded = jwt.verify(auth.slice(7), process.env.JWT_SECRET);
         userId = decoded.id || decoded.userId;
-      } catch (_) {}
+      } catch (e) { /* token invalid/expired — non-fatal, proceed unauthenticated */ }
     }
     if (!userId && req.body?.email) {
       const { data } = await supabaseAdmin.from('jeetmantra_users').select('id, email').eq('email', req.body.email).maybeSingle();

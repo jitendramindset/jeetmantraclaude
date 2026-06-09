@@ -1,0 +1,408 @@
+<!--
+  JeetMantra UI Enhancement Layer
+  ───────────────────────────────
+  Drop-in add-on for the single-file JeetMantra mock-up (website + app + webhook).
+  Include this file ONCE, just before </body>, AFTER your existing <style> and <script>:
+
+      <!-- ...your existing markup... -->
+      <script src="jeetmantra-enhance.html"></script>   ← no, that's wrong
+      <!--   instead, inline this whole file before </body>:  -->
+      <!-- include jeetmantra-enhance.html content here -->
+
+  NOTHING in this file modifies your existing CSS rules or JS handlers — every
+  selector is scoped under `.jm-x-*` or attaches via data-attributes. Safe to
+  remove at any time; the base app still works.
+-->
+
+<style id="jm-enhance-styles">
+/* ═══════════════════════════════════════════════════════════
+ *  1. DESIGN TOKENS — light + dark, single source
+ * ═══════════════════════════════════════════════════════════ */
+:root{
+  --jmx-radius:12px;
+  --jmx-radius-lg:18px;
+  --jmx-shadow-sm:0 1px 2px rgba(15,23,42,.06),0 1px 1px rgba(15,23,42,.04);
+  --jmx-shadow-md:0 8px 24px rgba(15,23,42,.08),0 2px 6px rgba(15,23,42,.04);
+  --jmx-shadow-lg:0 24px 60px rgba(15,23,42,.18);
+  --jmx-focus:0 0 0 3px rgba(249,115,22,.35);
+  --jmx-transition:.18s cubic-bezier(.4,0,.2,1);
+}
+html[data-theme="dark"]{
+  --bg:#0b1220; --wh:#0f172a; --bd:#1e293b; --tx:#e2e8f0; --mu:#94a3b8;
+}
+html[data-theme="dark"] body{background:#0b1220;color:#e2e8f0}
+html[data-theme="dark"] #screen-app .card,
+html[data-theme="dark"] #screen-app .stat-card,
+html[data-theme="dark"] #screen-app .schedule-item,
+html[data-theme="dark"] #screen-app .topbar,
+html[data-theme="dark"] #screen-app .modal-box,
+html[data-theme="dark"] #screen-app .cmd-box{background:#0f172a;color:#e2e8f0;border-color:#1e293b}
+html[data-theme="dark"] #screen-app .tbl th{background:#111c33}
+html[data-theme="dark"] #screen-app .tbl td{border-color:#1e293b}
+
+/* ═══════════════════════════════════════════════════════════
+ *  2. GLOBAL FOCUS RING — keyboard-only (no rings on mouse)
+ * ═══════════════════════════════════════════════════════════ */
+:focus:not(:focus-visible){outline:none}
+:focus-visible{outline:none;box-shadow:var(--jmx-focus);border-radius:8px}
+
+/* ═══════════════════════════════════════════════════════════
+ *  3. SKELETON LOADERS — replace empty .skeleton cards
+ * ═══════════════════════════════════════════════════════════ */
+.jmx-skeleton{
+  background:linear-gradient(90deg,#eef2f6 0%,#f8fafc 50%,#eef2f6 100%);
+  background-size:200% 100%;animation:jmxShimmer 1.2s infinite;
+  border-radius:8px;height:14px;margin:6px 0
+}
+html[data-theme="dark"] .jmx-skeleton{
+  background:linear-gradient(90deg,#1e293b 0%,#243246 50%,#1e293b 100%);
+  background-size:200% 100%
+}
+@keyframes jmxShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.jmx-skeleton.tall{height:80px;border-radius:12px}
+.jmx-skeleton.line{height:10px}
+.jmx-skeleton.circle{width:36px;height:36px;border-radius:50%}
+
+/* ═══════════════════════════════════════════════════════════
+ *  4. EMPTY STATES — friendly defaults for empty lists
+ * ═══════════════════════════════════════════════════════════ */
+.jmx-empty{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:40px 20px;color:#94a3b8;text-align:center
+}
+.jmx-empty-icon{font-size:48px;margin-bottom:10px;opacity:.5}
+.jmx-empty h4{font-size:16px;font-weight:700;color:#0f172a;margin-bottom:6px}
+.jmx-empty p{font-size:13px;max-width:320px;line-height:1.6}
+html[data-theme="dark"] .jmx-empty h4{color:#e2e8f0}
+
+/* ═══════════════════════════════════════════════════════════
+ *  5. KEYBOARD-SHORTCUTS HELP (press "?" anywhere)
+ * ═══════════════════════════════════════════════════════════ */
+#jmx-keys-overlay{
+  position:fixed;inset:0;background:rgba(15,23,42,.7);backdrop-filter:blur(6px);
+  z-index:99998;display:none;align-items:center;justify-content:center;padding:20px
+}
+#jmx-keys-overlay.show{display:flex}
+#jmx-keys-overlay .box{
+  background:#fff;border-radius:var(--jmx-radius-lg);padding:28px;
+  max-width:520px;width:100%;box-shadow:var(--jmx-shadow-lg);
+  font-family:'Plus Jakarta Sans',sans-serif
+}
+html[data-theme="dark"] #jmx-keys-overlay .box{background:#0f172a;color:#e2e8f0}
+#jmx-keys-overlay h3{font-size:18px;font-weight:800;margin-bottom:18px}
+#jmx-keys-overlay .row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #e2e8f0;font-size:13px}
+html[data-theme="dark"] #jmx-keys-overlay .row{border-color:#1e293b}
+#jmx-keys-overlay kbd{
+  background:#f1f5f9;border:1px solid #cbd5e1;border-bottom-width:2px;
+  border-radius:5px;padding:2px 7px;font-family:'JetBrains Mono',monospace;
+  font-size:11px;font-weight:700;color:#334155;min-width:18px;
+  text-align:center;display:inline-block
+}
+html[data-theme="dark"] #jmx-keys-overlay kbd{background:#1e293b;border-color:#334155;color:#e2e8f0}
+#jmx-keys-overlay kbd + kbd{margin-left:4px}
+
+/* ═══════════════════════════════════════════════════════════
+ *  6. THEME-TOGGLE PILL — floating, top-right
+ * ═══════════════════════════════════════════════════════════ */
+#jmx-theme-toggle{
+  position:fixed;top:14px;right:14px;z-index:9997;
+  width:38px;height:38px;border-radius:50%;border:none;cursor:pointer;
+  background:rgba(15,23,42,.85);color:#fff;font-size:17px;
+  backdrop-filter:blur(8px);box-shadow:var(--jmx-shadow-md);
+  display:flex;align-items:center;justify-content:center;
+  transition:transform var(--jmx-transition)
+}
+#jmx-theme-toggle:hover{transform:scale(1.08) rotate(15deg)}
+
+/* ═══════════════════════════════════════════════════════════
+ *  7. OFFLINE / CONNECTION BANNER
+ * ═══════════════════════════════════════════════════════════ */
+#jmx-offline{
+  position:fixed;top:0;left:0;right:0;z-index:9999;
+  background:#fbbf24;color:#0f172a;padding:8px 16px;text-align:center;
+  font-size:12px;font-weight:700;transform:translateY(-100%);
+  transition:transform var(--jmx-transition)
+}
+#jmx-offline.show{transform:translateY(0)}
+
+/* ═══════════════════════════════════════════════════════════
+ *  8. SMOOTH SCROLLBARS (webkit)
+ * ═══════════════════════════════════════════════════════════ */
+*::-webkit-scrollbar{width:10px;height:10px}
+*::-webkit-scrollbar-track{background:transparent}
+*::-webkit-scrollbar-thumb{background:rgba(100,116,139,.3);border-radius:5px;border:2px solid transparent;background-clip:content-box}
+*::-webkit-scrollbar-thumb:hover{background:rgba(100,116,139,.55);background-clip:content-box;border:2px solid transparent}
+
+/* ═══════════════════════════════════════════════════════════
+ *  9. PRINT — strip chrome, keep content
+ * ═══════════════════════════════════════════════════════════ */
+@media print{
+  .sidebar,.topbar,.back-to-site,#jmx-theme-toggle,
+  .modal-overlay,.cmd-overlay,.bottom-nav,.notif-btn{display:none !important}
+  .main-area,.content-area{padding:0 !important;overflow:visible !important}
+  *{box-shadow:none !important;background:#fff !important;color:#000 !important}
+}
+
+/* ═══════════════════════════════════════════════════════════
+ *  10. MOTION POLISH — page transition + button press
+ * ═══════════════════════════════════════════════════════════ */
+.screen.active{animation:jmxFadeIn .25s ease}
+@keyframes jmxFadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+button:active:not(:disabled){transform:translateY(1px)}
+
+/* ═══════════════════════════════════════════════════════════
+ *  11. CARD HOVER — subtle lift (touch-safe)
+ * ═══════════════════════════════════════════════════════════ */
+@media (hover:hover){
+  .card:hover,.stat-card:hover,.prog:hover,.course-card:hover{
+    box-shadow:var(--jmx-shadow-md);transition:box-shadow var(--jmx-transition)
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+ *  12. ACCESSIBLE BADGES — ensure contrast
+ * ═══════════════════════════════════════════════════════════ */
+.badge{min-height:18px;line-height:1.4}
+
+/* ═══════════════════════════════════════════════════════════
+ *  13. TOAST IMPROVEMENTS — stack, swipe-to-dismiss hint
+ * ═══════════════════════════════════════════════════════════ */
+.jmx-toast-progress{
+  position:absolute;bottom:0;left:0;height:2px;background:#f97316;
+  animation:jmxToastBar 3.5s linear forwards
+}
+@keyframes jmxToastBar{from{width:100%}to{width:0}}
+</style>
+
+
+<!-- Theme toggle + Offline banner + Keyboard help overlay -->
+<button id="jmx-theme-toggle" title="Toggle theme (T)" aria-label="Toggle dark mode">🌙</button>
+<div id="jmx-offline">⚠️ You're offline — changes will sync when reconnected</div>
+<div id="jmx-keys-overlay" onclick="if(event.target===this)jmxKeys(false)">
+  <div class="box">
+    <h3>⌨️ Keyboard shortcuts</h3>
+    <div class="row"><span>Open command palette</span><span><kbd>Ctrl</kbd><kbd>K</kbd></span></div>
+    <div class="row"><span>Toggle dark mode</span><span><kbd>T</kbd></span></div>
+    <div class="row"><span>Go to dashboard</span><span><kbd>G</kbd><kbd>D</kbd></span></div>
+    <div class="row"><span>Go to courses</span><span><kbd>G</kbd><kbd>C</kbd></span></div>
+    <div class="row"><span>Show this help</span><span><kbd>Shift</kbd><kbd>?</kbd></span></div>
+    <div class="row"><span>Close any overlay</span><span><kbd>Esc</kbd></span></div>
+    <p style="margin-top:14px;font-size:11px;color:#94a3b8;text-align:center">Shortcuts are disabled while typing in inputs.</p>
+  </div>
+</div>
+
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+ *  ALL ADD-ON LOGIC — runs in its own IIFE, never touches yours
+ * ═══════════════════════════════════════════════════════════ */
+(function(){
+  'use strict';
+
+  // ── 1. Theme toggle with persistence ────────────────────
+  const THEME_KEY = 'jm_theme';
+  const html = document.documentElement;
+  const saved = localStorage.getItem(THEME_KEY);
+  if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme:dark)').matches)) {
+    html.setAttribute('data-theme', 'dark');
+  }
+  function syncToggleIcon() {
+    const btn = document.getElementById('jmx-theme-toggle');
+    if (btn) btn.textContent = html.getAttribute('data-theme') === 'dark' ? '☀️' : '🌙';
+  }
+  syncToggleIcon();
+  document.getElementById('jmx-theme-toggle').addEventListener('click', toggleTheme);
+  function toggleTheme() {
+    const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    if (next === 'dark') html.setAttribute('data-theme', 'dark');
+    else html.removeAttribute('data-theme');
+    localStorage.setItem(THEME_KEY, next);
+    syncToggleIcon();
+  }
+
+  // ── 2. Offline / online banner ──────────────────────────
+  const offlineEl = document.getElementById('jmx-offline');
+  function syncOnline() {
+    offlineEl.classList.toggle('show', !navigator.onLine);
+  }
+  window.addEventListener('online', syncOnline);
+  window.addEventListener('offline', syncOnline);
+  syncOnline();
+
+  // ── 3. Keyboard-shortcut overlay ────────────────────────
+  function jmxKeys(show){
+    document.getElementById('jmx-keys-overlay').classList.toggle('show', show);
+  }
+  window.jmxKeys = jmxKeys;
+
+  // ── 4. Global hotkeys (ignored in input/textarea) ───────
+  let gPressed = false, gTimer = null;
+  document.addEventListener('keydown', function(e){
+    const tag = (e.target.tagName || '').toLowerCase();
+    if (tag === 'input' || tag === 'textarea' || e.target.isContentEditable) return;
+
+    // ? → keyboard help
+    if (e.key === '?' && e.shiftKey) { e.preventDefault(); jmxKeys(true); return; }
+    // Esc → close any overlay we own
+    if (e.key === 'Escape') { jmxKeys(false); return; }
+    // T → theme toggle
+    if (e.key === 't' || e.key === 'T') { toggleTheme(); return; }
+    // G + D / G + C — Vim-style sequences (within 800ms)
+    if (e.key === 'g' || e.key === 'G') {
+      gPressed = true;
+      clearTimeout(gTimer);
+      gTimer = setTimeout(() => { gPressed = false; }, 800);
+      return;
+    }
+    if (gPressed) {
+      gPressed = false;
+      clearTimeout(gTimer);
+      if (e.key === 'd' || e.key === 'D') tryClickNav(/dashboard|home/i);
+      if (e.key === 'c' || e.key === 'C') tryClickNav(/courses?/i);
+      if (e.key === 'l' || e.key === 'L') tryClickNav(/live/i);
+      if (e.key === 's' || e.key === 'S') tryClickNav(/settings/i);
+    }
+  });
+  function tryClickNav(rx){
+    const items = document.querySelectorAll('.nav-item, .nav-link');
+    for (const el of items) {
+      if (rx.test(el.textContent || '')) { el.click(); return true; }
+    }
+    return false;
+  }
+
+  // ── 5. Auto-skeleton: any element with [data-skeleton] gets bars ─
+  document.querySelectorAll('[data-skeleton]').forEach(el => {
+    const n = parseInt(el.getAttribute('data-skeleton'), 10) || 3;
+    el.innerHTML = Array.from({length: n}, (_, i) =>
+      `<div class="jmx-skeleton ${i === 0 ? 'tall' : 'line'}"></div>`).join('');
+  });
+
+  // ── 6. Auto-empty-state: any container with [data-empty] when empty ─
+  // Watch lists; when child count drops to 0, replace with friendly state.
+  const emptyTpl = (icon, title, text) => `
+    <div class="jmx-empty">
+      <div class="jmx-empty-icon">${icon||'📭'}</div>
+      <h4>${title||'Nothing here yet'}</h4>
+      <p>${text||'Your items will show up here once they\'re added.'}</p>
+    </div>`;
+  function checkEmpty(el){
+    if (!el || el._jmxCheck) return; el._jmxCheck = true;
+    new MutationObserver(() => {
+      const real = [...el.children].filter(c => !c.classList.contains('jmx-empty'));
+      if (real.length === 0 && !el.querySelector('.jmx-empty')) {
+        el.innerHTML = emptyTpl(
+          el.getAttribute('data-empty-icon'),
+          el.getAttribute('data-empty-title'),
+          el.getAttribute('data-empty-text'));
+      }
+    }).observe(el, {childList:true});
+  }
+  document.querySelectorAll('[data-empty]').forEach(checkEmpty);
+
+  // ── 7. Lazy-load images via IntersectionObserver ────────
+  if ('IntersectionObserver' in window) {
+    const lazyObs = new IntersectionObserver((entries, obs) => {
+      entries.forEach(en => {
+        if (en.isIntersecting) {
+          const img = en.target;
+          if (img.dataset.src) { img.src = img.dataset.src; img.removeAttribute('data-src'); }
+          obs.unobserve(img);
+        }
+      });
+    }, {rootMargin:'200px'});
+    document.querySelectorAll('img[data-src]').forEach(i => lazyObs.observe(i));
+  }
+
+  // ── 8. Aria labels on icon-only buttons (best-effort) ───
+  document.querySelectorAll('button').forEach(b => {
+    if (!b.getAttribute('aria-label') && !b.textContent.trim()) {
+      const t = b.getAttribute('title');
+      if (t) b.setAttribute('aria-label', t);
+    }
+  });
+
+  // ── 9. Auto-format ₹ amounts in [data-rupee] ────────────
+  document.querySelectorAll('[data-rupee]').forEach(el => {
+    const v = Number(el.getAttribute('data-rupee') || el.textContent);
+    if (!isNaN(v)) el.textContent = '₹' + v.toLocaleString('en-IN');
+  });
+
+  // ── 10. Confirm-before-close on dirty forms ─────────────
+  let dirtyForms = new Set();
+  document.addEventListener('input', e => {
+    const form = e.target.closest('form, [data-confirm-leave]');
+    if (form) dirtyForms.add(form);
+  });
+  document.addEventListener('submit', e => dirtyForms.delete(e.target));
+  window.addEventListener('beforeunload', e => {
+    if (dirtyForms.size > 0) {
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  });
+
+  // ── 11. Smooth-scroll polyfill for anchor links ─────────
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+      const id = a.getAttribute('href').slice(1);
+      const t = document.getElementById(id);
+      if (t) { e.preventDefault(); t.scrollIntoView({behavior:'smooth', block:'start'}); }
+    });
+  });
+
+  // ── 12. Toast progress bar — auto-decorate existing toasts ─
+  // If your toast() function adds `.show` to a .toast element, we add a bar.
+  new MutationObserver(muts => {
+    muts.forEach(m => {
+      if (m.type !== 'attributes') return;
+      const t = m.target;
+      if (t.classList && t.classList.contains('toast') && t.classList.contains('show')) {
+        if (!t.querySelector('.jmx-toast-progress')) {
+          const bar = document.createElement('div');
+          bar.className = 'jmx-toast-progress';
+          t.style.position = t.style.position || 'relative';
+          t.appendChild(bar);
+          setTimeout(() => bar.remove(), 4000);
+        }
+      }
+    });
+  }).observe(document.body, {attributes:true, subtree:true, attributeFilter:['class']});
+
+  // ── 13. Network-error retry helper (use from your code) ─
+  // Exposes: jmxFetch(url, opts) — auto-retries 2× on network error.
+  window.jmxFetch = async function(url, opts) {
+    let lastErr;
+    for (let i = 0; i < 3; i++) {
+      try { return await fetch(url, opts); }
+      catch (e) { lastErr = e; await new Promise(r => setTimeout(r, 300 * (i + 1))); }
+    }
+    throw lastErr;
+  };
+
+  // ── 14. Auto-disable submit button while pending ────────
+  document.addEventListener('submit', e => {
+    const btn = e.target.querySelector('button[type="submit"]');
+    if (btn) {
+      btn.disabled = true;
+      btn.dataset.jmxOrig = btn.textContent;
+      btn.textContent = '…';
+      setTimeout(() => { btn.disabled = false; btn.textContent = btn.dataset.jmxOrig; }, 1500);
+    }
+  });
+
+  // ── 15. Print helper — expose for your "Print Invoice" buttons ─
+  window.jmxPrint = function(selector) {
+    const node = document.querySelector(selector);
+    if (!node) return window.print();
+    const w = window.open('', '_blank', 'width=900,height=700');
+    w.document.write('<html><head><title>Print</title>');
+    document.querySelectorAll('link[rel="stylesheet"],style').forEach(s =>
+      w.document.write(s.outerHTML));
+    w.document.write('</head><body>' + node.outerHTML + '</body></html>');
+    w.document.close(); w.print();
+  };
+
+  console.log('%c✨ JeetMantra UI Enhance loaded', 'color:#f97316;font-weight:700');
+})();
+</script>

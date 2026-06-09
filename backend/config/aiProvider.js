@@ -196,10 +196,10 @@ function safeJson(text) {
   if (!text) return null;
   const fenced = text.match(/```(?:json)?\s*([\s\S]+?)\s*```/);
   const raw = fenced ? fenced[1] : text;
-  try { return JSON.parse(raw); } catch (_) {
+  try { return JSON.parse(raw); } catch (e1) {
     // Try to extract the first {...} object
     const m = raw.match(/\{[\s\S]*\}/);
-    if (m) { try { return JSON.parse(m[0]); } catch (_) {} }
+    if (m) { try { return JSON.parse(m[0]); } catch (e2) { /* nested JSON extraction failed */ } }
     return null;
   }
 }

@@ -6,7 +6,7 @@
 //   - /api/*: network-first (stash GET responses for offline read).
 //   - Other static assets (css/js/img/fonts): cache-first for speed.
 // Bump CACHE_NAME whenever shell assets change so the old cache is evicted.
-const CACHE_NAME = 'jm-shell-v3';
+const CACHE_NAME = 'jm-shell-v5';
 const SHELL = [
   '/login.html', '/signup.html', '/manifest.json'
 ];

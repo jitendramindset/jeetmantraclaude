@@ -33,23 +33,41 @@ router.get('/', async (req, res) => {
     // NB: jeetmantra_users.id is VARCHAR while seller_id is UUID, so there's no
     // PostgREST FK relationship to embed. We join the course (real FK) here and
     // attach seller names in a second lookup below.
+    // Build query — apply all filters BEFORE pagination so pages have
+    // consistent item counts regardless of filter combination.
     let query = supabaseAdmin
       .from('marketplace_listings')
-      .select('*, courses(id,title,description,category,level,cover_image)')
-      .eq('status', 'active')
-      .range(offset, offset + parseInt(limit) - 1);
+      .select('*, courses!inner(id,title,description,category,level,cover_image)')
+      .eq('status', 'active');
 
     if (priceMin) query = query.gte('price', parseFloat(priceMin));
     if (priceMax) query = query.lte('price', parseFloat(priceMax));
+    // Category filter uses inner join so PostgREST filters on the FK side.
+    if (category) query = query.eq('courses.category', category);
+
+    // Pagination applied AFTER all filters
+    query = query.range(offset, offset + parseInt(limit) - 1);
 
     let { data: listings, error } = await query;
     if (error) {
-      console.warn('Marketplace table not ready:', error.message);
-      return res.json({ listings: [], page: parseInt(page), limit: parseInt(limit), note: 'Marketplace table not yet created in Supabase' });
+      // Fallback: the !inner join fails if courses table is missing — retry without inner
+      if (error.message && (error.message.includes('!inner') || error.code === 'PGRST200')) {
+        const { data: fallback, error: e2 } = await supabaseAdmin
+          .from('marketplace_listings')
+          .select('*, courses(id,title,description,category,level,cover_image)')
+          .eq('status', 'active')
+          .range(offset, offset + parseInt(limit) - 1);
+        if (e2) {
+          console.warn('Marketplace table not ready:', e2.message);
+          return res.json({ listings: [], page: parseInt(page), limit: parseInt(limit), note: 'Marketplace table not yet created in Supabase' });
+        }
+        listings = fallback;
+        if (category) listings = (listings || []).filter(l => l.courses?.category === category);
+      } else {
+        console.warn('Marketplace table not ready:', error.message);
+        return res.json({ listings: [], page: parseInt(page), limit: parseInt(limit), note: 'Marketplace table not yet created in Supabase' });
+      }
     }
-
-    // Optional category filter (on the embedded course)
-    if (category) listings = (listings || []).filter(l => l.courses?.category === category);
 
     // Attach seller info via a separate lookup (no FK embed possible).
     listings = await attachSellers(listings);

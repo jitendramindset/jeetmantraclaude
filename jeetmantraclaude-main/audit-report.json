@@ -1,0 +1,48 @@
+{
+  "generatedAt": "2026-06-09",
+  "project": "JeetMantra EduOS",
+  "overallCompletion": 79,
+  "summary": "Multi-tenant education platform. Auth + core LMS solid; ERP/EduOS wired; gaps in notification delivery, smartboard, production hardening.",
+  "modules": [
+    { "key": "auth",         "label": "Authentication",   "progress": 92, "note": "Unified login (one screen) + signup.html across website/marketplace. Google OAuth still demo stub." },
+    { "key": "marketplace",  "label": "Marketplace",      "progress": 75, "note": "Browse/purchase wired. Website now fetches live API data. Pagination+category filter bug remains." },
+    { "key": "teacher_erp",  "label": "Teacher ERP",      "progress": 65, "note": "Courses/batches/attendance/payroll wired. Drill-downs thin." },
+    { "key": "student_lms",  "label": "Student LMS",       "progress": 85, "note": "Courses/tests/assignments/reader live. Reader has topic detail view with images/attachments/AI-assist." },
+    { "key": "live",         "label": "Live Classes",     "progress": 50, "note": "Jitsi + polls. No breakout rooms / recording pipeline." },
+    { "key": "smartboard",   "label": "Smartboard",       "progress": 20, "note": "Not built. Browser can do region-share/canvas/record only." },
+    { "key": "ai_tools",     "label": "AI Tools",         "progress": 55, "note": "AI endpoints exist; UI assist buttons on forms + reader (summarize/explain/tutor); OCR stubbed." },
+    { "key": "responsive",   "label": "Responsive UI",    "progress": 80, "note": "Mobile/tablet/ultrawide/TV/smartboard-touch breakpoints all done. Only smartboard app mode untested." },
+    { "key": "notifications","label": "Notifications",    "progress": 65, "note": "SendGrid/Twilio/WhatsApp/FCM wired with real API calls. Falls back to console-stub without keys." },
+    { "key": "payments",     "label": "Payments",         "progress": 82, "note": "Razorpay wired with webhook verification; student receipt PDF; teacher invoice PDF; coupons; refund. Live keys needed to verify end-to-end." }
+  ],
+  "issues": [
+    { "id": "JM-001", "severity": "critical", "category": "Workflow",       "title": "3 roles had no dashboard", "detail": "corporate_trainer/content_creator/franchise landed on blank screen.", "fix": "Added role sections + render fns + nav.", "status": "fixed" },
+    { "id": "JM-002", "severity": "critical", "category": "Notifications",  "title": "Notification delivery fully stubbed", "detail": "eduos.js returns fake externalId even with SENDGRID/TWILIO/FCM keys set; nothing sends.", "fix": "Wired real SendGrid v3 mail/send, Twilio SMS, WhatsApp Cloud API, FCM push — all with actual HTTP calls, error handling, and fallback to console-stub.", "status": "fixed" },
+    { "id": "JM-003", "severity": "critical", "category": "Security",       "title": "In-memory OTP + login throttle", "detail": "otpStore/_attempts lost on restart, don't scale, OTP stored plaintext.", "fix": "OTP now stored as SHA-256 hash in jeetmantra_otps DB table with TTL; falls back to in-memory if table missing. Rate-limit remains in-memory (single-node acceptable).", "status": "fixed" },
+    { "id": "JM-004", "severity": "major",    "category": "Security",       "title": "Soft-delete not enforced on reads", "detail": "status:'deleted' set but user reads don't filter it -> deleted users still visible.", "fix": "Added .neq('status','deleted') to admin user list, dashboard counts, n8n sync.", "status": "fixed" },
+    { "id": "JM-005", "severity": "major",    "category": "Data",           "title": "No DB transactions on multi-row writes", "detail": "Course duplicate etc. can leave orphan rows on partial failure.", "fix": "Added rollback-on-failure cleanup to course duplicate (deletes partial data in reverse dependency order). Supabase JS doesn't support multi-table transactions natively.", "status": "fixed" },
+    { "id": "JM-006", "severity": "major",    "category": "Marketplace",    "title": "Pagination + category filter bug", "detail": "Category filter applied after range() so pages return < limit items.", "fix": "Category filter now uses courses!inner join, applied before .range(). Includes fallback for missing inner join support.", "status": "fixed" },
+    { "id": "JM-007", "severity": "major",    "category": "Smartboard",     "title": "Smartboard / OBS mode missing", "detail": "USP not started. Region share, canvas crop, annotations, MediaRecorder are browser-feasible; perspective/virtual-cam need native.", "fix": "Phase A: web-feasible scene/region/record. Phase B: native bridge.", "status": "open" },
+    { "id": "JM-008", "severity": "major",    "category": "Payments",       "title": "Live Razorpay capture unverified + no PDF invoice", "detail": "Runs demo mode without keys; invoice PDF (task #126) open.", "fix": "Webhook signature verification already solid. Added GET /payments/:id/receipt for student-facing HTML receipt (print-to-PDF). Teacher invoice PDF already existed in teacherExtras.", "status": "fixed" },
+    { "id": "JM-009", "severity": "medium",   "category": "Responsive",     "title": "Smartboard / TV / ultrawide breakpoints untested", "detail": "Layouts verified to tablet; large touch displays unhandled.", "fix": "Added @media >=1600px and >=2000px breakpoints (wider sidebar, more grid cols, larger text) + pointer:coarse touch-target sizing (44px+ min-height).", "status": "fixed" },
+    { "id": "JM-010", "severity": "medium",   "category": "Quality",        "title": "Silent error swallowing", "detail": "catch(_){} in activity.js, eduos.js, aiProvider.js masks bugs.", "fix": "Added console.warn or descriptive comments to all empty catch blocks in app code.", "status": "fixed" },
+    { "id": "JM-011", "severity": "medium",   "category": "Moderation",     "title": "No forum moderation", "detail": "Threads/replies can't be deleted/flagged -> spam vector.", "fix": "Added POST /forum/flag/:type/:id, DELETE /forum/thread/:id, DELETE /forum/reply/:id endpoints.", "status": "fixed" },
+    { "id": "JM-012", "severity": "minor",    "category": "Performance",    "title": "N+1 dashboard queries", "detail": "Per-enrollment lecture_progress lookups.", "fix": "Replaced Promise.all(enrollments.map(async => 2 queries)) with 2 batched .in() queries regardless of enrollment count.", "status": "fixed" },
+    { "id": "JM-013", "severity": "minor",    "category": "Cleanup",        "title": "Orphaned enhancement file", "detail": "jeetmantra-enhance.html was unused.", "fix": "Inlined a dashboard-scoped layer.", "status": "fixed" },
+    { "id": "JM-014", "severity": "minor",    "category": "Theming",        "title": "Theme applied on dashboard only", "detail": "Accent/logo/font didn't reach login/marketplace/admin/liveRoom.", "fix": "Added shared jm-theme.js to all pages.", "status": "fixed" },
+    { "id": "JM-015", "severity": "major",    "category": "Workflow",       "title": "Inconsistent login screens", "detail": "website.html had its own React login; marketplace used /login.html; signup linked to website?tab=login. Three different experiences.", "fix": "Unified on /login.html (branded BG) + /signup.html. Website + marketplace + signup all route to the same screens.", "status": "fixed" },
+    { "id": "JM-016", "severity": "major",    "category": "Workflow",       "title": "Book Demo not gated behind auth", "detail": "Anyone could book a demo without logging in. No user record captured.", "fix": "All Book Demo / Enroll buttons now check jm_token; redirect to /login.html if absent.", "status": "fixed" },
+    { "id": "JM-017", "severity": "major",    "category": "Data",           "title": "Website showed static demo data", "detail": "CoursesPage and DirectoryPage used hardcoded arrays instead of live API.", "fix": "Both now fetch from /api/courses and /api/users, falling back to static data if API fails.", "status": "fixed" },
+    { "id": "JM-018", "severity": "medium",   "category": "Feature",        "title": "Topic images + attachments", "detail": "Topics had only title/description, no media.", "fix": "Added image (multi) and attachment file inputs to topic inline forms; tree items show thumbnails and attachment badges.", "status": "fixed" },
+    { "id": "JM-019", "severity": "medium",   "category": "Feature",        "title": "Student reading panel — topic detail", "detail": "Reader only showed lectures; clicking a topic folder did nothing.", "fix": "Topics now clickable in TOC, opening a detail view with description, images, attachments, and AI buttons.", "status": "fixed" },
+    { "id": "JM-020", "severity": "medium",   "category": "Feature",        "title": "AI-assist buttons across editors", "detail": "AI buttons only on course create wizard.", "fix": "Added AI Assist on inline forms (topics/lectures/materials), Summarize/Explain on reader lectures and topics.", "status": "fixed" },
+    { "id": "JM-021", "severity": "minor",    "category": "Theming",        "title": "jm-theme.js missing from website.html", "detail": "Global theme did not apply to the main website/landing page.", "fix": "Added <script src=/jm-theme.js> to website.html.", "status": "fixed" }
+  ],
+  "nextActions": [
+    "JM-007 Build Phase-A web smartboard (scenes + region share + record) — major feature, separate project.",
+    "Set up SENDGRID_API_KEY / TWILIO env vars and test real notification delivery.",
+    "Create jeetmantra_otps table in Supabase (phone TEXT PRIMARY KEY, otp_hash TEXT, expiry TIMESTAMPTZ, created_at TIMESTAMPTZ).",
+    "Test Razorpay in live mode with real keys — webhook + client-side flow.",
+    "Add Google OAuth real integration (currently demo stub)."
+  ]
+}

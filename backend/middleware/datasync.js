@@ -119,7 +119,7 @@ function syncMiddleware(req, res, next) {
       const evt = eventName(fullPath, req.method);
       triggerN8n(evt, op).catch(() => {});
       // Drop an activity_feed row for events worth surfacing on a wall.
-      try { logActivityFromWrite(evt, fullPath, req, body); } catch (_) {}
+      try { logActivityFromWrite(evt, fullPath, req, body); } catch (e) { console.warn('activity log err:', e.message); }
     }
     return originalJson(body);
   };

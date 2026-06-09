@@ -26,6 +26,7 @@ const activityRoutes = require('./routes/activity');
 const teacherExtrasRoutes = require('./routes/teacherExtras');
 const parentExtrasRoutes  = require('./routes/parentExtras');
 const walletRoutes        = require('./routes/wallet');
+const eduosRoutes         = require('./routes/eduos');
 const { cacheMiddleware, syncMiddleware } = require('./middleware/datasync');
 
 const app = express();
@@ -89,6 +90,7 @@ app.use('/api/activity', activityRoutes);
 app.use('/api/teacher', teacherExtrasRoutes);
 app.use('/api/parent', parentExtrasRoutes);
 app.use('/api/wallet', walletRoutes);
+app.use('/api/eduos', eduosRoutes);
 
 // LevelDB sync queue endpoint
 app.get('/api/sync/queue', async (req, res) => {

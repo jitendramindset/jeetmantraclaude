@@ -49,6 +49,7 @@ body{font-family:-apple-system,'Segoe UI',sans-serif;background:var(--jm-bg);col
 @media(max-width:900px){.live-main{grid-template-columns:1fr}.sidebar{position:absolute;right:0;top:56px;bottom:0;width:90%;max-width:340px;transform:translateX(100%);transition:transform .25s;z-index:10}.sidebar.open{transform:translateX(0)}.sidebar-toggle-btn{display:inline-flex}.live-topbar{flex-wrap:wrap;gap:8px}.live-topbar .title{font-size:14px}.controls{order:5;width:100%;justify-content:center}}
 @media(max-width:560px){.live-topbar .sub{display:none}#timer{display:none}.btn{padding:7px 11px;font-size:12px}}
 </style>
+<script src="/jm-theme.js"></script>
 </head>
 <body>
 <div class="live-topbar">
@@ -82,6 +83,10 @@ body{font-family:-apple-system,'Segoe UI',sans-serif;background:var(--jm-bg);col
     <div class="tabs">
       <button class="tab active" onclick="showTab('attendees')">👥 Attendees (<span id="attCount">0</span>)</button>
       <button class="tab" onclick="showTab('chat')">💬 Chat</button>
+      <button class="tab" onclick="showTab('polls')">📊 Polls</button>
+    </div>
+    <div class="tab-body" id="tabPolls" style="display:none">
+      <div id="pollPanel" style="font-size:13px"></div>
     </div>
     <div class="tab-body" id="tabAttendees">
       <div id="attendeesList"><div style="color:var(--jm-text-muted);font-size:13px">No one's joined yet.</div></div>
@@ -102,6 +107,69 @@ const API = window.location.origin + '/api';
 const params = new URLSearchParams(location.search);
 const CLASS_ID = params.get('class');
 const TOKEN = localStorage.getItem('jm_token');
+// ── Live polls (Phase 3B). Teacher creates → students vote → tally shows.
+let _activePollId = null;
+async function refreshPolls(){
+  const panel = document.getElementById('pollPanel');
+  if (!panel) return;
+  const isTeacher = ['teacher','school','coaching','admin','partner'].includes(USER.role);
+  let head = '';
+  if (isTeacher) {
+    head = `<button class="btn primary" onclick="createPoll()" style="margin-bottom:10px">+ New poll</button>`;
+  }
+  if (_activePollId) {
+    try {
+      const r = await fetch(API + '/eduos/polls/' + _activePollId + '/results',
+        { headers: { 'Authorization': 'Bearer ' + TOKEN } }).then(x => x.json());
+      const total = r.total || 0;
+      const rows = (r.poll.options || []).map(o => {
+        const v = r.tally[o] || 0;
+        const pct = total ? Math.round(100 * v / total) : 0;
+        return `<div style="margin:6px 0">
+          ${isTeacher ? '' : `<button class="btn" onclick="vote('${o.replace(/'/g,"\\'")}')">${o}</button>`}
+          ${isTeacher ? `<strong>${o}</strong>` : ''}
+          <div style="background:rgba(124,58,237,.1);height:14px;border-radius:7px;margin-top:4px;overflow:hidden">
+            <div style="width:${pct}%;height:100%;background:var(--jm-primary)"></div>
+          </div>
+          <small style="color:var(--jm-text-muted)">${v} (${pct}%)</small>
+        </div>`;
+      }).join('');
+      panel.innerHTML = head + `<div><strong>${r.poll.question}</strong></div>${rows}
+        ${isTeacher ? `<button class="btn" onclick="closePoll()" style="margin-top:8px">Close poll</button>` : ''}`;
+    } catch (_) { panel.innerHTML = head + '<div>Poll unavailable</div>'; }
+  } else {
+    panel.innerHTML = head + '<div style="color:var(--jm-text-muted)">No active poll.</div>';
+  }
+}
+async function createPoll(){
+  const q = prompt('Poll question?'); if (!q) return;
+  const optsRaw = prompt('Options (comma-separated):', 'Yes,No'); if (!optsRaw) return;
+  const options = optsRaw.split(',').map(s => s.trim()).filter(Boolean);
+  if (options.length < 2) return alert('Need ≥2 options');
+  const r = await fetch(API + '/eduos/polls', {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + TOKEN, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ classId: CLASS_ID, question: q, options })
+  }).then(x => x.json());
+  if (r.poll) { _activePollId = r.poll.id; refreshPolls(); }
+  else alert(r.error || 'Failed');
+}
+async function vote(choice){
+  await fetch(API + '/eduos/polls/' + _activePollId + '/vote', {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + TOKEN, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ choice })
+  });
+  refreshPolls();
+}
+async function closePoll(){
+  if (!_activePollId) return;
+  await fetch(API + '/eduos/polls/' + _activePollId + '/close', {
+    method: 'POST', headers: { 'Authorization': 'Bearer ' + TOKEN }
+  });
+  _activePollId = null; refreshPolls();
+}
+setInterval(() => { if (_activePollId) refreshPolls(); }, 5000);
 const USER = JSON.parse(localStorage.getItem('jm_user') || '{}');
 const ROLE = USER.user_type || USER.role || 'student';
 const IS_TEACHER = ['teacher','partner','school','coaching','admin'].includes(ROLE);
@@ -466,6 +534,9 @@ function showTab(name) {
   document.getElementById('tabAttendees').style.display = name === 'attendees' ? '' : 'none';
   document.getElementById('tabChat').style.display = name === 'chat' ? '' : 'none';
   document.getElementById('chatInputBox').style.display = name === 'chat' ? '' : 'none';
+  const polls = document.getElementById('tabPolls');
+  if (polls) polls.style.display = name === 'polls' ? '' : 'none';
+  if (name === 'polls') refreshPolls();
 }
 
 function renderSummary() {

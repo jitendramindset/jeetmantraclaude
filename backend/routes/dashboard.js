@@ -36,19 +36,27 @@ router.get('/', authenticateToken, async (req, res) => {
       const { data: liveClasses } = enrolledCourseIds.length
         ? await supabaseAdmin.from('live_classes').select('*, courses(title)').in('course_id', enrolledCourseIds).in('status', ['scheduled', 'live']).order('scheduled_time', { ascending: true }).limit(5)
         : { data: [] };
-      // Compute live progress per enrollment: attendance(present) / total_lectures.
-      // The enrollments.progress_percentage column is stale (never updated), so we
-      // derive it on the fly here so the student sees real-time progress without
-      // an extra fetch.
-      const enrichedEnrollments = await Promise.all((enrollments || []).map(async (e) => {
-        const [{ count: total }, { count: present }] = await Promise.all([
-          supabaseAdmin.from('course_lectures').select('id', { count: 'exact', head: true }).eq('course_id', e.course_id),
-          supabaseAdmin.from('attendance').select('id', { count: 'exact', head: true })
-            .eq('student_id', userId).eq('course_id', e.course_id).eq('status', 'present')
-        ]);
+      // Compute live progress per enrollment using BATCHED queries (not N+1).
+      // Two queries total regardless of enrollment count.
+      let lectureCountMap = {}, attendCountMap = {};
+      if (enrolledCourseIds.length) {
+        const { data: lectureCounts } = await supabaseAdmin
+          .from('course_lectures').select('course_id')
+          .in('course_id', enrolledCourseIds);
+        (lectureCounts || []).forEach(l => { lectureCountMap[l.course_id] = (lectureCountMap[l.course_id] || 0) + 1; });
+
+        const { data: attendCounts } = await supabaseAdmin
+          .from('attendance').select('course_id')
+          .eq('student_id', userId).eq('status', 'present')
+          .in('course_id', enrolledCourseIds);
+        (attendCounts || []).forEach(a => { attendCountMap[a.course_id] = (attendCountMap[a.course_id] || 0) + 1; });
+      }
+      const enrichedEnrollments = (enrollments || []).map(e => {
+        const total = lectureCountMap[e.course_id] || 0;
+        const present = attendCountMap[e.course_id] || 0;
         const pct = total ? Math.round((present / total) * 100) : (e.progress_percentage || 0);
-        return { ...e, progress_percentage: pct, attended_lectures: present || 0, total_lectures: total || 0 };
-      }));
+        return { ...e, progress_percentage: pct, attended_lectures: present, total_lectures: total };
+      });
       const { data: recordedLectures } = await supabaseAdmin.from('lectures').select('*').eq('is_recorded', true).limit(5);
       const { data: homework } = await supabaseAdmin.from('assignments').select('*').eq('student_id', userId).order('due_date', { ascending: true }).limit(5);
       const { data: skills } = await supabaseAdmin.from('user_skills').select('*').eq('user_id', userId).order('updated_at', { ascending: false }).limit(3);
@@ -136,7 +144,7 @@ router.get('/', authenticateToken, async (req, res) => {
         .from('marketplace_listings')
         .select('*, courses(title)')
         .limit(20);
-      const { count: userCount } = await supabaseAdmin.from('jeetmantra_users').select('id', { count: 'exact', head: true });
+      const { count: userCount } = await supabaseAdmin.from('jeetmantra_users').select('id', { count: 'exact', head: true }).neq('status', 'deleted');
       const { count: courseCount } = await supabaseAdmin.from('courses').select('id', { count: 'exact', head: true });
       dashboardData = {
         users: allUsers || [],

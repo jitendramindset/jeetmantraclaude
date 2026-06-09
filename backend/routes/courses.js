@@ -254,13 +254,14 @@ router.get('/:id/students', authenticateToken, async (req, res) => {
 // ── DUPLICATE COURSE: deep-copies a course + its topics/lectures/materials/
 // tests/questions into a new "(Copy)" course owned by the same teacher.
 router.post('/:id/duplicate', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
+  let newId;
   try {
     const srcId = req.params.id;
     const { data: src } = await supabaseAdmin.from('courses').select('*').eq('id', srcId).single();
     if (!src) return res.status(404).json({ error: 'Course not found' });
     if (src.teacher_id !== req.user.id) return res.status(403).json({ error: 'Not your course' });
 
-    const newId = uuidv4();
+    newId = uuidv4();
     const { id, created_at, updated_at, ...rest } = src;
     await supabaseAdmin.from('courses').insert({
       ...rest, id: newId, title: (src.title || 'Course') + ' (Copy)',
@@ -300,6 +301,23 @@ router.post('/:id/duplicate', authenticateToken, authorizeRole(CREATOR_ROLES), a
     res.status(201).json({ message: 'Course duplicated', courseId: newId });
   } catch (e) {
     console.error('duplicate error', e);
+    // Rollback: clean up partial data if the duplicate failed mid-way.
+    // This is a best-effort cleanup since Supabase JS doesn't support
+    // multi-table transactions. Delete in reverse dependency order.
+    if (typeof newId !== 'undefined') {
+      try {
+        await supabaseAdmin.from('course_questions').delete().in('test_id',
+          ((await supabaseAdmin.from('course_tests').select('id').eq('course_id', newId)).data || []).map(t => t.id));
+        await supabaseAdmin.from('course_tests').delete().eq('course_id', newId);
+        await supabaseAdmin.from('course_materials').delete().eq('course_id', newId);
+        await supabaseAdmin.from('course_lectures').delete().eq('course_id', newId);
+        await supabaseAdmin.from('course_topics').delete().eq('course_id', newId);
+        await supabaseAdmin.from('courses').delete().eq('id', newId);
+        console.log('duplicate rollback: cleaned up partial course', newId);
+      } catch (cleanupErr) {
+        console.error('duplicate rollback failed:', cleanupErr.message);
+      }
+    }
     res.status(500).json({ error: 'Duplication failed: ' + e.message });
   }
 });

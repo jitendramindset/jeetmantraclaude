@@ -272,6 +272,7 @@ html[data-theme="dark"]{
   .overlay.show{display:block}
 }
 </style>
+<script src="/jm-theme.js"></script>
 </head>
 <body>
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
@@ -280,6 +281,7 @@ html[data-theme="dark"]{
 <div class="cmdk-overlay" id="cmdkOverlay" onclick="if(event.target===this)closeCmdK()">
   <div class="cmdk" onkeydown="cmdkKey(event)">
     <input id="cmdkInput" placeholder="Search courses, classes, students, settings… (try 'live', 'attendance')" oninput="renderCmdK(this.value)" autocomplete="off">
+    <button id="cmdkMic" onclick="cmdkVoice()" title="Voice search" style="position:absolute;right:24px;top:18px;background:transparent;border:0;font-size:18px;cursor:pointer">🎤</button>
     <div class="results" id="cmdkResults"></div>
     <div class="cmdk-foot"><span>↑↓ navigate · ⏎ open · esc close</span><span>⌘K / Ctrl+K</span></div>
   </div>
@@ -682,8 +684,74 @@ html[data-theme="dark"]{
               <div><div style="font-weight:600">Full Admin Panel</div><div style="font-size:11px;color:var(--jm-text-muted)">User management, courses, payouts</div></div>
               <a href="/admin.html" class="btn-sm btn-primary" style="text-decoration:none">Open →</a>
             </div>
+            <div style="padding:10px 0;border-top:1px solid var(--jm-border);display:flex;justify-content:space-between;align-items:center">
+              <div><div style="font-weight:600">🛰️ AI Dev Control Center</div><div style="font-size:11px;color:var(--jm-text-muted)">Live audit · module completion · issue backlog</div></div>
+              <a href="/control-center.html" class="btn-sm btn-outline" style="text-decoration:none">Open →</a>
+            </div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- CORPORATE TRAINER -->
+    <div class="role-section" id="section-corporate_trainer">
+      <div class="stats-grid">
+        <div class="stat-card" style="--sc:#6366f1"><div class="label">Active programs</div><div class="value" id="ct-programs">0</div><div class="sub">Live trainings</div></div>
+        <div class="stat-card" style="--sc:#0ea5e9"><div class="label">Learners</div><div class="value" id="ct-learners">0</div><div class="sub">Enrolled staff</div></div>
+        <div class="stat-card" style="--sc:#10b981"><div class="label">Completion</div><div class="value" id="ct-completion">—</div><div class="sub">Avg across cohorts</div></div>
+        <div class="stat-card" style="--sc:#f59e0b"><div class="label">Earnings</div><div class="value" id="ct-earnings">₹0</div><div class="sub">This month</div></div>
+      </div>
+      <div class="section" id="sec-corporate_trainer-programs" style="--sc:#6366f1">
+        <div class="section-title">📚 My Training Programs
+          <div class="actions"><button class="btn-sm btn-primary" onclick="openWizard()">+ New program</button></div>
+        </div>
+        <div class="card"><div id="ct-programList"><div class="empty-state"><div class="icon">📚</div>No programs yet. Create your first corporate training.</div></div></div>
+      </div>
+      <div class="section" id="sec-corporate_trainer-cohorts" style="--sc:#0ea5e9">
+        <div class="section-title">👥 Cohorts
+          <div class="actions"><button class="btn-sm btn-outline" onclick="openEduOS('batches')">Manage batches →</button></div>
+        </div>
+        <div class="card"><div id="ct-cohortList"><div class="empty-state"><div class="icon">👥</div>No cohorts yet. Create a batch from EduOS.</div></div></div>
+      </div>
+    </div>
+
+    <!-- CONTENT CREATOR -->
+    <div class="role-section" id="section-content_creator">
+      <div class="stats-grid">
+        <div class="stat-card" style="--sc:#ec4899"><div class="label">Published</div><div class="value" id="cc-published">0</div><div class="sub">Courses live</div></div>
+        <div class="stat-card" style="--sc:#8b5cf6"><div class="label">Total views</div><div class="value" id="cc-views">0</div><div class="sub">All content</div></div>
+        <div class="stat-card" style="--sc:#10b981"><div class="label">Avg rating</div><div class="value" id="cc-rating">—</div><div class="sub">Across catalog</div></div>
+        <div class="stat-card" style="--sc:#f59e0b"><div class="label">Royalties</div><div class="value" id="cc-royalties">₹0</div><div class="sub">This month</div></div>
+      </div>
+      <div class="section" id="sec-content_creator-content" style="--sc:#ec4899">
+        <div class="section-title">🎬 My Content
+          <div class="actions"><button class="btn-sm btn-primary" onclick="openWizard()">+ New course</button></div>
+        </div>
+        <div class="card"><div id="cc-contentList"><div class="empty-state"><div class="icon">🎬</div>No content yet. Publish your first course.</div></div></div>
+      </div>
+      <div class="section" id="sec-content_creator-performance" style="--sc:#8b5cf6">
+        <div class="section-title">📈 Performance</div>
+        <div class="card" id="cc-performance"><div class="empty-state"><div class="icon">📈</div>Performance analytics appear once your content has views.</div></div>
+      </div>
+    </div>
+
+    <!-- FRANCHISE -->
+    <div class="role-section" id="section-franchise">
+      <div class="stats-grid">
+        <div class="stat-card" style="--sc:#0ea5e9"><div class="label">Branches</div><div class="value" id="fr-branches">0</div><div class="sub">Linked centers</div></div>
+        <div class="stat-card" style="--sc:#6366f1"><div class="label">Total students</div><div class="value" id="fr-students">0</div><div class="sub">Across network</div></div>
+        <div class="stat-card" style="--sc:#10b981"><div class="label">Courses</div><div class="value" id="fr-courses">0</div><div class="sub">Network-wide</div></div>
+        <div class="stat-card" style="--sc:#f59e0b"><div class="label">Network revenue</div><div class="value" id="fr-revenue">₹0</div><div class="sub">This month</div></div>
+      </div>
+      <div class="section" id="sec-franchise-branches" style="--sc:#0ea5e9">
+        <div class="section-title">🏢 Branches
+          <div class="actions"><button class="btn-sm btn-outline" onclick="openEduOS('franchise')">Open franchise hub →</button></div>
+        </div>
+        <div class="card"><div id="fr-branchList"><div class="empty-state"><div class="icon">🏢</div>No branches linked yet.</div></div></div>
+      </div>
+      <div class="section" id="sec-franchise-performance" style="--sc:#6366f1">
+        <div class="section-title">📊 Network Performance</div>
+        <div class="card" id="fr-performance"><div class="empty-state"><div class="icon">📊</div>Branch analytics appear once branches are linked.</div></div>
       </div>
     </div>
   </div>
@@ -807,6 +875,7 @@ const NAV={
     {i:'🗓',l:'Attendance',action:'openAttendanceReport()'},
     {i:'🏫',l:'My Institutions',action:'openMyInstitutions()'},
     {i:'💳',l:'Payments',action:'openPayments()'},
+    {i:'🛰️',l:'EduOS',action:'openEduOS()'},
     {i:'💳',l:'Wallet',action:'openWallet()'},
     {i:'⚡',l:'Plans',action:'openPlans()'},
     {i:'🛒',l:'Marketplace',h:'/marketplace.html'},
@@ -825,16 +894,17 @@ const NAV={
     {i:'📝',l:'Essay grading',action:'openEssayInbox()'},
     {i:'⚙️',l:'Settings',action:'openSettings()'},
     {i:'🏫',l:'My Institutions',action:'openMyInstitutions()'},
+    {i:'🛰️',l:'EduOS',action:'openEduOS()'},
     {i:'💳',l:'Wallet',action:'openWallet()'},
     {i:'⚡',l:'Plans',action:'openPlans()'},
     {i:'🛒',l:'Marketplace',h:'/marketplace.html'},
-    {i:'⚙️',l:'Settings',action:'openSettings()'},
     {i:'👤',l:'Profile',action:'openProfilePage()'}
   ],
   partner:[
     {i:'🏠',l:'Dashboard',t:'top',a:true},
     {i:'📅',l:'Bookings',t:'bookings'},
     {i:'💰',l:'Earnings',t:'earnings'},
+    {i:'🛰️',l:'EduOS',action:'openEduOS()'},
     {i:'💳',l:'Wallet',action:'openWallet()'},
     {i:'⚡',l:'Plans',action:'openPlans()'},
     {i:'🛒',l:'Marketplace',h:'/marketplace.html'},
@@ -846,7 +916,9 @@ const NAV={
     {i:'📚',l:'Available Courses',t:'courses'},
     {i:'👨‍🏫',l:'Teachers',t:'teachers'},
     {i:'💳',l:'Payments',t:'payments'},
+    {i:'🛰️',l:'EduOS',action:'openEduOS()'},
     {i:'🛒',l:'Browse Marketplace',h:'/marketplace.html'},
+    {i:'⚙️',l:'Settings',action:'openSettings()'},
     {i:'🏫',l:'Profile',t:'profile'}
   ],
   parent:[
@@ -863,7 +935,9 @@ const NAV={
     {i:'👨‍🏫',l:'Teachers',t:'teachers'},
     {i:'💰',l:'Earnings',t:'earnings'},
     {i:'📚',l:'Platform Courses',t:'courses'},
+    {i:'🛰️',l:'EduOS',action:'openEduOS()'},
     {i:'🛒',l:'Browse Marketplace',h:'/marketplace.html'},
+    {i:'⚙️',l:'Settings',action:'openSettings()'},
     {i:'🏆',l:'Profile',t:'profile'}
   ],
   admin:[
@@ -872,10 +946,37 @@ const NAV={
     {i:'🛒',l:'Marketplace',t:'listings'},
     {i:'💳',l:'Transactions',t:'transactions'},
     {i:'🔧',l:'Full Admin Panel',h:'/admin.html'}
+  ],
+  corporate_trainer:[
+    {i:'🏠',l:'Dashboard',t:'top',a:true},
+    {i:'📚',l:'My Programs',t:'programs'},
+    {i:'👥',l:'Cohorts',t:'cohorts'},
+    {i:'🛰️',l:'EduOS',action:'openEduOS()'},
+    {i:'💳',l:'Wallet',action:'openWallet()'},
+    {i:'🛒',l:'Marketplace',h:'/marketplace.html'},
+    {i:'⚙️',l:'Settings',action:'openSettings()'}
+  ],
+  content_creator:[
+    {i:'🏠',l:'Dashboard',t:'top',a:true},
+    {i:'🎬',l:'My Content',t:'content'},
+    {i:'📈',l:'Performance',t:'performance'},
+    {i:'🛰️',l:'EduOS',action:'openEduOS()'},
+    {i:'💳',l:'Wallet',action:'openWallet()'},
+    {i:'⚡',l:'Plans',action:'openPlans()'},
+    {i:'🛒',l:'Marketplace',h:'/marketplace.html'},
+    {i:'⚙️',l:'Settings',action:'openSettings()'}
+  ],
+  franchise:[
+    {i:'🏠',l:'Dashboard',t:'top',a:true},
+    {i:'🏢',l:'Branches',t:'branches'},
+    {i:'📊',l:'Performance',t:'performance'},
+    {i:'🛰️',l:'EduOS',action:'openEduOS()'},
+    {i:'💳',l:'Wallet',action:'openWallet()'},
+    {i:'⚙️',l:'Settings',action:'openSettings()'}
   ]
 };
-const ROLE_LABELS={student:'🎓 Student',teacher:'👨‍🏫 Teacher',partner:'🤝 Partner',admin:'⚙️ Admin',school:'🏫 School',coaching:'🏆 Coaching'};
-const ROLE_CLS={student:'role-student',teacher:'role-teacher',partner:'role-partner',admin:'role-admin',school:'role-school',coaching:'role-coaching'};
+const ROLE_LABELS={student:'🎓 Student',teacher:'👨‍🏫 Teacher',partner:'🤝 Partner',admin:'⚙️ Admin',school:'🏫 School',coaching:'🏆 Coaching',corporate_trainer:'💼 Corporate Trainer',content_creator:'🎬 Content Creator',franchise:'🏢 Franchise'};
+const ROLE_CLS={student:'role-student',teacher:'role-teacher',partner:'role-partner',admin:'role-admin',school:'role-school',coaching:'role-coaching',corporate_trainer:'role-teacher',content_creator:'role-partner',franchise:'role-admin'};
 function fmt(n){return '₹'+Number(n||0).toLocaleString('en-IN');}
 function buildNav(role){
   const items=NAV[role]||NAV.student;
@@ -1152,6 +1253,9 @@ async function loadDashboard(){
     else if(role==='coaching'){renderCoachingDash(d); loadInstitutionTeachers(); loadInstitutionStudents();}
     else if(role==='admin')renderAdminDash(d);
     else if(role==='parent')renderParentDash();
+    else if(role==='corporate_trainer')renderCorporateTrainerDash(d);
+    else if(role==='content_creator')renderContentCreatorDash(d);
+    else if(role==='franchise')renderFranchiseDash(d);
     // EduOS UI polish — applies after the role section renders.
     try{ renderGreeting(); injectQuickActions(); renderTodaySchedule(); buildBottomNav(role); }catch(_){}
   }catch(e){
@@ -1430,7 +1534,7 @@ const MODAL_DEFS={
         <div class="form-row"><label>Level</label><select id="m-level"><option value="beginner">Beginner</option><option value="intermediate">Intermediate</option><option value="advanced">Advanced</option></select></div>
       </div>
       <div class="form-row"><label>Price (₹)</label><input id="m-price" type="number" min="0" value="0"></div>
-      <div class="form-row"><label>Cover Image (optional)</label><input id="m-cover" type="file" accept="image/*"></div>
+      <div class="form-row"><label>Cover / thumbnail image (optional)</label><input id="m-cover" type="file" accept="image/*" onchange="jmCoverPreview(this,'m-cover-prev')"><img id="m-cover-prev" style="display:none;margin-top:8px;max-height:120px;border-radius:8px;border:1px solid var(--jm-border);object-fit:cover"></div>
       <div style="font-size:12px;color:var(--jm-text-muted)">After creating, you can add topics, lectures, materials, tests and assignments via ⚙️ Configure.</div>`,
     submit:async ()=>{
       const body={title:val('m-title'),description:val('m-desc'),category:val('m-cat')||'General',level:val('m-level'),price:Number(val('m-price'))||0};
@@ -1753,6 +1857,49 @@ async function aiAssist(prompt, opts){
   }catch(e){ toast(e.message,true); throw e; }
 }
 
+// AI form-assist: auto-improve or generate content for inline forms
+async function aiFormAssist(key, formId, courseId){
+  const titleEl=document.getElementById(formId+'-title');
+  const descEl=document.getElementById(formId+'-desc');
+  const title=titleEl?titleEl.value:'';
+  const desc=descEl?descEl.value:'';
+  if(!title&&!desc){ toast('Enter a title or description first',true); return; }
+  try{
+    const r=await aiAssist(`Improve or expand this ${key.slice(0,-1)} for an education course. Title: "${title}". Description: "${desc}". Return JSON with {title, description}.`, {json:true});
+    const s=typeof r==='string'?JSON.parse(r):(r.result||r);
+    if(s.title&&titleEl) titleEl.value=s.title;
+    if(s.description&&descEl) descEl.value=s.description;
+    toast('✓ AI improved — review and edit');
+  }catch(e){ toast('AI assist: '+e.message,true); }
+}
+// AI summarize/explain for student reading panel
+async function aiSummarize(type, id){
+  try{
+    const r=await aiAssist(`Summarize this ${type} concisely in 3-5 bullet points for a student.`, {});
+    const txt=typeof r==='string'?r:(r.text||r.result||JSON.stringify(r));
+    showModal('AI Summary','<div style="white-space:pre-wrap;font-size:14px;line-height:1.7">'+escHtml(txt)+'</div>');
+  }catch(e){ toast('AI: '+e.message,true); }
+}
+async function aiExplain(type, id){
+  try{
+    const r=await aiAssist(`Explain this ${type} in simple language a 10-year-old would understand.`, {});
+    const txt=typeof r==='string'?r:(r.text||r.result||JSON.stringify(r));
+    showModal('Simple Explanation','<div style="white-space:pre-wrap;font-size:14px;line-height:1.7">'+escHtml(txt)+'</div>');
+  }catch(e){ toast('AI: '+e.message,true); }
+}
+// Generic modal for AI output / detail views
+function showModal(title, bodyHtml){
+  let m=document.getElementById('jm-generic-modal');
+  if(!m){
+    m=document.createElement('div');
+    m.id='jm-generic-modal';
+    m.style.cssText='position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.5);padding:16px';
+    document.body.appendChild(m);
+  }
+  m.style.display='flex';
+  m.innerHTML=`<div style="background:var(--jm-surface,#fff);border-radius:14px;padding:24px;max-width:600px;width:100%;max-height:80vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.2)"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><h3>${escHtml(title)}</h3><button onclick="document.getElementById('jm-generic-modal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;color:inherit">&times;</button></div><div>${bodyHtml}</div></div>`;
+}
+
 // AI Quick-fill on the Create Course modal — calls /api/ai/create-course
 // with the description and fills the form fields with the suggestion.
 async function aiFillCourse(){
@@ -1829,6 +1976,42 @@ function closeConfigurePage(){
 }
 // ── Full-page tree renderer (replaces the Configure modal). Each tree
 // section is a collapsible "folder" containing items + an inline add form +
+// Change/upload a course cover thumbnail from the configure page. Opens a
+// native file picker, validates size, uploads to /course-content/:id/cover,
+// then re-renders so the new thumbnail shows immediately.
+// Live thumbnail preview for a file <input> → <img id=previewId>.
+function jmCoverPreview(input, previewId){
+  const img=document.getElementById(previewId);
+  const f=input.files&&input.files[0];
+  if(!img) return;
+  if(!f){ img.style.display='none'; return; }
+  if(f.size>5*1024*1024){ toast('Image too large (max 5MB)',true); input.value=''; img.style.display='none'; return; }
+  const r=new FileReader();
+  r.onload=()=>{ img.src=r.result; img.style.display='block'; };
+  r.readAsDataURL(f);
+}
+function changeCourseCover(courseId){
+  const inp=document.createElement('input');
+  inp.type='file'; inp.accept='image/*';
+  inp.onchange=async()=>{
+    const f=inp.files&&inp.files[0];
+    if(!f) return;
+    if(f.size>5*1024*1024){ toast('Image too large (max 5MB)',true); return; }
+    toast('Uploading cover…');
+    try{
+      const fd=new FormData(); fd.append('cover',f);
+      const res=await fetch(API+'/course-content/'+courseId+'/cover',{
+        method:'POST',
+        headers:{'Authorization':'Bearer '+localStorage.getItem('jm_token')},
+        body:fd
+      });
+      if(!res.ok) throw new Error('Upload failed ('+res.status+')');
+      toast('✓ Cover updated');
+      _renderConfigurePage(courseId);
+    }catch(e){ toast(e.message||'Cover upload failed',true); }
+  };
+  inp.click();
+}
 // inline edit. Same /api/course-content/:id/full endpoint as before.
 async function _renderConfigurePage(courseId){
   const body=document.getElementById('cfg-body');
@@ -1853,12 +2036,16 @@ async function _renderConfigurePage(courseId){
     // Header
     let html=`
       <div class="cfg-header">
-        ${c.cover_image?`<img src="${escHtml(c.cover_image)}">`:'<div style="width:64px;height:64px;border-radius:10px;background:var(--jm-primary-tint);display:flex;align-items:center;justify-content:center;font-size:28px">📚</div>'}
+        <div style="position:relative;cursor:pointer" title="Click to change cover image" onclick="changeCourseCover('${courseId}')">
+          ${c.cover_image?`<img src="${escHtml(c.cover_image)}">`:'<div style="width:64px;height:64px;border-radius:10px;background:var(--jm-primary-tint);display:flex;align-items:center;justify-content:center;font-size:28px">📚</div>'}
+          <div style="position:absolute;right:-4px;bottom:-4px;width:24px;height:24px;border-radius:50%;background:var(--jm-primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;box-shadow:0 1px 4px rgba(0,0,0,.3)">📷</div>
+        </div>
         <div>
           <h2>${escHtml(c.title||'Course')}</h2>
           <div class="sub">${escHtml(c.category||'General')} · ${escHtml(c.level||'beginner')} · ₹${c.price||0} · ${c.is_active?'✅ Active':'⏸ Inactive'}</div>
         </div>
         <div style="margin-left:auto;display:flex;gap:8px">
+          <button class="btn-sm btn-outline" onclick="changeCourseCover('${courseId}')">📷 Cover</button>
           <button class="btn-sm btn-outline" onclick="openEditCourse(window._teacherCoursesById['${courseId}'])">✏️ Edit Course</button>
           <button class="btn-sm btn-outline" onclick="openCourseStudents('${courseId}', window._teacherCoursesById['${courseId}']?.title||'Course')">👥 Students</button>
           <button class="btn-sm btn-outline" onclick="openCourseChat('${courseId}', window._teacherCoursesById['${courseId}']?.title||'Course')">💬 Chat</button>
@@ -1889,7 +2076,7 @@ async function _renderConfigurePage(courseId){
       </div>`;
     };
 
-    html+=section('topics','🗂','Topics', full.topics, ['title:Title*','description:Description']);
+    html+=section('topics','🗂','Topics', full.topics, ['title:Title*','description:Description','images:Images','attachments:Attachments']);
     html+=section('lectures','🎬','Lectures', full.lectures, ['title:Title*','video_url:Video URL','duration:Duration (min)','topic_id:Topic']);
     html+=section('materials','📎','Materials', full.materials, ['title:Title*','type:Type','url:URL','topic_id:Topic']);
     html+=section('tests','✏️','Tests', full.tests, ['title:Title*','total_marks:Total Marks','duration_minutes:Duration (min)']);
@@ -1907,8 +2094,10 @@ function toggleTree(key){
 
 function _renderTreeItem(key, it, idx, arr, courseId){
   const title=escHtml(it.title||'—');
+  const imgThumb=(it.images&&it.images.length)?`<div style="display:flex;gap:4px;margin-top:4px">${it.images.slice(0,3).map(u=>`<img src="${escHtml(u)}" style="width:32px;height:32px;object-fit:cover;border-radius:4px">`).join('')}${it.images.length>3?`<span style="font-size:10px;color:var(--jm-text-muted)">+${it.images.length-3}</span>`:''}</div>`:'';
+  const attBadge=(it.attachments&&it.attachments.length)?`<span style="font-size:10px;background:var(--jm-primary-tint);padding:1px 6px;border-radius:4px;margin-left:6px">📎 ${it.attachments.length}</span>`:'';
   const metas={
-    topics: escHtml(it.description||''),
+    topics: escHtml(it.description||'')+imgThumb+attBadge,
     lectures: escHtml((it.duration?it.duration+' min':'')+(it.is_recorded?' · recorded':' · live')+(it.video_url?' · '+it.video_url.slice(0,30)+'…':'')),
     materials: escHtml(it.type+(it.url?' · '+it.url.slice(0,40)+'…':'')),
     tests: (it.total_marks||100)+' marks · '+(it.duration_minutes||60)+' min',
@@ -1973,7 +2162,9 @@ function _renderInlineForm(key, existingItem, courseId, fields){
     'url:URL':`<div class="form-row"><label>URL</label><input id="${id}-url" value="${existingItem?.url||''}" placeholder="https://…"></div>`,
     'total_marks:Total Marks':`<div class="form-row"><label>Total Marks</label><input type="number" id="${id}-marks" value="${existingItem?.total_marks||100}"></div>`,
     'duration_minutes:Duration (min)':`<div class="form-row"><label>Duration (min)</label><input type="number" id="${id}-dmin" value="${existingItem?.duration_minutes||60}"></div>`,
-    'due_date:Due Date':`<div class="form-row"><label>Due Date *</label><input id="${id}-due" type="datetime-local" value="${existingItem?.due_date?new Date(existingItem.due_date).toISOString().slice(0,16):new Date(Date.now()+7*86400000).toISOString().slice(0,16)}"></div>`
+    'due_date:Due Date':`<div class="form-row"><label>Due Date *</label><input id="${id}-due" type="datetime-local" value="${existingItem?.due_date?new Date(existingItem.due_date).toISOString().slice(0,16):new Date(Date.now()+7*86400000).toISOString().slice(0,16)}"></div>`,
+    'images:Images':`<div class="form-row"><label>Images (multiple)</label><input type="file" id="${id}-images" accept="image/*" multiple><div id="${id}-img-preview" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">${(existingItem?.images||[]).map(u=>`<img src="${escHtml(u)}" style="width:60px;height:60px;object-fit:cover;border-radius:6px;border:1px solid var(--jm-border)">`).join('')}</div></div>`,
+    'attachments:Attachments':`<div class="form-row"><label>Attachments (PDF, docs, etc.)</label><input type="file" id="${id}-attachments" multiple><div id="${id}-att-preview" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;font-size:11px">${(existingItem?.attachments||[]).map(a=>`<a href="${escHtml(a.url||a)}" target="_blank" style="padding:3px 8px;background:var(--jm-primary-tint);border-radius:4px">📎 ${escHtml(a.name||'file')}</a>`).join('')}</div></div>`
   };
   fields.forEach(f=>{ inputs+=FIELD_DEF[f]||''; });
 
@@ -1983,6 +2174,7 @@ function _renderInlineForm(key, existingItem, courseId, fields){
     <div class="form-actions">
       <button class="btn-sm btn-primary" onclick="cfgSubmit('${key}','${courseId}',${isEdit?`'${existingItem.id}'`:'null'})">${isEdit?'Save':'Add'}</button>
       <button class="btn-sm btn-outline" onclick="cfgCancel('${courseId}')">Cancel</button>
+      <button class="btn-sm btn-outline" onclick="aiFormAssist('${key}','${id}','${courseId}')" title="AI: auto-fill or improve this form">🤖 AI Assist</button>
     </div>
   </div>`;
 }
@@ -3240,7 +3432,7 @@ function renderWizard(){
         <h2 style="margin-bottom:6px">📝 Description &amp; cover image</h2>
         <div style="color:var(--jm-text-muted);margin-bottom:18px;font-size:14px">Tell students what they'll learn. Optional cover image makes your listing more discoverable.</div>
         <div class="form-row"><label>Description</label><div style="display:flex"><textarea id="wz-desc" rows="5" style="flex:1" placeholder="What will students learn? Topics covered, prerequisites…">${escHtml(w.data.description||'')}</textarea>${micBtn('wz-desc')}</div></div>
-        <div class="form-row"><label>Cover Image (optional)</label><input id="wz-cover" type="file" accept="image/*">${w.data.cover?`<div style="color:var(--jm-text-muted);font-size:12px;margin-top:4px">Selected: ${escHtml(w.data.cover.name)}</div>`:''}</div>
+        <div class="form-row"><label>Cover / thumbnail image (optional)</label><input id="wz-cover" type="file" accept="image/*" onchange="jmCoverPreview(this,'wz-cover-prev')"><img id="wz-cover-prev" style="display:none;margin-top:8px;max-height:120px;border-radius:8px;border:1px solid var(--jm-border);object-fit:cover">${w.data.cover?`<div style="color:var(--jm-text-muted);font-size:12px;margin-top:4px">Selected: ${escHtml(w.data.cover.name)}</div>`:''}</div>
         <div style="display:flex;justify-content:space-between;margin-top:24px">
           <button class="btn-sm btn-outline" onclick="wizStep(2)">← Back</button>
           <button class="btn-sm btn-primary" onclick="wizStep(4)">Next: Review →</button>
@@ -3944,6 +4136,8 @@ async function _renderReader(){
           <h2 style="flex:1;min-width:0">${escHtml(lec.title||'Lecture')}</h2>
           <div class="row-actions">
             <button class="btn-sm btn-outline" onclick="markLectureComplete('${lec.id}')">✓ Mark complete</button>
+            <button class="btn-sm btn-outline" onclick="aiSummarize('lecture','${lec.id}')">🤖 Summarize</button>
+            <button class="btn-sm btn-outline" onclick="aiExplain('lecture','${lec.id}')">💡 Explain</button>
             <button class="btn-sm btn-primary" onclick="openAiTutor()">🤖 Ask Tutor</button>
           </div>
         </div>
@@ -3960,7 +4154,7 @@ async function _renderReader(){
         <div style="font-size:12px;color:var(--jm-text-muted);margin-bottom:14px">${escHtml(c.category||'General')} · ${escHtml(c.level||'beginner')}</div>
         ${Object.values(topicMap).map(t=>`
           <div style="margin-bottom:10px">
-            <div style="font-weight:600;font-size:13px;padding:6px 4px;border-bottom:1px solid var(--jm-border);margin-bottom:4px">📁 ${escHtml(t.title)}</div>
+            <div style="font-weight:600;font-size:13px;padding:6px 4px;border-bottom:1px solid var(--jm-border);margin-bottom:4px;cursor:pointer" onclick="readerOpenTopic('${t.id}')" onmouseover="this.style.color='var(--jm-primary)'" onmouseout="this.style.color=''">📁 ${escHtml(t.title)}${(t.images&&t.images.length)?` <span style="font-size:10px;opacity:.6">🖼${t.images.length}</span>`:''}${(t.attachments&&t.attachments.length)?` <span style="font-size:10px;opacity:.6">📎${t.attachments.length}</span>`:''}</div>
             ${t.lectures.map(l=>tocItem(l.title,'🎬',`readerOpenLecture('${l.id}')`,l.duration?l.duration+' min':'')).join('')}
             ${t.materials.map(m=>tocItem(m.title,m.type==='pdf'?'📄':m.type==='image'?'🖼':'📎',`window.open('${escHtml(m.url||'#')}','_blank')`,m.type)).join('')}
           </div>`).join('')}
@@ -3991,12 +4185,37 @@ async function _renderReader(){
   }catch(e){ body.innerHTML='<div style="color:#b91c1c;padding:20px;grid-column:span 2">'+escHtml(e.message)+'</div>'; }
 }
 function readerOpenLecture(lectureId){
-  // Look up the lecture; render only the right pane (keep notes/toc state).
   api('/course-content/'+window._reader.courseId+'/full','GET').then(full=>{
     const lec=(full.lectures||[]).find(l=>l.id===lectureId);
     if(!lec) return;
     window._reader.activeLecture=lec;
+    window._reader.activeTopic=null;
     _renderReader();
+  });
+}
+function readerOpenTopic(topicId){
+  api('/course-content/'+window._reader.courseId+'/full','GET').then(full=>{
+    const topic=(full.topics||[]).find(t=>t.id===topicId);
+    if(!topic) return;
+    window._reader.activeTopic=topic;
+    window._reader.activeLecture=null;
+    const main=document.getElementById('rd-main');
+    if(!main) return;
+    const imgs=(topic.images||[]).map(u=>`<img src="${escHtml(u)}" style="max-width:100%;border-radius:8px;margin-bottom:8px;cursor:pointer" onclick="window.open('${escHtml(u)}','_blank')">`).join('');
+    const atts=(topic.attachments||[]).map(a=>`<a href="${escHtml(a.url||a)}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;padding:6px 12px;background:var(--jm-primary-tint);border-radius:6px;font-size:12px;text-decoration:none;color:var(--jm-text)">📎 ${escHtml(a.name||'Download')}</a>`).join(' ');
+    main.innerHTML=`<div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+        <h2 style="flex:1;min-width:0">📁 ${escHtml(topic.title||'Topic')}</h2>
+        <div class="row-actions">
+          <button class="btn-sm btn-outline" onclick="aiSummarize('topic','${topicId}')">🤖 Summarize</button>
+          <button class="btn-sm btn-outline" onclick="aiExplain('topic','${topicId}')">💡 Explain Simply</button>
+        </div>
+      </div>
+      ${topic.description?`<div style="font-size:14px;line-height:1.7;color:var(--jm-text);margin-bottom:16px;white-space:pre-wrap">${escHtml(topic.description)}</div>`:''}
+      ${imgs?`<div style="margin-bottom:16px"><div style="font-weight:600;font-size:13px;margin-bottom:8px">🖼 Images</div>${imgs}</div>`:''}
+      ${atts?`<div style="margin-bottom:16px"><div style="font-weight:600;font-size:13px;margin-bottom:8px">📎 Attachments</div><div style="display:flex;gap:8px;flex-wrap:wrap">${atts}</div></div>`:''}
+      ${!topic.description&&!imgs&&!atts?'<div class="empty-state"><div class="icon">📁</div>This topic has no additional content yet.</div>':''}
+    </div>`;
   });
 }
 async function readerSaveNote(){
@@ -4201,6 +4420,7 @@ function openSettings(){
     </div>
     <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--jm-text-muted);margin:8px 0 10px">Workspace</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:24px">
+      ${tile('#f97316','🏢','CRM configuration','Company · invoice format · branding · logo','openCRMConfig()')}
       ${tile('#f59e0b','🧾','Billing &amp; invoices','Issue invoices · mark paid · PDF','openBilling()')}
       ${tile('#7c3aed','📅','Calendar','Month view of classes, tests, assignments','openCalendar()')}
       ${tile('#0ea5e9','📹','Recordings','Browse past live-class recordings','openRecordings()')}
@@ -4225,6 +4445,353 @@ function closeSettings(){
   document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='');
   document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='');
 }
+
+// ============================================================
+// CRM CONFIG — company details, invoice format, branding, fonts,
+// default attachments, course cover image. All persisted to
+// localStorage under jm_crm + pushed to /api/eduos/tenant/branding
+// where it overlaps so the white-label theme stays in sync.
+// ============================================================
+const CRM_DEFAULTS = {
+  companyName:'JeetMantra Classes', tagline:'Modern Gurukul',
+  address:'', phone:'', email:'', website:'', gstin:'', pan:'',
+  invoiceFormat:'INV-{YYYY}-{####}', adminPassword:'',
+  accentColor:'#f97316', bgTheme:'midnight',
+  logo:'', logoSize:58, font:'Plus Jakarta Sans',
+  defaultAttachments:[], courseCover:'', courseTitleColor:'#0f172a',
+  customFields:[]
+};
+function _crm(){ try{ return Object.assign({}, CRM_DEFAULTS, JSON.parse(localStorage.getItem('jm_crm')||'{}')); }catch(_){ return {...CRM_DEFAULTS}; } }
+function _crmSave(patch){
+  const next=Object.assign(_crm(), patch);
+  localStorage.setItem('jm_crm', JSON.stringify(next));
+  _crmApplyTheme(next);
+  return next;
+}
+function _crmApplyTheme(c){
+  // Live-apply accent + bg theme to CSS variables.
+  c=c||_crm();
+  document.documentElement.style.setProperty('--jm-primary', c.accentColor);
+  document.documentElement.style.setProperty('--jm-font', c.font);
+  document.body.style.fontFamily = c.font + ', system-ui, sans-serif';
+  const themes={
+    midnight:{bg:'#0f172a',surface:'#1e293b',text:'#f1f5f9'},
+    light:   {bg:'#ffffff',surface:'#f8fafc',text:'#0f172a'},
+    paper:   {bg:'#faf7f2',surface:'#ffffff',text:'#3f3a35'},
+    forest:  {bg:'#0f1f17',surface:'#1a2e22',text:'#e8f0eb'},
+    rose:    {bg:'#fff1f2',surface:'#ffe4e6',text:'#4c0519'}
+  };
+  const th=themes[c.bgTheme]||themes.midnight;
+  document.documentElement.style.setProperty('--jm-crm-bg', th.bg);
+  document.documentElement.style.setProperty('--jm-crm-surface', th.surface);
+}
+// Apply on every load so it survives refresh.
+_crmApplyTheme();
+
+function openCRMConfig(){
+  const overlay = document.getElementById('settingsPage');
+  if(!overlay) return toast('Settings page not available',true);
+  overlay.classList.add('active');
+  document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
+  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
+  const c=_crm();
+  const lastInv = Number(localStorage.getItem('jm_invoice_seq')||28);
+  const previewInv = _crmFmtInvoice(c.invoiceFormat, lastInv+1);
+  const E=s=>String(s==null?'':s).replace(/[&<>"']/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]));
+  document.getElementById('st-body').innerHTML=`
+  <style>
+    .crm-wrap{max-width:980px;margin:0 auto;padding-bottom:60px}
+    .crm-section{background:var(--jm-surface,#fff);border:1px solid var(--jm-border,#e2e8f0);border-radius:14px;padding:22px;margin-bottom:18px}
+    .crm-section h3{font-size:15px;font-weight:800;margin:0 0 14px;display:flex;align-items:center;gap:8px}
+    .crm-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+    .crm-field{display:flex;flex-direction:column;gap:6px}
+    .crm-field label{font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em}
+    .crm-field input,.crm-field select,.crm-field textarea{padding:10px 12px;border:1.5px solid var(--jm-border,#e2e8f0);border-radius:8px;font-size:13px;font-family:inherit;background:#fff;color:#0f172a;outline:none;transition:.15s}
+    .crm-field input:focus,.crm-field select:focus,.crm-field textarea:focus{border-color:#f97316;box-shadow:0 0 0 3px rgba(249,115,22,.12)}
+    .crm-help{font-size:11px;color:#94a3b8;margin-top:4px;line-height:1.5}
+    .crm-help code{background:#f1f5f9;padding:1px 5px;border-radius:3px;font-family:'JetBrains Mono',monospace;font-size:10px;color:#334155}
+    .crm-uploader{border:2px dashed #e2e8f0;border-radius:10px;padding:24px;text-align:center;cursor:pointer;transition:.15s;background:#f8fafc}
+    .crm-uploader:hover{border-color:#f97316;background:#fff8f5}
+    .crm-uploader.has-file{padding:12px;background:#fff}
+    .crm-preview-img{max-width:100%;max-height:80px;border-radius:6px;object-fit:contain}
+    .crm-swatch{width:40px;height:40px;border-radius:10px;cursor:pointer;border:3px solid transparent;transition:.15s}
+    .crm-swatch.active{border-color:#0f172a;transform:scale(1.08)}
+    .crm-theme-card{padding:14px;border-radius:10px;cursor:pointer;border:2px solid transparent;transition:.15s;text-align:center;color:#fff;font-weight:700;font-size:12px}
+    .crm-theme-card.active{border-color:#f97316;box-shadow:0 0 0 3px rgba(249,115,22,.2)}
+    .crm-att-tile{border:1px solid var(--jm-border,#e2e8f0);border-radius:10px;padding:10px;display:flex;gap:10px;align-items:center;margin-bottom:8px;background:#fff}
+    .crm-att-tile img{width:56px;height:56px;object-fit:cover;border-radius:6px}
+    .crm-att-tile .meta{flex:1;min-width:0}
+    .crm-bar{position:sticky;bottom:0;background:#fff;border-top:1px solid #e2e8f0;padding:14px 18px;margin:0 -18px -60px;display:flex;justify-content:flex-end;gap:8px;box-shadow:0 -8px 24px rgba(15,23,42,.06);z-index:5}
+    @media(max-width:600px){.crm-section{padding:16px}}
+  </style>
+  <div class="crm-wrap">
+    <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:18px;gap:12px;flex-wrap:wrap">
+      <div>
+        <h2 style="margin:0 0 4px;font-size:22px;font-weight:900">🏢 CRM Configuration</h2>
+        <div style="color:#64748b;font-size:13px">Company details, invoice format, theming and default attachments — applied across all invoices, courses, and emails.</div>
+      </div>
+      <button class="btn btn-ghost" onclick="openSettings()">← Back to Settings</button>
+    </div>
+
+    <!-- ── Company details ── -->
+    <div class="crm-section">
+      <h3>🏷 Company details</h3>
+      <div class="crm-grid">
+        <div class="crm-field"><label>Company name</label><input id="crmCompany" value="${E(c.companyName)}"></div>
+        <div class="crm-field"><label>Tagline / Subtitle</label><input id="crmTagline" value="${E(c.tagline)}"></div>
+        <div class="crm-field" style="grid-column:1/-1"><label>Address</label><textarea id="crmAddress" rows="2">${E(c.address)}</textarea></div>
+        <div class="crm-field"><label>Phone</label><input id="crmPhone" value="${E(c.phone)}" inputmode="tel"></div>
+        <div class="crm-field"><label>Email</label><input id="crmEmail" type="email" value="${E(c.email)}"></div>
+        <div class="crm-field"><label>Website</label><input id="crmWebsite" value="${E(c.website)}" placeholder="https://"></div>
+        <div class="crm-field"><label>GSTIN</label><input id="crmGstin" value="${E(c.gstin)}" maxlength="15" style="text-transform:uppercase;font-family:'JetBrains Mono',monospace"></div>
+        <div class="crm-field"><label>PAN</label><input id="crmPan" value="${E(c.pan)}" maxlength="10" style="text-transform:uppercase;font-family:'JetBrains Mono',monospace"></div>
+      </div>
+    </div>
+
+    <!-- ── Invoice numbering ── -->
+    <div class="crm-section">
+      <h3>🧾 Invoice numbering</h3>
+      <div class="crm-field">
+        <label>Format</label>
+        <input id="crmInvFmt" value="${E(c.invoiceFormat)}" oninput="_crmPreviewInv()" style="font-family:'JetBrains Mono',monospace">
+        <div class="crm-help">
+          Placeholders: <code>{YYYY}</code> year · <code>{YY}</code> short year · <code>{MM}</code> month · <code>{####}</code> auto-number (the # count sets digit width). Leave blank to continue from your last invoice automatically.
+        </div>
+        <div style="margin-top:8px;padding:10px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:13px">
+          <strong>Next will be:</strong> <span id="crmInvPreview" style="font-family:'JetBrains Mono',monospace;color:#16a34a">${previewInv}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Admin password ── -->
+    <div class="crm-section">
+      <h3>🔐 Admin password</h3>
+      <div class="crm-field">
+        <label>New password (leave blank to keep)</label>
+        <input id="crmAdminPw" type="password" placeholder="••••••••" autocomplete="new-password">
+        <div class="crm-help">Password is hashed locally before save. Used as a 4-eyes check on destructive operations.</div>
+      </div>
+    </div>
+
+    <!-- ── Accent + theme ── -->
+    <div class="crm-section">
+      <h3>🎨 Accent &amp; theme</h3>
+      <div class="crm-field" style="margin-bottom:16px">
+        <label>Accent / theme colour</label>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          ${['#f97316','#7c3aed','#0ea5e9','#10b981','#ec4899','#f59e0b','#ef4444','#0f172a']
+            .map(hex=>`<div class="crm-swatch ${c.accentColor===hex?'active':''}" data-hex="${hex}" style="background:${hex}" onclick="_crmPickAccent('${hex}')"></div>`).join('')}
+          <input type="color" id="crmAccentCustom" value="${E(c.accentColor)}" onchange="_crmPickAccent(this.value)" style="width:40px;height:40px;border:none;border-radius:10px;cursor:pointer;background:transparent">
+        </div>
+      </div>
+      <div class="crm-field">
+        <label>Background theme</label>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px">
+          ${[
+            {k:'midnight',l:'Midnight Blue',bg:'linear-gradient(135deg,#0f172a,#1e3a5f)'},
+            {k:'light',   l:'Daylight',     bg:'linear-gradient(135deg,#ffffff,#f1f5f9)',color:'#0f172a'},
+            {k:'paper',   l:'Warm Paper',   bg:'linear-gradient(135deg,#faf7f2,#f0e7d8)',color:'#3f3a35'},
+            {k:'forest',  l:'Forest',       bg:'linear-gradient(135deg,#0f1f17,#1a3a2a)'},
+            {k:'rose',    l:'Rose',         bg:'linear-gradient(135deg,#fff1f2,#fecdd3)',color:'#4c0519'}
+          ].map(t=>`<div class="crm-theme-card ${c.bgTheme===t.k?'active':''}" style="background:${t.bg};color:${t.color||'#fff'}" onclick="_crmPickTheme('${t.k}')">${t.l}</div>`).join('')}
+        </div>
+        <div class="crm-help">Changes the CRM background instantly. Applies on next page load for printed invoices.</div>
+      </div>
+    </div>
+
+    <!-- ── Custom fields ── -->
+    <div class="crm-section">
+      <h3>⚙ Custom fields</h3>
+      <p style="font-size:12px;color:#64748b;margin-bottom:12px">Rename built-in labels (e.g. "Phone" → "Mobile") or add your own fields to Clients &amp; Products.</p>
+      <div id="crmFieldsList">${(c.customFields||[]).map((f,i)=>`
+        <div class="inline-row" style="gap:8px;margin-bottom:6px">
+          <input value="${E(f.label)}" placeholder="Label" oninput="_crmUpdField(${i},'label',this.value)" style="flex:1;padding:8px;border:1.5px solid #e2e8f0;border-radius:6px">
+          <select onchange="_crmUpdField(${i},'type',this.value)" style="padding:8px;border:1.5px solid #e2e8f0;border-radius:6px">
+            ${['text','number','date','email','tel'].map(t=>`<option ${f.type===t?'selected':''}>${t}</option>`).join('')}
+          </select>
+          <button class="btn btn-ghost" onclick="_crmDelField(${i})" style="color:#ef4444">✕</button>
+        </div>`).join('')||''}</div>
+      <button class="btn btn-ghost" onclick="_crmAddField()" style="margin-top:6px">+ Add custom field</button>
+    </div>
+
+    <!-- ── Logo ── -->
+    <div class="crm-section">
+      <h3>🖼 Logo</h3>
+      <label for="crmLogoFile" class="crm-uploader ${c.logo?'has-file':''}" id="crmLogoDrop">
+        ${c.logo
+          ? `<div style="display:flex;align-items:center;gap:12px"><img src="${c.logo}" class="crm-preview-img"><div style="flex:1"><div style="font-weight:700;font-size:13px">Current logo</div><div style="font-size:11px;color:#64748b">Click to replace · drag a new file</div></div><button onclick="event.preventDefault();event.stopPropagation();_crmClearLogo()" style="background:#fee2e2;color:#dc2626;border:none;padding:6px 10px;border-radius:6px;font-size:12px;cursor:pointer">✕ Remove</button></div>`
+          : `<div style="font-size:32px;margin-bottom:6px">📁</div><div style="font-weight:700;font-size:13px">Click or drag logo here</div><div style="font-size:11px;color:#94a3b8;margin-top:2px">PNG/JPG, max 2MB</div>`}
+      </label>
+      <input id="crmLogoFile" type="file" accept="image/*" style="display:none" onchange="_crmLogoFile(this.files[0])">
+      <div class="crm-field" style="margin-top:14px">
+        <label>Logo size in invoice (<span id="crmLogoSizeVal">${c.logoSize}</span>px)</label>
+        <input id="crmLogoSize" type="range" min="28" max="120" value="${c.logoSize}" oninput="document.getElementById('crmLogoSizeVal').textContent=this.value">
+      </div>
+    </div>
+
+    <!-- ── Default invoice attachments ── -->
+    <div class="crm-section">
+      <h3>📎 Default invoice attachments</h3>
+      <p style="font-size:12px;color:#64748b;margin-bottom:12px">Images uploaded here are automatically attached to every new invoice with the label you set. T&amp;C, Warranty, product specs — set once, forget forever. Max 8, each up to 2MB.</p>
+      <div id="crmAttList">
+        ${(c.defaultAttachments||[]).length
+          ? c.defaultAttachments.map((a,i)=>`<div class="crm-att-tile">
+              <img src="${a.url}">
+              <div class="meta"><div style="font-weight:700;font-size:13px">${E(a.label)}</div><div style="font-size:11px;color:#94a3b8">${a.size||''}</div></div>
+              <button onclick="_crmDelAtt(${i})" style="background:#fee2e2;color:#dc2626;border:none;padding:6px 10px;border-radius:6px;font-size:12px;cursor:pointer">Remove</button>
+            </div>`).join('')
+          : '<div style="text-align:center;padding:20px;color:#94a3b8;font-size:13px">No default attachments yet. Add some below.</div>'}
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px;align-items:end;flex-wrap:wrap">
+        <div class="crm-field" style="flex:1;min-width:160px"><label>Label</label><input id="crmAttLabel" placeholder="e.g. Warranty, T&amp;C, Validity"></div>
+        <input id="crmAttFile" type="file" accept="image/*" style="display:none" onchange="_crmAttUpload(this.files[0])">
+        <button class="btn btn-primary" onclick="document.getElementById('crmAttFile').click()">📷 Upload image</button>
+      </div>
+    </div>
+
+    <!-- ── Typography ── -->
+    <div class="crm-section">
+      <h3>🔤 Typography</h3>
+      <div class="crm-field">
+        <label>Font family (invoice + app)</label>
+        <select id="crmFont" onchange="_crmPickFont(this.value)">
+          ${['Plus Jakarta Sans','Inter','Poppins','Roboto','Open Sans','Lato','Merriweather','Georgia','system-ui']
+            .map(f=>`<option ${c.font===f?'selected':''} style="font-family:'${f}'">${f}</option>`).join('')}
+        </select>
+        <div class="crm-help" id="crmFontPreview" style="margin-top:10px;font-size:15px;color:#0f172a;font-family:'${c.font}'">The quick brown fox jumps over 1234567890 ₹ INR</div>
+      </div>
+    </div>
+
+    <!-- ── Course cover &amp; title image ── -->
+    <div class="crm-section">
+      <h3>📚 Default course cover &amp; title image</h3>
+      <p style="font-size:12px;color:#64748b;margin-bottom:12px">This cover is used as the fallback image whenever a course is created without one — and shown on the course title card. You can still override per-course in the Course wizard.</p>
+      <div class="crm-grid">
+        <div>
+          <label for="crmCoverFile" class="crm-uploader ${c.courseCover?'has-file':''}">
+            ${c.courseCover
+              ? `<img src="${c.courseCover}" style="max-width:100%;max-height:140px;object-fit:cover;border-radius:8px">`
+              : `<div style="font-size:32px;margin-bottom:6px">🖼</div><div style="font-weight:700;font-size:13px">Click or drag cover image</div><div style="font-size:11px;color:#94a3b8;margin-top:2px">Recommended 1280×720 · max 2MB</div>`}
+          </label>
+          <input id="crmCoverFile" type="file" accept="image/*" style="display:none" onchange="_crmCoverFile(this.files[0])">
+          ${c.courseCover?`<button class="btn btn-ghost" onclick="_crmClearCover()" style="margin-top:8px;color:#ef4444">✕ Remove cover</button>`:''}
+        </div>
+        <div class="crm-field">
+          <label>Course-title accent</label>
+          <input type="color" id="crmCourseColor" value="${E(c.courseTitleColor)}" onchange="_crmSave({courseTitleColor:this.value});toast('✓ Title colour saved')" style="width:80px;height:40px;border:none;border-radius:8px;cursor:pointer">
+          <div class="crm-help">Used as the text colour over the cover image on the course title card.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="crm-bar">
+      <button class="btn btn-ghost" onclick="openSettings()">Cancel</button>
+      <button class="btn btn-primary" onclick="_crmSaveAll()">💾 Save all changes</button>
+    </div>
+  </div>`;
+}
+// ── helpers ─────────────────────────────────────────────────
+function _crmFmtInvoice(fmt, n){
+  if(!fmt) return 'JM-'+new Date().getFullYear()+'-'+String(n).padStart(3,'0');
+  const now=new Date();
+  return fmt
+    .replace(/\{YYYY\}/g, now.getFullYear())
+    .replace(/\{YY\}/g, String(now.getFullYear()).slice(-2))
+    .replace(/\{MM\}/g, String(now.getMonth()+1).padStart(2,'0'))
+    .replace(/\{(#+)\}/g, (_, hashes)=>String(n).padStart(hashes.length,'0'));
+}
+function _crmPreviewInv(){
+  const fmt=document.getElementById('crmInvFmt').value;
+  const last=Number(localStorage.getItem('jm_invoice_seq')||28)+1;
+  document.getElementById('crmInvPreview').textContent = _crmFmtInvoice(fmt, last);
+}
+function _crmPickAccent(hex){
+  _crmSave({accentColor:hex});
+  document.querySelectorAll('.crm-swatch').forEach(s=>s.classList.toggle('active', s.dataset.hex===hex));
+  const cc=document.getElementById('crmAccentCustom'); if(cc) cc.value=hex;
+}
+function _crmPickTheme(k){
+  _crmSave({bgTheme:k});
+  document.querySelectorAll('.crm-theme-card').forEach(card=>card.classList.remove('active'));
+  event.target.classList.add('active');
+}
+function _crmPickFont(f){
+  _crmSave({font:f});
+  const p=document.getElementById('crmFontPreview'); if(p) p.style.fontFamily="'"+f+"'";
+}
+function _crmAddField(){
+  const c=_crm(); c.customFields=c.customFields||[];
+  c.customFields.push({label:'',type:'text'});
+  _crmSave({customFields:c.customFields});
+  openCRMConfig();
+}
+function _crmUpdField(i,k,v){
+  const c=_crm(); if(!c.customFields||!c.customFields[i]) return;
+  c.customFields[i][k]=v; _crmSave({customFields:c.customFields});
+}
+function _crmDelField(i){
+  const c=_crm(); c.customFields.splice(i,1);
+  _crmSave({customFields:c.customFields}); openCRMConfig();
+}
+async function _crmFileToDataURL(file, maxBytes){
+  if(!file) return null;
+  if(file.size > (maxBytes||2*1024*1024)){ toast('File too large (max 2MB)',true); return null; }
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(file);
+  });
+}
+async function _crmLogoFile(file){
+  const url=await _crmFileToDataURL(file); if(!url) return;
+  _crmSave({logo:url}); toast('✓ Logo updated'); openCRMConfig();
+}
+function _crmClearLogo(){ _crmSave({logo:''}); toast('Logo removed'); openCRMConfig(); }
+async function _crmCoverFile(file){
+  const url=await _crmFileToDataURL(file); if(!url) return;
+  _crmSave({courseCover:url}); toast('✓ Course cover saved'); openCRMConfig();
+}
+function _crmClearCover(){ _crmSave({courseCover:''}); toast('Cover removed'); openCRMConfig(); }
+async function _crmAttUpload(file){
+  const url=await _crmFileToDataURL(file); if(!url) return;
+  const label=(document.getElementById('crmAttLabel').value||'Attachment').trim();
+  const c=_crm(); c.defaultAttachments=c.defaultAttachments||[];
+  if(c.defaultAttachments.length>=8){ toast('Maximum 8 default attachments',true); return; }
+  c.defaultAttachments.push({label, url, size:(file.size/1024).toFixed(1)+' KB'});
+  _crmSave({defaultAttachments:c.defaultAttachments});
+  document.getElementById('crmAttLabel').value='';
+  toast('✓ Default attachment added'); openCRMConfig();
+}
+function _crmDelAtt(i){
+  const c=_crm(); c.defaultAttachments.splice(i,1);
+  _crmSave({defaultAttachments:c.defaultAttachments}); openCRMConfig();
+}
+async function _crmSaveAll(){
+  const get=id=>document.getElementById(id)?.value||'';
+  const patch={
+    companyName:get('crmCompany'), tagline:get('crmTagline'),
+    address:get('crmAddress'), phone:get('crmPhone'),
+    email:get('crmEmail'), website:get('crmWebsite'),
+    gstin:get('crmGstin').toUpperCase(), pan:get('crmPan').toUpperCase(),
+    invoiceFormat:get('crmInvFmt'), logoSize:Number(get('crmLogoSize'))||58
+  };
+  const pw=get('crmAdminPw');
+  if(pw){
+    // Hash before persist — never store cleartext.
+    const buf=await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pw));
+    patch.adminPasswordHash=[...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
+  }
+  _crmSave(patch);
+  // Push the brandable bits to the tenant API so the white-label theme syncs.
+  try{
+    await fetch('/api/eduos/tenant/branding',{method:'PUT',
+      headers:{'Authorization':'Bearer '+localStorage.getItem('jm_token'),'Content-Type':'application/json'},
+      body:JSON.stringify({
+        brandName:patch.companyName, brandColor:_crm().accentColor,
+        brandLogo:_crm().logo
+      })});
+  }catch(_){ /* local-only is fine */ }
+  toast('✓ CRM configuration saved');
+}
 function setTheme(mode){
   localStorage.setItem('jm_theme',mode);
   document.documentElement.setAttribute('data-theme',mode);
@@ -4239,6 +4806,368 @@ async function stChangePassword(){
     await fetch(API+'/auth/forgot-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:u.email})});
     toast('✓ Reset link sent (check email)');
   }catch(_){ toast('Failed to send reset link',true); }
+}
+
+// ============================================================
+// EDUOS HUB — Phases 2C..5. Tabs: Notifications, Forums, Batches,
+// Admissions, Fees, Branding, OCR. Each tab fetches /api/eduos/*.
+// ============================================================
+async function openEduOS(initialTab){
+  document.getElementById('bookingsPage').classList.add('active');
+  document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
+  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
+  document.getElementById('bk-crumb').textContent='EduOS Hub';
+  const role=(currentUser&&currentUser.role)||'student';
+  const isInst=['school','coaching','admin'].includes(role);
+  const isFranchise=role==='franchise'||role==='admin';
+  // Tab list adapts to role.
+  const tabs=[
+    {k:'notify', l:'🔔 Notifications', roles:'*'},
+    {k:'forum',  l:'💬 Forums',        roles:'*'},
+    {k:'batches',l:'👥 Batches',       roles:['teacher','school','coaching','partner','admin','content_creator','corporate_trainer']},
+    {k:'qr',     l:'📷 QR Attend',     roles:'*'},
+    {k:'reportcard',l:'📊 Report Card',roles:'*'},
+    {k:'admissions',l:'🎫 Admissions', roles:['school','coaching','admin']},
+    {k:'fees',   l:'💰 Fees',          roles:'*'},
+    {k:'payroll',l:'💼 Payroll',       roles:['school','coaching','admin']},
+    {k:'leave',  l:'🏖 Leave',         roles:'*'},
+    {k:'branding',l:'🎨 White-label',  roles:['school','coaching','admin']},
+    {k:'franchise',l:'🏢 Franchise',   roles:['franchise','admin']},
+    {k:'ocr',    l:'📸 OCR Scan',      roles:'*'}
+  ].filter(t=>t.roles==='*'||t.roles.includes(role));
+  document.getElementById('bk-body').innerHTML=`
+    <div style="display:flex;gap:8px;overflow-x:auto;padding:8px 0;border-bottom:1px solid var(--jm-border);margin-bottom:16px">
+      ${tabs.map(t=>`<button class="btn btn-ghost eduos-tab" data-k="${t.k}" onclick="renderEduOSTab('${t.k}')" style="white-space:nowrap">${t.l}</button>`).join('')}
+    </div>
+    <div id="eduos-tab-body" style="min-height:300px"></div>`;
+  renderEduOSTab(initialTab||tabs[0].k);
+}
+async function renderEduOSTab(k){
+  document.querySelectorAll('.eduos-tab').forEach(b=>b.classList.toggle('btn-primary', b.dataset.k===k));
+  const body=document.getElementById('eduos-tab-body');
+  body.innerHTML='<div style="text-align:center;padding:40px;color:#888">Loading…</div>';
+  const tok=localStorage.getItem('jm_token');
+  const H={'Authorization':'Bearer '+tok};
+  try{
+    if(k==='notify'){
+      const r=await fetch('/api/eduos/notify',{headers:H}).then(x=>x.json());
+      const rows=(r.notifications||[]).map(n=>`
+        <div style="padding:12px;border:1px solid var(--jm-border);border-radius:8px;margin-bottom:8px;background:${n.read_at?'transparent':'rgba(124,58,237,0.06)'}">
+          <div style="display:flex;justify-content:space-between;gap:8px">
+            <strong>${esc(n.title||'(no title)')}</strong>
+            <small style="color:#888">${new Date(n.sent_at||n.created_at||Date.now()).toLocaleString()}</small>
+          </div>
+          <div style="color:#666;font-size:13px;margin-top:4px">${esc(n.body||'')}</div>
+          <div style="margin-top:4px"><span class="badge">${n.channel}</span> <span class="badge">${n.type}</span></div>
+        </div>`).join('');
+      body.innerHTML=`
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <div><strong>${r.unread||0}</strong> unread of ${(r.notifications||[]).length}</div>
+          <button class="btn btn-ghost" onclick="markAllRead()">Mark all read</button>
+        </div>
+        ${rows||'<div class="empty-state"><div class="icon">🔕</div>No notifications yet</div>'}`;
+    }
+    else if(k==='forum'){
+      // List enrolled/owned courses, pick one, then show threads.
+      const courses=(await fetch('/api/dashboard',{headers:H}).then(x=>x.json()).then(r=>(r.dashboard&&r.dashboard.courses)||r.courses||[]));
+      body.innerHTML=`
+        <label class="form-row">Course:
+          <select id="forumCourseSel" onchange="loadForumThreads(this.value)">
+            <option value="">— Pick a course —</option>
+            ${courses.map(c=>`<option value="${c.id}">${esc(c.title)}</option>`).join('')}
+          </select>
+        </label>
+        <div id="forumThreadsBox" style="margin-top:12px"></div>`;
+    }
+    else if(k==='batches'){
+      const courses=(await fetch('/api/dashboard',{headers:H}).then(x=>x.json()).then(r=>(r.dashboard&&r.dashboard.courses)||r.courses||[]));
+      body.innerHTML=`
+        <label class="form-row">Course:
+          <select id="batchCourseSel" onchange="loadBatches(this.value)">
+            <option value="">— Pick a course —</option>
+            ${courses.map(c=>`<option value="${c.id}">${esc(c.title)}</option>`).join('')}
+          </select>
+        </label>
+        <div id="batchListBox" style="margin-top:12px"></div>`;
+    }
+    else if(k==='qr'){
+      const isStudent=currentUser?.role==='student';
+      if(isStudent){
+        body.innerHTML=`
+          <div class="empty-state" style="text-align:center;padding:40px">
+            <div class="icon" style="font-size:48px">📷</div>
+            <h3>Scan your teacher's QR code</h3>
+            <p style="color:#888">Open the code on the teacher's screen and tap below to enter it manually, or scan with your camera.</p>
+            <button class="btn btn-primary" onclick="studentQRCheckin()" style="margin-top:12px">Enter code</button>
+          </div>`;
+      } else {
+        const courses=(await fetch('/api/dashboard',{headers:H}).then(x=>x.json()).then(r=>(r.dashboard&&r.dashboard.courses)||r.courses||[]));
+        body.innerHTML=`
+          <label class="form-row">Course:
+            <select id="qrCourseSel"><option value="">— Pick a course —</option>${courses.map(c=>`<option value="${c.id}">${esc(c.title)}</option>`).join('')}</select>
+          </label>
+          <button class="btn btn-primary" onclick="generateQR()">Generate today's QR (10 min)</button>
+          <div id="qrBox" style="margin-top:16px;text-align:center"></div>`;
+      }
+    }
+    else if(k==='reportcard'){
+      const me=currentUser?.id;
+      const r=await fetch('/api/eduos/report-card/'+me,{headers:H}).then(x=>x.json());
+      const s=r.stats||{};
+      body.innerHTML=`
+        <div class="stats-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px">
+          <div class="stat-card"><div class="label">Attendance</div><div class="value">${s.attendancePct||0}%</div></div>
+          <div class="stat-card"><div class="label">Avg Score</div><div class="value">${s.avgScore??'—'}</div></div>
+          <div class="stat-card"><div class="label">Progress</div><div class="value">${s.avgProgress||0}%</div></div>
+          <div class="stat-card"><div class="label">Tests Taken</div><div class="value">${s.testsTaken||0}</div></div>
+        </div>
+        <div style="padding:16px;border:1px solid var(--jm-border);border-radius:8px;background:rgba(124,58,237,0.04)">
+          <div style="font-size:11px;text-transform:uppercase;color:#888;margin-bottom:6px">AI narrative · risk: <strong>${r.risk}</strong></div>
+          <div>${esc(r.narrative||'')}</div>
+        </div>`;
+    }
+    else if(k==='admissions'){
+      const r=await fetch('/api/eduos/admissions',{headers:H}).then(x=>x.json());
+      const rows=(r.admissions||[]).map(a=>`
+        <tr><td>${esc(a.student_name)}</td><td>${esc(a.student_email||'—')}</td>
+          <td><select onchange="updateAdmission('${a.id}', this.value)">
+            ${['applied','interview','admitted','rejected'].map(s=>`<option ${a.stage===s?'selected':''}>${s}</option>`).join('')}
+          </select></td>
+          <td>${new Date(a.applied_at||a.created_at).toLocaleDateString()}</td></tr>`).join('');
+      body.innerHTML=`
+        <form onsubmit="event.preventDefault();createAdmission(this)" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin-bottom:16px">
+          <input name="studentName" placeholder="Name" required>
+          <input name="studentEmail" type="email" placeholder="Email">
+          <input name="studentPhone" placeholder="Phone">
+          <button class="btn btn-primary" type="submit">+ Add applicant</button>
+        </form>
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+          ${Object.entries(r.counts||{}).map(([s,c])=>`<span class="badge">${s}: ${c}</span>`).join('')}
+        </div>
+        <table style="width:100%"><thead><tr><th>Name</th><th>Email</th><th>Stage</th><th>Applied</th></tr></thead><tbody>${rows||'<tr><td colspan=4 style="text-align:center;color:#888;padding:20px">No admissions yet</td></tr>'}</tbody></table>`;
+    }
+    else if(k==='fees'){
+      const r=await fetch('/api/eduos/fees/invoices',{headers:H}).then(x=>x.json());
+      const rows=(r.invoices||[]).map(i=>`
+        <tr><td>₹${i.amount}</td><td>${i.due_date||'—'}</td>
+          <td><span class="badge">${i.status}</span></td>
+          <td>${i.status==='pending'?`<button class="btn btn-ghost" onclick="payInvoice('${i.id}')">Mark paid</button>`:''}</td></tr>`).join('');
+      const isInst=['school','coaching','admin'].includes(currentUser?.role);
+      body.innerHTML=`
+        ${isInst?`<button class="btn btn-ghost" onclick="eduosSendReminders()" style="margin-bottom:12px">Send reminders (next 7 days)</button>`:''}
+        <table style="width:100%"><thead><tr><th>Amount</th><th>Due</th><th>Status</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan=4 style="text-align:center;color:#888;padding:20px">No invoices</td></tr>'}</tbody></table>`;
+    }
+    else if(k==='payroll'){
+      const r=await fetch('/api/eduos/payroll',{headers:H}).then(x=>x.json());
+      const rows=(r.payroll||[]).map(p=>`<tr><td>${p.period_month}</td><td>₹${p.base_salary}</td><td>₹${p.bonuses}</td><td>₹${p.deductions}</td><td>₹${p.net_pay}</td><td><span class="badge">${p.status}</span></td></tr>`).join('');
+      body.innerHTML=`<table style="width:100%"><thead><tr><th>Period</th><th>Base</th><th>Bonus</th><th>Deduct</th><th>Net</th><th>Status</th></tr></thead><tbody>${rows||'<tr><td colspan=6 style="text-align:center;color:#888;padding:20px">No payroll entries</td></tr>'}</tbody></table>`;
+    }
+    else if(k==='leave'){
+      const r=await fetch('/api/eduos/leave',{headers:H}).then(x=>x.json());
+      const rows=(r.requests||[]).map(l=>`<tr><td>${l.leave_type}</td><td>${l.from_date} → ${l.to_date}</td><td>${esc(l.reason||'')}</td><td><span class="badge">${l.status}</span></td></tr>`).join('');
+      body.innerHTML=`<table style="width:100%"><thead><tr><th>Type</th><th>Range</th><th>Reason</th><th>Status</th></tr></thead><tbody>${rows||'<tr><td colspan=4 style="text-align:center;color:#888;padding:20px">No leave requests</td></tr>'}</tbody></table>`;
+    }
+    else if(k==='branding'){
+      const u=currentUser||{};
+      body.innerHTML=`
+        <form onsubmit="event.preventDefault();saveBranding(this)" style="display:grid;gap:12px;max-width:480px">
+          <label class="form-row">Subdomain <input name="subdomain" value="${esc(u.subdomain||'')}" placeholder="myschool"></label>
+          <label class="form-row">Brand name <input name="brandName" value="${esc(u.brand_name||'')}"></label>
+          <label class="form-row">Brand colour <input name="brandColor" type="color" value="${u.brand_color||'#7c3aed'}"></label>
+          <label class="form-row">Logo URL <input name="brandLogo" value="${esc(u.brand_logo||'')}"></label>
+          <button class="btn btn-primary" type="submit">Save branding</button>
+        </form>
+        <p style="margin-top:16px;color:#888;font-size:13px">Your portal will be reachable at <code>https://&lt;subdomain&gt;.jeetmantra.cloud</code> once DNS is configured.</p>`;
+    }
+    else if(k==='franchise'){
+      const r=await fetch('/api/eduos/franchise/branches',{headers:H}).then(x=>x.json());
+      const rows=(r.branches||[]).map(b=>`<tr><td>${esc(b.name)}</td><td>${b.courses}</td><td>${b.students}</td></tr>`).join('');
+      body.innerHTML=`<table style="width:100%"><thead><tr><th>Branch</th><th>Courses</th><th>Students</th></tr></thead><tbody>${rows||'<tr><td colspan=3 style="text-align:center;color:#888;padding:20px">No branches linked</td></tr>'}</tbody></table>`;
+    }
+    else if(k==='ocr'){
+      const r=await fetch('/api/eduos/ai/ocr/my',{headers:H}).then(x=>x.json());
+      body.innerHTML=`
+        <form onsubmit="event.preventDefault();uploadOCR(this)" style="margin-bottom:16px;padding:16px;border:2px dashed var(--jm-border);border-radius:8px;text-align:center">
+          <input type="file" name="image" accept="image/*" required style="margin-bottom:8px"><br>
+          <button class="btn btn-primary" type="submit">📸 Scan homework</button>
+        </form>
+        ${(r.scans||[]).map(s=>`
+          <div style="padding:12px;border:1px solid var(--jm-border);border-radius:8px;margin-bottom:8px;display:flex;gap:12px">
+            <img src="${s.image_url}" style="width:80px;height:80px;object-fit:cover;border-radius:4px">
+            <div style="flex:1"><div style="font-size:13px;color:#666">${esc(s.extracted_text||'(processing…)')}</div>
+              <small style="color:#888">${new Date(s.created_at).toLocaleString()}</small></div>
+          </div>`).join('')||'<div class="empty-state"><div class="icon">📭</div>No scans yet</div>'}`;
+    }
+  }catch(e){
+    body.innerHTML=`<div class="empty-state"><div class="icon">⚠️</div>${esc(e.message)}</div>`;
+  }
+}
+// ── Tab helpers ───────────────────────────────────────────────
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+async function markAllRead(){
+  await fetch('/api/eduos/notify/mark-read',{method:'POST',headers:{'Authorization':'Bearer '+localStorage.getItem('jm_token')}});
+  renderEduOSTab('notify');
+}
+async function loadForumThreads(courseId){
+  if(!courseId) return;
+  const r=await fetch('/api/eduos/forum/'+courseId,{headers:{'Authorization':'Bearer '+localStorage.getItem('jm_token')}}).then(x=>x.json());
+  document.getElementById('forumThreadsBox').innerHTML=`
+    <form onsubmit="event.preventDefault();newThread('${courseId}',this)" style="display:grid;gap:8px;margin-bottom:16px">
+      <input name="title" placeholder="Thread title" required>
+      <textarea name="body" placeholder="Body (optional)" rows="2"></textarea>
+      <button class="btn btn-primary" type="submit">Post thread</button>
+    </form>
+    ${(r.threads||[]).map(t=>`
+      <div onclick="openForumThread('${t.id}')" style="padding:12px;border:1px solid var(--jm-border);border-radius:8px;margin-bottom:8px;cursor:pointer">
+        <strong>${esc(t.title)}</strong> ${t.pinned?'📌':''}
+        <div style="font-size:12px;color:#888">${esc(t.author_name)} · ${t.replies} replies · ${new Date(t.created_at).toLocaleDateString()}</div>
+      </div>`).join('')||'<div class="empty-state"><div class="icon">💭</div>No threads yet</div>'}`;
+}
+async function newThread(courseId, form){
+  const fd=new FormData(form);
+  await fetch('/api/eduos/forum/'+courseId,{method:'POST',headers:{'Authorization':'Bearer '+localStorage.getItem('jm_token'),'Content-Type':'application/json'},
+    body:JSON.stringify({title:fd.get('title'),body:fd.get('body')})});
+  loadForumThreads(courseId);
+}
+async function loadBatches(courseId){
+  if(!courseId) return;
+  const r=await fetch('/api/eduos/courses/'+courseId+'/batches',{headers:{'Authorization':'Bearer '+localStorage.getItem('jm_token')}}).then(x=>x.json());
+  document.getElementById('batchListBox').innerHTML=`
+    <form onsubmit="event.preventDefault();createBatch('${courseId}',this)" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:16px">
+      <input name="name" placeholder="Batch name (e.g. Morning A)" required>
+      <input name="startDate" type="date">
+      <input name="endDate" type="date">
+      <input name="capacity" type="number" placeholder="Capacity" value="40">
+      <button class="btn btn-primary" type="submit">+ Create batch</button>
+    </form>
+    ${(r.batches||[]).map(b=>`<div style="padding:12px;border:1px solid var(--jm-border);border-radius:8px;margin-bottom:8px">
+      <strong>${esc(b.name)}</strong> <span class="badge">${b.status}</span>
+      <div style="font-size:12px;color:#888">${b.start_date||'—'} → ${b.end_date||'—'} · cap ${b.capacity}</div></div>`).join('')||'<div class="empty-state"><div class="icon">👥</div>No batches yet</div>'}`;
+}
+async function createBatch(courseId, form){
+  const fd=new FormData(form);
+  await fetch('/api/eduos/courses/'+courseId+'/batches',{method:'POST',
+    headers:{'Authorization':'Bearer '+localStorage.getItem('jm_token'),'Content-Type':'application/json'},
+    body:JSON.stringify(Object.fromEntries(fd))});
+  loadBatches(courseId);
+}
+async function generateQR(){
+  const courseId=document.getElementById('qrCourseSel').value;
+  if(!courseId){toast('Pick a course',true);return;}
+  const r=await fetch('/api/eduos/qr/generate',{method:'POST',
+    headers:{'Authorization':'Bearer '+localStorage.getItem('jm_token'),'Content-Type':'application/json'},
+    body:JSON.stringify({courseId})}).then(x=>x.json());
+  document.getElementById('qrBox').innerHTML=`
+    <img src="${r.qrUrl}" alt="QR" style="max-width:240px">
+    <div style="margin-top:8px;font-family:monospace;color:#666">${r.token}</div>
+    <div style="color:#888;font-size:13px">Expires: ${new Date(r.expiresAt).toLocaleTimeString()}</div>`;
+}
+async function createAdmission(form){
+  const fd=new FormData(form);
+  await fetch('/api/eduos/admissions',{method:'POST',
+    headers:{'Authorization':'Bearer '+localStorage.getItem('jm_token'),'Content-Type':'application/json'},
+    body:JSON.stringify(Object.fromEntries(fd))});
+  renderEduOSTab('admissions');
+}
+async function updateAdmission(id, stage){
+  await fetch('/api/eduos/admissions/'+id,{method:'PUT',
+    headers:{'Authorization':'Bearer '+localStorage.getItem('jm_token'),'Content-Type':'application/json'},
+    body:JSON.stringify({stage})});
+  toast('✓ Updated');
+}
+async function payInvoice(id){
+  await fetch('/api/eduos/fees/invoices/'+id+'/pay',{method:'PUT',headers:{'Authorization':'Bearer '+localStorage.getItem('jm_token')}});
+  renderEduOSTab('fees');
+}
+async function eduosSendReminders(){
+  const r=await fetch('/api/eduos/fees/send-reminders',{method:'POST',headers:{'Authorization':'Bearer '+localStorage.getItem('jm_token')}}).then(x=>x.json());
+  toast('✓ Sent '+(r.remindersSent||0)+' reminders');
+}
+async function saveBranding(form){
+  const fd=new FormData(form);
+  const r=await fetch('/api/eduos/tenant/branding',{method:'PUT',
+    headers:{'Authorization':'Bearer '+localStorage.getItem('jm_token'),'Content-Type':'application/json'},
+    body:JSON.stringify(Object.fromEntries(fd))}).then(x=>x.json());
+  if(r.error){toast(r.error,true);return;}
+  Object.assign(currentUser, r.tenant||{});
+  localStorage.setItem('jm_user', JSON.stringify(currentUser));
+  toast('✓ Branding saved');
+}
+// ── Forum thread detail + reply ───────────────────────────────
+async function openForumThread(threadId){
+  const body=document.getElementById('eduos-tab-body');
+  body.innerHTML='<div style="padding:40px;text-align:center;color:#888">Loading…</div>';
+  const tok=localStorage.getItem('jm_token');
+  const r=await fetch('/api/eduos/forum/thread/'+threadId,{headers:{'Authorization':'Bearer '+tok}}).then(x=>x.json());
+  if(r.error){body.innerHTML='<div class="empty-state"><div class="icon">⚠️</div>'+esc(r.error)+'</div>';return;}
+  body.innerHTML=`
+    <button class="btn btn-ghost" onclick="renderEduOSTab('forum')">← Back</button>
+    <h3 style="margin:12px 0 4px">${esc(r.thread.title)}</h3>
+    <div style="color:#888;font-size:12px;margin-bottom:12px">${esc(r.thread.author_name)} · ${new Date(r.thread.created_at).toLocaleString()}</div>
+    <div style="padding:12px;background:rgba(124,58,237,0.04);border-radius:8px;margin-bottom:16px">${esc(r.thread.body||'')}</div>
+    <h4 style="margin:16px 0 8px">${r.replies.length} replies</h4>
+    ${r.replies.map(rp=>`
+      <div style="padding:10px;border-left:3px solid var(--jm-primary);background:var(--jm-surface);margin-bottom:6px">
+        <div style="font-size:12px;color:#888">${esc(rp.author_name)} · ${new Date(rp.created_at).toLocaleString()}</div>
+        <div>${esc(rp.body)}</div>
+      </div>`).join('')}
+    <form onsubmit="event.preventDefault();postReply('${threadId}',this)" style="margin-top:16px">
+      <textarea name="body" placeholder="Write a reply…" rows="3" required style="width:100%;padding:8px"></textarea>
+      <button class="btn btn-primary" type="submit" style="margin-top:8px">Post reply</button>
+    </form>`;
+}
+async function postReply(threadId, form){
+  const fd=new FormData(form);
+  await fetch('/api/eduos/forum/thread/'+threadId+'/reply',{method:'POST',
+    headers:{'Authorization':'Bearer '+localStorage.getItem('jm_token'),'Content-Type':'application/json'},
+    body:JSON.stringify({body:fd.get('body')})});
+  openForumThread(threadId);
+}
+// ── Student QR check-in (manual code entry) ───────────────────
+async function studentQRCheckin(){
+  const code=prompt('Enter QR code from teacher screen:');
+  if(!code) return;
+  const r=await fetch('/api/eduos/qr/check-in',{method:'POST',
+    headers:{'Authorization':'Bearer '+localStorage.getItem('jm_token'),'Content-Type':'application/json'},
+    body:JSON.stringify({token:code.trim()})}).then(x=>x.json());
+  toast(r.message||r.error||'Done', !!r.error);
+}
+// ── Voice search via Web Speech API → /api/eduos/ai/voice-search
+function cmdkVoice(){
+  const R=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!R){toast('Voice not supported on this browser',true);return;}
+  const rec=new R(); rec.lang='en-IN'; rec.interimResults=false;
+  rec.onresult=async e=>{
+    const q=e.results[0][0].transcript;
+    document.getElementById('cmdkInput').value=q;
+    const r=await fetch('/api/eduos/ai/voice-search?q='+encodeURIComponent(q),
+      {headers:{'Authorization':'Bearer '+localStorage.getItem('jm_token')}}).then(x=>x.json());
+    document.getElementById('cmdkResults').innerHTML=
+      (r.results||[]).map(x=>`<div class="res-item"><span>${x.type==='course'?'📚':x.type==='lecture'?'🎬':'💬'}</span>${esc(x.title)}<small style="margin-left:auto;color:#888">${x.type}</small></div>`).join('')
+      || '<div class="res-cat">No matches</div>';
+  };
+  rec.onerror=()=>toast('Voice error',true);
+  rec.start();
+}
+// ── Tenant branding bootstrap — read once on dashboard load ───
+(async function applyTenantBranding(){
+  try{
+    const host=location.hostname.split('.')[0];
+    if(!host||host==='localhost'||host==='127'||/^\d/.test(host)) return;
+    const r=await fetch('/api/eduos/tenant/branding?sub='+host).then(x=>x.json());
+    const b=r.branding; if(!b) return;
+    if(b.brand_color) document.documentElement.style.setProperty('--jm-primary', b.brand_color);
+    if(b.brand_name) document.title = b.brand_name+' · Dashboard';
+    if(b.brand_logo){
+      const l=document.querySelector('.sidebar-logo h2');
+      if(l) l.innerHTML=`<img src="${b.brand_logo}" style="height:28px;vertical-align:middle">`;
+    }
+  }catch(_){/* non-fatal */}
+})();
+async function uploadOCR(form){
+  const fd=new FormData(form);
+  await fetch('/api/eduos/ai/ocr',{method:'POST',headers:{'Authorization':'Bearer '+localStorage.getItem('jm_token')},body:fd});
+  renderEduOSTab('ocr');
 }
 
 // ============================================================
@@ -4607,6 +5536,63 @@ async function renderParentDash(){
         </div>
       </div>`).join('')
     }</div>`;
+  }catch(e){ /* non-fatal */ }
+}
+
+// ============================================================
+// CORPORATE TRAINER / CONTENT CREATOR / FRANCHISE dashboards.
+// These reuse the courses + eduos endpoints. Each degrades to an
+// empty state if the API has nothing yet.
+// ============================================================
+function _courseCardMini(c){
+  const cover=c.cover_image?`<img src="${escHtml(c.cover_image)}" style="width:100%;height:96px;object-fit:cover;border-radius:8px 8px 0 0">`
+    :`<div style="height:96px;border-radius:8px 8px 0 0;background:var(--jm-primary-tint);display:flex;align-items:center;justify-content:center;font-size:34px">📚</div>`;
+  return `<div class="card" style="padding:0;overflow:hidden;cursor:pointer" onclick="openConfigure('${c.id}')">
+    ${cover}
+    <div style="padding:12px">
+      <div style="font-weight:700;font-size:14px;line-height:1.3">${escHtml(c.title||'Untitled')}</div>
+      <div style="font-size:11px;color:var(--jm-text-muted);margin-top:4px">${escHtml(c.category||'General')} · ${c.published?'🟢 Published':'⚪ Draft'}</div>
+    </div>
+  </div>`;
+}
+async function _myCourses(){
+  try{ const r=await api('/courses?mine=1','GET'); return r.courses||r.data||[]; }
+  catch(_){ try{ const r=await api('/dashboard','GET'); return (r.dashboard&&r.dashboard.courses)||[]; }catch(__){ return []; } }
+}
+async function renderCorporateTrainerDash(){
+  const courses=await _myCourses();
+  document.getElementById('ct-programs').textContent=courses.length;
+  const learners=courses.reduce((s,c)=>s+(c.enrolled_count||c.students||0),0);
+  document.getElementById('ct-learners').textContent=learners;
+  const list=document.getElementById('ct-programList');
+  list.innerHTML=courses.length
+    ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px">${courses.map(_courseCardMini).join('')}</div>`
+    : '<div class="empty-state"><div class="icon">📚</div>No programs yet. Create your first corporate training.</div>';
+}
+async function renderContentCreatorDash(){
+  const courses=await _myCourses();
+  const pub=courses.filter(c=>c.published).length;
+  document.getElementById('cc-published').textContent=pub;
+  const views=courses.reduce((s,c)=>s+(c.views||c.enrolled_count||0),0);
+  document.getElementById('cc-views').textContent=views;
+  const rated=courses.filter(c=>c.rating);
+  if(rated.length) document.getElementById('cc-rating').textContent=(rated.reduce((s,c)=>s+Number(c.rating),0)/rated.length).toFixed(1)+'★';
+  const list=document.getElementById('cc-contentList');
+  list.innerHTML=courses.length
+    ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px">${courses.map(_courseCardMini).join('')}</div>`
+    : '<div class="empty-state"><div class="icon">🎬</div>No content yet. Publish your first course.</div>';
+}
+async function renderFranchiseDash(){
+  try{
+    const r=await api('/eduos/franchise/branches','GET');
+    const branches=r.branches||[];
+    document.getElementById('fr-branches').textContent=branches.length;
+    document.getElementById('fr-students').textContent=branches.reduce((s,b)=>s+(Number(b.students)||0),0);
+    document.getElementById('fr-courses').textContent=branches.reduce((s,b)=>s+(Number(b.courses)||0),0);
+    const list=document.getElementById('fr-branchList');
+    list.innerHTML=branches.length
+      ? `<table style="width:100%;border-collapse:collapse"><thead><tr><th style="text-align:left;padding:8px;font-size:11px;color:var(--jm-text-muted)">BRANCH</th><th style="text-align:left;padding:8px;font-size:11px;color:var(--jm-text-muted)">COURSES</th><th style="text-align:left;padding:8px;font-size:11px;color:var(--jm-text-muted)">STUDENTS</th></tr></thead><tbody>${branches.map(b=>`<tr style="border-top:1px solid var(--jm-border)"><td style="padding:10px;font-weight:600">${escHtml(b.name||'')}</td><td style="padding:10px">${b.courses||0}</td><td style="padding:10px">${b.students||0}</td></tr>`).join('')}</tbody></table>`
+      : '<div class="empty-state"><div class="icon">🏢</div>No branches linked yet.</div>';
   }catch(e){ /* non-fatal */ }
 }
 async function paOpenSnapshot(studentId){
@@ -5034,5 +6020,99 @@ loadDashboard();
 <div class="modal-overlay" id="actionOverlay" onclick="if(event.target===this)closeModal()">
   <div class="modal" id="actionModal"></div>
 </div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     JEETMANTRA UI ENHANCEMENT LAYER (inlined — was jeetmantra-enhance.html)
+     Non-destructive: scoped to existing classes, additive only. Provides
+     focus rings, offline banner, skeleton shimmer, smoother scrollbars,
+     reduced-motion support, and full mobile responsiveness for course +
+     topic views. Safe to remove; the base app still works.
+════════════════════════════════════════════════════════════════ -->
+<style id="jm-enhance-styles">
+  /* Keyboard-only focus ring (no ring on mouse click) */
+  :focus:not(:focus-visible){outline:none}
+  :focus-visible{outline:none;box-shadow:0 0 0 3px var(--jm-primary-glow,rgba(124,58,237,.35));border-radius:8px}
+  /* Skeleton shimmer for loading states */
+  .jmx-skeleton{background:linear-gradient(90deg,var(--jm-surface-2) 0%,var(--jm-surface) 50%,var(--jm-surface-2) 100%);background-size:200% 100%;animation:jmxShimmer 1.2s infinite;border-radius:8px;height:14px;margin:6px 0}
+  @keyframes jmxShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+  /* Slimmer, themed scrollbars */
+  *{scrollbar-width:thin;scrollbar-color:var(--jm-border) transparent}
+  *::-webkit-scrollbar{width:9px;height:9px}
+  *::-webkit-scrollbar-thumb{background:var(--jm-border);border-radius:6px}
+  *::-webkit-scrollbar-thumb:hover{background:var(--jm-text-subtle,#94a3b8)}
+  /* Offline banner */
+  #jmx-offline{position:fixed;left:0;right:0;top:0;z-index:9999;background:#b45309;color:#fff;text-align:center;font-size:13px;font-weight:600;padding:7px 12px;transform:translateY(-100%);transition:transform .25s ease}
+  #jmx-offline.show{transform:translateY(0)}
+  /* Card hover lift (subtle, additive) */
+  .card{transition:box-shadow .15s ease, transform .15s ease}
+
+  /* ── MOBILE RESPONSIVENESS — courses & topics ──────────────── */
+  @media(max-width:640px){
+    /* Course grids: shrink the auto-fill minimum so cards never overflow */
+    .configure-body div[style*="minmax(320px"],
+    .configure-body div[style*="minmax(280px"]{grid-template-columns:1fr !important}
+    /* Topic / lecture tree rows: tighter left padding, wrap actions */
+    .tree-item{padding-left:14px;flex-wrap:wrap;gap:6px}
+    .tree-item .item-title{flex:1 1 100%;order:-1;font-size:13px}
+    .tree-item .item-actions{margin-left:auto}
+    .tree-header{flex-wrap:wrap;gap:6px}
+    /* Section headers stack their action buttons below the title */
+    .section-title{flex-wrap:wrap;gap:8px}
+    .section-title .actions{margin-left:0;width:100%}
+    .section-title .actions .btn-sm{flex:1}
+    /* Stat values fit small screens */
+    .stat-card{padding:14px}
+  }
+  @media(max-width:420px){
+    .stats-grid{grid-template-columns:1fr}
+  }
+
+  /* ── Large screens: ultrawide / TV / smartboard ── */
+  @media(min-width:1600px){
+    .sidebar{width:280px;font-size:15px}
+    .main-content{margin-left:280px;padding:28px 40px}
+    .topbar{left:280px;padding:0 40px;height:64px}
+    .stats-grid{grid-template-columns:repeat(4,1fr);gap:20px}
+    .content-section{padding:24px 28px}
+    h2{font-size:22px}
+    .role-section li{padding:14px 18px;font-size:15px}
+    .btn-sm{padding:8px 14px;font-size:13px}
+    .tree-item{padding:14px 18px}
+    .tree-header{padding:14px 18px;font-size:16px}
+    /* Configure page: wider tree */
+    #cfg-body{max-width:1200px}
+    /* Reader: wider TOC + content */
+    #rd-body{max-width:1400px}
+  }
+  @media(min-width:2000px){
+    .sidebar{width:320px}
+    .main-content{margin-left:320px;padding:32px 56px}
+    .topbar{left:320px}
+    .stats-grid{grid-template-columns:repeat(5,1fr)}
+    .content-section{border-radius:18px}
+  }
+  /* Touch-target sizing for smartboard / large touch displays */
+  @media(pointer:coarse) and (min-width:1200px){
+    .btn-sm{min-height:44px;min-width:44px;padding:10px 16px}
+    .sidebar .nav-item{min-height:48px;padding:14px 18px}
+    .tree-item{min-height:52px}
+    input,select,textarea{min-height:44px;font-size:16px}
+  }
+</style>
+<div id="jmx-offline">⚠️ You're offline — changes are cached locally and will sync when you reconnect.</div>
+<script>
+(function(){
+  // Offline / online banner
+  var ob=document.getElementById('jmx-offline');
+  function sync(){ if(ob) ob.classList.toggle('show', !navigator.onLine); }
+  window.addEventListener('online',sync); window.addEventListener('offline',sync); sync();
+  // Honour OS "reduce motion" — kill animations for users who ask
+  if(window.matchMedia && matchMedia('(prefers-reduced-motion:reduce)').matches){
+    var s=document.createElement('style');
+    s.textContent='*{animation-duration:.001ms!important;transition-duration:.001ms!important}';
+    document.head.appendChild(s);
+  }
+})();
+</script>
 </body>
 </html>

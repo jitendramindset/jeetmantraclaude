@@ -22,7 +22,7 @@ async function getN8nConfig() {
   try {
     const stored = await get(CONFIG_KEY);
     if (stored && stored.url) return { ...ENV_DEFAULT, ...stored };
-  } catch (_) {}
+  } catch (e) { console.warn('n8n config load err:', e.message); }
   return ENV_DEFAULT;
 }
 

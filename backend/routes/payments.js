@@ -320,4 +320,43 @@ router.post('/webhook/payment', async (req, res) => {
   }
 });
 
+// ── Student-facing payment receipt / invoice PDF (HTML for print-to-PDF)
+router.get('/:id/receipt', authenticateToken, async (req, res) => {
+  try {
+    const { data: p } = await supabaseAdmin.from('payments').select('*, courses(title,category)').eq('id', req.params.id).single();
+    if (!p) return res.status(404).json({ error: 'Payment not found' });
+    if (p.user_id !== req.user.id && req.user.role !== 'admin') return res.status(403).json({ error: 'Not yours' });
+    const { data: user } = await supabaseAdmin.from('jeetmantra_users').select('full_name, email, phone').eq('id', p.user_id).single();
+    const esc = s => String(s == null ? '' : s).replace(/[<>&"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c]));
+    const fmt = n => '₹' + Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 });
+    res.set('Content-Type', 'text/html; charset=utf-8');
+    res.send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Receipt ${esc(p.id.slice(0,8))}</title>
+<style>
+@page{size:A4;margin:0}body{margin:0;font-family:'Segoe UI',sans-serif;color:#111;padding:32px;background:#f8f7fc;min-height:100vh}
+.sheet{max-width:700px;margin:0 auto;background:#fff;border-radius:12px;padding:36px;box-shadow:0 8px 24px rgba(0,0,0,.06)}
+.row{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:24px}
+h1{font-size:28px;letter-spacing:-.02em;color:#f97316;margin:0}
+.label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#888;font-weight:700;margin-bottom:4px}
+.total{font-size:28px;font-weight:800;color:#f97316;margin:20px 0}
+.no-print{text-align:center;margin-bottom:14px}
+@media print{.no-print{display:none}body{background:#fff;padding:0}.sheet{box-shadow:none;border-radius:0}}
+button{padding:8px 18px;border:0;border-radius:6px;background:#f97316;color:#fff;cursor:pointer;font-weight:700}
+.status{display:inline-block;padding:4px 14px;border-radius:20px;font-weight:700;font-size:13px;text-transform:uppercase}
+.status-paid{background:#d1fae5;color:#059669}.status-pending{background:#fef3c7;color:#d97706}.status-failed{background:#fce4ec;color:#c62828}.status-refunded{background:#e0e7ff;color:#4338ca}
+</style></head><body>
+<div class="no-print"><button onclick="window.print()">🖨 Print / Save as PDF</button></div>
+<div class="sheet">
+  <div class="row"><div><h1>PAYMENT RECEIPT</h1><div class="label" style="margin-top:6px">JeetMantra EduOS</div></div><div style="text-align:right"><div class="label">Receipt #</div>${esc(p.id.slice(0,8).toUpperCase())}<br><div class="label" style="margin-top:8px">Date</div>${new Date(p.created_at).toLocaleDateString('en-IN', { day:'numeric', month:'long', year:'numeric' })}</div></div>
+  <div class="row"><div><div class="label">Student</div><strong>${esc(user?.full_name || 'Student')}</strong><div style="font-size:12px;color:#666">${esc(user?.email || '')}${user?.phone ? '<br>' + esc(user.phone) : ''}</div></div><div style="text-align:right"><div class="label">Status</div><span class="status status-${esc(p.status)}">${esc(p.status)}</span></div></div>
+  <div style="border:1px solid #f0eff5;border-radius:10px;padding:20px;margin-bottom:20px">
+    <div class="label">Course</div><div style="font-size:18px;font-weight:700;margin:4px 0">${esc(p.courses?.title || 'Course')}</div>
+    <div style="font-size:13px;color:#666">${esc(p.courses?.category || 'General')} · Payment method: ${esc(p.payment_method || 'Razorpay')}</div>
+    ${p.transaction_id ? `<div style="font-size:11px;color:#999;margin-top:4px">Txn: ${esc(p.transaction_id)}</div>` : ''}
+  </div>
+  <div class="total">${fmt(p.amount)}</div>
+  <div style="font-size:12px;color:#999;border-top:1px solid #f0eff5;padding-top:14px">This is a computer-generated receipt. Thank you for choosing JeetMantra.</div>
+</div></body></html>`);
+  } catch (e) { res.status(500).json({ error: 'Receipt failed: ' + e.message }); }
+});
+
 module.exports = router;

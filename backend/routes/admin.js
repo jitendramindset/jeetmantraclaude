@@ -21,7 +21,7 @@ async function auditLog(actorId, action, targetId, metadata) {
 router.get('/users', authenticateToken, authorizeRole(['admin']), async (req, res) => {
   try {
     const { role, status, page = 1, limit = 20 } = req.query;
-    let query = supabaseAdmin.from('jeetmantra_users').select('*');
+    let query = supabaseAdmin.from('jeetmantra_users').select('*').neq('status', 'deleted');
 
     if (role) query = query.eq('user_type', role);
     if (status) query = query.eq('is_active', status === 'active');

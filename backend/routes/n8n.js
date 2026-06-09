@@ -180,7 +180,7 @@ router.post('/sync-users', async (req, res) => {
     if (N8N_SECRET && secret !== N8N_SECRET) return res.status(401).json({ error: 'Unauthorized' });
 
     const { since } = req.body;
-    let query = supabaseAdmin.from('jeetmantra_users').select('id,email,full_name,user_type,created_at,is_active').order('created_at', { ascending: false }).limit(500);
+    let query = supabaseAdmin.from('jeetmantra_users').select('id,email,full_name,user_type,created_at,is_active').neq('status', 'deleted').order('created_at', { ascending: false }).limit(500);
     if (since) query = query.gte('created_at', since);
 
     const { data: users, error } = await query;
