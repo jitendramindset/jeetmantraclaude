@@ -355,8 +355,9 @@ html[data-theme="dark"]{
 
 <div class="sidebar" id="sidebar">
   <div class="sidebar-logo">
-    <h2>Jeet<span class="accent">Mantra</span></h2>
-    <p>India's Modern Gurukul</p>
+    <img data-jm-logo id="sidebarLogoImg" style="display:none;max-height:42px;max-width:170px;object-fit:contain;margin-bottom:6px">
+    <h2 id="sidebarBrandName">Jeet<span class="accent">Mantra</span></h2>
+    <p id="sidebarBrandTagline">India's Modern Gurukul</p>
   </div>
   <div class="user-info">
     <div class="user-avatar" id="userAvatar">👤</div>
@@ -986,12 +987,14 @@ const NAV={
     {i:'🏠',l:'Dashboard',t:'top',a:true},
     {i:'📚',l:'My Courses',t:'courses'},
     {i:'📡',l:'Live Classes',t:'live'},
+    {i:'🎥',l:'Studio',h:'/studio.html'},
     {i:'📰',l:'Wall',t:'wall'},
     {i:'💬',l:'Messages',action:'openMessenger()'},
     {i:'📅',l:'Calendar',action:'openCalendar()'},
     {i:'📹',l:'Recordings',action:'openRecordings()'},
     {i:'📊',l:'Bookings',action:'openBookings()'},
     {i:'💰',l:'Payments',action:'openPayments()'},
+    {i:'🎟',l:'Coupons',action:'openCoupons()'},
     {i:'🧾',l:'Billing',action:'openBilling()'},
     {i:'📝',l:'Essay grading',action:'openEssayInbox()'},
     {i:'⚙️',l:'Settings',action:'openSettings()'},
@@ -1170,7 +1173,10 @@ function renderProfile(cardId,extras){
     const isInstituteRole=['teacher','school','coaching','partner','corporate_trainer','franchise','admin'].includes(u.role);
     if(crm && isInstituteRole){
       const has=v=>v && String(v).trim() && String(v).trim()!=='JeetMantra Classes';
-      const pairs=[['Institute',crm.companyName],['Tagline',crm.tagline],['Address',crm.address],['Phone',crm.phone],['Email',crm.email],['Website',crm.website],['GSTIN',crm.gstin],['PAN',crm.pan]];
+      const cat=[crm.instituteCategory,crm.instituteSubcategory].filter(Boolean).join(' · ');
+      const pairs=[['Institute',crm.companyName],['Tagline',crm.tagline],['Type',cat],['City',crm.instituteCity],['Address',crm.address],['Phone',crm.phone],['Email',crm.email],['Website',crm.website],['GSTIN',crm.gstin],['PAN',crm.pan]];
+      // Append any CRM custom fields that have a label + value.
+      (crm.customFields||[]).forEach(f=>{ if(f&&f.label&&(f.value||f.val)) pairs.push([f.label, f.value||f.val]); });
       crmRows=pairs.filter(([k,v])=>has(v)||(k==='Institute'&&crm.companyName));
       if(crmRows.length){
         crmHeader=`<div style="display:flex;align-items:center;gap:10px;margin:16px 0 8px;padding-top:14px;border-top:1px solid var(--jm-border)">
@@ -1462,7 +1468,7 @@ async function loadDashboard(){
     document.getElementById('loadingState').style.display='none';
     const sec=document.getElementById('section-'+role);
     if(sec)sec.classList.add('visible');
-    if(role==='student'){renderStudentDash(d); loadNotes(); loadStudentHistory(); loadWall(); startTimeTracking(); renderContinueLearning();}
+    if(role==='student'){renderStudentDash(d); loadNotes(); loadStudentHistory(); loadWall(); startTimeTracking(); renderContinueLearning(); loadStudyActivity();}
     else if(role==='teacher'){renderTeacherDash(d); loadTeacherWall();}
     else if(role==='partner')renderPartnerDash(d);
     else if(role==='school'){renderSchoolDash(d); loadInstitutionTeachers(); loadInstitutionStudents();}
@@ -1652,13 +1658,28 @@ const MODAL_DEFS={
           <div class="form-row"><label>Longitude</label><input id="m-lng" value="${c.longitude!=null?c.longitude:''}" placeholder="75.7873"></div>
         </div>
         <button class="btn-sm btn-outline" type="button" onclick="fillCourseGeo()">📍 Use my current location</button>
+      </details>
+      <details style="margin:6px 0 4px"><summary style="cursor:pointer;font-weight:600;font-size:13px;color:var(--jm-primary)">👥 Audience, timing &amp; listing</summary>
+        <div class="grid-2" style="margin-top:8px">
+          <div class="form-row"><label>Age group</label><select id="m-age">
+            ${['','5-8 yrs','8-12 yrs','12-15 yrs','15-18 yrs','Class 6-8','Class 9-10','Class 11-12','College','Adults','All ages'].map(a=>`<option value="${a}" ${c.age_group===a?'selected':''}>${a||'— any —'}</option>`).join('')}
+          </select></div>
+          <div class="form-row"><label>Timing</label><input id="m-timing" value="${escHtml(c.timing||c.batch_timing||'')}" placeholder="e.g. Mon/Wed/Fri 4-5pm"></div>
+        </div>
+        <div class="form-row"><label>Institute name (shown on marketplace)</label><input id="m-institute" value="${escHtml(c.institute_name||'')}" placeholder="e.g. Sharma Coaching Institute"></div>
+        <div style="display:flex;gap:18px;margin-top:6px">
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px"><input type="checkbox" id="m-free" ${c.free_listing?'checked':''}> 🎁 Free listing</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px"><input type="checkbox" id="m-demo" ${c.demo_class?'checked':''}> 🎬 Offer demo class</label>
+        </div>
       </details>`;
     },
     submit:async()=>{
       const id=_modalCtx.course?.id;
       const body={title:val('m-title'),description:val('m-desc'),category:val('m-cat'),level:val('m-level'),price:Number(val('m-price'))||0,is_active:val('m-active')==='true',
         metaDescription:val('m-meta'),keywords:val('m-kw'),slug:val('m-slug')||undefined,
-        classMode:val('m-mode'),city:val('m-city'),area:val('m-area'),latitude:val('m-lat'),longitude:val('m-lng')};
+        classMode:val('m-mode'),city:val('m-city'),area:val('m-area'),latitude:val('m-lat'),longitude:val('m-lng'),
+        ageGroup:val('m-age'),timing:val('m-timing'),instituteName:val('m-institute'),
+        freeListing:!!document.getElementById('m-free')?.checked,demoClass:!!document.getElementById('m-demo')?.checked};
       if(!body.title) throw new Error('Title required');
       await api('/courses/'+id,'PUT',body);
       return 'Course updated';
@@ -1825,7 +1846,8 @@ const MODAL_DEFS={
       const tomorrow=new Date();tomorrow.setDate(tomorrow.getDate()+1);tomorrow.setHours(10,0,0,0);
       const iso=tomorrow.toISOString().slice(0,16);
       return `
-      <div class="form-row"><label>Course *</label><select id="m-course">${opts}</select></div>
+      <div class="form-row"><label>Course *</label><select id="m-course" onchange="scheduleLiveLoadTopics(this.value)">${opts}</select></div>
+      <div class="form-row"><label>Chapter / Topic <span style="font-size:11px;color:var(--jm-text-muted)">(recording is filed under this)</span></label><select id="m-topic"><option value="">— General —</option></select></div>
       <div class="form-row"><label>Class Title *</label><input id="m-title" placeholder="e.g. Trigonometry — Live Walkthrough"></div>
       <div class="form-row"><label>Description</label><textarea id="m-desc" rows="2"></textarea></div>
       <div class="grid-2">
@@ -1834,8 +1856,9 @@ const MODAL_DEFS={
       </div>
       <div class="form-row"><label>Meeting Link</label><input id="m-link" placeholder="https://meet…"></div>`;
     },
+    onShow:()=>{ const c=document.getElementById('m-course'); if(c&&c.value) scheduleLiveLoadTopics(c.value); },
     submit:async ()=>{
-      const body={courseId:val('m-course'),title:val('m-title'),description:val('m-desc'),scheduledTime:new Date(val('m-time')).toISOString(),duration:Number(val('m-dur'))||60,meetingLink:val('m-link')};
+      const body={courseId:val('m-course'),topicId:val('m-topic')||undefined,title:val('m-title'),description:val('m-desc'),scheduledTime:new Date(val('m-time')).toISOString(),duration:Number(val('m-dur'))||60,meetingLink:val('m-link')};
       if(!body.courseId) throw new Error('Pick a course first');
       if(!body.title) throw new Error('Class title required');
       const r=await api('/live-classes','POST',body); return 'Live class scheduled: '+(r.liveClass?.title||body.title);
@@ -2067,6 +2090,13 @@ function openModal(type,ctx){
       <button class="btn-sm btn-primary" id="m-submit" onclick="submitModal('${type}')">Submit</button>
     </div>`;
   overlay.classList.add('show');
+  if(typeof def.onShow==='function'){ try{ def.onShow(); }catch(e){} }
+}
+// Populate the topic dropdown in the Schedule Live modal for a course.
+async function scheduleLiveLoadTopics(courseId){
+  const sel=document.getElementById('m-topic'); if(!sel||!courseId) return;
+  sel.innerHTML='<option value="">— General —</option>';
+  try{ const f=await api('/course-content/'+courseId+'/full','GET'); (f.topics||[]).forEach(t=>{ const o=document.createElement('option'); o.value=t.id; o.textContent=t.title||'Topic'; sel.appendChild(o); }); }catch(e){}
 }
 function closeModal(){
   document.getElementById('actionOverlay').classList.remove('show');
@@ -2161,7 +2191,16 @@ function showModal(title, bodyHtml){
     document.body.appendChild(m);
   }
   m.style.display='flex';
-  m.innerHTML=`<div style="background:var(--jm-surface,#fff);border-radius:14px;padding:24px;max-width:600px;width:100%;max-height:80vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.2)"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><h3>${escHtml(title)}</h3><button onclick="document.getElementById('jm-generic-modal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;color:inherit">&times;</button></div><div>${bodyHtml}</div></div>`;
+  // Strip any leading emoji from the title for the breadcrumb's last crumb so
+  // every feature shows the same "🏠 Dashboard / X" path as the full-page views.
+  const crumbName=String(title).replace(/^[^\sA-Za-z0-9]+\s*/,'');
+  m.innerHTML=`<div style="background:var(--jm-surface,#fff);border-radius:14px;padding:0;max-width:600px;width:100%;max-height:84vh;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.2);display:flex;flex-direction:column">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 18px;border-bottom:1px solid var(--jm-border);font-size:13px">
+      <div><span style="cursor:pointer;color:var(--jm-text-muted)" onclick="document.getElementById('jm-generic-modal').style.display='none'">🏠 Dashboard</span> <span style="color:var(--jm-text-muted)">/</span> <strong>${escHtml(crumbName)}</strong></div>
+      <button onclick="document.getElementById('jm-generic-modal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;color:inherit">&times;</button>
+    </div>
+    <div style="padding:20px 24px;overflow-y:auto"><h3 style="margin:0 0 14px">${escHtml(title)}</h3>${bodyHtml}</div>
+  </div>`;
 }
 
 // AI Quick-fill on the Create Course modal — calls /api/ai/create-course
@@ -2380,7 +2419,7 @@ async function _renderConfigurePage(courseId){
       </div>
     </div>`;
 
-    html+=section('topics','🗂','Topics', full.topics, ['title:Title*','description:Description','images:Images','attachments:Attachments']);
+    html+=section('topics','🗂','Topics', full.topics, ['title:Title*','description:Description','is_preview:Preview','images:Images','attachments:Attachments']);
     html+=section('lectures','🎬','Lectures', full.lectures, ['title:Title*','description:Description','video_url:Video URL','duration:Duration (min)','topic_id:Topic']);
     html+=section('materials','📎','Materials', full.materials, ['title:Title*','description:Description','type:Type','url:URL','topic_id:Topic']);
     html+=section('tests','✏️','Tests', full.tests, ['title:Title*','description:Description','total_marks:Total Marks','duration_minutes:Duration (min)']);
@@ -2471,6 +2510,7 @@ function _renderInlineForm(key, existingItem, courseId, fields){
     'total_marks:Total Marks':`<div class="form-row"><label>Total Marks</label><input type="number" id="${id}-marks" value="${existingItem?.total_marks||100}"></div>`,
     'duration_minutes:Duration (min)':`<div class="form-row"><label>Duration (min)</label><input type="number" id="${id}-dmin" value="${existingItem?.duration_minutes||60}"></div>`,
     'due_date:Due Date':`<div class="form-row"><label>Due Date *</label><input id="${id}-due" type="datetime-local" value="${existingItem?.due_date?new Date(existingItem.due_date).toISOString().slice(0,16):new Date(Date.now()+7*86400000).toISOString().slice(0,16)}"></div>`,
+    'is_preview:Preview':`<div class="form-row"><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="${id}-preview" ${existingItem?.is_preview?'checked':''}> 🎁 Free preview / demo — visible to non-enrolled students</label></div>`,
     'images:Images':`<div class="form-row"><label>Images (multiple)</label><input type="file" id="${id}-images" accept="image/*" multiple><div id="${id}-img-preview" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">${(existingItem?.images||[]).map(u=>`<img src="${escHtml(u)}" style="width:60px;height:60px;object-fit:cover;border-radius:6px;border:1px solid var(--jm-border)">`).join('')}</div></div>`,
     'attachments:Attachments':`<div class="form-row"><label>Attachments (PDF, docs, etc.)</label><input type="file" id="${id}-attachments" multiple><div id="${id}-att-preview" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;font-size:11px">${(existingItem?.attachments||[]).map(a=>`<a href="${escHtml(a.url||a)}" target="_blank" style="padding:3px 8px;background:var(--jm-primary-tint);border-radius:4px">📎 ${escHtml(a.name||'file')}</a>`).join('')}</div></div>`
   };
@@ -2495,7 +2535,7 @@ async function cfgSubmit(key, courseId, existingId){
   try{
     let path, method='POST', body={};
     if(key==='topics'){
-      body={title:get('-title'),description:get('-desc')};
+      body={title:get('-title'),description:get('-desc'),isPreview:!!document.getElementById(id+'-preview')?.checked};
       path=existingId?`/course-content/topics/${existingId}`:`/course-content/${courseId}/topics`;
     } else if(key==='lectures'){
       const file=document.getElementById(id+'-file')?.files?.[0];
@@ -3640,6 +3680,31 @@ async function qeAiSuggest(){
   }catch(e){ toast(e.message,true); }
 }
 
+// ── Per-day study activity: streak + last-14-days bar chart. ───────────
+async function loadStudyActivity(){
+  let r; try{ r=await api('/student/activity-daily?days=14','GET'); }catch(e){ return; }
+  const days=r.days||[]; if(!days.length) return;
+  const max=Math.max(1,...days.map(d=>d.minutes));
+  const sec=document.getElementById('section-student'); if(!sec) return;
+  let host=document.getElementById('study-activity-card');
+  if(!host){ host=document.createElement('div'); host.id='study-activity-card'; host.className='section';
+    const courses=document.getElementById('sec-student-courses'); if(courses&&courses.parentNode) courses.parentNode.insertBefore(host,courses); else sec.appendChild(host); }
+  host.innerHTML=`<div class="section-title">📊 Study Activity</div>
+    <div class="card" style="padding:16px">
+      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px">
+        <div><div style="font-size:24px;font-weight:800;color:var(--jm-primary)">🔥 ${r.streak}</div><div style="font-size:11px;color:var(--jm-text-muted)">day streak</div></div>
+        <div><div style="font-size:24px;font-weight:800">${Math.floor(r.totalMinutes/60)}h ${r.totalMinutes%60}m</div><div style="font-size:11px;color:var(--jm-text-muted)">last 14 days</div></div>
+        <div><div style="font-size:24px;font-weight:800">${r.avgMinutes}m</div><div style="font-size:11px;color:var(--jm-text-muted)">daily average</div></div>
+      </div>
+      <div style="display:flex;align-items:flex-end;gap:4px;height:90px">
+        ${days.map(d=>{ const h=Math.round((d.minutes/max)*80); const lbl=new Date(d.date+'T12:00').toLocaleDateString('en-IN',{day:'numeric'}); const dow=new Date(d.date+'T12:00').toLocaleDateString('en-IN',{weekday:'short'}).slice(0,1);
+          return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px" title="${d.minutes} min on ${d.date}">
+            <div style="width:100%;max-width:22px;height:${Math.max(2,h)}px;background:${d.minutes>0?'linear-gradient(180deg,var(--jm-primary),#a855f7)':'var(--jm-surface-2)'};border-radius:3px 3px 0 0"></div>
+            <div style="font-size:9px;color:var(--jm-text-muted)">${dow}</div></div>`; }).join('')}
+      </div>
+    </div>`;
+}
+
 // ── Student activity wall — small embedded version ─────────────────────
 async function loadWall(){
   try{
@@ -3884,6 +3949,58 @@ async function nearEnrollSelected(){
   toast('✓ Enrolled in '+ok+' of '+ids.length+' courses');
   _nearSelected=new Set(); loadDashboard();
 }
+
+// ── COUPONS: teachers create discount codes for their courses + see/list them.
+async function openCoupons(){
+  showModal('🎟 Discount Coupons', `<div id="cpn-body" style="min-height:160px"><div style="color:var(--jm-text-muted);padding:14px">Loading…</div></div>`);
+  await cpnRefresh();
+}
+async function cpnRefresh(){
+  const body=document.getElementById('cpn-body'); if(!body) return;
+  let list=[];
+  try{ const r=await api('/payments/coupons','GET'); list=r.coupons||[]; }catch(e){}
+  const courses=(window._teacherCourses||[]).map(c=>`<option value="${c.id}">${escHtml(c.title)}</option>`).join('');
+  const rows=list.length?list.map(c=>{
+    const disc=c.discount_percent?c.discount_percent+'% off':(c.discount_flat?'₹'+c.discount_flat+' off':'—');
+    const used=`${c.used_count||0}/${c.max_uses||100} used`;
+    const exp=c.expires_at?'· exp '+new Date(c.expires_at).toLocaleDateString():'';
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--jm-border);border-radius:10px;margin-bottom:8px">
+      <div style="font-family:monospace;font-weight:800;font-size:15px;background:var(--jm-primary-tint);color:var(--jm-primary);padding:4px 10px;border-radius:6px">${escHtml(c.code)}</div>
+      <div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px">${disc} · ${escHtml(c.course_title||'All courses')}</div><div style="font-size:11px;color:var(--jm-text-muted)">${used} ${exp}</div></div>
+      <button class="btn-sm btn-outline" onclick="cpnDelete('${c.id}')" title="Delete" style="color:#b91c1c">🗑</button>
+    </div>`;
+  }).join(''):'<div class="empty-state" style="padding:20px"><div class="icon">🎟</div>No coupons yet. Create one below.</div>';
+  body.innerHTML=`
+    <div style="border:1px solid var(--jm-border);border-radius:10px;padding:14px;margin-bottom:16px">
+      <div style="font-weight:700;font-size:13px;margin-bottom:10px">Create a coupon</div>
+      <div class="grid-2">
+        <div class="form-row"><label>Code</label><input id="cpn-code" placeholder="WELCOME20" style="text-transform:uppercase"></div>
+        <div class="form-row"><label>Applies to</label><select id="cpn-course"><option value="">All my courses</option>${courses}</select></div>
+      </div>
+      <div class="grid-2">
+        <div class="form-row"><label>Discount %</label><input id="cpn-pct" type="number" min="0" max="100" placeholder="e.g. 20"></div>
+        <div class="form-row"><label>OR Flat ₹ off</label><input id="cpn-flat" type="number" min="0" placeholder="e.g. 100"></div>
+      </div>
+      <div class="grid-2">
+        <div class="form-row"><label>Max uses</label><input id="cpn-max" type="number" min="1" value="100"></div>
+        <div class="form-row"><label>Expires (optional)</label><input id="cpn-exp" type="date"></div>
+      </div>
+      <button class="btn-sm btn-primary" onclick="cpnCreate()">＋ Create coupon</button>
+    </div>
+    <div style="font-weight:700;font-size:13px;margin-bottom:8px">Your coupons</div>${rows}`;
+}
+async function cpnCreate(){
+  const code=val('cpn-code').trim().toUpperCase();
+  if(!code){ toast('Enter a coupon code',true); return; }
+  const pct=val('cpn-pct'), flat=val('cpn-flat');
+  if(!pct&&!flat){ toast('Set a % or ₹ discount',true); return; }
+  try{
+    await api('/payments/coupons','POST',{code, discountPercent:pct||undefined, discountFlat:flat||undefined,
+      courseId:val('cpn-course')||undefined, maxUses:Number(val('cpn-max'))||100, expiresAt:val('cpn-exp')||undefined});
+    toast('✓ Coupon created'); cpnRefresh();
+  }catch(e){ toast(e.message||'Create failed',true); }
+}
+async function cpnDelete(id){ if(!confirm('Delete this coupon?'))return; try{ await api('/payments/coupons/'+id,'DELETE'); toast('Deleted'); cpnRefresh(); }catch(e){ toast(e.message,true); } }
 
 // ── AI Knowledge / RAG trainer: paste notes or re-index uploaded docs so the
 // AI tutor can ground answers in this course's own material. ───────────────
@@ -4395,16 +4512,29 @@ async function openRecordings(){
       body.innerHTML='<div class="card" style="max-width:600px;margin:40px auto;padding:24px;text-align:center"><div style="font-size:48px">📹</div><div style="font-weight:600;margin-top:10px">No recordings yet</div><div style="color:var(--jm-text-muted);margin-top:6px">Recorded live classes appear here. Teachers can record from inside a live class with the ⏺ Record button.</div></div>';
       return;
     }
+    // Group recordings by course, then by topic (chapter) within the course.
+    const byCourse={};
+    recs.forEach(rc=>{ const c=rc.course_title||'Course'; (byCourse[c]=byCourse[c]||[]).push(rc); });
+    const card=rc=>`<div class="card" style="padding:14px">
+        <video src="${escHtml(rc.recording_url)}" controls preload="metadata" style="width:100%;border-radius:8px;background:#000;max-height:200px"></video>
+        <div style="font-weight:600;margin-top:8px">${escHtml(rc.title||'Live Class')}</div>
+        <div style="font-size:12px;color:var(--jm-text-muted)">${rc.topic_title?'📁 '+escHtml(rc.topic_title)+' · ':''}${rc.recording_uploaded_at?new Date(rc.recording_uploaded_at).toLocaleString():''}</div>
+        <a href="${escHtml(rc.recording_url)}" download class="btn-sm btn-outline" style="text-decoration:none;margin-top:8px;display:inline-block">⬇ Download</a>
+      </div>`;
     body.innerHTML=`<div style="max-width:1180px;margin:0 auto">
       <h2 style="margin-bottom:14px">📹 Class Recordings (${recs.length})</h2>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px">
-        ${recs.map(rc=>`<div class="card" style="padding:14px">
-          <video src="${escHtml(rc.recording_url)}" controls preload="metadata" style="width:100%;border-radius:8px;background:#000;max-height:200px"></video>
-          <div style="font-weight:600;margin-top:8px">${escHtml(rc.title||'Live Class')}</div>
-          <div style="font-size:12px;color:var(--jm-text-muted)">${escHtml(rc.course_title||'')} · ${rc.recording_uploaded_at?new Date(rc.recording_uploaded_at).toLocaleString():''}</div>
-          <a href="${escHtml(rc.recording_url)}" download class="btn-sm btn-outline" style="text-decoration:none;margin-top:8px;display:inline-block">⬇ Download</a>
-        </div>`).join('')}
-      </div></div>`;
+      ${Object.keys(byCourse).sort().map(course=>{
+        const list=byCourse[course];
+        // sub-group by topic
+        const byTopic={}; list.forEach(rc=>{ const t=rc.topic_title||'General'; (byTopic[t]=byTopic[t]||[]).push(rc); });
+        return `<div style="margin-bottom:22px">
+          <div style="font-weight:800;font-size:15px;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--jm-primary)">📚 ${escHtml(course)}</div>
+          ${Object.keys(byTopic).sort().map(topic=>`
+            <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--jm-text-muted);margin:10px 0 8px">📁 ${escHtml(topic)} <span style="opacity:.6">(${byTopic[topic].length})</span></div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px">${byTopic[topic].map(card).join('')}</div>`).join('')}
+        </div>`;
+      }).join('')}
+    </div>`;
   }catch(e){ body.innerHTML='<div style="color:#b91c1c;padding:20px">'+escHtml(e.message)+'</div>'; }
 }
 
@@ -5263,14 +5393,44 @@ const CRM_DEFAULTS = {
   accentColor:'#f97316', bgTheme:'midnight',
   logo:'', logoSize:58, font:'Plus Jakarta Sans',
   defaultAttachments:[], courseCover:'', courseTitleColor:'#0f172a',
-  customFields:[]
+  customFields:[],
+  // Institute classification + geolocation (used for discovery/search).
+  instituteCategory:'', instituteSubcategory:'', instituteCity:'', lat:'', lng:''
 };
-function _crm(){ try{ return Object.assign({}, CRM_DEFAULTS, JSON.parse(localStorage.getItem('jm_crm')||'{}')); }catch(_){ return {...CRM_DEFAULTS}; } }
+const INSTITUTE_CATEGORIES={
+  'School':['CBSE','ICSE','State Board','International','Pre-school'],
+  'Coaching':['JEE/NEET','UPSC/Civil Services','Banking/SSC','Foundation (6-10)','CA/CS/CMA','Defence'],
+  'Skills':['Coding/IT','Languages','Music','Arts & Design','Sports'],
+  'Tuition':['Home Tuition','Group Tuition','Online'],
+  'University':['Undergraduate','Postgraduate','Diploma']
+};
+// Scope CRM/branding/theme PER LOGGED-IN USER so switching profiles in the
+// same browser doesn't carry one user's theme onto another. Falls back to the
+// legacy global 'jm_crm' for first-time migration.
+function _crmKey(){ try{ const u=JSON.parse(localStorage.getItem('jm_user')||'{}'); return u && u.id ? ('jm_crm_'+u.id) : 'jm_crm'; }catch(_){ return 'jm_crm'; } }
+function _crm(){ try{
+    const key=_crmKey();
+    let raw=localStorage.getItem(key);
+    if(raw===null && key!=='jm_crm') raw=localStorage.getItem('jm_crm'); // migrate from global once
+    return Object.assign({}, CRM_DEFAULTS, JSON.parse(raw||'{}'));
+  }catch(_){ return {...CRM_DEFAULTS}; } }
 function _crmSave(patch){
   const next=Object.assign(_crm(), patch);
-  localStorage.setItem('jm_crm', JSON.stringify(next));
+  localStorage.setItem(_crmKey(), JSON.stringify(next));
   _crmApplyTheme(next);
+  applyCrmBranding(next);
   return next;
+}
+// Reflect CRM logo + company name into the sidebar header.
+function applyCrmBranding(c){
+  c=c||_crm();
+  const img=document.getElementById('sidebarLogoImg');
+  if(img){ if(c.logo){ img.src=c.logo; img.style.display='block'; } else { img.style.display='none'; } }
+  const name=document.getElementById('sidebarBrandName');
+  if(name && c.companyName && c.companyName!=='JeetMantra Classes'){ name.textContent=c.companyName; }
+  const tag=document.getElementById('sidebarBrandTagline');
+  if(tag && c.tagline && c.tagline!=='Modern Gurukul'){ tag.textContent=c.tagline; }
+  if(typeof window.jmApplyTheme==='function'){ try{ window.jmApplyTheme(); }catch(e){} }
 }
 function _crmApplyTheme(c){
   // Live-apply accent + bg theme to CSS variables.
@@ -5279,18 +5439,32 @@ function _crmApplyTheme(c){
   document.documentElement.style.setProperty('--jm-font', c.font);
   document.body.style.fontFamily = c.font + ', system-ui, sans-serif';
   const themes={
-    midnight:{bg:'#0f172a',surface:'#1e293b',text:'#f1f5f9'},
-    light:   {bg:'#ffffff',surface:'#f8fafc',text:'#0f172a'},
-    paper:   {bg:'#faf7f2',surface:'#ffffff',text:'#3f3a35'},
-    forest:  {bg:'#0f1f17',surface:'#1a2e22',text:'#e8f0eb'},
-    rose:    {bg:'#fff1f2',surface:'#ffe4e6',text:'#4c0519'}
+    midnight:{bg:'#0f172a',surface:'#1e293b',text:'#f1f5f9',dark:true},
+    light:   {bg:'#ffffff',surface:'#f8fafc',text:'#0f172a',dark:false},
+    paper:   {bg:'#faf7f2',surface:'#ffffff',text:'#3f3a35',dark:false},
+    forest:  {bg:'#0f1f17',surface:'#1a2e22',text:'#e8f0eb',dark:true},
+    rose:    {bg:'#fff1f2',surface:'#ffe4e6',text:'#4c0519',dark:false}
   };
   const th=themes[c.bgTheme]||themes.midnight;
-  document.documentElement.style.setProperty('--jm-crm-bg', th.bg);
-  document.documentElement.style.setProperty('--jm-crm-surface', th.surface);
+  const r=document.documentElement.style;
+  // Set the REAL theme variables inline so they win over the html[data-theme]
+  // stylesheet rules (inline > selector). This makes the background theme apply.
+  r.setProperty('--jm-bg', th.bg);
+  r.setProperty('--jm-surface', th.surface);
+  r.setProperty('--jm-surface-2', th.dark?'rgba(255,255,255,.06)':'rgba(0,0,0,.04)');
+  r.setProperty('--jm-border', th.dark?'rgba(255,255,255,.12)':'rgba(0,0,0,.10)');
+  r.setProperty('--jm-text', th.text);
+  r.setProperty('--jm-text-strong', th.text);
+  r.setProperty('--jm-text-muted', th.dark?'#94a3b8':'#64748b');
+  // keep these for any legacy refs
+  r.setProperty('--jm-crm-bg', th.bg);
+  r.setProperty('--jm-crm-surface', th.surface);
+  // Reflect dark/light to data-theme so component-specific rules match.
+  document.documentElement.setAttribute('data-theme', th.dark?'dark':'light');
 }
 // Apply on every load so it survives refresh.
 _crmApplyTheme();
+try{ applyCrmBranding(); }catch(e){}
 
 function openCRMConfig(){
   const overlay = document.getElementById('settingsPage');
@@ -5349,6 +5523,12 @@ function openCRMConfig(){
         <div class="crm-field"><label>Website</label><input id="crmWebsite" value="${E(c.website)}" placeholder="https://"></div>
         <div class="crm-field"><label>GSTIN</label><input id="crmGstin" value="${E(c.gstin)}" maxlength="15" style="text-transform:uppercase;font-family:'JetBrains Mono',monospace"></div>
         <div class="crm-field"><label>PAN</label><input id="crmPan" value="${E(c.pan)}" maxlength="10" style="text-transform:uppercase;font-family:'JetBrains Mono',monospace"></div>
+        <div class="crm-field"><label>Institute category</label><select id="crmCategory" onchange="_crmSubcatOptions(this.value)">
+          <option value="">— select —</option>${Object.keys(INSTITUTE_CATEGORIES).map(k=>`<option value="${k}" ${c.instituteCategory===k?'selected':''}>${k}</option>`).join('')}
+        </select></div>
+        <div class="crm-field"><label>Sub-category</label><select id="crmSubcategory">${(INSTITUTE_CATEGORIES[c.instituteCategory]||[]).map(s=>`<option value="${E(s)}" ${c.instituteSubcategory===s?'selected':''}>${E(s)}</option>`).join('')||'<option value="">— pick a category —</option>'}</select></div>
+        <div class="crm-field"><label>City</label><input id="crmCity" value="${E(c.instituteCity)}" placeholder="e.g. Jaipur"></div>
+        <div class="crm-field"><label>Location (lat, lng)</label><div style="display:flex;gap:6px"><input id="crmLat" value="${E(c.lat)}" placeholder="lat" style="flex:1"><input id="crmLng" value="${E(c.lng)}" placeholder="lng" style="flex:1"><button class="btn-sm btn-outline" type="button" onclick="_crmUseLocation()">📍</button></div></div>
       </div>
     </div>
 
@@ -5569,6 +5749,22 @@ function _crmDelAtt(i){
   const c=_crm(); c.defaultAttachments.splice(i,1);
   _crmSave({defaultAttachments:c.defaultAttachments}); openCRMConfig();
 }
+// Populate sub-category options when the institute category changes.
+function _crmSubcatOptions(cat){
+  const sel=document.getElementById('crmSubcategory'); if(!sel) return;
+  const subs=INSTITUTE_CATEGORIES[cat]||[];
+  sel.innerHTML=subs.length?subs.map(s=>`<option value="${s}">${s}</option>`).join():'<option value="">— pick a category —</option>';
+}
+// Fill institute lat/lng from the browser's geolocation.
+function _crmUseLocation(){
+  if(!navigator.geolocation){ toast('Geolocation not supported',true); return; }
+  toast('Getting location…');
+  navigator.geolocation.getCurrentPosition(p=>{
+    const lat=document.getElementById('crmLat'), lng=document.getElementById('crmLng');
+    if(lat) lat.value=p.coords.latitude.toFixed(6); if(lng) lng.value=p.coords.longitude.toFixed(6);
+    toast('✓ Location filled');
+  }, e=>toast('Location denied',true), {enableHighAccuracy:true,timeout:8000});
+}
 async function _crmSaveAll(){
   const get=id=>document.getElementById(id)?.value||'';
   const patch={
@@ -5576,7 +5772,9 @@ async function _crmSaveAll(){
     address:get('crmAddress'), phone:get('crmPhone'),
     email:get('crmEmail'), website:get('crmWebsite'),
     gstin:get('crmGstin').toUpperCase(), pan:get('crmPan').toUpperCase(),
-    invoiceFormat:get('crmInvFmt'), logoSize:Number(get('crmLogoSize'))||58
+    invoiceFormat:get('crmInvFmt'), logoSize:Number(get('crmLogoSize'))||58,
+    instituteCategory:get('crmCategory'), instituteSubcategory:get('crmSubcategory'),
+    instituteCity:get('crmCity'), lat:get('crmLat'), lng:get('crmLng')
   };
   const pw=get('crmAdminPw');
   if(pw){
@@ -5598,7 +5796,10 @@ async function _crmSaveAll(){
 }
 function setTheme(mode){
   localStorage.setItem('jm_theme',mode);
-  document.documentElement.setAttribute('data-theme',mode);
+  // Drive the unified theme system: dark→midnight, light→light. This also
+  // re-applies the real CSS variables so the background actually changes.
+  if(typeof _crmSave==='function'){ _crmSave({bgTheme: mode==='dark'?'midnight':'light'}); }
+  else document.documentElement.setAttribute('data-theme',mode);
   toast(mode==='dark'?'🌙 Dark mode on':'☀ Light mode on');
 }
 // Apply saved theme on every load.
@@ -5835,24 +6036,37 @@ async function newThread(courseId, form){
 }
 async function loadBatches(courseId){
   if(!courseId) return;
-  const r=await fetch('/api/eduos/courses/'+courseId+'/batches',{headers:{'Authorization':'Bearer '+localStorage.getItem('jm_token')}}).then(x=>x.json());
+  const H={'Authorization':'Bearer '+localStorage.getItem('jm_token')};
+  const r=await fetch('/api/eduos/courses/'+courseId+'/batches',{headers:H}).then(x=>x.json());
+  // Teacher options for main/alternate assignment: self + institution teachers.
+  let teachers=[];
+  try{ const t=await fetch('/api/institutions/teachers',{headers:H}).then(x=>x.json()); teachers=t.teachers||[]; }catch(e){}
+  const me=JSON.parse(localStorage.getItem('jm_user')||'{}');
+  const teacherOpts=(includeNone)=>`${includeNone?'<option value="">— none —</option>':''}<option value="${me.id}">Me (${esc(me.fullName||me.email||'')})</option>`+
+    teachers.filter(t=>(t.teacher_id||t.id)!==me.id).map(t=>`<option value="${t.teacher_id||t.id}">${esc(t.full_name||t.email||'Teacher')}</option>`).join('');
   document.getElementById('batchListBox').innerHTML=`
-    <form onsubmit="event.preventDefault();createBatch('${courseId}',this)" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:16px">
-      <input name="name" placeholder="Batch name (e.g. Morning A)" required>
-      <input name="startDate" type="date">
-      <input name="endDate" type="date">
-      <input name="capacity" type="number" placeholder="Capacity" value="40">
+    <form onsubmit="event.preventDefault();createBatch('${courseId}',this)" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:16px;align-items:end">
+      <label style="font-size:11px">Batch name<input name="name" placeholder="Morning A" required style="display:block;width:100%"></label>
+      <label style="font-size:11px">Class / grade<input name="classGrade" placeholder="e.g. Class 10" style="display:block;width:100%"></label>
+      <label style="font-size:11px">Start<input name="startDate" type="date" style="display:block;width:100%"></label>
+      <label style="font-size:11px">End<input name="endDate" type="date" style="display:block;width:100%"></label>
+      <label style="font-size:11px">Capacity<input name="capacity" type="number" value="40" style="display:block;width:100%"></label>
+      <label style="font-size:11px">Schedule<input name="schedulePattern" placeholder="MWF 4-5pm" style="display:block;width:100%"></label>
+      <label style="font-size:11px">Main teacher<select name="mainTeacherId" style="display:block;width:100%">${teacherOpts(false)}</select></label>
+      <label style="font-size:11px">Alternate teacher<select name="altTeacherId" style="display:block;width:100%">${teacherOpts(true)}</select></label>
       <button class="btn btn-primary" type="submit">+ Create batch</button>
     </form>
     ${(r.batches||[]).map(b=>`<div style="padding:12px;border:1px solid var(--jm-border);border-radius:8px;margin-bottom:8px">
-      <strong>${esc(b.name)}</strong> <span class="badge">${b.status}</span>
-      <div style="font-size:12px;color:#888">${b.start_date||'—'} → ${b.end_date||'—'} · cap ${b.capacity}</div></div>`).join('')||'<div class="empty-state"><div class="icon">👥</div>No batches yet</div>'}`;
+      <div style="display:flex;align-items:center;gap:8px"><strong>${esc(b.name)}</strong>${b.class_grade?`<span class="badge">${esc(b.class_grade)}</span>`:''}<span class="badge">${b.status}</span></div>
+      <div style="font-size:12px;color:#888;margin-top:4px">${b.schedule_pattern?esc(b.schedule_pattern)+' · ':''}${b.start_date||'—'} → ${b.end_date||'—'} · cap ${b.capacity}</div>
+      <div style="font-size:12px;margin-top:4px">👨‍🏫 Main: <strong>${esc(b.main_teacher_name||'—')}</strong>${b.alt_teacher_name?` · 🔄 Alt: <strong>${esc(b.alt_teacher_name)}</strong>`:''}</div></div>`).join('')||'<div class="empty-state"><div class="icon">👥</div>No batches yet</div>'}`;
 }
 async function createBatch(courseId, form){
   const fd=new FormData(form);
-  await fetch('/api/eduos/courses/'+courseId+'/batches',{method:'POST',
+  const r=await fetch('/api/eduos/courses/'+courseId+'/batches',{method:'POST',
     headers:{'Authorization':'Bearer '+localStorage.getItem('jm_token'),'Content-Type':'application/json'},
     body:JSON.stringify(Object.fromEntries(fd))});
+  if(r.ok) toast('✓ Batch created'); else toast('Create failed',true);
   loadBatches(courseId);
 }
 async function generateQR(){
@@ -6616,13 +6830,17 @@ async function blSubmit(){
 // CALENDAR (month view) — visualizes live classes, assignments and tests
 // across a month. Honors the hierarchy "calendar view to manage timetable".
 // ============================================================
-let _calCursor=null; // {y,m}
+// Calendar: switchable Day / Week / Month views with click-to-detail + join.
+let _calRef=null;            // reference Date
+let _calView='month';        // 'day' | 'week' | 'month'
+let _calEventsByDay={};       // iso -> [events]
+const _calColor=t=>t==='live'?'#7c3aed':t==='test'?'#ef4444':'#0ea5e9';
+const _iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 async function openCalendar(){
   document.getElementById('calendarPage').classList.add('active');
   document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
   document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
-  const now=new Date();
-  _calCursor={ y:now.getFullYear(), m:now.getMonth()+1 };
+  _calRef=new Date(); _calView=localStorage.getItem('jm_calView')||'month';
   await _renderCalendar();
 }
 function closeCalendar(){
@@ -6630,62 +6848,129 @@ function closeCalendar(){
   document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='');
   document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='');
 }
-function calPrev(){ if(_calCursor.m===1){_calCursor.m=12;_calCursor.y--;} else _calCursor.m--; _renderCalendar(); }
-function calNext(){ if(_calCursor.m===12){_calCursor.m=1;_calCursor.y++;} else _calCursor.m++; _renderCalendar(); }
+function calSetView(v){ _calView=v; localStorage.setItem('jm_calView',v); _renderCalendar(); }
+function calToday(){ _calRef=new Date(); _renderCalendar(); }
+function calPrev(){ _calShift(-1); }
+function calNext(){ _calShift(1); }
+function _calShift(dir){
+  const d=new Date(_calRef);
+  if(_calView==='month') d.setMonth(d.getMonth()+dir);
+  else if(_calView==='week') d.setDate(d.getDate()+7*dir);
+  else d.setDate(d.getDate()+dir);
+  _calRef=d; _renderCalendar();
+}
+// Fetch every month spanning [start,end] and merge the day-keyed events.
+async function _calFetchRange(start, end){
+  const merged={}; const seen=new Set();
+  let d=new Date(start.getFullYear(), start.getMonth(), 1);
+  while(d<=end){
+    const key=d.getFullYear()+'-'+(d.getMonth()+1);
+    if(!seen.has(key)){ seen.add(key);
+      try{ const r=await api(`/teacher/calendar?year=${d.getFullYear()}&month=${d.getMonth()+1}`,'GET'); Object.assign(merged, r.days||{}); }catch(e){}
+    }
+    d.setMonth(d.getMonth()+1);
+  }
+  return merged;
+}
 async function _renderCalendar(){
   const body=document.getElementById('cal-body');
   body.innerHTML='<div style="text-align:center;padding:40px;color:#888">Loading…</div>';
+  // visible range per view
+  let start,end,label;
+  if(_calView==='month'){ start=new Date(_calRef.getFullYear(),_calRef.getMonth(),1); end=new Date(_calRef.getFullYear(),_calRef.getMonth()+1,0); label=_calRef.toLocaleString('en-IN',{month:'long',year:'numeric'}); }
+  else if(_calView==='week'){ const dow=(_calRef.getDay()+6)%7; start=new Date(_calRef); start.setDate(_calRef.getDate()-dow); end=new Date(start); end.setDate(start.getDate()+6); label=start.toLocaleDateString('en-IN',{day:'numeric',month:'short'})+' – '+end.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}); }
+  else { start=new Date(_calRef); end=new Date(_calRef); label=_calRef.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'}); }
   try{
-    const r=await api(`/teacher/calendar?year=${_calCursor.y}&month=${_calCursor.m}`,'GET');
-    const days=r.days||{};
-    const monthName=new Date(_calCursor.y, _calCursor.m-1, 1).toLocaleString('en-IN',{month:'long',year:'numeric'});
-    // Build a grid that starts on Monday and pads to full weeks.
-    const firstDow=(new Date(_calCursor.y, _calCursor.m-1, 1).getDay()+6)%7; // 0=Mon
-    const daysInMonth=new Date(_calCursor.y, _calCursor.m, 0).getDate();
-    const cells=[];
-    for(let i=0;i<firstDow;i++) cells.push(null);
-    for(let d=1; d<=daysInMonth; d++) cells.push(d);
-    while(cells.length%7) cells.push(null);
-    const today=new Date(); const todayIso=today.toISOString().slice(0,10);
-    const html=`
+    _calEventsByDay=await _calFetchRange(start,end);
+    window._calEventIndex={};
+    Object.values(_calEventsByDay).flat().forEach(ev=>{ if(ev&&ev.id) window._calEventIndex[ev.id]=ev; });
+    const viewBtn=(v,lbl)=>`<button class="btn-sm ${_calView===v?'btn-primary':'btn-outline'}" onclick="calSetView('${v}')">${lbl}</button>`;
+    let inner;
+    if(_calView==='month') inner=_calMonthHtml();
+    else if(_calView==='week') inner=_calWeekHtml(start);
+    else inner=_calDayHtml(start);
+    body.innerHTML=`
       <div style="max-width:1180px;margin:0 auto">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap">
-          <button class="btn-sm btn-outline" onclick="calPrev()">← Prev</button>
-          <h2 style="margin:0;flex:1;min-width:0">📅 ${escHtml(monthName)}</h2>
-          <button class="btn-sm btn-outline" onclick="calNext()">Next →</button>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+          <button class="btn-sm btn-outline" onclick="calPrev()">←</button>
+          <button class="btn-sm btn-outline" onclick="calToday()">Today</button>
+          <button class="btn-sm btn-outline" onclick="calNext()">→</button>
+          <h2 style="margin:0;flex:1;min-width:0;font-size:18px">📅 ${escHtml(label)}</h2>
+          <div style="display:inline-flex;gap:4px">${viewBtn('day','Day')}${viewBtn('week','Week')}${viewBtn('month','Month')}</div>
         </div>
-        <div class="card" style="padding:14px">
-          <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;font-size:11px;color:var(--jm-text-muted);font-weight:700;text-transform:uppercase;margin-bottom:6px">
-            ${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d=>`<div style="text-align:center">${d}</div>`).join('')}
-          </div>
-          <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px">
-            ${cells.map(d=>{
-              if(d===null) return '<div style="min-height:84px"></div>';
-              const iso=`${_calCursor.y}-${String(_calCursor.m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-              const evs=days[iso]||[];
-              const isToday=iso===todayIso;
-              const pill=ev=>{
-                const c=ev.type==='live'?'#7c3aed':ev.type==='test'?'#ef4444':'#0ea5e9';
-                const t=new Date(ev.time).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
-                return `<div title="${escHtml(ev.course_title||'')}" style="background:${c};color:#fff;font-size:10px;padding:2px 5px;border-radius:4px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><strong>${t}</strong> ${escHtml(ev.title)}</div>`;
-              };
-              return `<div style="min-height:84px;background:${isToday?'var(--jm-primary-tint)':'var(--jm-bg)'};border:1px solid var(--jm-border);border-radius:6px;padding:4px;overflow:hidden">
-                <div style="font-size:11px;font-weight:700;color:${isToday?'var(--jm-primary)':'var(--jm-text-muted)'};margin-bottom:2px">${d}</div>
-                ${evs.slice(0,4).map(pill).join('')}
-                ${evs.length>4?`<div style="font-size:10px;color:var(--jm-text-muted)">+${evs.length-4} more</div>`:''}
-              </div>`;
-            }).join('')}
-          </div>
-          <div style="margin-top:14px;display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--jm-text-muted)">
-            <span><span style="display:inline-block;width:10px;height:10px;background:#7c3aed;border-radius:2px;vertical-align:middle"></span> Live class</span>
-            <span><span style="display:inline-block;width:10px;height:10px;background:#ef4444;border-radius:2px;vertical-align:middle"></span> Test</span>
-            <span><span style="display:inline-block;width:10px;height:10px;background:#0ea5e9;border-radius:2px;vertical-align:middle"></span> Assignment due</span>
-          </div>
+        ${inner}
+        <div style="margin-top:14px;display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--jm-text-muted)">
+          <span><span style="display:inline-block;width:10px;height:10px;background:#7c3aed;border-radius:2px;vertical-align:middle"></span> Live class</span>
+          <span><span style="display:inline-block;width:10px;height:10px;background:#ef4444;border-radius:2px;vertical-align:middle"></span> Test</span>
+          <span><span style="display:inline-block;width:10px;height:10px;background:#0ea5e9;border-radius:2px;vertical-align:middle"></span> Assignment</span>
         </div>
       </div>`;
-    body.innerHTML=html;
   }catch(e){ body.innerHTML='<div style="color:#b91c1c;padding:20px">'+escHtml(e.message)+'</div>'; }
 }
+function _calPill(ev,compact){
+  const t=new Date(ev.time).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+  return `<div onclick="event.stopPropagation();calEventDetail('${ev.id}')" title="${escHtml(ev.course_title||'')}" style="background:${_calColor(ev.type)};color:#fff;font-size:${compact?'10':'12'}px;padding:${compact?'2px 5px':'5px 8px'};border-radius:4px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer"><strong>${t}</strong> ${escHtml(ev.title)}</div>`;
+}
+function _calMonthHtml(){
+  const y=_calRef.getFullYear(), m=_calRef.getMonth();
+  const firstDow=(new Date(y,m,1).getDay()+6)%7, daysInMonth=new Date(y,m+1,0).getDate();
+  const cells=[]; for(let i=0;i<firstDow;i++)cells.push(null); for(let d=1;d<=daysInMonth;d++)cells.push(d); while(cells.length%7)cells.push(null);
+  const todayIso=_iso(new Date());
+  return `<div class="card" style="padding:14px">
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;font-size:11px;color:var(--jm-text-muted);font-weight:700;text-transform:uppercase;margin-bottom:6px">${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d=>`<div style="text-align:center">${d}</div>`).join('')}</div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px">
+      ${cells.map(d=>{
+        if(d===null) return '<div style="min-height:84px"></div>';
+        const iso=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        const evs=(_calEventsByDay[iso]||[]).slice().sort((a,b)=>new Date(a.time)-new Date(b.time));
+        const isToday=iso===todayIso;
+        return `<div onclick="_calOpenDay('${iso}')" style="min-height:84px;background:${isToday?'var(--jm-primary-tint)':'var(--jm-bg)'};border:1px solid var(--jm-border);border-radius:6px;padding:4px;overflow:hidden;cursor:pointer">
+          <div style="font-size:11px;font-weight:700;color:${isToday?'var(--jm-primary)':'var(--jm-text-muted)'};margin-bottom:2px">${d}</div>
+          ${evs.slice(0,4).map(e=>_calPill(e,true)).join('')}${evs.length>4?`<div style="font-size:10px;color:var(--jm-text-muted)">+${evs.length-4} more</div>`:''}
+        </div>`;
+      }).join('')}
+    </div></div>`;
+}
+function _calWeekHtml(start){
+  const todayIso=_iso(new Date());
+  const cols=[]; for(let i=0;i<7;i++){ const d=new Date(start); d.setDate(start.getDate()+i); cols.push(d); }
+  return `<div class="card" style="padding:14px;overflow-x:auto"><div style="display:grid;grid-template-columns:repeat(7,minmax(120px,1fr));gap:6px">
+    ${cols.map(d=>{ const iso=_iso(d); const evs=(_calEventsByDay[iso]||[]).slice().sort((a,b)=>new Date(a.time)-new Date(b.time)); const isToday=iso===todayIso;
+      return `<div onclick="_calOpenDay('${iso}')" style="cursor:pointer">
+        <div style="text-align:center;font-size:11px;font-weight:700;color:${isToday?'var(--jm-primary)':'var(--jm-text-muted)'};padding:4px;border-bottom:2px solid ${isToday?'var(--jm-primary)':'var(--jm-border)'};margin-bottom:6px">${d.toLocaleDateString('en-IN',{weekday:'short'})}<br>${d.getDate()}</div>
+        <div style="min-height:200px;display:flex;flex-direction:column;gap:3px">${evs.map(e=>_calPill(e,false)).join('')||'<div style="font-size:10px;color:var(--jm-text-muted);text-align:center;padding:8px">—</div>'}</div>
+      </div>`; }).join('')}
+  </div></div>`;
+}
+function _calDayHtml(d){
+  const iso=_iso(d); const evs=(_calEventsByDay[iso]||[]).slice().sort((a,b)=>new Date(a.time)-new Date(b.time));
+  return `<div class="card" style="padding:16px">${evs.length?evs.map(ev=>{
+    const t=new Date(ev.time).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+    const joinBtn=ev.type==='live'?`<button class="btn-sm btn-primary" onclick="event.stopPropagation();calJoin('${ev.id}')">▶ Join</button>`:'';
+    return `<div onclick="calEventDetail('${ev.id}')" style="display:flex;align-items:center;gap:12px;padding:12px;border-left:4px solid ${_calColor(ev.type)};background:var(--jm-bg);border-radius:8px;margin-bottom:8px;cursor:pointer">
+      <div style="font-family:monospace;font-weight:700;font-size:14px;min-width:60px">${t}</div>
+      <div style="flex:1;min-width:0"><div style="font-weight:600">${escHtml(ev.title)}</div><div style="font-size:12px;color:var(--jm-text-muted)">${escHtml(ev.course_title||'')} · ${ev.type}</div></div>
+      ${joinBtn}
+    </div>`;
+  }).join(''):'<div class="empty-state"><div class="icon">📅</div>Nothing scheduled this day.</div>'}</div>`;
+}
+function _calOpenDay(iso){ _calRef=new Date(iso+'T12:00:00'); calSetView('day'); }
+// Event detail popup with Join (live) / context.
+function calEventDetail(id){
+  const ev=(window._calEventIndex||{})[id]; if(!ev) return;
+  const t=new Date(ev.time).toLocaleString('en-IN',{weekday:'long',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'});
+  const typeLabel={live:'📡 Live class',test:'✏️ Test',assignment:'📝 Assignment'}[ev.type]||ev.type;
+  const join=ev.type==='live'?`<button class="btn-sm btn-primary" onclick="calJoin('${ev.id}')">▶ Join class</button>`:'';
+  showModal(escHtml(ev.title||'Event'), `
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div><span style="display:inline-block;padding:3px 10px;border-radius:20px;background:${_calColor(ev.type)};color:#fff;font-size:12px;font-weight:700">${typeLabel}</span></div>
+      <div style="font-size:13px"><strong>When:</strong> ${escHtml(t)}</div>
+      ${ev.course_title?`<div style="font-size:13px"><strong>Course:</strong> ${escHtml(ev.course_title)}</div>`:''}
+      ${ev.duration?`<div style="font-size:13px"><strong>Duration:</strong> ${ev.duration} min</div>`:''}
+      <div style="margin-top:10px;display:flex;gap:8px">${join}</div>
+    </div>`);
+}
+function calJoin(id){ window.location.href='/liveRoom.html?class='+id; }
 
 // ============================================================
 // PROFILE PAGE — basic details + ADDRESS (mandatory email + phone).
@@ -6728,6 +7013,23 @@ async function openProfilePage(){
           <div class="form-row"><label>Postal code</label><input id="pf-postal" value="${escHtml(u.postal_code||'')}"></div>
           <div class="form-row"><label>Country</label><input id="pf-country" value="${escHtml(u.country||'India')}"></div>
         </div>
+        <div class="grid-2"><div class="form-row"><label>Alternate contact no.</label><input id="pf-altphone" value="${escHtml(u.alt_phone||'')}" placeholder="optional second number"></div><div class="form-row"></div></div>
+        <h3 style="font-size:14px;margin:14px 0 8px;color:var(--jm-text-muted);text-transform:uppercase;letter-spacing:.05em">Professional</h3>
+        <div class="form-row"><label>Education / qualifications</label><textarea id="pf-education" rows="2" placeholder="e.g. M.Sc Physics, B.Ed · IIT Delhi">${escHtml(u.education||'')}</textarea></div>
+        <div class="form-row"><label>Experience</label><textarea id="pf-experience" rows="2" placeholder="e.g. 8 years teaching JEE/NEET physics">${escHtml(u.experience||'')}</textarea></div>
+        <h3 style="font-size:14px;margin:14px 0 8px;color:var(--jm-text-muted);text-transform:uppercase;letter-spacing:.05em">Social &amp; links</h3>
+        <div class="grid-2">
+          <div class="form-row"><label>🎥 YouTube</label><input id="pf-youtube" value="${escHtml(u.youtube_url||'')}" placeholder="https://youtube.com/@channel"></div>
+          <div class="form-row"><label>🔗 Website</label><input id="pf-website" value="${escHtml(u.website_url||'')}" placeholder="https://…"></div>
+        </div>
+        <div class="grid-2">
+          <div class="form-row"><label>💼 LinkedIn</label><input id="pf-linkedin" value="${escHtml(u.linkedin_url||'')}" placeholder="https://linkedin.com/in/…"></div>
+          <div class="form-row"><label>📸 Instagram</label><input id="pf-instagram" value="${escHtml(u.instagram_url||'')}" placeholder="https://instagram.com/…"></div>
+        </div>
+        <div class="grid-2">
+          <div class="form-row"><label>𝕏 Twitter / X</label><input id="pf-twitter" value="${escHtml(u.twitter_url||'')}" placeholder="https://x.com/…"></div>
+          <div class="form-row"></div>
+        </div>
         <div id="pf-msg" class="msg" style="margin:10px 0"></div>
         <div style="display:flex;gap:8px;margin-top:10px">
           <button class="btn-sm btn-outline" onclick="closeProfilePage()">Cancel</button>
@@ -6763,7 +7065,10 @@ async function pfSave(){
       fullName:val('pf-name'), email, phone,
       dateOfBirth:val('pf-dob')||null, bio:val('pf-bio'),
       street:val('pf-street'), city:val('pf-city'),
-      state:val('pf-state'), postalCode:val('pf-postal'), country:val('pf-country')
+      state:val('pf-state'), postalCode:val('pf-postal'), country:val('pf-country'),
+      altPhone:val('pf-altphone'), education:val('pf-education'), experience:val('pf-experience'),
+      youtubeUrl:val('pf-youtube'), websiteUrl:val('pf-website'), linkedinUrl:val('pf-linkedin'),
+      instagramUrl:val('pf-instagram'), twitterUrl:val('pf-twitter')
     });
     msg.className='msg success'; msg.textContent='✓ Profile saved';
     // Refresh local user stash so the topbar/sidebar reflect the new name.

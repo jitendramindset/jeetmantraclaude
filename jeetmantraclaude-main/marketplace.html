@@ -46,7 +46,9 @@ select.filter-select{background:var(--jm-surface);border:1.5px solid var(--jm-bo
 .course-level{position:absolute;top:10px;right:10px;background:rgba(255,255,255,0.95);color:var(--jm-text);font-size:10px;padding:4px 10px;border-radius:var(--jm-radius-pill);font-weight:600}
 .course-body{padding:16px}
 .course-title{font-size:15px;font-weight:700;margin-bottom:6px;line-height:1.3;color:var(--jm-text)}
-.course-instructor{font-size:12px;color:var(--jm-text-muted);margin-bottom:10px}
+.course-instructor{font-size:12px;color:var(--jm-text-muted);margin-bottom:8px}
+.mp-chips{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px}
+.mp-chip{font-size:10px;background:var(--jm-surface-2,#f1f5f9);color:var(--jm-text,#334155);padding:2px 8px;border-radius:20px;white-space:nowrap}
 .course-meta{display:flex;justify-content:space-between;align-items:center}
 .course-price{font-size:18px;font-weight:800;color:var(--jm-primary)}
 .course-rating{font-size:12px;color:var(--jm-warn)}
@@ -243,6 +245,20 @@ function renderCard(listing,owned){
   const c=listing.courses||{};
   const seller=listing.jeetmantra_users||listing.seller||{};
   const cover=c.cover_image?`<img src="${c.cover_image}" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0">`:`<span style="font-size:48px">${getListingIcon(listing)}</span>`;
+  const esc=s=>String(s==null?'':s).replace(/[<>&"]/g,ch=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[ch]));
+  const modeBadge={offline:'🏫 Offline',hybrid:'🔀 Hybrid',online:'💻 Online'}[c.class_mode]||'';
+  const loc=[c.area,c.city].filter(Boolean).join(', ');
+  const timing=c.timing||c.batch_timing||'';
+  const institute=c.institute_name||'';
+  const chips=[
+    institute?`<span class="mp-chip">🏫 ${esc(institute)}</span>`:'',
+    loc?`<span class="mp-chip">📍 ${esc(loc)}</span>`:'',
+    timing?`<span class="mp-chip">🕑 ${esc(timing)}</span>`:'',
+    c.age_group?`<span class="mp-chip">👥 ${esc(c.age_group)}</span>`:'',
+    modeBadge?`<span class="mp-chip">${modeBadge}</span>`:''
+  ].filter(Boolean).join('');
+  const freeTag=c.free_listing?'<span class="mp-chip" style="background:#dcfce7;color:#166534">🎁 Free</span>':'';
+  const demoTag=c.demo_class?'<span class="mp-chip" style="background:#fef3c7;color:#92400e">🎬 Demo class</span>':'';
   return `<div class="course-card">
     <div class="course-thumb">
       ${cover}
@@ -251,9 +267,10 @@ function renderCard(listing,owned){
     </div>
     <div class="course-body">
       <div class="course-title">${c.title||'Untitled Course'}</div>
-      <div class="course-instructor">by ${seller.full_name||'Instructor'}</div>
+      <div class="course-instructor">👨‍🏫 ${esc(seller.full_name||'Instructor')}</div>
+      ${(chips||freeTag||demoTag)?`<div class="mp-chips">${freeTag}${demoTag}${chips}</div>`:''}
       <div class="course-meta">
-        <div class="course-price">${fmt(listing.price)}</div>
+        <div class="course-price">${c.free_listing?'Free':fmt(listing.price)}</div>
         <div class="course-rating">⭐ 4.5</div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">

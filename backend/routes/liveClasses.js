@@ -23,7 +23,7 @@ const router = express.Router();
 // Schedule a live class (teacher only)
 router.post('/', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
   try {
-    const { courseId, title, description, scheduledTime, duration, meetingLink, capacity } = req.body;
+    const { courseId, title, description, scheduledTime, duration, meetingLink, capacity, topicId } = req.body;
     const classId = uuidv4();
 
     if (!courseId || !scheduledTime) {
@@ -53,6 +53,7 @@ router.post('/', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, re
         duration: duration || 60, // minutes
         meeting_link: meetingLink || null,
         capacity: capacity || 50,
+        topic_id: topicId || null,
         status: 'scheduled',
         created_at: new Date().toISOString()
       })
@@ -448,9 +449,11 @@ router.post('/:classId/recording', authenticateToken, authorizeRole(CREATOR_ROLE
     let url = req.body.recordingUrl || null;
     if (req.file) url = '/uploads/recordings/' + req.file.filename;
     if (!url) return res.status(400).json({ error: 'recording file or recordingUrl required' });
-    const { data, error } = await supabaseAdmin.from('live_classes').update({
-      recording_url: url, recording_uploaded_at: new Date().toISOString()
-    }).eq('id', req.params.classId).select().single();
+    // Associate the recording with a topic when provided, so the library can
+    // group recordings by course → topic.
+    const recUpdate = { recording_url: url, recording_uploaded_at: new Date().toISOString() };
+    if (req.body.topicId) recUpdate.topic_id = req.body.topicId;
+    const { data, error } = await supabaseAdmin.from('live_classes').update(recUpdate).eq('id', req.params.classId).select().single();
     if (error) return res.status(400).json({ error: error.message });
     res.json({ message: 'Recording saved', recordingUrl: url, liveClass: data });
   } catch (e) {
@@ -475,14 +478,20 @@ router.get('/recordings/list', authenticateToken, async (req, res) => {
     const { data: rows } = await supabaseAdmin.from('live_classes')
       .select('*').in('course_id', courseIds).not('recording_url', 'is', null)
       .order('recording_uploaded_at', { ascending: false });
-    // Hydrate course titles.
+    // Hydrate course + topic titles so recordings can group by course → topic.
     const cids = [...new Set((rows || []).map(r => r.course_id))];
     let titleMap = {};
     if (cids.length) {
       const { data: courses } = await supabaseAdmin.from('courses').select('id, title').in('id', cids);
       titleMap = Object.fromEntries((courses || []).map(c => [c.id, c.title]));
     }
-    res.json({ recordings: (rows || []).map(r => ({ ...r, course_title: titleMap[r.course_id] || '' })) });
+    const topicIds = [...new Set((rows || []).map(r => r.topic_id).filter(Boolean))];
+    let topicMap = {};
+    if (topicIds.length) {
+      const { data: topics } = await supabaseAdmin.from('course_topics').select('id, title').in('id', topicIds);
+      topicMap = Object.fromEntries((topics || []).map(t => [t.id, t.title]));
+    }
+    res.json({ recordings: (rows || []).map(r => ({ ...r, course_title: titleMap[r.course_id] || '', topic_title: r.topic_id ? (topicMap[r.topic_id] || null) : null })) });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

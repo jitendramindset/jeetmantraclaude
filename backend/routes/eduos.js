@@ -46,7 +46,15 @@ router.get('/courses/:courseId/batches', authenticateToken, async (req, res) => 
   try {
     const { data } = await supabaseAdmin.from('course_batches')
       .select('*').eq('course_id', req.params.courseId).order('start_date');
-    res.json({ batches: data || [] });
+    // Hydrate teacher names for main/alternate assignment display.
+    const tids = [...new Set((data || []).flatMap(b => [b.main_teacher_id, b.alt_teacher_id]).filter(Boolean))];
+    let names = {};
+    if (tids.length) {
+      const { data: us } = await supabaseAdmin.from('jeetmantra_users').select('id, full_name, email').in('id', tids);
+      names = Object.fromEntries((us || []).map(u => [u.id, u.full_name || u.email]));
+    }
+    const batches = (data || []).map(b => ({ ...b, main_teacher_name: names[b.main_teacher_id] || null, alt_teacher_name: names[b.alt_teacher_id] || null }));
+    res.json({ batches });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -55,16 +63,37 @@ router.post('/courses/:courseId/batches', authenticateToken, authorizeRole(CREAT
     if (!(await ownsCourse(req.params.courseId, req.user.id)) && req.user.role !== 'admin') {
       return res.status(403).json({ error: 'Not your course' });
     }
-    const { name, startDate, endDate, capacity, schedulePattern } = req.body || {};
+    const { name, startDate, endDate, capacity, schedulePattern, classGrade, mainTeacherId, altTeacherId } = req.body || {};
     if (!name) return res.status(400).json({ error: 'name required' });
     const { data, error } = await supabaseAdmin.from('course_batches').insert({
       id: uuidv4(), course_id: req.params.courseId, name,
       start_date: startDate || null, end_date: endDate || null,
       capacity: Number(capacity) || 100, schedule_pattern: schedulePattern || null,
+      class_grade: classGrade || null, main_teacher_id: mainTeacherId || req.user.id, alt_teacher_id: altTeacherId || null,
       status: 'active'
     }).select().single();
     if (error) return res.status(400).json({ error: error.message });
     res.status(201).json({ batch: data });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Update a batch (rename, reschedule, reassign main/alternate teacher).
+router.put('/batches/:batchId', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
+  try {
+    const { name, startDate, endDate, capacity, schedulePattern, classGrade, mainTeacherId, altTeacherId, status } = req.body || {};
+    const updates = {};
+    if (name !== undefined) updates.name = name;
+    if (startDate !== undefined) updates.start_date = startDate || null;
+    if (endDate !== undefined) updates.end_date = endDate || null;
+    if (capacity !== undefined) updates.capacity = Number(capacity) || 100;
+    if (schedulePattern !== undefined) updates.schedule_pattern = schedulePattern;
+    if (classGrade !== undefined) updates.class_grade = classGrade;
+    if (mainTeacherId !== undefined) updates.main_teacher_id = mainTeacherId || null;
+    if (altTeacherId !== undefined) updates.alt_teacher_id = altTeacherId || null;
+    if (status !== undefined) updates.status = status;
+    const { data, error } = await supabaseAdmin.from('course_batches').update(updates).eq('id', req.params.batchId).select().single();
+    if (error) return res.status(400).json({ error: error.message });
+    res.json({ batch: data });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

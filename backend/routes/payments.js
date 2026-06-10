@@ -53,6 +53,30 @@ router.post('/coupons', authenticateToken, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// List the caller's own coupons (with course titles).
+router.get('/coupons', authenticateToken, async (req, res) => {
+  try {
+    const { data: coupons } = await supabaseAdmin.from('coupons').select('*').eq('owner_id', req.user.id).order('created_at', { ascending: false });
+    const cids = [...new Set((coupons || []).map(c => c.course_id).filter(Boolean))];
+    let titles = {};
+    if (cids.length) {
+      const { data: courses } = await supabaseAdmin.from('courses').select('id, title').in('id', cids);
+      titles = Object.fromEntries((courses || []).map(c => [c.id, c.title]));
+    }
+    res.json({ coupons: (coupons || []).map(c => ({ ...c, course_title: c.course_id ? (titles[c.course_id] || 'Course') : 'All courses' })) });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Delete a coupon you own.
+router.delete('/coupons/:id', authenticateToken, async (req, res) => {
+  try {
+    const { data: c } = await supabaseAdmin.from('coupons').select('owner_id').eq('id', req.params.id).single();
+    if (!c || c.owner_id !== req.user.id) return res.status(403).json({ error: 'Not your coupon' });
+    await supabaseAdmin.from('coupons').delete().eq('id', req.params.id);
+    res.json({ message: 'Coupon deleted' });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // Public config — anything the browser checkout needs.
 router.get('/config', (req, res) => {
   res.json({

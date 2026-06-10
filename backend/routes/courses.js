@@ -134,7 +134,8 @@ router.post('/', authenticateToken, authorizeRole(CREATOR_ROLES), validate('cour
   try {
     const courseId = uuidv4();
     const { title, description, category, level, price, startDate, endDate, maxStudents, batchTiming,
-            metaDescription, keywords, slug: rawSlug, city, area, latitude, longitude, classMode } = req.validatedData;
+            metaDescription, keywords, slug: rawSlug, city, area, latitude, longitude, classMode,
+            ageGroup, freeListing, demoClass, timing, instituteName } = req.validatedData;
 
     // SEO slug: from provided slug or title; sanitized + made unique with a short id.
     const baseSlug = slugify(rawSlug || title);
@@ -164,6 +165,11 @@ router.post('/', authenticateToken, authorizeRole(CREATOR_ROLES), validate('cour
     if (latitude != null && latitude !== '') insertData.latitude = Number(latitude);
     if (longitude != null && longitude !== '') insertData.longitude = Number(longitude);
     if (classMode) insertData.class_mode = classMode; // online | offline | hybrid
+    if (ageGroup) insertData.age_group = ageGroup;
+    if (timing) insertData.timing = timing;
+    if (instituteName) insertData.institute_name = instituteName;
+    if (typeof freeListing === 'boolean') insertData.free_listing = freeListing;
+    if (typeof demoClass === 'boolean') insertData.demo_class = demoClass;
 
     const { data: course, error } = await supabaseAdmin
       .from('courses')
@@ -200,7 +206,8 @@ router.put('/:id', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, 
     }
 
     const { title, description, category, level, price, startDate, endDate, maxStudents, batchTiming, coverImage, is_active, archived,
-            metaDescription, keywords, city, area, latitude, longitude, classMode } = req.body;
+            metaDescription, keywords, city, area, latitude, longitude, classMode,
+            ageGroup, freeListing, demoClass, timing, instituteName } = req.body;
     const updates = {
       ...(title && { title }),
       ...(description && { description }),
@@ -219,6 +226,11 @@ router.put('/:id', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, 
       ...(latitude !== undefined && latitude !== '' && { latitude: Number(latitude) }),
       ...(longitude !== undefined && longitude !== '' && { longitude: Number(longitude) }),
       ...(classMode !== undefined && { class_mode: classMode }),
+      ...(ageGroup !== undefined && { age_group: ageGroup }),
+      ...(timing !== undefined && { timing }),
+      ...(instituteName !== undefined && { institute_name: instituteName }),
+      ...(typeof freeListing === 'boolean' && { free_listing: freeListing }),
+      ...(typeof demoClass === 'boolean' && { demo_class: demoClass }),
       ...(typeof is_active !== 'undefined' && { is_active }),
       ...(typeof archived !== 'undefined' && { archived }),
       updated_at: new Date().toISOString()

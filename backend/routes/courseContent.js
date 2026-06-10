@@ -78,13 +78,13 @@ router.get('/:courseId/topics', authenticateToken, async (req, res) => {
 router.post('/:courseId/topics', authenticateToken, async (req, res) => {
   const { allowed } = await ownsCourse(req.params.courseId, req.user);
   if (!allowed) return res.status(403).json({ error: 'Not your course' });
-  const { title, description, order_index, imageUrl, attachmentUrl, linkUrl, notes } = req.body;
+  const { title, description, order_index, imageUrl, attachmentUrl, linkUrl, notes, isPreview } = req.body;
   if (!title) return res.status(400).json({ error: 'title required' });
   const { data, error } = await supabaseAdmin.from('course_topics').insert({
     id: uuidv4(), course_id: req.params.courseId, title,
     description: description || '', order_index: order_index || 0,
     image_url: imageUrl || null, attachment_url: attachmentUrl || null,
-    link_url: linkUrl || null, notes: notes || null
+    link_url: linkUrl || null, notes: notes || null, is_preview: !!isPreview
   }).select().single();
   if (error) return res.status(400).json({ error: error.message });
   res.status(201).json({ topic: data });
@@ -94,7 +94,7 @@ router.post('/:courseId/topics', authenticateToken, async (req, res) => {
 router.put('/topics/:id', authenticateToken, async (req, res) => {
   const { allowed } = await ownsContentItem('course_topics', req.params.id, req.user);
   if (!allowed) return res.status(403).json({ error: 'Not your course' });
-  const { title, description, orderIndex, imageUrl, attachmentUrl, linkUrl, notes } = req.body;
+  const { title, description, orderIndex, imageUrl, attachmentUrl, linkUrl, notes, isPreview } = req.body;
   const updates = {};
   if (title !== undefined) updates.title = title;
   if (description !== undefined) updates.description = description;
@@ -103,6 +103,7 @@ router.put('/topics/:id', authenticateToken, async (req, res) => {
   if (attachmentUrl !== undefined) updates.attachment_url = attachmentUrl;
   if (linkUrl !== undefined) updates.link_url = linkUrl;
   if (notes !== undefined) updates.notes = notes;
+  if (isPreview !== undefined) updates.is_preview = !!isPreview;
   const { data, error } = await supabaseAdmin.from('course_topics').update(updates).eq('id', req.params.id).select().single();
   if (error) return res.status(400).json({ error: error.message });
   res.json({ topic: data });
@@ -127,7 +128,7 @@ router.get('/:courseId/lectures', authenticateToken, async (req, res) => {
 router.post('/:courseId/lectures', authenticateToken, upload.single('video'), async (req, res) => {
   const { allowed } = await ownsCourse(req.params.courseId, req.user);
   if (!allowed) return res.status(403).json({ error: 'Not your course' });
-  const { topicId, title, description, duration, isRecorded, lectureDate, orderIndex } = req.body;
+  const { topicId, title, description, duration, isRecorded, lectureDate, orderIndex, isPreview } = req.body;
   let videoUrl = req.body.videoUrl;
   if (req.file) videoUrl = `/uploads/courses/${req.file.filename}`;
   if (!title) return res.status(400).json({ error: 'title required' });
@@ -141,6 +142,7 @@ router.post('/:courseId/lectures', authenticateToken, upload.single('video'), as
     duration: duration ? Number(duration) : null,
     is_recorded: isRecorded !== false && isRecorded !== 'false',
     lecture_date: lectureDate || null,
+    is_preview: isPreview === true || isPreview === 'true',
     order_index: orderIndex ? Number(orderIndex) : 0
   }).select().single();
   if (error) return res.status(400).json({ error: error.message });

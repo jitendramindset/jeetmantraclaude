@@ -39,7 +39,8 @@ router.get('/profile', authenticateToken, async (req, res) => {
 router.put('/profile', authenticateToken, async (req, res) => {
   try {
     const { fullName, phone, email, bio, dateOfBirth, profileImage,
-            street, city, state, postalCode, country } = req.body;
+            street, city, state, postalCode, country,
+            education, experience, altPhone, linkedinUrl, youtubeUrl, twitterUrl, instagramUrl, websiteUrl } = req.body;
 
     // Server-side enforcement: phone + email are mandatory on profile.
     // If the request explicitly sets either to empty, reject it.
@@ -62,6 +63,14 @@ router.put('/profile', authenticateToken, async (req, res) => {
       ...(state !== undefined && { state_region: state }),
       ...(postalCode !== undefined && { postal_code: postalCode }),
       ...(country !== undefined && { country }),
+      ...(education !== undefined && { education }),
+      ...(experience !== undefined && { experience }),
+      ...(altPhone !== undefined && { alt_phone: altPhone }),
+      ...(linkedinUrl !== undefined && { linkedin_url: linkedinUrl }),
+      ...(youtubeUrl !== undefined && { youtube_url: youtubeUrl }),
+      ...(twitterUrl !== undefined && { twitter_url: twitterUrl }),
+      ...(instagramUrl !== undefined && { instagram_url: instagramUrl }),
+      ...(websiteUrl !== undefined && { website_url: websiteUrl }),
       updated_at: new Date().toISOString()
     };
 

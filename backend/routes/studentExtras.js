@@ -107,6 +107,30 @@ router.get('/time-summary', authenticateToken, async (req, res) => {
   });
 });
 
+// Per-day study time for the last N days (default 14) + a current streak.
+router.get('/activity-daily', authenticateToken, async (req, res) => {
+  try {
+    const days = Math.min(Number(req.query.days) || 14, 90);
+    const since = new Date(Date.now() - days * 86400000).toISOString();
+    const { data } = await supabaseAdmin.from('user_sessions')
+      .select('duration_seconds, started_at').eq('user_id', req.user.id).gte('started_at', since);
+    // Bucket by local-ISO date.
+    const byDay = {};
+    (data || []).forEach(r => { const d = (r.started_at || '').slice(0, 10); if (d) byDay[d] = (byDay[d] || 0) + (r.duration_seconds || 0); });
+    // Build a continuous day series ending today.
+    const series = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10);
+      series.push({ date: d, seconds: byDay[d] || 0, minutes: Math.round((byDay[d] || 0) / 60) });
+    }
+    // Streak: consecutive days (ending today or yesterday) with any study time.
+    let streak = 0;
+    for (let i = series.length - 1; i >= 0; i--) { if (series[i].seconds > 0) streak++; else if (i < series.length - 1) break; }
+    const totalMin = series.reduce((s, x) => s + x.minutes, 0);
+    res.json({ days: series, streak, totalMinutes: totalMin, avgMinutes: Math.round(totalMin / days) });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 function formatDuration(s) {
   const h = Math.floor(s / 3600);
   const m = Math.floor((s % 3600) / 60);

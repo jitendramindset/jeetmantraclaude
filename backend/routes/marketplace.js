@@ -37,7 +37,7 @@ router.get('/', async (req, res) => {
     // consistent item counts regardless of filter combination.
     let query = supabaseAdmin
       .from('marketplace_listings')
-      .select('*, courses!inner(id,title,description,category,level,cover_image)')
+      .select('*, courses!inner(id,title,description,category,level,cover_image,teacher_id,city,area,class_mode,batch_timing,timing,institute_name,age_group,free_listing,demo_class)')
       .eq('status', 'active');
 
     if (priceMin) query = query.gte('price', parseFloat(priceMin));
@@ -54,7 +54,7 @@ router.get('/', async (req, res) => {
       if (error.message && (error.message.includes('!inner') || error.code === 'PGRST200')) {
         const { data: fallback, error: e2 } = await supabaseAdmin
           .from('marketplace_listings')
-          .select('*, courses(id,title,description,category,level,cover_image)')
+          .select('*, courses(id,title,description,category,level,cover_image,teacher_id,city,area,class_mode,batch_timing,timing,institute_name,age_group,free_listing,demo_class)')
           .eq('status', 'active')
           .range(offset, offset + parseInt(limit) - 1);
         if (e2) {

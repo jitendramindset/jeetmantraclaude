@@ -113,7 +113,7 @@ function sendOTP(phone, otp) {
 // Sign up
 router.post('/signup', ipLimit(10), validate('signup'), async (req, res) => {
   try {
-    const { email, password, fullName, role, phone } = req.validatedData;
+    const { email, password, fullName, role, phone, aiProvider, apiKey } = req.validatedData;
 
     // Check if user exists
     const { data: existingUser } = await supabaseAdmin
@@ -129,18 +129,28 @@ router.post('/signup', ipLimit(10), validate('signup'), async (req, res) => {
     // Hash password (bcrypt)
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Map the AI provider + key (chosen at signup) onto the account, encrypted.
+    const userRow = {
+      id: uuidv4(),
+      email,
+      password_hash: hashedPassword,
+      full_name: fullName,
+      user_type: role,
+      phone,
+      created_at: new Date().toISOString()
+    };
+    if (aiProvider && apiKey && apiKey.trim()) {
+      try {
+        const { encrypt } = require('../config/aiProvider');
+        userRow.ai_provider = aiProvider === 'claude' ? 'anthropic' : aiProvider;
+        userRow.api_key_encrypted = encrypt(apiKey.trim());
+      } catch (e) { console.warn('signup AI key encrypt failed:', e.message); }
+    }
+
     // Create user using the remote schema fields
     const { data: newUser, error: insertError } = await supabaseAdmin
       .from('jeetmantra_users')
-      .insert({
-        id: uuidv4(),
-        email,
-        password_hash: hashedPassword,
-        full_name: fullName,
-        user_type: role,
-        phone,
-        created_at: new Date().toISOString()
-      })
+      .insert(userRow)
       .select()
       .single();
 

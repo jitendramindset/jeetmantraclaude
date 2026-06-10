@@ -26,7 +26,10 @@ const schemas = {
     centerName: Joi.string().allow('').optional(),
     specializations: Joi.alternatives(Joi.array().items(Joi.string()), Joi.string().allow('')).optional(),
     studentCapacity: Joi.alternatives(Joi.number(), Joi.string().allow('')).optional(),
-    batchCount: Joi.alternatives(Joi.number(), Joi.string().allow('')).optional()
+    batchCount: Joi.alternatives(Joi.number(), Joi.string().allow('')).optional(),
+    // Optional AI provider + key chosen during signup.
+    aiProvider: Joi.string().valid('openai', 'anthropic', 'claude', 'gemini', 'openrouter').optional(),
+    apiKey: Joi.string().allow('').optional()
   }),
 
   login: Joi.object({
@@ -53,7 +56,12 @@ const schemas = {
     area: Joi.string().allow('').optional(),
     latitude: Joi.number().optional(),
     longitude: Joi.number().optional(),
-    classMode: Joi.string().valid('online', 'offline', 'hybrid').optional()
+    classMode: Joi.string().valid('online', 'offline', 'hybrid').optional(),
+    ageGroup: Joi.string().allow('').optional(),
+    timing: Joi.string().allow('').optional(),
+    instituteName: Joi.string().allow('').optional(),
+    freeListing: Joi.boolean().optional(),
+    demoClass: Joi.boolean().optional()
   }),
 
   enrollCourse: Joi.object({

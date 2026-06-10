@@ -1253,6 +1253,9 @@ async function submitSignup() {
       password: signupData.password,
       fullName: signupData.fullName,
       role: signupData.userType,
+      // AI provider + key chosen in step 1 — mapped to the account on signup.
+      aiProvider: signupData.aiProvider && signupData.aiProvider !== 'none' ? signupData.aiProvider : undefined,
+      apiKey: signupData.apiKey || undefined,
       phone: signupData.phone,
       academicLevel: signupData.academicLevel,
       skills: signupData.skills,
