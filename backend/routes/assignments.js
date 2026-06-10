@@ -46,6 +46,41 @@ async function ownsCourse(courseId, user) {
   return user.role === 'admin' || data.teacher_id === user.id;
 }
 
+// Best-effort: log a submission to the activity wall AND notify the course
+// teacher. Lazy-requires to avoid circular deps; never throws (wrapped in
+// try/catch by callers).
+async function announceSubmission({ template, student, kind }) {
+  const studentName = student.full_name || student.email || 'A student';
+  const label = kind === 'test' ? 'test' : 'assignment';
+  const msg = `📝 ${studentName} submitted ${label}: ${template.title || 'Untitled'}`;
+  try {
+    const { logEvent } = require('./activity');
+    await logEvent({
+      eventType: `${label}_submitted`,
+      actorId: student.id,
+      targetUserId: template.teacher_id || null,
+      courseId: template.course_id || null,
+      payload: { assignmentId: template.id, title: template.title },
+      message: msg
+    });
+  } catch (e) { console.warn('announceSubmission logEvent failed:', e.message); }
+  try {
+    if (template.teacher_id) {
+      const eduos = require('./eduos');
+      if (typeof eduos.notify === 'function') {
+        await eduos.notify({
+          userId: template.teacher_id,
+          channel: 'in-app',
+          type: 'submission',
+          title: `New ${label} submission`,
+          body: msg,
+          link: template.course_id ? `/dashboard.html#course-${template.course_id}` : null
+        });
+      }
+    }
+  } catch (e) { console.warn('announceSubmission notify failed:', e.message); }
+}
+
 // POST /api/assignments — teacher creates an assignment template
 router.post('/', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
   try {
@@ -144,6 +179,7 @@ router.post('/:id/submit', authenticateToken, upload.single('file'), async (req,
         submission_url: submissionUrl, status: 'submitted', feedback: notes || null, updated_at: new Date().toISOString()
       }).eq('id', existing.id).select().single();
       if (error) return res.status(400).json({ error: error.message });
+      announceSubmission({ template, student: req.user, kind: 'assignment' }).catch(() => {});
       return res.json({ message: 'Submission updated', assignment: data });
     }
     const { data, error } = await supabaseAdmin.from('assignments').insert({
@@ -161,6 +197,7 @@ router.post('/:id/submit', authenticateToken, upload.single('file'), async (req,
       status: 'submitted'
     }).select().single();
     if (error) return res.status(400).json({ error: error.message });
+    announceSubmission({ template, student: req.user, kind: 'assignment' }).catch(() => {});
     res.status(201).json({ message: 'Submitted', assignment: data });
   } catch (e) {
     res.status(500).json({ error: e.message });

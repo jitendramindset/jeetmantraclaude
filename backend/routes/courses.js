@@ -7,6 +7,21 @@ const { v4: uuidv4 } = require('uuid');
 
 const router = express.Router();
 
+// SEO slug helper: lowercase, strip accents/punctuation, hyphenate.
+function slugify(s) {
+  return String(s || '').toLowerCase().trim()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
+}
+
+// Haversine distance in km between two lat/long points.
+function distanceKm(lat1, lon1, lat2, lon2) {
+  const R = 6371, toRad = d => d * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1), dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 // Get all courses (public)
 router.get('/', async (req, res) => {
   try {
@@ -37,6 +52,41 @@ router.get('/', async (req, res) => {
     console.error('Courses fetch error:', error);
     res.json({ message: 'Courses fetched successfully', courses: [], page: 1, limit: 12 });
   }
+});
+
+// ── SEO: fetch a course by its slug (clean public URL). ────────────────
+router.get('/slug/:slug', async (req, res) => {
+  try {
+    const { data: course } = await supabaseAdmin.from('courses').select('*').eq('slug', req.params.slug).maybeSingle();
+    if (!course) return res.status(404).json({ error: 'Course not found' });
+    res.json({ course });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── LOCATION SEARCH: find courses near a point (or by city), filter by mode.
+// Query: lat, lng, radius(km, default 50), mode(online|offline|hybrid), city, q.
+router.get('/search/nearby', async (req, res) => {
+  try {
+    const { lat, lng, radius = 50, mode, city, q } = req.query;
+    let query = supabaseAdmin.from('courses').select('*').eq('is_active', true);
+    if (mode) query = query.eq('class_mode', mode);
+    if (city) query = query.ilike('city', `%${city}%`);
+    if (q) query = query.ilike('title', `%${q}%`);
+    const { data: courses, error } = await query.limit(300);
+    if (error) return res.json({ courses: [] });
+    let results = courses || [];
+    // Distance ranking when caller shares coordinates.
+    if (lat && lng) {
+      const la = parseFloat(lat), lo = parseFloat(lng), rad = parseFloat(radius);
+      results = results
+        .map(c => (c.latitude != null && c.longitude != null)
+          ? { ...c, distance_km: Math.round(distanceKm(la, lo, c.latitude, c.longitude) * 10) / 10 }
+          : { ...c, distance_km: null })
+        .filter(c => c.distance_km == null || c.distance_km <= rad)
+        .sort((a, b) => (a.distance_km ?? 1e9) - (b.distance_km ?? 1e9));
+    }
+    res.json({ courses: results, count: results.length });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // Get course by ID
@@ -83,7 +133,12 @@ router.get('/:id', async (req, res) => {
 router.post('/', authenticateToken, authorizeRole(CREATOR_ROLES), validate('courseCreate'), async (req, res) => {
   try {
     const courseId = uuidv4();
-    const { title, description, category, level, price, startDate, endDate, maxStudents, batchTiming } = req.validatedData;
+    const { title, description, category, level, price, startDate, endDate, maxStudents, batchTiming,
+            metaDescription, keywords, slug: rawSlug, city, area, latitude, longitude, classMode } = req.validatedData;
+
+    // SEO slug: from provided slug or title; sanitized + made unique with a short id.
+    const baseSlug = slugify(rawSlug || title);
+    const slug = baseSlug ? `${baseSlug}-${courseId.slice(0, 6)}` : courseId.slice(0, 8);
 
     // Only include optional columns when provided so DB defaults apply otherwise.
     const insertData = {
@@ -94,6 +149,9 @@ router.post('/', authenticateToken, authorizeRole(CREATOR_ROLES), validate('cour
       category: category || 'General',
       level: level || 'beginner',
       price: price || 0,
+      slug,
+      meta_description: metaDescription || (description || '').slice(0, 160) || null,
+      keywords: keywords || null,
       is_active: true,
       created_at: new Date().toISOString()
     };
@@ -101,6 +159,11 @@ router.post('/', authenticateToken, authorizeRole(CREATOR_ROLES), validate('cour
     if (endDate) insertData.end_date = endDate;
     if (maxStudents) insertData.max_students = maxStudents;
     if (batchTiming) insertData.batch_timing = batchTiming;
+    if (city) insertData.city = city;
+    if (area) insertData.area = area;
+    if (latitude != null && latitude !== '') insertData.latitude = Number(latitude);
+    if (longitude != null && longitude !== '') insertData.longitude = Number(longitude);
+    if (classMode) insertData.class_mode = classMode; // online | offline | hybrid
 
     const { data: course, error } = await supabaseAdmin
       .from('courses')
@@ -136,7 +199,8 @@ router.put('/:id', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, 
       return res.status(403).json({ error: 'Not authorized to update this course' });
     }
 
-    const { title, description, category, level, price, startDate, endDate, maxStudents, batchTiming, coverImage, is_active, archived } = req.body;
+    const { title, description, category, level, price, startDate, endDate, maxStudents, batchTiming, coverImage, is_active, archived,
+            metaDescription, keywords, city, area, latitude, longitude, classMode } = req.body;
     const updates = {
       ...(title && { title }),
       ...(description && { description }),
@@ -148,6 +212,13 @@ router.put('/:id', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, 
       ...(maxStudents && { max_students: maxStudents }),
       ...(batchTiming && { batch_timing: batchTiming }),
       ...(coverImage && { cover_image: coverImage }),
+      ...(metaDescription !== undefined && { meta_description: metaDescription }),
+      ...(keywords !== undefined && { keywords }),
+      ...(city !== undefined && { city }),
+      ...(area !== undefined && { area }),
+      ...(latitude !== undefined && latitude !== '' && { latitude: Number(latitude) }),
+      ...(longitude !== undefined && longitude !== '' && { longitude: Number(longitude) }),
+      ...(classMode !== undefined && { class_mode: classMode }),
       ...(typeof is_active !== 'undefined' && { is_active }),
       ...(typeof archived !== 'undefined' && { archived }),
       updated_at: new Date().toISOString()
@@ -246,6 +317,75 @@ router.get('/:id/students', authenticateToken, async (req, res) => {
       };
     }));
     res.json({ course, students: rows });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── PER-STUDENT DETAIL: progress, attendance, assignment + test submissions,
+// recent activity, and course-chat messages (doubts/questions). Teacher/admin
+// only. Powers the student-detail panel.
+router.get('/:id/students/:studentId/detail', authenticateToken, async (req, res) => {
+  try {
+    const courseId = req.params.id, studentId = req.params.studentId;
+    const { data: course } = await supabaseAdmin.from('courses').select('teacher_id, title').eq('id', courseId).single();
+    if (!course) return res.status(404).json({ error: 'Course not found' });
+    if (req.user.role !== 'admin' && course.teacher_id !== req.user.id) return res.status(403).json({ error: 'Not your course' });
+
+    const { data: student } = await supabaseAdmin.from('jeetmantra_users')
+      .select('id, full_name, email, phone, last_active').eq('id', studentId).single();
+    if (!student) return res.status(404).json({ error: 'Student not found' });
+
+    // Lectures total + attendance present count.
+    const [{ count: totalLectures }, { count: present }, { data: enrollment }] = await Promise.all([
+      supabaseAdmin.from('course_lectures').select('id', { count: 'exact', head: true }).eq('course_id', courseId),
+      supabaseAdmin.from('attendance').select('id', { count: 'exact', head: true }).eq('course_id', courseId).eq('student_id', studentId).eq('status', 'present'),
+      supabaseAdmin.from('enrollments').select('*').eq('course_id', courseId).eq('student_id', studentId).maybeSingle()
+    ]);
+    const progressPct = totalLectures ? Math.min(100, Math.round(((present || 0) / totalLectures) * 100)) : (enrollment?.progress_percentage || 0);
+
+    // Assignment submissions by this student in this course (student_id rows are
+    // the per-student submissions; join template title via parent_id).
+    const { data: subs } = await supabaseAdmin.from('assignments')
+      .select('id, parent_id, title, status, grade, feedback, submission_url, updated_at, due_date')
+      .eq('course_id', courseId).eq('student_id', studentId).order('updated_at', { ascending: false });
+
+    // Test submissions: test_submissions joined to course_tests for titles.
+    const { data: courseTests } = await supabaseAdmin.from('course_tests').select('id, title, total_marks').eq('course_id', courseId);
+    const testIds = (courseTests || []).map(t => t.id);
+    let testSubs = [];
+    if (testIds.length) {
+      const { data: ts } = await supabaseAdmin.from('test_submissions')
+        .select('test_id, score, status, submitted_at').eq('student_id', studentId).in('test_id', testIds);
+      const testById = Object.fromEntries((courseTests || []).map(t => [t.id, t]));
+      testSubs = (ts || []).map(s => ({ ...s, title: testById[s.test_id]?.title || 'Test', total_marks: testById[s.test_id]?.total_marks || 100 }));
+    }
+
+    // Recent activity by this student in this course.
+    const { data: activity } = await supabaseAdmin.from('activity_feed')
+      .select('event_type, message, created_at').eq('actor_id', studentId).eq('course_id', courseId)
+      .order('created_at', { ascending: false }).limit(20);
+
+    // Doubts/questions: messages this student posted in the course chat room.
+    let doubts = [];
+    try {
+      const { data: room } = await supabaseAdmin.from('chat_rooms').select('id').eq('course_id', courseId).eq('type', 'course').maybeSingle();
+      if (room) {
+        const { data: msgs } = await supabaseAdmin.from('chat_messages')
+          .select('content, created_at').eq('room_id', room.id).eq('sender_id', studentId)
+          .order('created_at', { ascending: false }).limit(20);
+        doubts = msgs || [];
+      }
+    } catch (e) { /* chat not available */ }
+
+    res.json({
+      student,
+      progress: { percentage: progressPct, attended_lectures: present || 0, total_lectures: totalLectures || 0, enrolled_at: enrollment?.enrollment_date || enrollment?.created_at || null },
+      assignments: subs || [],
+      tests: testSubs,
+      activity: activity || [],
+      doubts
+    });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

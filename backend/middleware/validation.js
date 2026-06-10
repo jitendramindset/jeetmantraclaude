@@ -44,7 +44,16 @@ const schemas = {
     startDate: Joi.date().optional(),
     endDate: Joi.date().optional(),
     maxStudents: Joi.number().positive().optional(),
-    batchTiming: Joi.string().allow('').optional()
+    batchTiming: Joi.string().allow('').optional(),
+    // SEO + location/mode (all optional).
+    metaDescription: Joi.string().allow('').max(300).optional(),
+    keywords: Joi.string().allow('').optional(),
+    slug: Joi.string().allow('').optional(),
+    city: Joi.string().allow('').optional(),
+    area: Joi.string().allow('').optional(),
+    latitude: Joi.number().optional(),
+    longitude: Joi.number().optional(),
+    classMode: Joi.string().valid('online', 'offline', 'hybrid').optional()
   }),
 
   enrollCourse: Joi.object({

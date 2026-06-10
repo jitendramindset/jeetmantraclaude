@@ -210,24 +210,58 @@ router.post('/suggest-topics', authenticateToken, async (req, res) => {
   }
 });
 
-// ── AI TUTOR: student asks a question scoped to a course. We pull the
-// course title/description/topic titles as context so answers stay on-topic.
+// ── AI TUTOR: ask a question, optionally scoped to a course AND/OR a specific
+// topic. With no courseId it answers as a general study tutor. When documents
+// have been indexed for the course, relevant chunks are retrieved (RAG) and
+// injected as grounding context, and their sources are returned for citation.
 router.post('/tutor', authenticateToken, async (req, res) => {
   try {
-    const { courseId, question } = req.body || {};
-    if (!courseId || !question) return res.status(400).json({ error: 'courseId + question required' });
+    const { courseId, topicId, question } = req.body || {};
+    if (!question) return res.status(400).json({ error: 'question required' });
     const { supabaseAdmin } = require('../config/supabase');
-    const [{ data: course }, { data: topics }] = await Promise.all([
-      supabaseAdmin.from('courses').select('title, description, category, level').eq('id', courseId).single(),
-      supabaseAdmin.from('course_topics').select('title, description').eq('course_id', courseId).order('order_index')
-    ]);
-    if (!course) return res.status(404).json({ error: 'Course not found' });
-    const topicSummary = (topics || []).slice(0, 12).map(t => '- ' + t.title + (t.description ? ': ' + t.description : '')).join('\n');
-    const out = await ai(req.user.id,
-      'You are an AI tutor. Answer concisely in 3-6 sentences. Use simple, encouraging language. If the question is off-topic for this course, gently steer back.',
-      `COURSE: ${course.title}\nLEVEL: ${course.level || 'beginner'}\nDESCRIPTION: ${course.description || ''}\n\nTOPICS:\n${topicSummary}\n\nSTUDENT QUESTION: ${question}`,
-      { action: 'tutor' });
-    res.json({ answer: out.text, provider: out.provider });
+
+    let contextBlocks = [];
+    let header = 'GENERAL STUDY QUESTION (no specific course selected).';
+    let level = 'beginner';
+
+    if (courseId) {
+      const [{ data: course }, { data: topics }] = await Promise.all([
+        supabaseAdmin.from('courses').select('title, description, category, level').eq('id', courseId).single(),
+        supabaseAdmin.from('course_topics').select('id, title, description').eq('course_id', courseId).order('order_index')
+      ]);
+      if (!course) return res.status(404).json({ error: 'Course not found' });
+      level = course.level || 'beginner';
+      header = `COURSE: ${course.title}\nLEVEL: ${level}\nDESCRIPTION: ${course.description || ''}`;
+      if (topicId) {
+        // Tighten context to the selected topic.
+        const topic = (topics || []).find(t => t.id === topicId);
+        if (topic) contextBlocks.push(`SELECTED TOPIC — ${topic.title}:\n${topic.description || '(no description)'}`);
+      } else {
+        const topicSummary = (topics || []).slice(0, 12).map(t => '- ' + t.title + (t.description ? ': ' + t.description : '')).join('\n');
+        if (topicSummary) contextBlocks.push('TOPICS:\n' + topicSummary);
+      }
+    }
+
+    // RAG: pull the most relevant indexed document chunks for this course.
+    let sources = [];
+    if (courseId) {
+      try {
+        const { retrieveChunks } = require('./rag');
+        const hits = await retrieveChunks({ courseId, query: question, limit: 4 });
+        if (hits && hits.length) {
+          contextBlocks.push('REFERENCE MATERIAL (from uploaded documents):\n' +
+            hits.map((h, i) => `[${i + 1}] ${h.content}`).join('\n\n'));
+          sources = hits.map((h, i) => ({ n: i + 1, title: h.source_title || 'Document', materialId: h.material_id }));
+        }
+      } catch (e) { /* rag not available / no index — answer without it */ }
+    }
+
+    const sys = 'You are an AI tutor for students. Answer concisely in 3-6 sentences with simple, encouraging language. ' +
+      (sources.length ? 'Prefer the REFERENCE MATERIAL when answering and cite it inline like [1]. ' : '') +
+      'If the question is off-topic for the course, gently steer back.';
+    const userMsg = `${header}\n\n${contextBlocks.join('\n\n')}\n\nSTUDENT QUESTION: ${question}`;
+    const out = await ai(req.user.id, sys, userMsg, { action: 'tutor' });
+    res.json({ answer: out.text, provider: out.provider, sources, grounded: sources.length > 0 });
   } catch (e) {
     res.status(e.code === 'RATE_LIMITED' ? 429 : 400).json({ error: e.message, code: e.code });
   }

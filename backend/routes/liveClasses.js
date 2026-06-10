@@ -127,11 +127,15 @@ router.get('/upcoming', authenticateToken, async (req, res) => {
 
     // Get upcoming live classes (admin client; resolve course titles separately
     // since the users/courses FK embeds are unreliable on self-hosted).
+    // Include classes that are CURRENTLY live (status='live') OR still upcoming
+    // (scheduled in the future). Without the status.eq.live clause, a class drops
+    // off this list the moment it starts, so students could never join an
+    // in-progress class from their dashboard.
     const { data: liveClasses, error } = await supabaseAdmin
       .from('live_classes')
       .select('*')
       .in('course_id', courseIds)
-      .gt('scheduled_time', now)
+      .or(`status.eq.live,scheduled_time.gt.${now}`)
       .order('scheduled_time', { ascending: true })
       .limit(10);
 
@@ -285,14 +289,20 @@ router.put('/:classId', authenticateToken, authorizeRole(CREATOR_ROLES), async (
       return res.status(403).json({ error: 'Not authorized to update this class' });
     }
 
-    const { title, description, meetingLink, status } = req.body;
+    const { title, description, meetingLink, status, scheduledTime, duration, venue, isOnline } = req.body;
     const updates = {
       ...(title && { title }),
-      ...(description && { description }),
-      ...(meetingLink && { meeting_link: meetingLink }),
+      ...(description !== undefined && { description }),
+      ...(meetingLink !== undefined && { meeting_link: meetingLink }),
       ...(status && { status }),
+      ...(scheduledTime && { scheduled_time: new Date(scheduledTime).toISOString() }),
+      ...(duration && { duration: Number(duration) }),
+      ...(venue !== undefined && { venue }),
+      ...(typeof isOnline === 'boolean' && { is_online: isOnline }),
       updated_at: new Date().toISOString()
     };
+    // Rescheduling a completed/cancelled class re-opens it as scheduled.
+    if (scheduledTime && !status) updates.status = 'scheduled';
 
     const { data: updatedClass, error } = await supabaseAdmin
       .from('live_classes')

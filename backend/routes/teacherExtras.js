@@ -29,7 +29,7 @@ router.get('/timetable', authenticateToken, authorizeRole(CREATOR_ROLES), async 
     const courseTitleById = Object.fromEntries((courses || []).map(c => [c.id, c.title]));
     const [live, assignments, tests] = await Promise.all([
       supabaseAdmin.from('live_classes')
-        .select('id, title, scheduled_time, duration, status, course_id')
+        .select('id, title, scheduled_time, duration, status, course_id, is_online, venue')
         .in('course_id', courseIds)
         .gte('scheduled_time', from.toISOString())
         .lte('scheduled_time', to.toISOString()),
@@ -49,7 +49,8 @@ router.get('/timetable', authenticateToken, authorizeRole(CREATOR_ROLES), async 
     const events = [];
     (live.data || []).forEach(l => events.push({
       type: 'live', id: l.id, title: l.title, start: l.scheduled_time, duration: l.duration || 60,
-      status: l.status, course_id: l.course_id, course_title: courseTitleById[l.course_id]
+      status: l.status, course_id: l.course_id, course_title: courseTitleById[l.course_id],
+      is_online: l.is_online !== false, venue: l.venue || null
     }));
     (assignments.data || []).forEach(a => events.push({
       type: 'assignment', id: a.id, title: a.title, start: a.due_date, duration: 0,
@@ -71,9 +72,11 @@ router.get('/timetable', authenticateToken, authorizeRole(CREATOR_ROLES), async 
 //         daysOfWeek: [0..6], weeks: integer }
 router.post('/live-classes/recurring', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
   try {
-    const { courseId, title, description, startTime, duration, meetingLink, daysOfWeek, weeks } = req.body;
+    const { courseId, title, description, startTime, duration, meetingLink, daysOfWeek, weeks, isOnline, venue } = req.body;
     if (!courseId || !startTime || !Array.isArray(daysOfWeek) || !daysOfWeek.length || !weeks)
       return res.status(400).json({ error: 'courseId, startTime, daysOfWeek[], weeks required' });
+    const online = isOnline !== false; // default online
+    if (!online && !venue) return res.status(400).json({ error: 'venue required for offline classes' });
     const { data: course } = await supabaseAdmin.from('courses').select('teacher_id').eq('id', courseId).single();
     if (!course || course.teacher_id !== req.user.id) return res.status(403).json({ error: 'Not your course' });
 
@@ -96,7 +99,9 @@ router.post('/live-classes/recurring', authenticateToken, authorizeRole(CREATOR_
           description: description || '',
           scheduled_time: target.toISOString(),
           duration: duration || 60,
-          meeting_link: meetingLink || null,
+          meeting_link: online ? (meetingLink || null) : null,
+          is_online: online,
+          venue: online ? null : venue,
           status: 'scheduled',
           created_at: new Date().toISOString()
         });

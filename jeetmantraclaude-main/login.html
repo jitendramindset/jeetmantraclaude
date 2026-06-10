@@ -26,6 +26,9 @@ body::after{content:'';position:absolute;bottom:-200px;left:-160px;width:520px;h
 .tabs{display:flex;border-radius:var(--jm-radius-sm);background:var(--jm-surface-2);padding:4px;margin-bottom:28px}
 .tab{flex:1;padding:10px;text-align:center;border-radius:6px;cursor:pointer;font-size:14px;font-weight:600;transition:all .15s;color:var(--jm-text-muted)}
 .tab.active{background:var(--jm-primary);color:#fff;box-shadow:0 2px 8px var(--jm-primary-glow)}
+.tab:focus-visible{outline:2px solid var(--jm-primary);outline-offset:2px}
+.btn:focus-visible{outline:2px solid var(--jm-primary);outline-offset:2px}
+.btn-social:focus-visible{outline:2px solid var(--jm-primary);outline-offset:2px}
 .form-group{margin-bottom:16px}
 label{display:block;font-size:13px;color:var(--jm-text-strong);margin-bottom:6px;font-weight:600}
 input,select{width:100%;background:var(--jm-surface);border:1.5px solid var(--jm-border);border-radius:var(--jm-radius-sm);padding:12px 14px;color:var(--jm-text);font-size:14px;outline:none;font-family:inherit;transition:all .15s}
@@ -33,6 +36,7 @@ input:focus,select:focus{border-color:var(--jm-primary);box-shadow:0 0 0 3px rgb
 .role-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
 .role-card{background:var(--jm-surface);border:1.5px solid var(--jm-border);border-radius:var(--jm-radius-sm);padding:12px 8px;text-align:center;cursor:pointer;transition:all .15s}
 .role-card:hover{border-color:var(--jm-primary)}
+.role-card:focus-visible{outline:2px solid var(--jm-primary);outline-offset:2px}
 .role-card.selected{border-color:var(--jm-primary);background:var(--jm-primary-tint)}
 .role-card .icon{font-size:24px;margin-bottom:4px}
 .role-card .label{font-size:11px;color:var(--jm-text-strong);font-weight:600}

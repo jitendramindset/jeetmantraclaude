@@ -185,7 +185,7 @@ router.post('/:courseId/materials', authenticateToken, upload.single('file'), as
   try {
     const { allowed } = await ownsCourse(req.params.courseId, req.user);
     if (!allowed) return res.status(403).json({ error: 'Not your course' });
-    const { title, type, url, topicId } = req.body;
+    const { title, type, url, topicId, description } = req.body;
     if (!title) return res.status(400).json({ error: 'title required' });
     let finalUrl = url || null;
     let fileSize = null;
@@ -198,11 +198,22 @@ router.post('/:courseId/materials', authenticateToken, upload.single('file'), as
       course_id: req.params.courseId,
       topic_id: topicId || null,
       title,
+      description: description || null,
       type: type || 'file',
       url: finalUrl,
       file_size: fileSize
     }).select().single();
     if (error) return res.status(400).json({ error: error.message });
+    // Best-effort: index the uploaded document for RAG (PDF/text). Async, never
+    // blocks the response — embeddings/keyword index build in the background.
+    if (req.file) {
+      try {
+        const rag = require('./rag');
+        rag.indexFromMaterial(data).then(r => {
+          if (r && r.chunks) console.log(`rag: indexed material ${data.id} -> ${r.chunks} chunks (${r.mode})`);
+        }).catch(() => {});
+      } catch (e) { /* rag unavailable */ }
+    }
     res.status(201).json({ material: data });
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -212,12 +223,13 @@ router.post('/:courseId/materials', authenticateToken, upload.single('file'), as
 router.put('/materials/:id', authenticateToken, async (req, res) => {
   const { allowed } = await ownsContentItem('course_materials', req.params.id, req.user);
   if (!allowed) return res.status(403).json({ error: 'Not your course' });
-  const { title, type, url, topicId } = req.body;
+  const { title, type, url, topicId, description } = req.body;
   const updates = {};
   if (title !== undefined) updates.title = title;
   if (type !== undefined) updates.type = type;
   if (url !== undefined) updates.url = url;
   if (topicId !== undefined) updates.topic_id = topicId || null;
+  if (description !== undefined) updates.description = description;
   const { data, error } = await supabaseAdmin.from('course_materials').update(updates).eq('id', req.params.id).select().single();
   if (error) return res.status(400).json({ error: error.message });
   res.json({ material: data });
@@ -228,6 +240,8 @@ router.delete('/materials/:id', authenticateToken, async (req, res) => {
   if (!allowed) return res.status(403).json({ error: 'Not your course' });
   const { error } = await supabaseAdmin.from('course_materials').delete().eq('id', req.params.id);
   if (error) return res.status(400).json({ error: error.message });
+  // Best-effort: drop any RAG chunks indexed from this material.
+  try { await supabaseAdmin.from('rag_chunks').delete().eq('material_id', req.params.id); } catch (e) {}
   res.json({ message: 'Material removed' });
 });
 
@@ -508,8 +522,42 @@ router.post('/sessions/:id/submit', authenticateToken, async (req, res) => {
       id: uuidv4(), test_id: session.test_id, student_id: req.user.id, score, status: 'submitted'
     });
   }
+  // Best-effort: surface the submission on the teacher's wall + notify them.
+  announceTestSubmission(session.test_id, req.user).catch(() => {});
   res.json({ session: updated, scoreEarned: score, totalMarks });
 });
+
+// Log a test submission to the activity wall and notify the course teacher.
+// Lazy-requires to avoid circular deps; never throws.
+async function announceTestSubmission(testId, student) {
+  try {
+    const { data: test } = await supabaseAdmin.from('course_tests')
+      .select('title, course_id').eq('id', testId).single();
+    if (!test) return;
+    const { data: course } = await supabaseAdmin.from('courses')
+      .select('teacher_id').eq('id', test.course_id).single();
+    const studentName = student.full_name || student.email || 'A student';
+    const msg = `🧪 ${studentName} submitted test: ${test.title || 'Untitled'}`;
+    try {
+      const { logEvent } = require('./activity');
+      await logEvent({
+        eventType: 'test_submitted', actorId: student.id,
+        targetUserId: course?.teacher_id || null, courseId: test.course_id || null,
+        payload: { testId, title: test.title }, message: msg
+      });
+    } catch (e) { console.warn('announceTestSubmission logEvent failed:', e.message); }
+    if (course?.teacher_id) {
+      const eduos = require('./eduos');
+      if (typeof eduos.notify === 'function') {
+        await eduos.notify({
+          userId: course.teacher_id, channel: 'in-app', type: 'submission',
+          title: 'New test submission', body: msg,
+          link: test.course_id ? `/dashboard.html#course-${test.course_id}` : null
+        });
+      }
+    }
+  } catch (e) { console.warn('announceTestSubmission failed:', e.message); }
+}
 
 router.post('/tests/:testId/submit', authenticateToken, async (req, res) => {
   const { score } = req.body;

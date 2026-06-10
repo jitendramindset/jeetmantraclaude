@@ -24,7 +24,7 @@ body{font-family:-apple-system,'Segoe UI',sans-serif;background:var(--jm-bg);col
 .btn.danger{background:var(--jm-danger);border-color:var(--jm-danger)}
 .btn.warn{background:#f59e0b;border-color:#f59e0b;color:#1a1a25}
 .btn:disabled{opacity:.5;cursor:not-allowed}
-.live-main{flex:1;display:grid;grid-template-columns:1fr 320px;overflow:hidden}
+.live-main{flex:1;display:grid;grid-template-columns:1fr minmax(280px,320px);overflow:hidden}
 .stage{position:relative;background:#000;display:flex;align-items:center;justify-content:center}
 #jitsi-frame{width:100%;height:100%;border:0}
 .placeholder{text-align:center;color:#666;padding:30px}
@@ -32,7 +32,10 @@ body{font-family:-apple-system,'Segoe UI',sans-serif;background:var(--jm-bg);col
 .sidebar{background:var(--jm-surface);border-left:1px solid var(--jm-border);display:flex;flex-direction:column;overflow:hidden}
 .tabs{display:flex;border-bottom:1px solid var(--jm-border)}
 .tab{flex:1;padding:12px;background:transparent;border:0;color:var(--jm-text-muted);cursor:pointer;font-weight:600;font-size:13px}
-.tab.active{color:var(--jm-text);border-bottom:2px solid var(--jm-primary)}
+.tab:hover{background:rgba(255,255,255,.04)}
+.tab.active{color:var(--jm-text);border-bottom:2px solid var(--jm-primary);background:rgba(255,255,255,.03)}
+.tab:focus-visible{outline:2px solid var(--jm-primary);outline-offset:-2px}
+.btn:focus-visible{outline:2px solid var(--jm-primary);outline-offset:2px}
 .tab-body{flex:1;overflow-y:auto;padding:14px}
 .attendee{display:flex;align-items:center;gap:8px;padding:8px;border-radius:6px;font-size:13px}
 .attendee:hover{background:#262635}

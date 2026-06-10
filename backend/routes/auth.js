@@ -226,6 +226,14 @@ router.post('/login', loginThrottle, validate('login'), async (req, res) => {
       .eq('email', email)
       .single();
 
+    // Distinguish "no such user" (PGRST116 = zero rows, a legitimate 401) from a
+    // real DB/connection error (bad service key, RLS, schema) which must NOT be
+    // masked as a bad-password 401 — that makes valid logins look broken.
+    if (error && error.code !== 'PGRST116') {
+      console.error('Login DB error:', error.code, error.message);
+      return res.status(500).json({ error: 'Login temporarily unavailable. Please try again.' });
+    }
+
     if (!user) {
       loginRecordFail(req);
       return res.status(401).json({ error: 'Invalid email or password' });
