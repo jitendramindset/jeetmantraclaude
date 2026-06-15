@@ -2633,7 +2633,7 @@ async function _renderConfigurePage(courseId){
       </div>
     </div>`;
 
-    html+=section('topics','🗂','Topics', full.topics, ['title:Title*','description:Description','is_preview:Preview','images:Images','attachments:Attachments']);
+    html+=section('topics','🗂','Topics', full.topics, ['title:Title*','description:Description','link_url:Link URL','image_url:Image URL','is_preview:Preview']);
     html+=section('lectures','🎬','Lectures', full.lectures, ['title:Title*','description:Description','video_url:Video URL','duration:Duration (min)','topic_id:Topic']);
     html+=section('materials','📎','Materials', full.materials, ['title:Title*','description:Description','type:Type','url:URL','topic_id:Topic']);
     html+=section('tests','✏️','Tests', full.tests, ['title:Title*','description:Description','total_marks:Total Marks','duration_minutes:Duration (min)']);
@@ -2759,7 +2759,15 @@ function _reEl(){ return document.getElementById('reContent'); }
 function _reCmd(cmd,val){ _reEl()&&_reEl().focus(); try{ document.execCommand(cmd,false,val||null); }catch(e){} }
 function _reFormat(tag){ _reEl()&&_reEl().focus(); try{ document.execCommand('formatBlock',false,tag.toUpperCase()); }catch(e){} }
 function _reColor(kind){ const i=document.createElement('input'); i.type='color'; i.value=kind==='back'?'#fff3a3':'#7c3aed'; i.onchange=()=>{ _reEl()&&_reEl().focus(); try{ document.execCommand(kind==='back'?'hiliteColor':'foreColor',false,i.value); }catch(e){} }; i.click(); }
-function _reLink(){ const u=prompt('Link URL:'); if(u){ _reEl()&&_reEl().focus(); try{ document.execCommand('createLink',false,u); }catch(e){} } }
+function _reLink(){
+  const u=prompt('Link URL:'); if(!u) return;
+  const el=_reEl(); if(!el) return; el.focus();
+  try{ document.execCommand('createLink',false,u); }catch(e){}
+  // execCommand creates a bare <a href> that navigates the WHOLE tab (breaks the
+  // SPA when the reader is open). Promote every link in the editor to open in a
+  // new tab safely. Idempotent — re-running is a no-op.
+  el.querySelectorAll('a[href]').forEach(a=>{ a.setAttribute('target','_blank'); a.setAttribute('rel','noopener noreferrer'); });
+}
 function _reInsert(html){ _reEl()&&_reEl().focus(); try{ document.execCommand('insertHTML',false,html); }catch(e){} }
 // Insert a BLOCK element (pre/table/callout/hr/blockquote/img) as a real node at
 // the top level of the editor — execCommand('insertHTML') flattens blocks into
@@ -2815,7 +2823,7 @@ function sanitizeRich(html){
         else if((nm==='href'||nm==='src')&&/^\s*javascript:/i.test(a.value)) n.removeAttribute(a.name);
         else if(!['style','class','color','href','src','target','colspan','rowspan','align'].includes(nm)) n.removeAttribute(a.name);
       });
-      if(n.tagName==='A') n.setAttribute('target','_blank');
+      if(n.tagName==='A'){ n.setAttribute('target','_blank'); n.setAttribute('rel','noopener noreferrer'); }
       walk(n);
     } else if(n.nodeType===8){ n.remove(); }
   }); };
@@ -2908,6 +2916,8 @@ function _renderInlineForm(key, existingItem, courseId, fields){
     'duration_minutes:Duration (min)':`<div class="form-row"><label>Duration (min)</label><input type="number" id="${id}-dmin" value="${existingItem?.duration_minutes||60}"></div>`,
     'due_date:Due Date':`<div class="form-row"><label>Due Date *</label><input id="${id}-due" type="datetime-local" value="${existingItem?.due_date?new Date(existingItem.due_date).toISOString().slice(0,16):new Date(Date.now()+7*86400000).toISOString().slice(0,16)}"></div>`,
     'is_preview:Preview':`<div class="form-row"><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="${id}-preview" ${existingItem?.is_preview?'checked':''}> 🎁 Free preview / demo — visible to non-enrolled students</label></div>`,
+    'link_url:Link URL':`<div class="form-row"><label>Link URL <span style="font-size:11px;color:var(--jm-text-muted)">(paste a Google Drive, Dropbox, YouTube or any external link students should open)</span></label><input id="${id}-linkurl" value="${(existingItem?.link_url||'').replace(/"/g,'&quot;')}" placeholder="https://…"></div>`,
+    'image_url:Image URL':`<div class="form-row"><label>Cover image URL <span style="font-size:11px;color:var(--jm-text-muted)">(optional — shown above the description)</span></label><input id="${id}-imgurl" value="${(existingItem?.image_url||'').replace(/"/g,'&quot;')}" placeholder="https://…">${existingItem?.image_url?`<div style="margin-top:6px"><img src="${escHtml(existingItem.image_url)}" style="max-height:80px;border-radius:6px;border:1px solid var(--jm-border)"></div>`:''}</div>`,
     'images:Images':`<div class="form-row"><label>Images (multiple)</label><input type="file" id="${id}-images" accept="image/*" multiple><div id="${id}-img-preview" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">${(existingItem?.images||[]).map(u=>`<img src="${escHtml(u)}" style="width:60px;height:60px;object-fit:cover;border-radius:6px;border:1px solid var(--jm-border)">`).join('')}</div></div>`,
     'attachments:Attachments':`<div class="form-row"><label>Attachments (PDF, docs, etc.)</label><input type="file" id="${id}-attachments" multiple><div id="${id}-att-preview" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;font-size:11px">${(existingItem?.attachments||[]).map(a=>`<a href="${escHtml(a.url||a)}" target="_blank" style="padding:3px 8px;background:var(--jm-primary-tint);border-radius:4px">📎 ${escHtml(a.name||'file')}</a>`).join('')}</div></div>`
   };
@@ -2932,7 +2942,15 @@ async function cfgSubmit(key, courseId, existingId){
   try{
     let path, method='POST', body={};
     if(key==='topics'){
-      body={title:get('-title'),description:get('-desc'),isPreview:!!document.getElementById(id+'-preview')?.checked};
+      body={
+        title:get('-title'),
+        description:get('-desc'),
+        isPreview:!!document.getElementById(id+'-preview')?.checked,
+        // Optional external link + cover image URLs — surfaced in the reader so
+        // teachers can attach a Drive/Dropbox/YouTube reference per chapter.
+        linkUrl:get('-linkurl')||null,
+        imageUrl:get('-imgurl')||null
+      };
       path=existingId?`/course-content/topics/${existingId}`:`/course-content/${courseId}/topics`;
     } else if(key==='lectures'){
       const file=document.getElementById(id+'-file')?.files?.[0];
@@ -6210,8 +6228,16 @@ function readerRenderPage(idx){
     </div>`;
   } else {
     const t=pg.data;
-    const imgs=(t.images||[]).map(u=>`<div class="book-figure"><img src="${escHtml(u)}" onclick="window.open('${escHtml(u)}','_blank')" style="cursor:pointer"></div>`).join('');
-    const atts=(t.attachments||[]).map(a=>`<a href="${escHtml(a.url||a)}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;padding:6px 12px;background:var(--jm-primary-tint);border-radius:6px;font-size:12px;text-decoration:none;color:var(--jm-text);margin-right:6px">📎 ${escHtml(a.name||'Download')}</a>`).join('');
+    // Topics carry single-URL fields on the backend (image_url/attachment_url/
+    // link_url) as well as the legacy plural arrays — render whichever the
+    // server returned so attached files and external links actually surface.
+    const imgArr=Array.isArray(t.images)?t.images:[];
+    if(t.image_url) imgArr.unshift(t.image_url);
+    const imgs=imgArr.filter(Boolean).map(u=>`<div class="book-figure"><img src="${escHtml(u)}" onclick="window.open('${escHtml(u)}','_blank')" style="cursor:pointer"></div>`).join('');
+    const attArr=Array.isArray(t.attachments)?t.attachments.slice():[];
+    if(t.attachment_url) attArr.unshift({url:t.attachment_url, name:'Attachment'});
+    if(t.link_url) attArr.unshift({url:t.link_url, name:'Open link', kind:'link'});
+    const atts=attArr.map(a=>{ const u=a.url||a; const isLink=a.kind==='link' || /^https?:\/\//.test(u) && !/\.(pdf|docx?|xlsx?|pptx?|zip|rar|7z|jpg|jpeg|png|gif|webp)(\?|$)/i.test(u); return `<a href="${escHtml(u)}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:4px;padding:6px 12px;background:var(--jm-primary-tint);border-radius:6px;font-size:12px;text-decoration:none;color:var(--jm-text);margin-right:6px">${isLink?'🔗':'📎'} ${escHtml(a.name||'Download')}</a>`; }).join('');
     html=`<div class="book-page">
       <div class="book-kicker">Chapter</div>
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap">
