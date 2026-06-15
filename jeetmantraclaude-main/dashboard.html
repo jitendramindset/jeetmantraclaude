@@ -1633,7 +1633,7 @@ function debounceSearch(q){
 }
 function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('overlay').classList.toggle('show');}
 function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('overlay').classList.remove('show');}
-function logout(){localStorage.removeItem('jm_token');localStorage.removeItem('jm_user');window.location.href='/login.html';}
+async function logout(){ try{ if(typeof jmBrainReset==='function') await jmBrainReset(); }catch(e){} localStorage.removeItem('jm_token');localStorage.removeItem('jm_user');window.location.href='/login.html';}
 
 // ============================================================
 // ACTION MODALS — every role-specific button (create course,
@@ -4250,26 +4250,206 @@ async function loadSuggestions(){
 // ── OFFLINE TUTOR: when there's no internet (or the AI is unreachable),
 // answer from the student's DOWNLOADED courses in IndexedDB — keyword
 // retrieval over topic/lecture content, clearly labelled as offline.
-async function offlineTutorAnswer(q){
-  let recs=[]; try{ recs=await _idbAll(); }catch(e){ return null; }
-  if(!recs.length) return null;
-  const terms=(q||'').toLowerCase().split(/\W+/).filter(t=>t.length>2);
-  if(!terms.length) return null;
-  const hits=[];
-  recs.forEach(rec=>{
-    const items=[
-      ...((rec.full?.topics)||[]).map(t=>({title:t.title||'Topic', text:(t.title||'')+'. '+(t.description||'')})),
-      ...((rec.full?.lectures)||[]).map(l=>({title:l.title||'Lecture', text:(l.title||'')+'. '+(l.description||'')}))
-    ];
-    items.forEach(it=>{
-      const lc=it.text.toLowerCase(); let score=0;
-      terms.forEach(tm=>{ let i=0; while((i=lc.indexOf(tm,i))!==-1){ score++; i+=tm.length; } });
-      if(score>0) hits.push({course:rec.title, title:it.title, text:it.text, s:score/Math.sqrt(it.text.length||1)});
-    });
+// ══════════════════════════════════════════════════════════════════════
+// LOCAL BRAIN — on-device RAG over the student's OWN data, usable with no
+// internet. Indexes downloaded courses + notes + study history into a local
+// corpus and answers in three tiers, each degrading to the one below:
+//   1) BM25 extractive  — zero downloads, always works offline (the default).
+//   2) Embeddings       — transformers.js (WASM/WebGPU), better semantic recall.
+//   3) Generative LLM   — WebLLM (WebGPU), natural-language grounded answers.
+// Tiers 2/3 download a model ONCE while online, then run fully offline.
+// ══════════════════════════════════════════════════════════════════════
+const JM_BRAIN_IDB='jm-brain';
+const _jmBrain={ index:null, building:false, emb:null, embReady:false, llm:null, llmReady:false, llmLoading:false, lastTier:'bm25' };
+// All local-brain storage is namespaced by user id so a shared device never
+// serves one student's indexed notes/courses to another.
+function _jmUid(){ try{ return (JSON.parse(localStorage.getItem('jm_user')||'{}').id)||'anon'; }catch(e){ return 'anon'; } }
+function _jmKey(base){ return base+':'+_jmUid(); }
+// Wipe in-memory + persisted brain state (call on logout / account switch).
+async function jmBrainReset(){
+  _jmBrain.index=null; _jmBrain.building=false; _jmBrain.emb=null; _jmBrain.embReady=false; _jmBrain.llm=null; _jmBrain.llmReady=false; _jmBrain.llmLoading=false;
+  try{ const db=await _brainIdb(); await new Promise(r=>{ const tx=db.transaction('kv','readwrite'); tx.objectStore('kv').clear(); tx.oncomplete=r; tx.onerror=r; }); }catch(e){}
+  try{ Object.keys(localStorage).filter(k=>k.startsWith('jm_brain_')).forEach(k=>localStorage.removeItem(k)); }catch(e){}
+}
+function _brainIdb(){ return new Promise((res,rej)=>{ const r=indexedDB.open(JM_BRAIN_IDB,1); r.onupgradeneeded=()=>{ if(!r.result.objectStoreNames.contains('kv')) r.result.createObjectStore('kv',{keyPath:'id'}); }; r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
+async function _brainGet(id){ try{ const db=await _brainIdb(); return await new Promise(res=>{ const g=db.transaction('kv','readonly').objectStore('kv').get(id); g.onsuccess=()=>res(g.result?g.result.data:null); g.onerror=()=>res(null); }); }catch(e){ return null; } }
+async function _brainPut(id,data){ const db=await _brainIdb(); return await new Promise((res,rej)=>{ const tx=db.transaction('kv','readwrite'); try{ tx.objectStore('kv').put({id,data}); }catch(e){ return rej(e); } tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error); tx.onabort=()=>rej(tx.error||new Error('aborted')); }); }
+// Unicode-aware tokenizer (keeps Hindi/Tamil/etc. word characters).
+function _jmTok(s){ try{ return (s||'').toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(w=>w.length>1); }catch(e){ return (s||'').toLowerCase().split(/\W+/).filter(w=>w.length>1); } }
+function _jmSentences(t){
+  const norm=(t||'').replace(/\s+/g,' ').trim(); if(!norm) return [];
+  // Lookbehind isn't supported on very old engines, and CJK/Thai/Burmese have no
+  // ./?/! breaks — fall back to splitting AFTER terminators, then hard-cap length.
+  let parts; try{ parts=norm.split(/(?<=[.!?।])\s+/); }catch(e){ parts=norm.split(/([.!?।])\s+/).reduce((a,x,i)=>{ if(i%2) a[a.length-1]+=x; else a.push(x); return a; },[]); }
+  const out=[];
+  parts.map(s=>s.trim()).filter(Boolean).forEach(s=>{ if(s.length<=600) out.push(s); else for(let i=0;i<s.length;i+=560) out.push(s.slice(i,i+560)); });
+  return out;
+}
+// Split a source's text into ~ this many chars per passage, sentence-aware.
+function _jmChunk(text, meta, out){
+  const clean=(text||'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim(); if(!clean) return;
+  const sents=_jmSentences(clean); let buf='';
+  const flush=()=>{ const t=buf.trim(); if(t) out.push({...meta, id:'c'+out.length, text:t, tok:_jmTok((meta.label||'')+' '+t)}); buf=''; };
+  if(!sents.length){ for(let i=0;i<clean.length;i+=560){ buf=clean.slice(i,i+560); flush(); } return; }
+  for(const s of sents){ if((buf+' '+s).length>520){ flush(); } buf+=(buf?' ':'')+s; }
+  flush();
+}
+// Assemble raw documents from everything the student has locally. Personal data
+// (notes / activity / history) is fetched when online and folded into the index
+// so it is available offline; downloaded courses come straight from IndexedDB.
+async function _jmBrainSources(){
+  const chunks=[]; const stats={courses:0, notes:0, history:0};
+  // 1) Downloaded courses
+  let recs=[]; try{ recs=await _idbAll(); }catch(e){}
+  recs.forEach(rec=>{ stats.courses++;
+    (rec.full?.topics||[]).forEach(t=>_jmChunk((t.title||'')+'. '+(t.description||t.notes||''), {source:'course', label:t.title||'Topic', course:rec.title, kind:'Chapter'}, chunks));
+    (rec.full?.lectures||[]).forEach(l=>_jmChunk((l.title||'')+'. '+(l.description||''), {source:'course', label:l.title||'Lecture', course:rec.title, kind:'Lecture'}, chunks));
+    (rec.full?.materials||[]).forEach(m=>{ if(m.description||m.content) _jmChunk((m.title||'')+'. '+(m.description||m.content||''), {source:'course', label:m.title||'Material', course:rec.title, kind:'Material'}, chunks); });
   });
-  hits.sort((a,b)=>b.s-a.s);
+  // 2) Personal data — fetch fresh when online, else use the last cached copy.
+  // Fetch fresh when online (but only overwrite the offline cache when the
+  // response actually has content, so a transient empty reply can't wipe good
+  // cached data); fall back to the per-user cache when offline.
+  async function pull(path, key, ok){ key=_jmKey(key); if(navigator.onLine){ try{ const r=await api(path,'GET'); if(!ok||ok(r)) localStorage.setItem(key, JSON.stringify(r)); return r; }catch(e){} } try{ return JSON.parse(localStorage.getItem(key)||'null'); }catch(e){ return null; } }
+  const notes=await pull('/student/notes','jm_brain_notes', r=>r&&Array.isArray(r.notes)&&r.notes.length);
+  (notes?.notes||[]).forEach(n=>{ stats.notes++; _jmChunk((n.title||'Note')+'. '+(n.content||''), {source:'note', label:n.title||'My note', kind:'Note'}, chunks); });
+  const feed=await pull('/activity/me','jm_brain_feed', r=>r&&(r.activity||r.events));
+  (feed?.activity||feed?.events||[]).slice(0,60).forEach(ev=>{ const txt=ev.summary||ev.message||ev.title||ev.type; if(txt){ stats.history++; _jmChunk(String(txt), {source:'history', label:'Activity', kind:'History'}, chunks); } });
+  const hist=await pull('/student/activity-daily?days=30','jm_brain_hist', r=>r&&r.streak!=null);
+  if(hist?.streak!=null){ stats.history++; _jmChunk('Study streak '+hist.streak+' days. Active days: '+((hist.days||[]).filter(d=>d.minutes>0).length)+'.', {source:'history', label:'Study activity', kind:'History'}, chunks); }
+  return { chunks, stats };
+}
+// Build (or rebuild) the BM25 index and persist it for offline use.
+async function jmBrainBuild(force){
+  if(_jmBrain.building) return _jmBrain.index;
+  _jmBrain.building=true;
+  try{
+    const { chunks, stats }=await _jmBrainSources();
+    const N=chunks.length; const df={}; let totLen=0;
+    chunks.forEach(c=>{ totLen+=c.tok.length; const seen=new Set(); c.tok.forEach(t=>{ if(!seen.has(t)){ seen.add(t); df[t]=(df[t]||0)+1; } }); });
+    const index={ chunks, df, N, avgdl:N?totLen/N:0, builtAt:Date.now(), stats, hasEmb:false, uid:_jmUid() };
+    _jmBrain.index=index; _jmBrain.embReady=false;
+    try{ await _brainPut(_jmKey('index'), index); }catch(e){ console.warn('Offline index not persisted', e); } // in-memory still usable this session
+    return index;
+  } finally { _jmBrain.building=false; }
+}
+async function jmBrainEnsure(){
+  if(_jmBrain.index && _jmBrain.index.uid===_jmUid()) return _jmBrain.index;
+  _jmBrain.index=await _brainGet(_jmKey('index'));
+  if(_jmBrain.index && _jmBrain.index.hasEmb) _jmBrain.embReady=true;
+  // Build on first use if we have any local data and no index yet.
+  if(!_jmBrain.index){ const built=await jmBrainBuild(); if(built && built.N) return built; }
+  return _jmBrain.index;
+}
+// BM25 ranking (k1=1.5, b=0.75).
+function _jmBM25(qtok, index, k){
+  const { chunks, df, N, avgdl }=index; const k1=1.5, b=0.75;
+  const qset=[...new Set(qtok)];
+  const scored=chunks.map(c=>{
+    let s=0; const dl=c.tok.length||1;
+    qset.forEach(t=>{ const n=df[t]; if(!n) return; const idf=Math.log(1+(N-n+0.5)/(n+0.5)); let f=0; for(const w of c.tok) if(w===t) f++; if(f) s+=idf*((f*(k1+1))/(f+k1*(1-b+b*dl/(avgdl||1)))); });
+    return { c, s };
+  }).filter(x=>x.s>0);
+  scored.sort((a,b2)=>b2.s-a.s);
+  return scored.slice(0,k||6);
+}
+// Cosine over stored embeddings (Tier 2).
+function _jmCos(a,b){ if(!a||!b||a.length!==b.length) return 0; let d=0; for(let i=0;i<a.length;i++) d+=a[i]*b[i]; return d; }
+async function jmBrainSearch(query, k){
+  const index=await jmBrainEnsure(); if(!index||!index.N){ _jmBrain.lastTier='none'; return []; }
+  // Tier 2: semantic search only when embeddings finished + persisted (hasEmb).
+  if(_jmBrain.embReady && _jmBrain.emb && index.hasEmb){
+    try{
+      const qv=await _jmEmbed(query);
+      const scored=index.chunks.map(c=>({c, s:c.emb?_jmCos(qv,c.emb):0}));
+      scored.sort((a,b)=>b.s-a.s); _jmBrain.lastTier='embeddings'; return scored.slice(0,k||6);
+    }catch(e){ /* fall through to BM25 */ }
+  }
+  _jmBrain.lastTier='bm25';
+  return _jmBM25(_jmTok(query), index, k);
+}
+// Tier 1 answer: stitch the most query-relevant sentences from the top hits,
+// each cited to its source — fully offline, no model.
+function _jmExtractive(query, hits){
   if(!hits.length) return null;
-  return '📴 Offline — answering from your downloaded courses:\n\n'+hits.slice(0,2).map(h=>'▸ '+h.title+' ('+h.course+')\n'+h.text.slice(0,260)).join('\n\n');
+  const qt=new Set(_jmTok(query));
+  const lines=[]; const seen=new Set();
+  for(const h of hits.slice(0,4)){
+    const sents=_jmSentences(h.c.text);
+    let best=sents[0]||h.c.text, bestS=-1;
+    sents.forEach(s=>{ const st=_jmTok(s); let m=0; st.forEach(t=>{ if(qt.has(t)) m++; }); const sc=m/Math.sqrt(st.length||1); if(sc>bestS){ bestS=sc; best=s; } });
+    const key=best.slice(0,40); if(seen.has(key)) continue; seen.add(key);
+    const src=h.c.source==='note'?'📝 '+h.c.label : h.c.source==='history'?'🕘 '+h.c.label : '📚 '+(h.c.course?h.c.course+' ▸ ':'')+h.c.label;
+    lines.push('• '+best.replace(/\s+/g,' ').trim()+'\n   — '+src);
+    if(lines.length>=3) break;
+  }
+  if(!lines.length) return null;
+  return '📴 Offline answer from your own materials:\n\n'+lines.join('\n\n');
+}
+// ── Tier 2: on-device embeddings (transformers.js, loaded once, then cached) ──
+async function _jmEnsureEmbedder(progress){
+  if(_jmBrain.emb) return _jmBrain.emb;
+  if(!navigator.onLine) throw new Error('Go online once to download the embedding model — then it works offline.');
+  let mod; try{ mod=await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.2'); }catch(e){ throw new Error('Could not load the embedding library (offline or blocked).'); }
+  const pipe=await mod.pipeline('feature-extraction','Xenova/paraphrase-multilingual-MiniLM-L12-v2',{ progress_callback:progress });
+  if(typeof pipe!=='function') throw new Error('Embedding model failed to initialise.');
+  _jmBrain.emb=pipe; return _jmBrain.emb;
+}
+async function _jmEmbed(text){ if(!_jmBrain.emb) throw new Error('Embedder not loaded'); const out=await _jmBrain.emb(text,{pooling:'mean',normalize:true}); if(!out||!out.data) throw new Error('Invalid embedder output'); return Array.from(out.data); }
+async function jmBrainEnableEmbeddings(progress){
+  const index=await jmBrainEnsure(); if(!index||!index.N) throw new Error('Nothing indexed yet — build the local index first.');
+  if(index.chunks.length>4000) throw new Error('Too much content for on-device embeddings ('+index.chunks.length+' passages). Keyword search still works offline.');
+  await _jmEnsureEmbedder(progress);
+  for(let i=0;i<index.chunks.length;i++){ if(!index.chunks[i].emb){ index.chunks[i].emb=await _jmEmbed(index.chunks[i].label+'. '+index.chunks[i].text); if(progress) progress({status:'embedding', i, total:index.chunks.length}); } }
+  // Persist FIRST, then flip the ready flags — so a crash mid-embed never leaves
+  // hasEmb=true with missing vectors.
+  try{ index.hasEmb=true; await _brainPut(_jmKey('index'), index); }
+  catch(e){ index.hasEmb=false; throw new Error('Could not save embeddings (storage full?). Keyword search still works.'); }
+  _jmBrain.embReady=true;
+  return index.chunks.length;
+}
+// ── Tier 3: in-browser generative LLM (WebLLM / WebGPU, downloaded once) ──
+async function jmBrainEnableLLM(progress){
+  if(_jmBrain.llmReady) return true;
+  if(!('gpu' in navigator)) throw new Error('This browser has no WebGPU — needed for the on-device LLM. Use Chrome/Edge, or rely on offline search (Tier 1/2).');
+  if(!navigator.onLine) throw new Error('Go online once to download the AI model — then it works offline.');
+  if(_jmBrain.llmLoading) return false; _jmBrain.llmLoading=true;
+  try{
+    let webllm; try{ webllm=await import('https://esm.run/@mlc-ai/web-llm'); }catch(e){ throw new Error('Could not load the on-device AI library (offline or blocked).'); }
+    const model=localStorage.getItem('jm_llm_model')||'Qwen2.5-0.5B-Instruct-q4f16_1-MLC';
+    _jmBrain.llm=await webllm.CreateMLCEngine(model,{ initProgressCallback:progress });
+    _jmBrain.llmReady=true; return true;
+  } finally { _jmBrain.llmLoading=false; }
+}
+async function _jmGenerate(query, context){
+  if(!_jmBrain.llm) throw new Error('LLM not initialised');
+  const sys='You are an offline study tutor. Answer the question using ONLY the context from the student\'s own materials. If the answer is not in the context, say you do not have it offline and suggest what to study. Keep it concise.';
+  const msgs=[{role:'system',content:sys},{role:'user',content:'Context:\n'+context+'\n\nQuestion: '+query}];
+  const r=await _jmBrain.llm.chat.completions.create({ messages:msgs, temperature:0.4, max_tokens:400 });
+  return (r && r.choices && r.choices[0] && r.choices[0].message && typeof r.choices[0].message.content==='string') ? r.choices[0].message.content.trim() : null;
+}
+// Orchestrator: best available tier, grounded in the student's own data.
+async function jmLocalAnswer(query){
+  const index=await jmBrainEnsure();
+  if(!index||!index.N) return null;
+  const hits=await jmBrainSearch(query, 6);
+  if(!hits.length) return { text:'📴 I couldn\'t find this in your downloaded courses or notes. Download the relevant course (while online) to study it offline.', tier:'none', sources:[] };
+  const sources=hits.slice(0,3).map(h=>({label:h.c.label, course:h.c.course, source:h.c.source}));
+  // Tier 3: generate if the local LLM is ready.
+  if(_jmBrain.llmReady){
+    try{
+      const ctx=hits.slice(0,5).map(h=>'['+(h.c.course?h.c.course+' / ':'')+h.c.label+'] '+h.c.text).join('\n\n');
+      const gen=await _jmGenerate(query, ctx);
+      if(gen) return { text:'🧠 '+gen, tier:'llm', sources };
+    }catch(e){ /* fall back to extractive */ }
+  }
+  return { text:_jmExtractive(query, hits)||hits[0].c.text.slice(0,300), tier:_jmBrain.lastTier||'bm25', sources };
+}
+
+// offlineTutorAnswer now delegates to the Local Brain (course + notes + history),
+// keeping the old signature so existing callers (msgrAskAI) work unchanged.
+async function offlineTutorAnswer(q){
+  try{ const r=await jmLocalAnswer(q); return (r && typeof r.text==='string') ? r.text : null; }catch(e){ return null; }
 }
 
 // ── Per-day study activity: streak + last-14-days bar chart. ───────────
@@ -5801,6 +5981,7 @@ async function downloadCourse(courseId, title){
     }catch(e){}
     await _idbPut({ courseId, title:title||full.course?.title||'Course', full, assignments, savedAt: Date.now() });
     toast('✓ Saved for offline ('+cached+' files cached)');
+    if(typeof jmBrainBuild==='function') jmBrainBuild(true).catch(e=>console.warn('Offline index refresh failed', e)); // refresh the offline AI index
     if(document.getElementById('jm-generic-modal')?.style.display!=='none') openDownloads();
     renderStudentCourses();
   }catch(e){ toast('Download failed: '+(e.message||'offline?'),true); }
@@ -5814,13 +5995,74 @@ async function openDownloads(){
   const all=await _idbAll();
   const body=document.getElementById('dl-body'); if(!body) return;
   const online=navigator.onLine;
-  body.innerHTML=`<div style="font-size:12px;color:var(--jm-text-muted);margin-bottom:10px">${online?'🟢 Online':'🔴 Offline — reading from saved copies'} · ${all.length} course${all.length===1?'':'s'} saved</div>`+
+  body.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap"><div style="font-size:12px;color:var(--jm-text-muted)">${online?'🟢 Online':'🔴 Offline — reading from saved copies'} · ${all.length} course${all.length===1?'':'s'} saved</div><button class="btn-sm btn-primary" onclick="openOfflineAI()">🧠 Offline AI</button></div>`+
     (all.length?all.map(r=>`<div style="display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--jm-border);border-radius:10px;margin-bottom:8px">
       <div style="width:40px;height:40px;border-radius:8px;background:var(--jm-primary-tint);display:flex;align-items:center;justify-content:center">📚</div>
       <div style="flex:1;min-width:0"><div style="font-weight:600;font-size:14px">${escHtml(r.title)}</div><div style="font-size:11px;color:var(--jm-text-muted)">${(r.full?.topics||[]).length} chapters · ${(r.full?.lectures||[]).length} lectures · saved ${new Date(r.savedAt).toLocaleDateString()}</div></div>
       <button class="btn-sm btn-primary" onclick="openReader('${r.courseId}','${escHtml(r.title).replace(/'/g,"\\'")}')">📖 Read</button>
       <button class="btn-sm btn-outline" onclick="removeDownload('${r.courseId}')" title="Remove" style="color:#b91c1c">🗑</button>
     </div>`).join(''):'<div class="empty-state"><div class="icon">📥</div>No downloads yet. Tap ⬇ on any course to save it for offline study.</div>');
+}
+
+// ── Offline AI panel: build the local index, test it, and (optionally) enable
+// on-device embeddings + a generative LLM that run with no internet. ──────────
+async function openOfflineAI(){
+  showModal('🧠 Offline AI — study with no internet', '<div id="oai-body" style="min-height:200px"><div style="color:var(--jm-text-muted);padding:16px">Loading…</div></div>');
+  await _offAiRender();
+}
+async function _offAiRender(){
+  const body=document.getElementById('oai-body'); if(!body) return;
+  let idx=null; try{ idx=await jmBrainEnsure(); }catch(e){}
+  const s=idx?.stats||{courses:0,notes:0,history:0};
+  const chunks=idx?.N||0;
+  const hasGpu=('gpu' in navigator);
+  const embOn=_jmBrain.embReady||!!idx?.hasEmb;
+  body.innerHTML=`
+    <div style="font-size:12px;color:var(--jm-text-muted);margin-bottom:12px">Answers come from <b>your own</b> downloaded courses, notes and study history — nothing leaves the device.</div>
+    <div class="card" style="padding:14px;margin-bottom:12px">
+      <div style="font-weight:700;margin-bottom:8px">📂 Local knowledge</div>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:13px">
+        <span>📚 ${s.courses} course${s.courses===1?'':'s'}</span><span>📝 ${s.notes} note${s.notes===1?'':'s'}</span><span>🕘 ${s.history} history item${s.history===1?'':'s'}</span><span>🧩 ${chunks} passages indexed</span>
+      </div>
+      <div style="margin-top:10px"><button class="btn-sm btn-outline" onclick="_offAiBuild()">🔄 Rebuild index</button> <span style="font-size:11px;color:var(--jm-text-muted)">${idx?.builtAt?'updated '+new Date(idx.builtAt).toLocaleString():'not built yet'}</span></div>
+    </div>
+    <div class="card" style="padding:14px;margin-bottom:12px">
+      <div style="font-weight:700;margin-bottom:8px">💬 Ask offline</div>
+      <div style="display:flex;gap:8px"><input id="oai-q" placeholder="Ask about your notes or downloaded courses…" style="flex:1" onkeydown="if(event.key==='Enter')_offAiAsk()"><button class="btn-sm btn-primary" onclick="_offAiAsk()">Ask</button></div>
+      <div id="oai-ans" style="margin-top:10px;font-size:13px;white-space:pre-wrap;line-height:1.6"></div>
+    </div>
+    <div class="card" style="padding:14px">
+      <div style="font-weight:700;margin-bottom:8px">⚙️ Upgrades (download once while online, then run offline)</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--jm-border)">
+        <div><div style="font-weight:600;font-size:13px">🔎 Smart search (embeddings)</div><div style="font-size:11px;color:var(--jm-text-muted)">~120 MB · multilingual semantic recall</div></div>
+        ${embOn?'<span class="badge badge-green">Enabled</span>':'<button class="btn-sm btn-outline" onclick="_offAiEmb()">Enable</button>'}
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0">
+        <div><div style="font-weight:600;font-size:13px">🧠 Generative AI tutor (on-device LLM)</div><div style="font-size:11px;color:var(--jm-text-muted)">~400 MB · ${hasGpu?'WebGPU ready':'needs WebGPU (Chrome/Edge)'}</div></div>
+        ${_jmBrain.llmReady?'<span class="badge badge-green">Ready</span>':`<button class="btn-sm btn-outline" ${hasGpu?'':'disabled'} onclick="_offAiLLM()">Download</button>`}
+      </div>
+      <div id="oai-prog" style="font-size:11px;color:var(--jm-text-muted);margin-top:8px"></div>
+    </div>`;
+}
+async function _offAiBuild(){ const p=document.getElementById('oai-prog'); if(p)p.textContent='Indexing your courses, notes and history…'; try{ const idx=await jmBrainBuild(true); toast('✓ Indexed '+(idx?.N||0)+' passages'); }catch(e){ toast('Index failed: '+e.message,true); } await _offAiRender(); }
+async function _offAiAsk(){
+  const q=(document.getElementById('oai-q')||{}).value||''; const out=document.getElementById('oai-ans'); if(!q.trim()||!out) return;
+  out.textContent='…thinking';
+  try{ const r=await jmLocalAnswer(q); out.textContent=(r?r.text:'No local answer.')+(r&&r.tier&&r.tier!=='none'?'\n\n— '+({bm25:'offline keyword search',embeddings:'offline smart search',llm:'on-device AI tutor'}[r.tier]||r.tier):''); }
+  catch(e){ out.textContent='⚠️ '+e.message; }
+}
+// Re-query the progress node each time so a closed/re-rendered modal is a safe
+// no-op (and a re-opened one still updates), instead of writing to a stale ref.
+function _offAiProg(t){ const p=document.getElementById('oai-prog'); if(p) p.textContent=t; }
+async function _offAiEmb(){
+  try{ await jmBrainEnableEmbeddings(ev=>{ _offAiProg(ev.status==='embedding'?('Embedding '+ev.i+'/'+ev.total+'…'):('Downloading model… '+(ev.progress?Math.round(ev.progress*100)+'%':''))); }); toast('✓ Smart search enabled'); }
+  catch(e){ toast('Could not enable: '+e.message,true); _offAiProg('⚠️ '+e.message); }
+  await _offAiRender();
+}
+async function _offAiLLM(){
+  try{ await jmBrainEnableLLM(ev=>{ _offAiProg(ev.text||('Downloading model… '+(ev.progress?Math.round(ev.progress*100)+'%':''))); }); toast('✓ On-device AI ready'); }
+  catch(e){ toast(e.message,true); _offAiProg('⚠️ '+e.message); }
+  await _offAiRender();
 }
 async function _renderReader(){
   const r=window._reader; if(!r) return;
@@ -7179,6 +7421,7 @@ let _cmdkSel=0;
 const CMDK_ACTIONS=()=>{
   const a=[
     {c:'Navigate', l:'🏠 Dashboard',    f:()=>navScroll(null,null)},
+    {c:'AI', l:'🧠 Offline AI (study without internet)', f:()=>typeof openOfflineAI==='function'&&openOfflineAI()},
     {c:'Navigate', l:'📚 My Courses',   f:()=>{const el=document.querySelector('.nav-item[data-nav-key="courses"]')||[...document.querySelectorAll('.nav-item')].find(x=>/courses/i.test(x.textContent));el?.click();}},
     {c:'Navigate', l:'📡 Live Classes', f:()=>{const el=document.querySelector('.nav-item[data-nav-key="live"]')||[...document.querySelectorAll('.nav-item')].find(x=>/live/i.test(x.textContent));el?.click();}},
     {c:'Navigate', l:'📅 Calendar',     f:()=>typeof openCalendar==='function'&&openCalendar()},
