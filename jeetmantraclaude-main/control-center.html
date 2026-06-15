@@ -60,6 +60,21 @@
 </style>
 </head>
 <body>
+<script>
+// Admin-only gate: this is an internal AI-dev dashboard, not a public page.
+// Bounce unauthenticated or non-admin visitors back to login so the page doesn't
+// leak internal audit telemetry. Runs before any UI renders.
+(function(){
+  try{
+    const tok=localStorage.getItem('jm_token');
+    const user=JSON.parse(localStorage.getItem('jm_user')||'null');
+    if(!tok || !user || user.role!=='admin'){
+      sessionStorage.setItem('jm_post_login_redirect','/control-center.html');
+      window.location.replace('/login.html?to=control-center');
+    }
+  }catch(e){ window.location.replace('/login.html'); }
+})();
+</script>
 <div class="wrap">
   <header>
     <div>

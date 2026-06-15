@@ -505,14 +505,17 @@ class WebhookHandler {
    * Test webhook connection
    */
   async testConnection() {
+    // Skip the probe entirely when no real n8n URL is configured — otherwise
+    // every page load logs TypeError while waiting for a webhook that doesn't
+    // exist (was the noisiest console offender).
+    if (!this.webhookUrl || /^(\s*|https?:\/\/(localhost|127\.0\.0\.1|example\.com))/i.test(this.webhookUrl)) return false;
     try {
       const baseUrl = this.webhookUrl.replace('/webhook/jeetmantra', '');
-      const response = await fetch(`${baseUrl}/health`, {
-        method: 'GET'
-      });
+      const response = await fetch(`${baseUrl}/health`, { method: 'GET' });
       return response.ok;
     } catch (error) {
-      console.error('Webhook connection test failed:', error);
+      // Demote to debug so this doesn't masquerade as a real app error.
+      console.debug('Webhook connection probe failed (n8n offline?):', error.message);
       return false;
     }
   }
