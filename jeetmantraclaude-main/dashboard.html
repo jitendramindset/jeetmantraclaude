@@ -462,10 +462,7 @@ html[data-theme="dark"]{
       <input type="text" placeholder="Search courses..." data-i18n-placeholder="search_courses" aria-label="Search courses" oninput="debounceSearch(this.value)">
     </div>
     <div class="topbar-actions">
-      <select id="langSwitch" onchange="setLang(this.value)" title="Language" style="background:transparent;border:1px solid var(--jm-border);border-radius:6px;padding:5px 8px;font-size:12px;font-weight:700;color:var(--jm-text);cursor:pointer">
-        <option value="en">🇮🇳 EN</option>
-        <option value="hi">🇮🇳 हिं</option>
-      </select>
+      <button class="lang-curr-btn no-i18n" id="langCurrBtn" onclick="openLangPicker()" title="Language / भाषा" style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border:1px solid var(--jm-border);border-radius:8px;background:transparent;color:var(--jm-text);font-weight:700;font-size:12px;cursor:pointer"><span id="langCurrNative">English</span> 🌐</button>
       <button class="icon-btn" onclick="openMessenger()" title="Messages" aria-label="Messages" style="border:none">💬</button>
       <button class="icon-btn" onclick="toggleNotifs(event)" title="Notifications" aria-label="Notifications" style="position:relative;cursor:pointer;border:none;background:transparent">🔔<span id="notifDot" style="display:none;position:absolute;top:6px;right:6px;width:8px;height:8px;border-radius:50%;background:#ef4444"></span>
         <div class="notif-dropdown" id="notifDropdown" onclick="event.stopPropagation()"></div>
@@ -7800,19 +7797,56 @@ const I18N = {
 // the complete list is offered in Settings. `bcp` drives TTS + speech-recognition
 // locale; `n` is the language's own native name.
 const JM_LANGS = [
-  {c:'en', n:'English',  bcp:'en-IN'},
-  {c:'hi', n:'हिन्दी',    bcp:'hi-IN'},
-  {c:'bn', n:'বাংলা',     bcp:'bn-IN'},
-  {c:'mr', n:'मराठी',     bcp:'mr-IN'},
-  {c:'ta', n:'தமிழ்',     bcp:'ta-IN'},
-  {c:'te', n:'తెలుగు',    bcp:'te-IN'},
-  {c:'gu', n:'ગુજરાતી',   bcp:'gu-IN'},
-  {c:'kn', n:'ಕನ್ನಡ',     bcp:'kn-IN'},
-  {c:'pa', n:'ਪੰਜਾਬੀ',   bcp:'pa-IN'}
+  {c:'en', n:'English',  e:'English',   bcp:'en-IN', dir:'ltr'},
+  {c:'hi', n:'हिन्दी',    e:'Hindi',     bcp:'hi-IN', dir:'ltr'},
+  {c:'bn', n:'বাংলা',     e:'Bengali',   bcp:'bn-IN', dir:'ltr'},
+  {c:'te', n:'తెలుగు',    e:'Telugu',    bcp:'te-IN', dir:'ltr'},
+  {c:'mr', n:'मराठी',     e:'Marathi',   bcp:'mr-IN', dir:'ltr'},
+  {c:'ta', n:'தமிழ்',     e:'Tamil',     bcp:'ta-IN', dir:'ltr'},
+  {c:'gu', n:'ગુજરાતી',   e:'Gujarati',  bcp:'gu-IN', dir:'ltr'},
+  {c:'kn', n:'ಕನ್ನಡ',     e:'Kannada',   bcp:'kn-IN', dir:'ltr'},
+  {c:'ml', n:'മലയാളം',    e:'Malayalam', bcp:'ml-IN', dir:'ltr'},
+  {c:'pa', n:'ਪੰਜਾਬੀ',   e:'Punjabi',   bcp:'pa-IN', dir:'ltr'},
+  {c:'or', n:'ଓଡ଼ିଆ',     e:'Odia',      bcp:'or-IN', dir:'ltr'},
+  {c:'ur', n:'اردو',     e:'Urdu',      bcp:'ur-IN', dir:'rtl'}
 ];
 const JM_LANG_SET = new Set(JM_LANGS.map(l=>l.c));
 function jmLangName(c){ const l=JM_LANGS.find(x=>x.c===c); return l?l.n:c; }
 function jmLangBcp(c){ const l=JM_LANGS.find(x=>x.c===c); return l?l.bcp:'en-IN'; }
+// ── Topbar language picker: single compact button → tile grid of all 9 languages.
+// Pattern matches the user's Mantravat Setu reference: native name shown big,
+// English label small. Keeps the topbar tidy while still surfacing the full list.
+function openLangPicker(){
+  if(!document.getElementById('jmLangPickCss')){
+    const s=document.createElement('style'); s.id='jmLangPickCss';
+    s.textContent='.lang-curr-btn:hover{border-color:var(--jm-primary)!important;color:var(--jm-primary)!important}'
+      +'.lang-pick-ov{position:fixed;inset:0;z-index:10040;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);display:flex;align-items:flex-start;justify-content:center;padding:48px 16px;overflow-y:auto}'
+      +'.lang-pick-modal{background:var(--jm-surface);border:1px solid var(--jm-border);border-radius:18px;width:100%;max-width:480px;box-shadow:0 12px 40px rgba(0,0,0,.28);animation:lpRise .22s cubic-bezier(.2,.9,.3,1)}'
+      +'@keyframes lpRise{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}'
+      +'.lang-pick-head{padding:14px 18px;border-bottom:1px solid var(--jm-border);display:flex;align-items:center;justify-content:space-between}'
+      +'.lang-pick-head h3{font-size:16px;margin:0;font-weight:700}'
+      +'.lang-pick-close{width:32px;height:32px;border-radius:8px;background:transparent;border:none;color:var(--jm-text-muted);font-size:18px;cursor:pointer}'
+      +'.lang-pick-close:hover{background:var(--jm-primary-tint);color:var(--jm-text)}'
+      +'.lang-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:14px}'
+      +'.lang-tile{padding:12px 8px;border:1.5px solid var(--jm-border);border-radius:12px;cursor:pointer;text-align:center;background:var(--jm-surface);color:var(--jm-text);transition:.15s}'
+      +'.lang-tile:hover{border-color:var(--jm-primary);background:var(--jm-primary-tint)}'
+      +'.lang-tile.active{border-color:var(--jm-primary);background:var(--jm-primary);color:#fff}'
+      +'.lt-native{font-size:15px;font-weight:700;line-height:1.2;margin-bottom:2px}'
+      +'.lt-en{font-size:10px;opacity:.78}'
+      +'@media(max-width:420px){.lang-grid{grid-template-columns:1fr 1fr}}';
+    document.head.appendChild(s);
+  }
+  closeLangPicker();
+  const cur=localStorage.getItem('jm_lang')||'en';
+  const ov=document.createElement('div'); ov.className='lang-pick-ov no-i18n'; ov.id='jmLangPickOv';
+  ov.innerHTML='<div class="lang-pick-modal" onclick="event.stopPropagation()">'
+    +'<div class="lang-pick-head"><h3>🌐 Language / भाषा</h3><button class="lang-pick-close" onclick="closeLangPicker()" aria-label="Close">✕</button></div>'
+    +'<div class="lang-grid">'+JM_LANGS.map(l=>'<div class="lang-tile '+(cur===l.c?'active':'')+'" onclick="setLang(\''+l.c+'\');closeLangPicker()"><div class="lt-native">'+l.n+'</div><div class="lt-en">'+l.e+'</div></div>').join('')+'</div>'
+    +'</div>';
+  ov.addEventListener('click', ev=>{ if(ev.target===ov) closeLangPicker(); });
+  document.body.appendChild(ov);
+}
+function closeLangPicker(){ const o=document.getElementById('jmLangPickOv'); if(o) o.remove(); }
 
 // ── Runtime auto-translation engine ───────────────────────────────────────
 // The app's authored text is English. For any non-English language we walk the
@@ -7940,7 +7974,7 @@ function setLang(code){
   if(!JM_LANG_SET.has(code)) code='en';
   localStorage.setItem('jm_lang', code);
   document.documentElement.lang=code;
-  const sw=document.getElementById('langSwitch'); if(sw && [...sw.options].some(o=>o.value===code)) sw.value=code;
+  const sw=document.getElementById('langCurrNative'); if(sw){ const m=JM_LANGS.find(l=>l.c===code); if(m) sw.textContent=m.n; }
   const sl=document.getElementById('st-lang'); if(sl) sl.value=code;
   const dict=I18N[code]||{};
   // 1) curated dictionary for known keys (instant, exact — esp. Hindi nav/stats)
