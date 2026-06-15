@@ -2,12 +2,15 @@ const express = require('express');
 const { supabaseAdmin } = require('../config/supabase');
 const { authenticateToken } = require('../middleware/auth');
 const { validate } = require('../middleware/validation');
+const { SELLER_ROLES } = require('../config/roles');
 const { v4: uuidv4 } = require('uuid');
 
 const router = express.Router();
 
 const PLATFORM_COMMISSION = parseFloat(process.env.PLATFORM_COMMISSION_RATE || '15') / 100;
-const SELLER_ROLES = ['teacher', 'partner', 'school', 'coaching', 'admin'];
+// SELLER_ROLES is the single source of truth in config/roles.js (includes the
+// newer creator roles: content_creator, corporate_trainer). A local copy here
+// previously diverged and locked those roles out of listing.
 
 // Attach seller {full_name,email} to listings via a single batched lookup.
 // Needed because jeetmantra_users.id is VARCHAR and seller_id is UUID, so no
@@ -72,12 +75,14 @@ router.get('/', async (req, res) => {
     // Attach seller info via a separate lookup (no FK embed possible).
     listings = await attachSellers(listings);
 
-    // If text search, also run search
+    // If text search, also run search (sanitize q to prevent PostgREST filter
+    // injection via commas/parens/wildcards).
     if (q) {
+      const safeQ = String(q).replace(/[,()*%\\]/g, ' ').trim();
       const { data: searchResults } = await supabaseAdmin
         .from('courses')
         .select('id')
-        .or(`title.ilike.%${q}%,description.ilike.%${q}%,category.ilike.%${q}%`);
+        .or(`title.ilike.%${safeQ}%,description.ilike.%${safeQ}%,category.ilike.%${safeQ}%`);
       const courseIds = searchResults?.map(c => c.id) || [];
       const filtered = listings?.filter(l => courseIds.includes(l.course_id)) || [];
       return res.json({ listings: filtered, total: filtered.length, page: parseInt(page) });
@@ -242,11 +247,21 @@ router.post('/:id/purchase', authenticateToken, async (req, res) => {
     const buyerId = req.user.id;
     if (listing.seller_id === buyerId) return res.status(400).json({ error: 'Cannot purchase your own listing' });
 
+    const amount = parseFloat(listing.price);
+
+    // PAID listings must go through the payment flow (/payments/order →
+    // /payments/verify), which creates the enrollment on a verified payment.
+    // This endpoint only fulfils FREE enrolments; otherwise it was a free-course
+    // button for paid listings (no money taken, fake seller earnings credited).
+    if (amount > 0) {
+      const { data: paid } = await supabaseAdmin.from('payments')
+        .select('id').eq('user_id', buyerId).eq('course_id', listing.course_id).eq('status', 'paid').maybeSingle();
+      if (!paid) return res.status(402).json({ error: 'This is a paid course — complete payment to enrol.', requiresPayment: true, price: amount });
+    }
+
     // Check if already purchased
     const { data: existing } = await supabaseAdmin.from('marketplace_purchases').select('id').eq('buyer_id', buyerId).eq('listing_id', listing.id).single();
     if (existing) return res.status(400).json({ error: 'You have already purchased this course' });
-
-    const amount = parseFloat(listing.price);
     const commRate = parseFloat(listing.commission_rate || 15) / 100;
     const platformFee = amount * commRate;
     const sellerEarnings = amount - platformFee;

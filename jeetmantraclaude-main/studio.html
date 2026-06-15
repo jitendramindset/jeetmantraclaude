@@ -12,7 +12,7 @@ body{margin:0;background:var(--bg);color:var(--txt);font-family:-apple-system,'S
 .topbar{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--panel);border-bottom:1px solid var(--bd);flex-wrap:wrap}
 .topbar .logo{font-weight:800;font-size:16px}.topbar .logo .a{color:var(--pri)}
 .btn{padding:8px 14px;border-radius:8px;border:1px solid var(--bd);background:var(--panel2);color:var(--txt);font-weight:600;cursor:pointer;font-size:13px;display:inline-flex;align-items:center;gap:6px}
-.btn:hover{border-color:var(--pri)}.btn.pri{background:var(--pri);border-color:var(--pri)}.btn.danger{background:#b91c1c;border-color:#b91c1c}
+.btn:hover{border-color:var(--pri)}.btn:active{transform:scale(.97)}.btn.pri{background:var(--pri);border-color:var(--pri)}.btn.danger{background:#b91c1c;border-color:#b91c1c}
 .btn.on{background:var(--pri);border-color:var(--pri)}
 .main{flex:1;display:grid;grid-template-columns:250px 1fr 290px;overflow:hidden}
 .col{overflow-y:auto;padding:14px}.col.left{border-right:1px solid var(--bd);background:var(--panel)}.col.right{border-left:1px solid var(--bd);background:var(--panel)}
@@ -33,7 +33,15 @@ select,input[type=text]{width:100%;padding:8px;border-radius:6px;border:1px soli
 .row{display:flex;gap:8px;align-items:center;margin-bottom:8px}.row label{font-size:12px;color:var(--mut)}
 .badge{font-size:10px;background:var(--panel2);padding:2px 8px;border-radius:10px;color:var(--mut)}
 .banner{padding:8px 10px;border-radius:8px;font-size:12px;margin-bottom:8px}.banner.warn{background:#7c2d12;color:#fed7aa}.banner.ok{background:#14532d;color:#bbf7d0}
-@media(max-width:900px){.main{grid-template-columns:1fr;grid-template-rows:auto 1fr auto}.col{max-height:32vh}}
+/* Tablet: 2-col — controls beside stage, settings panel spans full width below. */
+@media(max-width:1100px){.main{grid-template-columns:240px 1fr;grid-template-rows:1fr auto}.col.left{grid-row:1}.stage{grid-row:1}.col.right{grid-column:1/-1;grid-row:2;border-left:0;border-top:1px solid var(--bd);max-height:38vh}}
+/* Phone: single column, stage gets priority via 16:9 lock; panels flow naturally. */
+@media(max-width:760px){.main{grid-template-columns:1fr;grid-template-rows:none;grid-auto-flow:row;overflow-y:auto}.col.left,.col.right,.stage{grid-row:auto;grid-column:auto;max-height:none}.col{max-height:none}.stage{order:-1;min-height:42vh;padding:10px}#out{max-height:46vh}.corner{width:40px;height:40px;border-width:4px}}
+@media(max-width:480px){.topbar{padding:8px 10px;gap:6px}.btn{padding:9px 12px;font-size:12px;min-height:40px}#fmtSelect{width:100%;order:10}.col{padding:10px}.hint{display:none}}
+/* Smartboard / 4K: scale up controls and type so they stay legible from a distance. */
+@media(min-width:2200px){.main{grid-template-columns:340px 1fr 400px}.btn{font-size:16px;padding:12px 20px}h4{font-size:14px}select,input[type=text]{font-size:15px;padding:11px}.scene .nm{font-size:15px}}
+
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 </style>
 </head>
 <body>
@@ -41,6 +49,9 @@ select,input[type=text]{width:100%;padding:8px;border-radius:6px;border:1px soli
   <div class="logo">Jeet<span class="a">Mantra</span> Studio</div>
   <span class="badge">🎥 Smart Camera</span>
   <button class="btn" id="btnAdjust" onclick="toggleAdjust()" title="Drag corners on the big preview">✂️ Adjust corners</button>
+  <button class="btn" id="btnLayout" onclick="toggleLayout()" title="Arrange multiple elements on the preview (drag to move, corner to resize)">🧩 Arrange layout</button>
+  <button class="btn" id="btnTeach" onclick="openTeach()" title="Connect this Studio to a course's live class and go live">📡 Teach a course</button>
+  <span id="boundClassBadge" class="badge" style="display:none;background:#7f1d1d;color:#fecaca"></span>
   <select id="fmtSelect" onchange="setFormat(this.value)" title="Output video format" style="width:auto;margin:0;padding:7px 10px">
     <option value="1280x720">16:9 · 720p</option>
     <option value="1920x1080">16:9 · 1080p</option>
@@ -50,10 +61,18 @@ select,input[type=text]{width:100%;padding:8px;border-radius:6px;border:1px soli
   </select>
   <div style="flex:1"></div>
   <span id="recStatus" style="display:none;font-size:13px"><span class="rec-dot"></span> REC <span id="recTime">00:00</span></span>
+  <select id="saveTarget" title="Where to save the recording" style="width:auto;margin:0;padding:7px 10px">
+    <option value="local">💾 Save to device</option>
+    <option value="class">☁️ Save in app (class)</option>
+    <option value="both" selected>💾☁️ Both</option>
+  </select>
   <button class="btn pri" id="btnEnable" onclick="enableDevices()">🔓 Enable camera &amp; mic</button>
   <button class="btn" id="btnRec" onclick="toggleRecord()">⏺ Record</button>
   <button class="btn" onclick="location.href='/dashboard.html'">← Exit</button>
 </div>
+<!-- Hidden holder: keeping source <video>s in the DOM stops browsers from
+     throttling/freezing them when used as canvas paint sources. -->
+<div id="srcHolder" aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden;opacity:0;pointer-events:none"></div>
 <div class="main">
   <!-- SOURCES -->
   <div class="col left">
@@ -73,6 +92,10 @@ select,input[type=text]{width:100%;padding:8px;border-radius:6px;border:1px soli
     <h4>🎬 Scenes (switch live)</h4>
     <div id="sceneList"></div>
     <button class="btn pri" style="width:100%" onclick="addScene()">+ New scene/preset</button>
+    <h4>🧩 Layout (compose elements)</h4>
+    <div class="hint" id="layoutHint">Add elements (camera, screen, whiteboard, image…) to the current scene, then click <b>🧩 Arrange layout</b> to drag &amp; resize each on the preview. With one element, the scene uses perspective mode.</div>
+    <div id="layerList"></div>
+    <div class="row" style="margin-top:6px"><button class="btn" style="flex:1" onclick="applyLayoutPreset('pip')" title="Camera as a small picture-in-picture over the last element">🎥 PiP preset</button><button class="btn" style="flex:1" onclick="applyLayoutPreset('split')" title="Side-by-side split">⬌ Split preset</button></div>
   </div>
   <!-- STAGE -->
   <div class="stage">
@@ -115,9 +138,30 @@ select,input[type=text]{width:100%;padding:8px;border-radius:6px;border:1px soli
     <div id="cpItems"><div class="hint">Pick a course to list its images, topics &amp; documents.</div></div>
   </div>
 </div>
+<!-- Teach a course → connect Studio to a live class and go live -->
+<div id="teachModal" style="display:none;position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.6);align-items:center;justify-content:center;padding:16px" onclick="if(event.target===this)this.style.display='none'">
+  <div style="background:var(--panel);border-radius:12px;max-width:520px;width:100%;max-height:85vh;overflow:auto;padding:18px">
+    <div style="display:flex;justify-content:space-between;margin-bottom:6px"><strong>📡 Teach a course — go live</strong><button class="btn" onclick="document.getElementById('teachModal').style.display='none'">×</button></div>
+    <div class="hint" style="margin-bottom:10px">Pick a course and a live class. Going live attaches this Studio's recording to that class and marks it live for students.</div>
+    <h4>Course</h4>
+    <select id="tCourse" onchange="tLoadClasses(this.value)"><option value="">— pick a course —</option></select>
+    <h4>Live class</h4>
+    <div id="tClasses"><div class="hint">Pick a course to list its scheduled classes.</div></div>
+    <div style="border-top:1px solid var(--bd);margin:12px 0;padding-top:12px">
+      <h4 style="margin-top:0">＋ Or create a new live class</h4>
+      <input type="text" id="tNewTitle" placeholder="Class title (e.g. Trigonometry — Live)">
+      <div class="row"><input type="datetime-local" id="tNewTime" style="flex:2"><button class="btn pri" style="flex:1" onclick="tCreateClass()">Create &amp; select</button></div>
+    </div>
+    <button class="btn pri" id="tGoLive" style="width:100%;padding:11px;margin-top:6px" onclick="tGoLive()" disabled>📡 Go live with selected class</button>
+  </div>
+</div>
 <script>
 const params=new URLSearchParams(location.search);
 const CLASS_ID=params.get('class'); const TOKEN=localStorage.getItem('jm_token'); const API='/api';
+// The live class this Studio session is bound to. Starts from ?class= but can
+// be (re)bound at runtime via the "Teach a course" flow, so recordings/streams
+// attach to the right class even when Studio is opened standalone.
+let _boundClass=CLASS_ID||null, _boundClassTitle='';
 function crmKey(){ try{ const u=JSON.parse(localStorage.getItem('jm_user')||'{}'); return u&&u.id?('jm_crm_'+u.id):'jm_crm'; }catch(e){ return 'jm_crm'; } }
 function getCrm(){ try{ let r=localStorage.getItem(crmKey()); if(r===null&&crmKey()!=='jm_crm') r=localStorage.getItem('jm_crm'); return JSON.parse(r||'{}'); }catch(e){ return {}; } }
 let sources={}, scenes=[], activeScene=null, _adjustMode=false;
@@ -148,7 +192,7 @@ async function startCamera(deviceId){ if(!deviceId) return; if(sources[deviceId]
   try{ const stream=await navigator.mediaDevices.getUserMedia({video:{deviceId:{exact:deviceId},width:{ideal:1280},height:{ideal:720}},audio:false}); registerVideo(deviceId,stream,'Camera'); refreshDevices(); }
   catch(e){ alert('Could not open camera: '+(e.message||e.name)); } }
 async function addScreen(){ try{ const stream=await navigator.mediaDevices.getDisplayMedia({video:{frameRate:30},audio:false}); const id='screen_'+Date.now(); registerVideo(id,stream,'Screen'); stream.getVideoTracks()[0].addEventListener('ended',()=>{ delete sources[id]; }); }catch(e){} }
-function registerVideo(id,stream,label){ const v=document.createElement('video'); v.srcObject=stream; v.autoplay=true; v.muted=true; v.playsInline=true; v.play().catch(()=>{}); sources[id]={el:v,type:'video',stream,label}; if(!scenes.length) addScene(id); else pickSource(id); }
+function registerVideo(id,stream,label){ const v=document.createElement('video'); v.srcObject=stream; v.autoplay=true; v.muted=true; v.playsInline=true; v.setAttribute('playsinline',''); document.getElementById('srcHolder').appendChild(v); v.play().catch(()=>{}); sources[id]={el:v,type:'video',stream,label}; if(!scenes.length) addScene(id); else pickSource(id); }
 // Whiteboard source — a drawable canvas.
 function addWhiteboard(){ const id='wb_'+Date.now(); const cv=document.createElement('canvas'); cv.width=1280; cv.height=720; const c=cv.getContext('2d'); c.fillStyle='#fff'; c.fillRect(0,0,1280,720); sources[id]={el:cv,type:'whiteboard',ctx:c,label:'Whiteboard'}; addScene(id); enableWbDraw(id); }
 // Image/document source.
@@ -173,15 +217,169 @@ async function cpLoad(courseId){ if(!courseId) return; const box=document.getEle
   }catch(e){ box.innerHTML='Error: '+e.message; }
 }
 
+// ── Teach a course → connect Studio to a live class & go live ───────────
+let _tSelected=null;
+function _bindClass(id, title){
+  _boundClass=id; _boundClassTitle=title||'';
+  const b=document.getElementById('boundClassBadge');
+  if(b){ if(id){ b.style.display='inline-block'; b.textContent='🔴 Live: '+(title||'class'); } else { b.style.display='none'; } }
+  // Default the recording save-target to the class once connected.
+  const st=document.getElementById('saveTarget'); if(st && id && st.value==='local') st.value='both';
+}
+async function openTeach(){
+  document.getElementById('teachModal').style.display='flex';
+  const t=new Date(Date.now()+5*60000); t.setSeconds(0,0);
+  const tz=new Date(t.getTime()-t.getTimezoneOffset()*60000).toISOString().slice(0,16);
+  const ti=document.getElementById('tNewTime'); if(ti && !ti.value) ti.value=tz;
+  try{ const r=await fetch(API+'/courses?mine=1',{headers:{Authorization:'Bearer '+TOKEN}}).then(x=>x.json()); const courses=r.courses||r.data||[];
+    document.getElementById('tCourse').innerHTML='<option value="">— pick a course —</option>'+courses.map(c=>`<option value="${c.id}">${_esc(c.title||'Course')}</option>`).join('');
+  }catch(e){}
+}
+async function tLoadClasses(courseId){
+  const box=document.getElementById('tClasses'); _tSelected=null; document.getElementById('tGoLive').disabled=true;
+  if(!courseId){ box.innerHTML='<div class="hint">Pick a course to list its scheduled classes.</div>'; return; }
+  box.innerHTML='Loading…';
+  try{
+    const r=await fetch(API+'/live-classes/course/'+courseId,{headers:{Authorization:'Bearer '+TOKEN}}).then(x=>x.json());
+    const list=(r.liveClasses||r.classes||[]).filter(c=>c.status!=='cancelled');
+    box.innerHTML=list.length? list.map(c=>{
+      const when=c.scheduled_time?new Date(c.scheduled_time).toLocaleString():'—';
+      return `<div class="scene" id="tc_${c.id}" onclick="tSelectClass('${c.id}','${_esc(c.title||'Class').replace(/'/g,"\\'")}')"><div class="thumb">${c.status==='live'?'🔴':'📡'}</div><div class="nm">${_esc(c.title||'Class')}<div style="font-size:10px;color:var(--mut)">${when} · ${_esc(c.status||'scheduled')}</div></div></div>`;
+    }).join('') : '<div class="hint">No classes yet — create one below.</div>';
+  }catch(e){ box.innerHTML='<div class="banner warn">Couldn\'t load classes: '+_esc(e.message)+'</div>'; }
+}
+function tSelectClass(id, title){
+  _tSelected={id,title};
+  document.querySelectorAll('#tClasses .scene').forEach(s=>s.classList.remove('active'));
+  document.getElementById('tc_'+id)?.classList.add('active');
+  document.getElementById('tGoLive').disabled=false;
+}
+async function tCreateClass(){
+  const courseId=document.getElementById('tCourse').value;
+  if(!courseId){ alert('Pick a course first.'); return; }
+  const title=document.getElementById('tNewTitle').value.trim()||'Live class';
+  const when=document.getElementById('tNewTime').value;
+  const scheduledTime=when?new Date(when).toISOString():new Date().toISOString();
+  try{
+    const r=await fetch(API+'/live-classes',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+TOKEN},body:JSON.stringify({courseId,title,scheduledTime,duration:60})}).then(x=>x.json());
+    const id=r.liveClass&&r.liveClass.id; if(!id) throw new Error(r.error&&r.error.message||r.error||'Create failed');
+    await tLoadClasses(courseId);
+    tSelectClass(id,title);
+  }catch(e){ alert('Couldn\'t create class: '+(e.message||e)); }
+}
+async function tGoLive(){
+  if(!_tSelected){ alert('Select or create a class first.'); return; }
+  try{
+    // Mark the class live (idempotent on the backend) and bind Studio to it.
+    await fetch(API+'/live-classes/'+_tSelected.id+'/start',{method:'POST',headers:{Authorization:'Bearer '+TOKEN}}).catch(()=>{});
+    await fetch(API+'/live-classes/'+_tSelected.id,{method:'PUT',headers:{'Content-Type':'application/json',Authorization:'Bearer '+TOKEN},body:JSON.stringify({status:'live'})}).catch(()=>{});
+    _bindClass(_tSelected.id,_tSelected.title);
+    document.getElementById('teachModal').style.display='none';
+    const openRoom=confirm('📡 You\'re live with “'+_tSelected.title+'”.\nRecordings now save to this class.\n\nOpen the live room (for students / screen share) in a new tab?');
+    if(openRoom) window.open('/liveRoom.html?class='+_tSelected.id,'_blank');
+  }catch(e){ alert('Couldn\'t go live: '+(e.message||e)); }
+}
+
 // ── Scenes ─────────────────────────────────────────────────────────────
 function addScene(sourceId){ const sid=sourceId||activeScene?.sourceId||Object.keys(sources)[0]||''; const sc={id:'sc_'+Date.now(),name:(sources[sid]?.label||'Scene')+' '+(scenes.length+1),sourceId:sid,corners:defaultCorners(),zoom:1,rotation:0}; scenes.push(sc); activeScene=sc; renderScenes(); loadEditor(); }
 function defaultCorners(){ return [{x:0.05,y:0.05},{x:0.95,y:0.05},{x:0.95,y:0.95},{x:0.05,y:0.95}]; }
-function switchScene(id){ activeScene=scenes.find(s=>s.id===id); renderScenes(); loadEditor(); document.getElementById('srcLabel').textContent=(sources[activeScene?.sourceId]?.label||'Source'); drawCorners(); }
+function switchScene(id){ activeScene=scenes.find(s=>s.id===id); _selLayer=(activeScene&&activeScene.layers&&activeScene.layers[0])?activeScene.layers[0].id:null; renderScenes(); loadEditor(); document.getElementById('srcLabel').textContent=(sources[activeScene?.sourceId]?.label||'Source'); drawCorners(); renderLayerList(); drawLayout(); }
 function renderScenes(){ document.getElementById('sceneList').innerHTML=scenes.map(s=>{ const ic={video:'🎥',screen:'🖥',whiteboard:'🖍',image:'📄'}[sources[s.sourceId]?.type]||'🎬'; return `<div class="scene ${activeScene?.id===s.id?'active':''}" onclick="switchScene('${s.id}')"><div class="thumb">${ic}</div><div class="nm">${s.name||'Scene'}</div><button class="btn" style="padding:3px 8px" onclick="event.stopPropagation();delScene('${s.id}')">×</button></div>`; }).join('')||'<div class="hint">No scenes yet.</div>'; }
 function delScene(id){ scenes=scenes.filter(s=>s.id!==id); if(activeScene?.id===id) activeScene=scenes[0]||null; renderScenes(); loadEditor(); }
 function updatePreset(k,v){ if(activeScene){ activeScene[k]=v; if(k==='name') renderScenes(); } }
 function loadEditor(){ if(!activeScene) return; document.getElementById('presetName').value=activeScene.name||''; document.getElementById('zoom').value=activeScene.zoom||1; document.getElementById('rot').value=activeScene.rotation||0; drawCorners(); }
 function resetCorners(){ if(activeScene){ activeScene.corners=defaultCorners(); drawCorners(); } }
+
+// ── Multi-element LAYOUT (compositor) ───────────────────────────────────
+// A scene with layers[] renders as a COMPOSITE — each element drawn at its own
+// rect (normalized 0–1). A scene with no layers keeps the single-source +
+// perspective-correction mode, so this is fully backward compatible.
+let _layoutMode=false, _selLayer=null;
+function _esc(s){ return String(s==null?'':s).replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c])); }
+function _layers(){ if(activeScene && !activeScene.layers) activeScene.layers=[]; return activeScene? activeScene.layers : []; }
+function addLayer(sourceId){
+  if(!sourceId) return;
+  if(!activeScene){ addScene(sourceId); }
+  const ls=_layers();
+  // First element fills the frame; extras drop in as a corner picture-in-picture.
+  const r = ls.length===0 ? {x:0,y:0,w:1,h:1} : {x:0.62,y:0.62,w:0.34,h:0.34};
+  const ly={id:'ly_'+(ls.length)+'_'+Math.floor(performance.now()), sourceId, x:r.x,y:r.y,w:r.w,h:r.h};
+  ls.push(ly); _selLayer=ly.id; renderScenes(); renderLayerList(); if(_layoutMode) drawLayout();
+}
+function delLayer(id){ const ls=_layers(); const i=ls.findIndex(l=>l.id===id); if(i>=0) ls.splice(i,1); if(_selLayer===id) _selLayer=ls[0]?ls[0].id:null; renderScenes(); renderLayerList(); drawLayout(); }
+function selectLayer(id){ _selLayer=id; renderLayerList(); drawLayout(); }
+function layerUp(id){ const ls=_layers(); const i=ls.findIndex(l=>l.id===id); if(i>=0 && i<ls.length-1){ const t=ls[i]; ls[i]=ls[i+1]; ls[i+1]=t; renderLayerList(); } }
+function renderLayerList(){
+  const box=document.getElementById('layerList'); if(!box) return;
+  const ls=_layers();
+  const ICO={video:'🎥',screen:'🖥',whiteboard:'🖍',image:'📄'};
+  const avail=Object.entries(sources);
+  const addBtns=avail.length
+    ? avail.map(([id,s])=>`<button class="btn" style="width:100%;margin-bottom:4px;font-size:12px" onclick="addLayer('${id}')">+ ${ICO[s.type]||'🎬'} ${_esc(s.label||'Source')}</button>`).join('')
+    : '<div class="hint">Add a source above first.</div>';
+  const rows=ls.length
+    ? `<div style="font-size:11px;color:var(--mut);margin:4px 0">Elements (front-most last · drag on preview):</div>`+ls.map((l,i)=>{ const s=sources[l.sourceId]; const ic=ICO[s&&s.type]||'🎬'; return `<div class="scene ${_selLayer===l.id?'active':''}" onclick="selectLayer('${l.id}')"><div class="thumb">${ic}</div><div class="nm">${_esc(s&&s.label||'Layer')} <span style="color:var(--mut);font-size:10px">${i+1}</span></div><button class="btn" style="padding:3px 6px" title="Bring forward" onclick="event.stopPropagation();layerUp('${l.id}')">▲</button><button class="btn" style="padding:3px 6px" onclick="event.stopPropagation();delLayer('${l.id}')">×</button></div>`; }).join('')
+    : '';
+  box.innerHTML=rows+`<div style="font-size:11px;color:var(--mut);margin:8px 0 4px">Add element to layout:</div>`+addBtns;
+}
+function applyLayoutPreset(kind){
+  if(!activeScene) return;
+  const ids=Object.keys(sources); if(!ids.length){ alert('Add at least one source first (camera, screen, whiteboard, image…).'); return; }
+  const mk=(sourceId,x,y,w,h)=>({id:'ly_'+kind+ids.indexOf(sourceId)+'_'+Math.floor(performance.now()+Math.random()*1000),sourceId,x,y,w,h});
+  if(kind==='pip'){
+    const cam=ids.find(id=>sources[id].type==='video')||ids[0];
+    const base=ids.find(id=>id!==cam)||cam;
+    activeScene.layers=[ mk(base,0,0,1,1), mk(cam,0.70,0.68,0.28,0.28) ];
+  } else {
+    const a=ids[0], b=ids[1]||ids[0];
+    activeScene.layers=[ mk(a,0,0.1,0.5,0.8), mk(b,0.5,0.1,0.5,0.8) ];
+  }
+  _selLayer=activeScene.layers[0].id; renderScenes(); renderLayerList(); if(_layoutMode) drawLayout();
+}
+function toggleLayout(){
+  _layoutMode=!_layoutMode;
+  document.getElementById('btnLayout').classList.toggle('on',_layoutMode);
+  // Layout and corner-adjust are mutually exclusive editing modes.
+  if(_layoutMode && _adjustMode){ _adjustMode=false; document.getElementById('btnAdjust').classList.remove('on'); document.getElementById('adjustHint').style.display='none'; drawCorners(); }
+  if(_layoutMode && !_layers().length) document.getElementById('layoutHint').innerHTML='Add elements below, then drag each box to move and the purple corner to resize.';
+  drawLayout();
+}
+function drawLayout(){
+  const wrap=document.getElementById('outWrap'); wrap.querySelectorAll('.lybox,.lyhandle').forEach(e=>e.remove());
+  if(!_layoutMode || !activeScene || !_layers().length) return;
+  const rr=outRect();
+  _layers().forEach(l=>{
+    const sel=_selLayer===l.id;
+    const box=document.createElement('div'); box.className='lybox';
+    box.style.cssText=`position:absolute;border:2px solid ${sel?'#7c3aed':'rgba(255,255,255,.55)'};border-radius:4px;cursor:move;z-index:7;${sel?'box-shadow:0 0 0 1px #fff':''}`;
+    const place=()=>{ box.style.left=(l.x*rr.width)+'px'; box.style.top=(l.y*rr.height)+'px'; box.style.width=(l.w*rr.width)+'px'; box.style.height=(l.h*rr.height)+'px'; };
+    place();
+    box.addEventListener('pointerdown',(e)=>{ e.preventDefault(); e.stopPropagation(); _selLayer=l.id; renderLayerList(); drawLayout(); box.setPointerCapture?.(e.pointerId); let px=e.clientX,py=e.clientY;
+      const mv=(ev)=>{ const dx=(ev.clientX-px)/rr.width, dy=(ev.clientY-py)/rr.height; px=ev.clientX; py=ev.clientY; l.x=Math.max(0,Math.min(1-l.w,l.x+dx)); l.y=Math.max(0,Math.min(1-l.h,l.y+dy)); place(); _placeHandles(); };
+      const up=()=>{ window.removeEventListener('pointermove',mv); window.removeEventListener('pointerup',up); };
+      window.addEventListener('pointermove',mv); window.addEventListener('pointerup',up); });
+    wrap.appendChild(box);
+    if(sel){
+      const rs=document.createElement('div'); rs.className='lyhandle';
+      rs.style.cssText='position:absolute;width:20px;height:20px;background:#7c3aed;border:2px solid #fff;border-radius:3px;cursor:nwse-resize;z-index:8;touch-action:none';
+      rs._layer=l;
+      rs.addEventListener('pointerdown',(e)=>{ e.preventDefault(); e.stopPropagation(); rs.setPointerCapture?.(e.pointerId);
+        const mv=(ev)=>{ const nx=(ev.clientX-rr.left)/rr.width, ny=(ev.clientY-rr.top)/rr.height; l.w=Math.max(0.08,Math.min(1-l.x,nx-l.x)); l.h=Math.max(0.08,Math.min(1-l.y,ny-l.y)); place(); _placeHandles(); };
+        const up=()=>{ window.removeEventListener('pointermove',mv); window.removeEventListener('pointerup',up); };
+        window.addEventListener('pointermove',mv); window.addEventListener('pointerup',up); });
+      wrap.appendChild(rs);
+    }
+  });
+  _placeHandles();
+}
+function _placeHandles(){ const rr=outRect(); const wrap=document.getElementById('outWrap'); wrap.querySelectorAll('.lyhandle').forEach(rs=>{ const l=rs._layer; if(!l) return; rs.style.left=((l.x+l.w)*rr.width-10)+'px'; rs.style.top=((l.y+l.h)*rr.height-10)+'px'; }); }
+window.addEventListener('resize', drawLayout);
+// Composite renderer — draws every layer at its rect (back-to-front).
+function renderComposite(scene){
+  for(const l of scene.layers){ const s=sources[l.sourceId]; if(!srcReady(s)) continue;
+    try{ octx.drawImage(s.el, l.x*out.width, l.y*out.height, l.w*out.width, l.h*out.height); }catch(e){}
+  }
+}
 
 // ── Corner adjustment on the BIG preview ───────────────────────────────
 function toggleAdjust(){ _adjustMode=!_adjustMode; document.getElementById('btnAdjust').classList.toggle('on',_adjustMode); document.getElementById('adjustHint').style.display=_adjustMode?'inline':'none'; drawCorners(); }
@@ -229,7 +427,13 @@ function drawCorners(){
     window.addEventListener('pointermove',mv); window.addEventListener('pointerup',up); });
   wrap.appendChild(mh);
 }
-function setFormat(v){ const sel=document.getElementById('fmtSelect'); if(sel&&sel.value!==v) sel.value=v; const [w,h]=v.split('x').map(Number); out.width=w; out.height=h; if(glCanvas){ glCanvas.width=w; glCanvas.height=h; } if(activeScene) drawCorners(); }
+function setFormat(v){ const sel=document.getElementById('fmtSelect'); if(sel&&sel.value!==v) sel.value=v; const [w,h]=v.split('x').map(Number); out.width=w; out.height=h; if(glCanvas){ glCanvas.width=w; glCanvas.height=h; }
+  // Lock the displayed box to the chosen aspect ratio so the preview isn't
+  // stretched/blurred and the corner overlay stays aligned after a format change.
+  out.style.aspectRatio=w+' / '+h; out.style.height='auto';
+  const svg=document.getElementById('cornerSvg'); if(svg) svg.setAttribute('viewBox','0 0 '+w+' '+h);
+  const badge=document.querySelector('.stage .badge+.badge'); if(badge) badge.textContent=w+'×'+h;
+  if(activeScene) drawCorners(); }
 window.addEventListener('resize', drawCorners);
 function loadBrandLogo(input){ const f=input.files?.[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ const im=new Image(); im.onload=()=>brandImg=im; im.src=r.result; }; r.readAsDataURL(f); }
 
@@ -249,10 +453,27 @@ function initGL(){ glCanvas=document.createElement('canvas'); glCanvas.width=128
   const c=(t,s)=>{const sh=gl.createShader(t);gl.shaderSource(sh,s);gl.compileShader(sh);return sh;}; prog=gl.createProgram(); gl.attachShader(prog,c(gl.VERTEX_SHADER,vs)); gl.attachShader(prog,c(gl.FRAGMENT_SHADER,fs)); gl.linkProgram(prog); gl.useProgram(prog);
   const pb=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,pb); gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW); const loc=gl.getAttribLocation(prog,'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);
   tex=gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D,tex); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+  // Cache uniform locations ONCE instead of re-querying them every frame.
+  prog.uPersp=gl.getUniformLocation(prog,'persp');
+  prog.uH=gl.getUniformLocation(prog,'H');
+  prog.uTex=gl.getUniformLocation(prog,'tex');
 }
+// Homography cache — the Gauss solve only changes when the corners change, so
+// recompute it on demand (dirty key) rather than every animation frame.
+let _Hcache=null, _HcacheKey='';
 function srcReady(s){ if(!s) return false; if(s.type==='video') return s.el.readyState>=2; return true; }
+const _dst4=[{x:0,y:0},{x:1,y:0},{x:1,y:1},{x:0,y:1}];
 function renderLoop(){ requestAnimationFrame(renderLoop);
+  // Skip all paint work while the tab is hidden (rAF is already throttled, but
+  // this avoids any stray work and is explicit).
+  if(document.hidden) return;
   octx.fillStyle='#000'; octx.fillRect(0,0,out.width,out.height);
+  // Composite mode: scene has multiple arranged elements → draw them all.
+  if(activeScene && activeScene.layers && activeScene.layers.length){
+    renderComposite(activeScene);
+    if(!_adjustMode) drawBranding();
+    return;
+  }
   const s=activeScene&&sources[activeScene.sourceId];
   if(srcReady(s)){
     // In adjust mode show the RAW source so corners line up with reality.
@@ -260,9 +481,11 @@ function renderLoop(){ requestAnimationFrame(renderLoop);
     else {
       gl.bindTexture(gl.TEXTURE_2D,tex);
       try{ gl.texImage2D(gl.TEXTURE_2D,0,gl.RGB,gl.RGB,gl.UNSIGNED_BYTE,s.el);
-        const dst=[{x:0,y:0},{x:1,y:0},{x:1,y:1},{x:0,y:1}]; const H=solveHomography(dst,activeScene.corners);
-        gl.uniform1f(gl.getUniformLocation(prog,'persp'),document.getElementById('perspOn').checked?1:0);
-        gl.uniformMatrix3fv(gl.getUniformLocation(prog,'H'),false,new Float32Array(H)); gl.uniform1i(gl.getUniformLocation(prog,'tex'),0);
+        // Reuse the solved homography unless the corners changed this frame.
+        const ck=activeScene.corners.map(c=>c.x.toFixed(4)+','+c.y.toFixed(4)).join(';');
+        let H; if(ck===_HcacheKey && _Hcache){ H=_Hcache; } else { H=solveHomography(_dst4,activeScene.corners); _Hcache=H; _HcacheKey=ck; }
+        gl.uniform1f(prog.uPersp,document.getElementById('perspOn').checked?1:0);
+        gl.uniformMatrix3fv(prog.uH,false,new Float32Array(H)); gl.uniform1i(prog.uTex,0);
         gl.viewport(0,0,glCanvas.width,glCanvas.height); gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
         octx.save(); octx.translate(out.width/2,out.height/2); octx.rotate((activeScene.rotation||0)*Math.PI/180); const z=activeScene.zoom||1; octx.scale(z,z); octx.drawImage(glCanvas,-out.width/2,-out.height/2,out.width,out.height); octx.restore();
       }catch(e){}
@@ -284,18 +507,46 @@ function drawBranding(){ if(!document.getElementById('brandOn')?.checked) return
 }
 
 // ── Recording ──────────────────────────────────────────────────────────
-let rec=null,recChunks=[],recT0=0,recTimer=null;
+let rec=null,recChunks=[],recT0=0,recTimer=null,recExt='webm';
+// Pick a container/codec the browser actually supports. Safari has no webm —
+// without this fallback MediaRecorder throws and "recording never saves".
+function pickRecMime(){
+  const cands=['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm','video/mp4;codecs=h264,aac','video/mp4'];
+  if(window.MediaRecorder&&MediaRecorder.isTypeSupported){ for(const m of cands){ if(MediaRecorder.isTypeSupported(m)) return m; } }
+  return '';
+}
 async function toggleRecord(){ const btn=document.getElementById('btnRec'); if(rec&&rec.state==='recording'){ rec.stop(); return; }
-  const stream=out.captureStream(30); const tracks=[...stream.getVideoTracks()]; const micId=document.getElementById('micSelect').value;
-  try{ micStream=await navigator.mediaDevices.getUserMedia({audio:micId?{deviceId:{exact:micId}}:true}); tracks.push(...micStream.getAudioTracks()); }catch(e){}
-  recChunks=[]; rec=new MediaRecorder(new MediaStream(tracks),{mimeType:'video/webm;codecs=vp8,opus'}); rec.ondataavailable=e=>{ if(e.data?.size) recChunks.push(e.data); };
+  let stream;
+  try{ stream=out.captureStream(30); }catch(e){ alert('This browser can\'t capture the studio canvas for recording. Try Chrome or Edge.'); return; }
+  const tracks=[...stream.getVideoTracks()]; if(!tracks.length){ alert('Nothing to record yet — enable a camera or add a source first.'); return; }
+  const micId=document.getElementById('micSelect').value;
+  try{ micStream=await navigator.mediaDevices.getUserMedia({audio:micId?{deviceId:{exact:micId}}:true}); tracks.push(...micStream.getAudioTracks()); }catch(e){ /* record video-only if mic denied */ }
+  const mime=pickRecMime(); recExt=mime.includes('mp4')?'mp4':'webm';
+  try{ rec=mime?new MediaRecorder(new MediaStream(tracks),{mimeType:mime}):new MediaRecorder(new MediaStream(tracks)); }
+  catch(e){ alert('Recording isn\'t supported in this browser: '+(e.message||e.name)); if(micStream){micStream.getTracks().forEach(t=>t.stop());micStream=null;} return; }
+  recChunks=[]; rec.ondataavailable=e=>{ if(e.data?.size) recChunks.push(e.data); };
+  rec.onerror=e=>{ console.error('recorder error',e); alert('Recording error: '+(e.error?.name||'unknown')); };
   rec.onstop=async()=>{ clearInterval(recTimer); document.getElementById('recStatus').style.display='none'; btn.textContent='⏺ Record'; btn.classList.remove('danger'); if(micStream){ micStream.getTracks().forEach(t=>t.stop()); micStream=null; }
-    const blob=new Blob(recChunks,{type:'video/webm'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='studio-recording.webm'; a.click();
-    if(CLASS_ID&&TOKEN){ try{ const fd=new FormData(); fd.append('recording',blob,'studio.webm'); await fetch(API+'/live-classes/'+CLASS_ID+'/recording',{method:'POST',headers:{Authorization:'Bearer '+TOKEN},body:fd}); alert('✓ Recording saved to the class.'); }catch(e){} } };
-  rec.start(1000); recT0=Date.now(); document.getElementById('recStatus').style.display='inline'; btn.textContent='⏹ Stop'; btn.classList.add('danger');
+    if(!recChunks.length){ alert('⚠️ No video data was captured. The recording was empty.'); return; }
+    const blob=new Blob(recChunks,{type:mime||'video/webm'});
+    const target=document.getElementById('saveTarget').value;
+    const wantLocal=target==='local'||target==='both';
+    const wantClass=(target==='class'||target==='both');
+    if(wantLocal){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='studio-recording-'+Date.now()+'.'+recExt; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),4000); }
+    if(wantClass){
+      if(!_boundClass){ alert('💾 Saved to your device.\nTo save inside the app, click “📡 Teach a course” to connect this Studio to a live class first.'); return; }
+      if(!TOKEN){ alert('💾 Saved to your device. (Sign in to also save it in the app.)'); return; }
+      try{ const fd=new FormData(); fd.append('recording',blob,'studio.'+recExt); const r=await fetch(API+'/live-classes/'+_boundClass+'/recording',{method:'POST',headers:{Authorization:'Bearer '+TOKEN},body:fd}); if(!r.ok) throw new Error('HTTP '+r.status); alert('✓ Recording saved'+(wantLocal?' to your device and':'')+' to the class.'); }
+      catch(e){ alert('⚠️ Couldn\'t upload to the class ('+(e.message||e.name)+').'+(wantLocal?' It was still saved to your device.':' Try "Save to device" instead.')); }
+    }
+  };
+  try{ rec.start(1000); }catch(e){ alert('Could not start recording: '+(e.message||e.name)); return; }
+  recT0=Date.now(); document.getElementById('recStatus').style.display='inline'; btn.textContent='⏹ Stop'; btn.classList.add('danger');
   recTimer=setInterval(()=>{ const s=Math.floor((Date.now()-recT0)/1000); document.getElementById('recTime').textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); },500);
 }
-initGL(); renderLoop(); renderScenes(); refreshDevices();
+initGL(); renderLoop(); renderScenes(); renderLayerList(); refreshDevices();
+// If Studio was opened from a live class (?class=), show the bound-class badge.
+if(CLASS_ID){ _bindClass(CLASS_ID,'class'); fetch(API+'/live-classes/'+CLASS_ID,{headers:{Authorization:'Bearer '+TOKEN}}).then(x=>x.json()).then(r=>{ const c=r.liveClass||r.class||r; if(c&&c.title) _bindClass(CLASS_ID,c.title); }).catch(()=>{}); }
 </script>
 </body>
 </html>

@@ -49,6 +49,19 @@ async function ownsContentItem(table, id, user) {
   return { row, allowed, course };
 }
 
+// Can this user see the FULL content of a course (vs only preview items)?
+// True for the course owner/admin and for enrolled students. Used to gate the
+// content READ endpoints so paid lectures/materials/tests aren't leaked to any
+// logged-in user. Non-viewers still get is_preview items for the course preview.
+async function canViewFull(courseId, user) {
+  if (!user) return false;
+  const { allowed } = await ownsCourse(courseId, user);
+  if (allowed) return true;
+  const { data } = await supabaseAdmin.from('enrollments')
+    .select('id').eq('course_id', courseId).eq('student_id', user.id).maybeSingle();
+  return !!data;
+}
+
 // ── COVER IMAGE UPLOAD ─────────────────────────────────────────────────
 // POST /api/course-content/:courseId/cover — multipart with field "cover"
 router.post('/:courseId/cover', authenticateToken, upload.single('cover'), async (req, res) => {
@@ -72,7 +85,8 @@ router.get('/:courseId/topics', authenticateToken, async (req, res) => {
   const { data, error } = await supabaseAdmin
     .from('course_topics').select('*').eq('course_id', req.params.courseId).order('order_index');
   if (error) return res.status(400).json({ error: error.message });
-  res.json({ topics: data || [] });
+  const full = await canViewFull(req.params.courseId, req.user);
+  res.json({ topics: full ? (data || []) : (data || []).filter(t => t.is_preview) });
 });
 
 router.post('/:courseId/topics', authenticateToken, async (req, res) => {
@@ -122,7 +136,8 @@ router.get('/:courseId/lectures', authenticateToken, async (req, res) => {
   const { data, error } = await supabaseAdmin
     .from('course_lectures').select('*').eq('course_id', req.params.courseId).order('order_index');
   if (error) return res.status(400).json({ error: error.message });
-  res.json({ lectures: data || [] });
+  const full = await canViewFull(req.params.courseId, req.user);
+  res.json({ lectures: full ? (data || []) : (data || []).filter(l => l.is_preview) });
 });
 
 router.post('/:courseId/lectures', authenticateToken, upload.single('video'), async (req, res) => {
@@ -180,7 +195,9 @@ router.get('/:courseId/materials', authenticateToken, async (req, res) => {
   const { data, error } = await supabaseAdmin
     .from('course_materials').select('*').eq('course_id', req.params.courseId).order('created_at', { ascending: false });
   if (error) return res.status(400).json({ error: error.message });
-  res.json({ materials: data || [] });
+  // Materials have no preview flag — only owners/enrolled students see them.
+  const full = await canViewFull(req.params.courseId, req.user);
+  res.json({ materials: full ? (data || []) : [] });
 });
 
 router.post('/:courseId/materials', authenticateToken, upload.single('file'), async (req, res) => {
@@ -252,7 +269,8 @@ router.get('/:courseId/tests', authenticateToken, async (req, res) => {
   const { data, error } = await supabaseAdmin
     .from('course_tests').select('*').eq('course_id', req.params.courseId).order('created_at', { ascending: false });
   if (error) return res.status(400).json({ error: error.message });
-  res.json({ tests: data || [] });
+  const full = await canViewFull(req.params.courseId, req.user);
+  res.json({ tests: full ? (data || []) : [] });
 });
 
 router.post('/:courseId/tests', authenticateToken, async (req, res) => {
@@ -607,7 +625,18 @@ router.get('/:courseId/full', authenticateToken, async (req, res) => {
     supabaseAdmin.from('course_tests').select('*').eq('course_id', courseId).order('created_at', { ascending: false }).then(r => r.data || [])
   ]);
   if (!course) return res.status(404).json({ error: 'Course not found' });
-  res.json({ course, topics, lectures, materials, tests });
+  // Gate paid content: non-owner/non-enrolled callers get only preview items
+  // (so the course preview still works without leaking the full curriculum).
+  const full = await canViewFull(courseId, req.user);
+  if (full) return res.json({ course, topics, lectures, materials, tests });
+  res.json({
+    course,
+    topics: topics.filter(t => t.is_preview),
+    lectures: lectures.filter(l => l.is_preview),
+    materials: [],
+    tests: [],
+    preview: true
+  });
 });
 
 // ── TEST SECTIONS: sub-divisions of a test with per-section duration ────

@@ -30,6 +30,14 @@ async function storeOtp(phone, otp) {
     otpStore[phone] = { otp, expiry: Date.now() + 10 * 60 * 1000 };
   }
 }
+// Force-delete a stored OTP (used after too many failed attempts).
+async function invalidateOtp(phone) {
+  if (await _ensureOtpTable()) {
+    await supabaseAdmin.from('jeetmantra_otps').delete().eq('phone', phone);
+  } else {
+    delete otpStore[phone];
+  }
+}
 async function verifyAndClearOtp(phone, otp) {
   const hash = crypto.createHash('sha256').update(otp).digest('hex');
   if (await _ensureOtpTable()) {
@@ -97,6 +105,18 @@ function ipLimit(perHour) {
     arr.push(now); _ipHits.set(ip, arr); next();
   };
 }
+
+// Per-phone failed-OTP attempt cap. A 6-digit OTP with no cap is brute-forceable
+// (the stored OTP isn't cleared on a wrong guess), so we count failures and
+// invalidate the OTP after OTP_MAX_FAILS wrong tries, forcing a re-request.
+const _otpFails = new Map();
+const OTP_MAX_FAILS = 5;
+function otpRecordFail(phone) {
+  const n = (_otpFails.get(phone) || 0) + 1;
+  _otpFails.set(phone, n);
+  return n;
+}
+function otpClearFails(phone) { _otpFails.delete(phone); }
 
 // Generate OTP
 function generateOTP() {
@@ -418,14 +438,16 @@ router.post('/google-login', async (req, res) => {
   }
 });
 
-// Send OTP to Phone
-router.post('/send-otp', async (req, res) => {
+// Send OTP to Phone — rate-limited per IP (8/hour) to stop SMS-bombing.
+router.post('/send-otp', ipLimit(8), async (req, res) => {
   try {
     const { phone } = req.body;
 
     if (!phone || phone.length < 10) {
       return res.status(400).json({ error: 'Valid phone number required' });
     }
+    // Fresh OTP resets the failed-attempt counter for this phone.
+    otpClearFails(phone);
 
     // Generate OTP
     const otp = generateOTP();
@@ -462,8 +484,17 @@ router.post('/verify-otp', async (req, res) => {
     // Check OTP validity (DB-backed with hash)
     const otpResult = await verifyAndClearOtp(phone, otp);
     if (!otpResult.valid) {
+      // Count the failure; after too many wrong guesses, invalidate the stored
+      // OTP so it can't be brute-forced — the user must request a new one.
+      const fails = otpRecordFail(phone);
+      if (fails >= OTP_MAX_FAILS) {
+        try { await invalidateOtp(phone); } catch (e) {}
+        otpClearFails(phone);
+        return res.status(429).json({ error: 'Too many incorrect attempts. Request a new OTP.' });
+      }
       return res.status(400).json({ error: otpResult.error });
     }
+    otpClearFails(phone);
 
     // Check if user exists with this phone
     let { data: user } = await supabaseAdmin

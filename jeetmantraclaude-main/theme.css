@@ -9,10 +9,10 @@
 
 :root {
   /* Brand */
-  --jm-primary:      #f97316;   /* orange — primary CTA */
-  --jm-primary-2:    #ea580c;   /* darker for hover */
-  --jm-primary-tint: #fff7ed;   /* faint orange wash */
-  --jm-primary-glow: rgba(249,115,22,0.30);
+  --jm-primary:      #7c3aed;   /* purple — primary CTA (brand) */
+  --jm-primary-2:    #6d28d9;   /* darker for hover */
+  --jm-primary-tint: #f5f3ff;   /* faint purple wash */
+  --jm-primary-glow: rgba(124,58,237,0.30);
 
   /* Foreground / canvas */
   --jm-bg:           #f4f6f8;
@@ -101,7 +101,7 @@ a:hover { color: var(--jm-primary-2); }
   padding: 11px 14px; outline: none; transition: border 150ms, box-shadow 150ms;
 }
 .jm-input:focus, .jm-select:focus, .jm-textarea:focus {
-  border-color: var(--jm-primary); box-shadow: 0 0 0 3px rgba(249,115,22,0.12);
+  border-color: var(--jm-primary); box-shadow: 0 0 0 3px rgba(124,58,237,0.12);
 }
 
 /* Badges / pills */

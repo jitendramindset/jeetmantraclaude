@@ -37,7 +37,7 @@ select.filter-select{background:var(--jm-surface);border:1.5px solid var(--jm-bo
 .main-layout{display:grid;grid-template-columns:1fr;max-width:1400px;margin:0 auto;padding:28px 32px;gap:24px}
 .section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
 .section-head h2{font-size:20px;font-weight:800;letter-spacing:-0.02em}
-.courses-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px}
+.courses-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(280px,100%),1fr));gap:20px}
 /* COURSE CARD */
 .course-card{background:var(--jm-surface);border-radius:var(--jm-radius);border:1px solid var(--jm-border);overflow:hidden;transition:all .2s;cursor:pointer;box-shadow:var(--jm-shadow-sm)}
 .course-card:hover{transform:translateY(-4px);border-color:var(--jm-primary);box-shadow:var(--jm-shadow)}
@@ -69,7 +69,7 @@ select.filter-select{background:var(--jm-surface);border:1.5px solid var(--jm-bo
 .form-group{margin-bottom:14px}
 .form-group label{display:block;font-size:12px;color:var(--jm-text-strong);margin-bottom:5px;font-weight:600}
 .form-group input,.form-group select{width:100%;background:var(--jm-surface);border:1.5px solid var(--jm-border);border-radius:var(--jm-radius-sm);padding:10px 12px;color:var(--jm-text);font-size:14px;outline:none;font-family:inherit;transition:all .15s}
-.form-group input:focus,.form-group select:focus{border-color:var(--jm-primary);box-shadow:0 0 0 3px rgba(249,115,22,0.12)}
+.form-group input:focus,.form-group select:focus{border-color:var(--jm-primary);box-shadow:0 0 0 3px rgba(124,58,237,0.12)}
 .msg{padding:10px 14px;border-radius:var(--jm-radius-sm);font-size:13px;margin-bottom:12px;display:none;font-weight:600}
 .msg.error{background:#fef2f2;color:#b91c1c;border:1px solid #fca5a5}
 .msg.success{background:#f0fdf4;color:#15803d;border:1px solid #86efac}
@@ -77,7 +77,7 @@ select.filter-select{background:var(--jm-surface);border:1.5px solid var(--jm-bo
 .empty-state .icon{font-size:48px;margin-bottom:12px;opacity:.5}
 .loading{text-align:center;padding:40px;color:var(--jm-text-muted)}
 @media(max-width:1024px){
-  .courses-grid{grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
+  .courses-grid{grid-template-columns:repeat(auto-fill,minmax(min(260px,100%),1fr))}
 }
 @media(max-width:768px){
   nav{padding:12px 16px;flex-wrap:wrap;gap:10px}
@@ -88,13 +88,25 @@ select.filter-select{background:var(--jm-surface);border:1.5px solid var(--jm-bo
   .filter-bar{padding:12px 16px;flex-wrap:wrap}
   .filter-select{min-width:0;flex:1 1 120px}
   .seller-banner{flex-direction:column;text-align:center}
-  .courses-grid{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+  .courses-grid{grid-template-columns:repeat(auto-fill,minmax(min(220px,100%),1fr))}
 }
 @media(max-width:480px){
   .courses-grid{grid-template-columns:1fr}
   .modal{padding:18px 14px;width:94%}
   .modal [style*="repeat(4,1fr)"]{grid-template-columns:1fr 1fr !important}
 }
+
+@keyframes mpUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.course-card{animation:mpUp .35s ease both}
+/* Skeleton loading cards — shimmer placeholder while the catalog loads. */
+.sk-card{border:1px solid var(--jm-border);border-radius:14px;overflow:hidden;background:var(--jm-surface)}
+.sk-card .sk-img{height:150px}
+.sk-card .sk-body{padding:14px}
+.sk-line{height:12px;border-radius:6px;margin-bottom:10px;background:linear-gradient(90deg,rgba(150,150,150,.12) 25%,rgba(150,150,150,.22) 37%,rgba(150,150,150,.12) 63%);background-size:400% 100%;animation:skShimmer 1.4s ease infinite}
+.sk-line.w60{width:60%}.sk-line.w40{width:40%}.sk-line.w80{width:80%}
+.sk-img{background:linear-gradient(90deg,rgba(150,150,150,.12) 25%,rgba(150,150,150,.22) 37%,rgba(150,150,150,.12) 63%);background-size:400% 100%;animation:skShimmer 1.4s ease infinite}
+@keyframes skShimmer{0%{background-position:100% 0}100%{background-position:-100% 0}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 </style>
 <script src="/jm-theme.js"></script>
 </head>
@@ -102,8 +114,8 @@ select.filter-select{background:var(--jm-surface);border:1.5px solid var(--jm-bo
 <nav>
   <a href="/" class="logo">Jeet<span class="accent">Mantra</span></a>
   <div class="nav-search">
-    <span>🔍</span>
-    <input type="text" placeholder="Search courses, topics, instructors..." id="navSearch" oninput="debounceSearch(this.value)">
+    <span aria-hidden="true">🔍</span>
+    <input type="text" placeholder="Search courses, topics, instructors..." aria-label="Search courses, topics, instructors" id="navSearch" oninput="debounceSearch(this.value)">
   </div>
   <div class="nav-links">
     <span id="authLink"><a href="/login.html" class="btn btn-primary btn-sm">Login</a></span>
@@ -170,6 +182,7 @@ select.filter-select{background:var(--jm-surface);border:1.5px solid var(--jm-bo
       <div class="icon">🔍</div>
       <div>No courses found</div>
       <div style="font-size:13px;margin-top:8px">Try a different search or category</div>
+      <button class="btn btn-primary" style="margin-top:14px" onclick="filterCategory('all',document.querySelector('.cat-pill'));document.getElementById('navSearch').value='';">↺ Show all courses</button>
     </div>
   </div>
 </div>
@@ -244,7 +257,7 @@ function getListingIcon(listing){
 function renderCard(listing,owned){
   const c=listing.courses||{};
   const seller=listing.jeetmantra_users||listing.seller||{};
-  const cover=c.cover_image?`<img src="${c.cover_image}" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0">`:`<span style="font-size:48px">${getListingIcon(listing)}</span>`;
+  const cover=c.cover_image?`<img src="${c.cover_image}" loading="lazy" decoding="async" width="300" height="150" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0">`:`<span style="font-size:48px">${getListingIcon(listing)}</span>`;
   const esc=s=>String(s==null?'':s).replace(/[<>&"]/g,ch=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[ch]));
   const modeBadge={offline:'🏫 Offline',hybrid:'🔀 Hybrid',online:'💻 Online'}[c.class_mode]||'';
   const loc=[c.area,c.city].filter(Boolean).join(', ');
@@ -297,16 +310,16 @@ async function openPreview(courseId, courseTitle){
     const data=await r.json();
     const c=data.course||{};
     body.innerHTML=`
-      ${c.cover_image?`<img src="${c.cover_image}" style="width:100%;height:180px;object-fit:cover;border-radius:10px;margin-bottom:14px">`:''}
+      ${c.cover_image?`<img src="${c.cover_image}" loading="lazy" decoding="async" width="540" height="180" style="width:100%;height:180px;object-fit:cover;border-radius:10px;margin-bottom:14px">`:''}
       <div style="margin-bottom:14px;font-size:14px;line-height:1.55;color:#374151">${c.description||'(no description)'}</div>
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px">
-        <div style="padding:12px;background:#fff7ed;border-radius:8px;text-align:center"><div style="font-size:18px;font-weight:800;color:#f97316">${(data.topics||[]).length}</div><div style="font-size:11px;color:#6b7280">Topics</div></div>
-        <div style="padding:12px;background:#fff7ed;border-radius:8px;text-align:center"><div style="font-size:18px;font-weight:800;color:#f97316">${(data.lectures||[]).length}</div><div style="font-size:11px;color:#6b7280">Lectures</div></div>
-        <div style="padding:12px;background:#fff7ed;border-radius:8px;text-align:center"><div style="font-size:18px;font-weight:800;color:#f97316">${(data.materials||[]).length}</div><div style="font-size:11px;color:#6b7280">Materials</div></div>
-        <div style="padding:12px;background:#fff7ed;border-radius:8px;text-align:center"><div style="font-size:18px;font-weight:800;color:#f97316">${(data.tests||[]).length}</div><div style="font-size:11px;color:#6b7280">Tests</div></div>
+        <div style="padding:12px;background:var(--jm-primary-tint);border-radius:8px;text-align:center"><div style="font-size:18px;font-weight:800;color:var(--jm-primary)">${(data.topics||[]).length}</div><div style="font-size:11px;color:#6b7280">Topics</div></div>
+        <div style="padding:12px;background:var(--jm-primary-tint);border-radius:8px;text-align:center"><div style="font-size:18px;font-weight:800;color:var(--jm-primary)">${(data.lectures||[]).length}</div><div style="font-size:11px;color:#6b7280">Lectures</div></div>
+        <div style="padding:12px;background:var(--jm-primary-tint);border-radius:8px;text-align:center"><div style="font-size:18px;font-weight:800;color:var(--jm-primary)">${(data.materials||[]).length}</div><div style="font-size:11px;color:#6b7280">Materials</div></div>
+        <div style="padding:12px;background:var(--jm-primary-tint);border-radius:8px;text-align:center"><div style="font-size:18px;font-weight:800;color:var(--jm-primary)">${(data.tests||[]).length}</div><div style="font-size:11px;color:#6b7280">Tests</div></div>
       </div>
       <div style="margin-bottom:14px"><strong>What you'll learn</strong></div>
-      ${(data.topics||[]).length ? data.topics.map(t=>`<div style="padding:10px;border-left:3px solid #f97316;background:#fff7ed;border-radius:0 8px 8px 0;margin-bottom:8px"><div style="font-weight:600">${t.title}</div>${t.description?'<div style="font-size:12px;color:#6b7280;margin-top:2px">'+t.description+'</div>':''}</div>`).join('') : '<div style="color:#6b7280;font-size:13px">Curriculum coming soon.</div>'}`;
+      ${(data.topics||[]).length ? data.topics.map(t=>`<div style="padding:10px;border-left:3px solid var(--jm-primary);background:var(--jm-primary-tint);border-radius:0 8px 8px 0;margin-bottom:8px"><div style="font-weight:600">${t.title}</div>${t.description?'<div style="font-size:12px;color:#6b7280;margin-top:2px">'+t.description+'</div>':''}</div>`).join('') : '<div style="color:#6b7280;font-size:13px">Curriculum coming soon.</div>'}`;
   }catch(e){ body.innerHTML='<div style="color:#b91c1c">Error: '+e.message+'</div>'; }
 }
 function closePreview(){ document.getElementById('previewModal').classList.remove('show'); }
@@ -334,6 +347,7 @@ function applyFilters(){
 function applySearch(q){
   document.getElementById('resultsTitle').textContent=q?`Results for "${q}"`:'All Courses';
   if(!q){applyFilters();return;}
+  showSkeletons(4);
   fetch(API+'/search?q='+encodeURIComponent(q))
     .then(r=>r.json())
     .then(data=>{
@@ -342,12 +356,22 @@ function applySearch(q){
         (l.courses?.title||'').toLowerCase().includes(q.toLowerCase())||
         (l.courses?.category||'').toLowerCase().includes(q.toLowerCase()));
       renderGrid(matched);
-    }).catch(()=>renderGrid([]));
+    }).catch(()=>{
+      // Network failed — fall back to a local filter so the user still sees
+      // results, and surface that search couldn't reach the server.
+      const local=allListings.filter(l=>
+        (l.courses?.title||'').toLowerCase().includes(q.toLowerCase())||
+        (l.courses?.category||'').toLowerCase().includes(q.toLowerCase()));
+      renderGrid(local);
+      const empty=document.getElementById('emptyState');
+      if(!local.length){empty.style.display='block';empty.innerHTML='<div class="icon">⚠️</div><div>Search is temporarily unavailable</div><div style="font-size:13px;margin-top:8px;opacity:.8">Please check your connection and try again.</div>';}
+    });
 }
 
 function filterCategory(cat,el){
-  document.querySelectorAll('.cat-pill').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.cat-pill').forEach(p=>{p.classList.remove('active');p.setAttribute('aria-selected','false');});
   el.classList.add('active');
+  el.setAttribute('aria-selected','true');
   currentCategory=cat;
   document.getElementById('navSearch').value='';
   document.getElementById('resultsTitle').textContent=cat==='all'?'All Courses':cat+' Courses';
@@ -497,7 +521,17 @@ async function submitListing(){
   }
 }
 
+function showSkeletons(n){
+  const grid=document.getElementById('coursesGrid');
+  const ls=document.getElementById('loadingState');
+  if(ls) ls.style.display='none';
+  document.getElementById('emptyState').style.display='none';
+  grid.innerHTML=Array.from({length:n||6}).map(()=>
+    '<div class="sk-card"><div class="sk-img"></div><div class="sk-body"><div class="sk-line w80"></div><div class="sk-line w60"></div><div class="sk-line w40"></div></div></div>'
+  ).join('');
+}
 async function loadListings(){
+  showSkeletons(8);
   try{
     const res=await fetch(API+'/marketplace');
     const data=await res.json();
@@ -506,7 +540,7 @@ async function loadListings(){
   }catch{
     document.getElementById('loadingState').style.display='none';
     document.getElementById('emptyState').style.display='block';
-    document.getElementById('emptyState').innerHTML='<div class="icon">⚠️</div><div>Backend not running</div><div style="font-size:13px;margin-top:8px">cd backend && npm start</div>';
+    document.getElementById('emptyState').innerHTML='<div class="icon">⚠️</div><div>Course catalog is unavailable right now</div><div style="font-size:13px;margin-top:8px;opacity:.8">Please check your connection and try again.</div><button class="btn btn-primary" style="margin-top:14px" onclick="loadListings()">🔄 Retry</button>';
   }
 }
 
@@ -541,6 +575,17 @@ function initUI(){
   if(q){document.getElementById('navSearch').value=q;document.getElementById('resultsTitle').textContent=`Results for "${q}"`;}
 }
 
+// A11y: make category filter pills keyboard-operable (role=tab + Enter/Space).
+(function enhancePills(){
+  const bar=document.getElementById('filterBar');
+  if(bar) bar.setAttribute('role','tablist'), bar.setAttribute('aria-label','Filter courses by category');
+  document.querySelectorAll('.cat-pill').forEach(p=>{
+    p.setAttribute('role','tab');
+    p.setAttribute('tabindex','0');
+    p.setAttribute('aria-selected', p.classList.contains('active')?'true':'false');
+    p.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); p.click(); } });
+  });
+})();
 initUI();
 loadListings().then(()=>{
   const q=new URLSearchParams(location.search).get('q');

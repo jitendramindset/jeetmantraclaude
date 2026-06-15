@@ -19,6 +19,7 @@ body{font-family:-apple-system,'Segoe UI',sans-serif;background:var(--jm-bg);col
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 .btn{padding:8px 16px;border-radius:8px;border:1px solid var(--jm-border);background:transparent;color:var(--jm-text);font-weight:600;cursor:pointer;font-size:13px;display:inline-flex;align-items:center;gap:6px}
 .btn:hover{background:#262635}
+.btn:active{transform:scale(.97)}
 .btn.primary{background:var(--jm-primary);border-color:var(--jm-primary)}
 .btn.primary:hover{background:#6d28d9}
 .btn.danger{background:var(--jm-danger);border-color:var(--jm-danger)}
@@ -50,7 +51,12 @@ body{font-family:-apple-system,'Segoe UI',sans-serif;background:var(--jm-bg);col
 .summary{font-size:12px;color:var(--jm-text-muted);line-height:1.7;margin-top:10px;padding:10px;background:var(--jm-bg);border-radius:6px}
 .sidebar-toggle-btn{display:none}
 @media(max-width:900px){.live-main{grid-template-columns:1fr}.sidebar{position:absolute;right:0;top:56px;bottom:0;width:90%;max-width:340px;transform:translateX(100%);transition:transform .25s;z-index:10}.sidebar.open{transform:translateX(0)}.sidebar-toggle-btn{display:inline-flex}.live-topbar{flex-wrap:wrap;gap:8px}.live-topbar .title{font-size:14px}.controls{order:5;width:100%;justify-content:center}}
-@media(max-width:560px){.live-topbar .sub{display:none}#timer{display:none}.btn{padding:7px 11px;font-size:12px}}
+@media(max-width:480px){.sidebar{width:100%;max-width:none;top:0;z-index:20}.btn{padding:8px 12px;font-size:12px;min-height:44px}.live-topbar{padding:8px 10px}}
+@media(max-width:560px){.live-topbar .sub{display:none}#timer{display:none}.btn{padding:8px 11px;font-size:12px;min-height:44px}}
+/* Smartboard / 4K: widen the panel and enlarge controls for at-a-distance legibility. */
+@media(min-width:2200px){.live-main{grid-template-columns:1fr minmax(420px,560px)}.btn{font-size:16px;padding:12px 22px}.tab{font-size:16px;padding:16px}.live-topbar{min-height:72px}.live-topbar .title{font-size:20px}}
+
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 </style>
 <script src="/jm-theme.js"></script>
 </head>
@@ -76,7 +82,7 @@ body{font-family:-apple-system,'Segoe UI',sans-serif;background:var(--jm-bg);col
     <button class="btn" id="btnRecord" onclick="toggleRecording()" style="display:none">⏺ Record</button>
     <button class="btn danger" id="btnEnd" onclick="endClass()" style="display:none">⏹ End Class</button>
   </div>
-  <button class="btn sidebar-toggle-btn" onclick="toggleSidebar()" id="sidebarToggle">📋</button>
+  <button class="btn sidebar-toggle-btn" onclick="toggleSidebar()" id="sidebarToggle" title="Toggle panel" aria-label="Toggle attendees and chat panel">📋</button>
 </div>
 
 <div class="live-main">
@@ -104,7 +110,7 @@ body{font-family:-apple-system,'Segoe UI',sans-serif;background:var(--jm-bg);col
       <div id="chatList" style="margin-bottom:10px"></div>
     </div>
     <div class="chat-input" id="chatInputBox" style="display:none">
-      <input id="chatInput" placeholder="Message everyone…" onkeydown="if(event.key==='Enter')sendChatMsg()">
+      <input id="chatInput" placeholder="Message everyone…" aria-label="Type a message to everyone" onkeydown="if(event.key==='Enter')sendChatMsg()">
       <button class="btn primary" onclick="sendChatMsg()">Send</button>
     </div>
   </div>
@@ -177,7 +183,8 @@ async function closePoll(){
   });
   _activePollId = null; refreshPolls();
 }
-setInterval(() => { if (_activePollId) refreshPolls(); }, 5000);
+// Stored so it can be cleared on leave (was an orphaned interval that leaked).
+const _activePollTimer = setInterval(() => { if (_activePollId) refreshPolls(); }, 5000);
 const USER = JSON.parse(localStorage.getItem('jm_user') || '{}');
 const ROLE = USER.user_type || USER.role || 'student';
 const IS_TEACHER = ['teacher','partner','school','coaching','admin'].includes(ROLE);
@@ -595,11 +602,17 @@ function wbApplyRemote(msg) {
   }
 }
 
-function leaveRoom() {
+function _teardownRoom() {
   if (_jitsiApi) { try { _jitsiApi.dispose(); } catch(_){} }
-  clearInterval(_pollTimer); clearInterval(_timerInterval);
+  clearInterval(_pollTimer); clearInterval(_timerInterval); clearInterval(_activePollTimer);
+}
+function leaveRoom() {
+  _teardownRoom();
   window.location.href = '/dashboard.html';
 }
+// Safety net: stop all timers + dispose Jitsi when the page is hidden/unloaded,
+// so polling doesn't keep running in a backgrounded/closed tab.
+window.addEventListener('pagehide', _teardownRoom);
 
 function startAttendeePoll() {
   loadAttendees();

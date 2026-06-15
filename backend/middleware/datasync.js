@@ -14,11 +14,28 @@
  * endpoint + Supabase/Postgres as the source of truth + n8n as an opt-in addon.
  */
 const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
 const { cacheGet, cacheSet, del, list, SyncQueue } = require('../config/leveldb');
 const { triggerN8n } = require('../config/n8nConfig');
 const { logEvent } = require('../routes/activity');
 
 const queue = new SyncQueue();
+
+// Soft-decode the bearer token to a verified identity, WITHOUT enforcing auth
+// (public routes still work). Verification matters: a cache HIT returns before
+// the route's authenticateToken runs, so keying on an *unverified* id would let
+// a forged token read another user's cached data. jwt.verify rejects forgeries.
+function softUser(req) {
+  if (req.user) return req.user;
+  const h = req.headers.authorization || '';
+  const m = h.match(/^Bearer\s+(.+)$/i);
+  if (!m) return null;
+  try { return jwt.verify(m[1], process.env.JWT_SECRET); } catch (e) { return null; }
+}
+function userTagOf(req) {
+  const u = softUser(req);
+  return u ? ('u:' + (u.id || u.userId)) : 'anon';
+}
 
 // Per-route cache TTLs (seconds). Anything not listed uses the default.
 const CACHE_TTL = {
@@ -35,7 +52,11 @@ const DEFAULT_TTL = 60;
 const NO_CACHE_PREFIXES = ['/api/auth', '/api/sync', '/api/n8n', '/api/webhooks', '/api/activity', '/api/chat'];
 
 function shouldCache(path) {
-  return !NO_CACHE_PREFIXES.some(p => path.startsWith(p));
+  if (NO_CACHE_PREFIXES.some(p => path.startsWith(p))) return false;
+  // Live, fast-polling sub-resources must stay fresh — caching them (60s) while
+  // the client polls every 5–7s just serves stale data and defeats the poll.
+  if (/\/(attendees|poll|polls|recordings\/list)(\/|$|\?)/.test(path)) return false;
+  return true;
 }
 
 function ttlFor(path) {
@@ -43,12 +64,15 @@ function ttlFor(path) {
   return hit ? CACHE_TTL[hit] : DEFAULT_TTL;
 }
 
-// Build a per-user cache key so one user's data never leaks to another.
+// Build a per-user cache key so one user's data never leaks to another. Keyed on
+// the VERIFIED user id (stable across token refreshes — previously the raw token
+// hash fragmented the cache on every re-login) plus the active institution
+// (institution-scoped responses were served stale after switching) plus query.
 function cacheKey(req) {
-  const auth = req.headers.authorization || 'anon';
-  const userTag = crypto.createHash('sha1').update(auth).digest('hex').slice(0, 12);
+  const userTag = userTagOf(req);
+  const inst = req.headers['x-active-institution'] || '';
   const qs = JSON.stringify(req.query || {});
-  return `${req.path}|${userTag}|${qs}`;
+  return `${req.path}|${userTag}|${inst}|${qs}`;
 }
 
 /**
@@ -103,23 +127,30 @@ function syncMiddleware(req, res, next) {
   const originalJson = res.json.bind(res);
   res.json = (body) => {
     if (res.statusCode >= 200 && res.statusCode < 300) {
+      const _su = softUser(req);
       const op = {
         method: req.method,
         path: fullPath,
-        userId: req.user?.id || req.user?.userId || null,
+        userId: req.user?.id || req.user?.userId || _su?.id || _su?.userId || null,
         body: sanitize(req.body),
         result: pickId(body),
         status: res.statusCode,
       };
       // Record locally for offline replay (non-blocking).
       queue.enqueue(op).catch(() => {});
-      // Invalidate related GET caches so stale reads don't linger.
-      invalidate(fullPath).catch(() => {});
-      // Fire the optional n8n addon (non-blocking).
+      // Invalidate related GET caches BEFORE the response is sent, so a client
+      // that immediately refetches after a write can't read the stale cache
+      // (the previous fire-and-forget invalidate raced the refetch).
       const evt = eventName(fullPath, req.method);
-      triggerN8n(evt, op).catch(() => {});
-      // Drop an activity_feed row for events worth surfacing on a wall.
-      try { logActivityFromWrite(evt, fullPath, req, body); } catch (e) { console.warn('activity log err:', e.message); }
+      invalidate(fullPath, req)
+        .catch(() => {})
+        .then(() => {
+          // Fire the optional n8n addon (non-blocking, after invalidation).
+          triggerN8n(evt, op).catch(() => {});
+          try { logActivityFromWrite(evt, fullPath, req, body); } catch (e) { console.warn('activity log err:', e.message); }
+          originalJson(body);
+        });
+      return res;
     }
     return originalJson(body);
   };
@@ -146,21 +177,36 @@ function pickId(body) {
 //
 // The dashboard endpoint aggregates from ~10 source tables — so ANY write to a
 // data route must also clear the dashboard cache, or stale snapshots persist.
-async function invalidate(path) {
+// Public families are shared by everyone, so a write clears the whole family.
+// Private families are per-user, so a write only clears the WRITER's entries —
+// previously every write prefix-scanned and deleted ALL users' cache (global
+// churn). Scoping uses the `|u:<id>|` segment embedded in each cache key.
+const PUBLIC_FAMILIES = new Set(['/api/marketplace', '/api/courses', '/api/search']);
+async function invalidate(path, req) {
   const family = '/' + path.split('/').slice(1, 3).join('/'); // e.g. /api/courses
-  const families = new Set([family, '/api/dashboard']);
-  // Writes to marketplace/enrollments touch buyer dashboards too.
-  if (family === '/api/marketplace') families.add('/api/enrollments');
-  // Test-session submits write the test_submissions table — the same table
-  // that /api/student/test-history reads. Without clearing that family, a
-  // retake's new score isn't visible until the cache's TTL expires.
-  if (family === '/api/course-content' && /\/sessions\//.test(path)) families.add('/api/student');
-  // Same idea for attendance writes (student progress reads downstream).
-  if (family === '/api/attendance' || family === '/api/assignments') families.add('/api/student');
+  const writerTag = req ? userTagOf(req) : null; // 'u:<id>' or 'anon'
+  // [family, scopeToWriter?] pairs.
+  const targets = [
+    [family, !PUBLIC_FAMILIES.has(family)],
+    ['/api/dashboard', true], // dashboards are per-user
+  ];
+  if (family === '/api/marketplace') { targets.push(['/api/enrollments', true]); targets.push(['/api/courses', false]); }
+  // A course edit makes its public marketplace listing stale.
+  if (family === '/api/courses') targets.push(['/api/marketplace', false]);
+  // Test-session submits write test_submissions, which /api/student reads.
+  if (family === '/api/course-content' && /\/sessions\//.test(path)) targets.push(['/api/student', true]);
+  // Attendance/assignment writes feed student progress reads downstream.
+  if (family === '/api/attendance' || family === '/api/assignments') targets.push(['/api/student', true]);
   try {
-    for (const f of families) {
+    const seen = new Set();
+    for (const [f, scoped] of targets) {
+      const tagKey = f + '|' + (scoped ? '1' : '0');
+      if (seen.has(tagKey)) continue; seen.add(tagKey);
       const entries = await list('cache:' + f);
-      await Promise.all(entries.map(e => del(e.key).catch(() => {})));
+      const toDelete = (scoped && writerTag && writerTag !== 'anon')
+        ? entries.filter(e => e.key.includes('|' + writerTag + '|'))
+        : entries;
+      await Promise.all(toDelete.map(e => del(e.key).catch(() => {})));
     }
   } catch (_) { /* invalidation is best-effort */ }
 }

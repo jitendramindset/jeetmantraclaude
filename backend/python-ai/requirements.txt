@@ -1,0 +1,14 @@
+# JeetMantra local-AI sidecar (FastAPI). Python 3.10+.
+#   python -m venv .venv && . .venv/Scripts/activate   (Windows: .venv\Scripts\activate)
+#   pip install -r requirements.txt
+#   uvicorn main:app --port 8000
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+httpx==0.27.2
+pydantic==2.9.2
+python-multipart==0.0.12        # file uploads
+pypdf==5.0.1                     # PDF text
+python-docx==1.1.2               # Word (.docx) text
+pillow==10.4.0                   # image loading for OCR
+pytesseract==0.3.13              # image OCR (needs the Tesseract binary installed on the host)
+sentence-transformers==3.1.1     # local multilingual embeddings (bge-m3 / LaBSE)

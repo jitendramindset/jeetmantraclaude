@@ -85,4 +85,32 @@ async function cacheGet(key) {
   return entry.data;
 }
 
-module.exports = { db, get, put, del, list, SyncQueue, cacheSet, cacheGet };
+// Background eviction: expired entries are otherwise only reaped on a read miss
+// for that exact key, so cold/abandoned keys would accumulate forever. This
+// sweep (a) deletes every expired entry and (b) caps the live cache size,
+// evicting the soonest-to-expire first when over the bound.
+const CACHE_MAX_ENTRIES = Number(process.env.LEVELDB_CACHE_MAX || 5000);
+async function sweepCache() {
+  try {
+    const entries = await list('cache:');
+    const now = Date.now();
+    const live = [];
+    for (const e of entries) {
+      if (!e.value || now > (e.value.expiresAt || 0)) await del(e.key);
+      else live.push(e);
+    }
+    if (live.length > CACHE_MAX_ENTRIES) {
+      live.sort((a, b) => (a.value.expiresAt || 0) - (b.value.expiresAt || 0));
+      const evict = live.slice(0, live.length - CACHE_MAX_ENTRIES);
+      for (const e of evict) await del(e.key);
+    }
+  } catch (e) { /* best-effort */ }
+}
+// Run every 5 min + once shortly after boot. unref() so it never keeps the
+// process alive on its own.
+const _sweepTimer = setInterval(sweepCache, 5 * 60 * 1000);
+if (_sweepTimer.unref) _sweepTimer.unref();
+const _bootSweep = setTimeout(sweepCache, 30 * 1000);
+if (_bootSweep.unref) _bootSweep.unref();
+
+module.exports = { db, get, put, del, list, SyncQueue, cacheSet, cacheGet, sweepCache };

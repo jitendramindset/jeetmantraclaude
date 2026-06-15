@@ -61,6 +61,9 @@ input:focus,select:focus{border-color:var(--jm-primary);box-shadow:0 0 0 3px rgb
 .switch{text-align:center;margin-top:20px;font-size:13px;color:var(--jm-text-muted)}
 .switch a{color:var(--jm-primary);text-decoration:none;font-weight:600}
 .loading{display:none;text-align:center;color:var(--jm-text-muted);font-size:14px;margin-top:8px}
+.loading::before{content:"";display:inline-block;width:14px;height:14px;margin-right:8px;vertical-align:-2px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.loading::before{animation-duration:.01ms}}
 @media(max-width:480px){
   body{padding:12px}
   .card{padding:22px 18px;border-radius:12px}
@@ -80,8 +83,8 @@ input:focus,select:focus{border-color:var(--jm-primary);box-shadow:0 0 0 3px rgb
   </div>
   <div class="card">
     <div class="tabs">
-      <div class="tab active" onclick="switchTab('login')">Login</div>
-      <div class="tab" onclick="location.href='/signup.html'">Sign Up</div>
+      <div class="tab active" role="button" tabindex="0" aria-label="Login" onclick="switchTab('login')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">Login</div>
+      <div class="tab" role="button" tabindex="0" aria-label="Go to sign up" onclick="location.href='/signup.html'" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">Sign Up</div>
     </div>
     <div id="msg" class="msg"></div>
 
@@ -99,8 +102,8 @@ input:focus,select:focus{border-color:var(--jm-primary);box-shadow:0 0 0 3px rgb
       <button class="btn btn-primary" onclick="doLogin()" id="loginBtn">Login</button>
       <div class="divider">or continue with</div>
       <div class="social-btns">
-        <button class="btn-social" onclick="doGoogleLogin()">🔵 Google</button>
-        <button class="btn-social" onclick="showOTP()">📱 Phone OTP</button>
+        <button class="btn-social" onclick="doGoogleLogin()" aria-label="Continue with Google">🔵 Google</button>
+        <button class="btn-social" onclick="showOTP()" aria-label="Login with phone OTP">📱 Phone OTP</button>
       </div>
       <div class="otp-section" id="otpSection">
         <div class="form-group">

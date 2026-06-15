@@ -313,7 +313,7 @@ router.get('/:id/students', authenticateToken, async (req, res) => {
         supabaseAdmin.from('attendance').select('id', { count: 'exact', head: true }).eq('course_id', courseId).eq('student_id', e.student_id).eq('status', 'present'),
         supabaseAdmin.from('attendance').select('date').eq('course_id', courseId).eq('student_id', e.student_id).order('date', { ascending: false }).limit(1).maybeSingle()
       ]);
-      const pct = totalLectures ? Math.round(((present || 0) / totalLectures) * 100) : 0;
+      const pct = totalLectures ? Math.min(100, Math.round(((present || 0) / totalLectures) * 100)) : 0;
       const student = byId[e.student_id] || {};
       return {
         enrollment_id: e.id,

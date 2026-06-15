@@ -4,10 +4,17 @@ const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
 
+// Strip PostgREST filter metacharacters so a crafted `q` can't break out of the
+// .or()/.ilike() pattern and inject extra conditions (filter injection).
+function safeLike(s) {
+  return String(s || '').replace(/[,()*%\\]/g, ' ').trim();
+}
+
 // GET /api/search?q=query&limit=10&category=X
 router.get('/', async (req, res) => {
   try {
-    const { q = '', limit = 12, category, level } = req.query;
+    const { limit = 12, category, level } = req.query;
+    const q = safeLike(req.query.q);
 
     let query = supabaseAdmin
       .from('courses')
@@ -37,7 +44,7 @@ router.get('/', async (req, res) => {
 // GET /api/search/suggestions?q=partial — autocomplete
 router.get('/suggestions', async (req, res) => {
   try {
-    const { q = '' } = req.query;
+    const q = safeLike(req.query.q);
     if (!q.trim()) return res.json({ suggestions: [] });
 
     const { data: titles } = await supabaseAdmin
@@ -57,7 +64,8 @@ router.get('/suggestions', async (req, res) => {
 // GET /api/search/semantic?q=query — semantic / vector search
 router.get('/semantic', async (req, res) => {
   try {
-    const { q = '', limit = 10 } = req.query;
+    const { limit = 10 } = req.query;
+    const q = safeLike(req.query.q);
     if (!q.trim()) return res.json({ results: [] });
 
     // Check if course_embeddings table exists

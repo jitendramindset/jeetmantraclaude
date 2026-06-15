@@ -31,37 +31,37 @@ router.get('/', authenticateToken, async (req, res) => {
         .from('enrollments')
         .select('*, courses(id,title,category,teacher_id,batch_timing,price,cover_image)')
         .eq('student_id', userId).limit(6);
-      // Live classes for the student's enrolled courses (was incorrectly using courses.is_live)
       const enrolledCourseIds = (enrollments || []).map(e => e.course_id);
-      const { data: liveClasses } = enrolledCourseIds.length
-        ? await supabaseAdmin.from('live_classes').select('*, courses(title)').in('course_id', enrolledCourseIds).in('status', ['scheduled', 'live']).order('scheduled_time', { ascending: true }).limit(5)
-        : { data: [] };
-      // Compute live progress per enrollment using BATCHED queries (not N+1).
-      // Two queries total regardless of enrollment count.
-      let lectureCountMap = {}, attendCountMap = {};
-      if (enrolledCourseIds.length) {
-        const { data: lectureCounts } = await supabaseAdmin
-          .from('course_lectures').select('course_id')
-          .in('course_id', enrolledCourseIds);
-        (lectureCounts || []).forEach(l => { lectureCountMap[l.course_id] = (lectureCountMap[l.course_id] || 0) + 1; });
+      const hasCourses = enrolledCourseIds.length > 0;
+      const empty = Promise.resolve({ data: [] });
 
-        const { data: attendCounts } = await supabaseAdmin
-          .from('attendance').select('course_id')
-          .eq('student_id', userId).eq('status', 'present')
-          .in('course_id', enrolledCourseIds);
-        (attendCounts || []).forEach(a => { attendCountMap[a.course_id] = (attendCountMap[a.course_id] || 0) + 1; });
-      }
+      // All of the following are independent (depend only on userId / courseIds),
+      // so run them CONCURRENTLY instead of ~8 serial round-trips.
+      const [
+        { data: liveClasses }, { data: lectureCounts }, { data: attendCounts },
+        { data: recordedLectures }, { data: homework }, { data: skills },
+        { data: feedback }, { data: purchases }
+      ] = await Promise.all([
+        hasCourses ? supabaseAdmin.from('live_classes').select('*, courses(title)').in('course_id', enrolledCourseIds).in('status', ['scheduled', 'live']).order('scheduled_time', { ascending: true }).limit(5) : empty,
+        hasCourses ? supabaseAdmin.from('course_lectures').select('course_id').in('course_id', enrolledCourseIds) : empty,
+        hasCourses ? supabaseAdmin.from('attendance').select('course_id').eq('student_id', userId).eq('status', 'present').in('course_id', enrolledCourseIds) : empty,
+        supabaseAdmin.from('lectures').select('*').eq('is_recorded', true).limit(5),
+        supabaseAdmin.from('assignments').select('*').eq('student_id', userId).order('due_date', { ascending: true }).limit(5),
+        supabaseAdmin.from('user_skills').select('*').eq('user_id', userId).order('updated_at', { ascending: false }).limit(3),
+        supabaseAdmin.from('feedback').select('*').eq('from_user_id', userId).order('created_at', { ascending: false }).limit(5),
+        supabaseAdmin.from('marketplace_purchases').select('*, marketplace_listings(*, courses(title,category))').eq('buyer_id', userId).limit(5)
+      ]);
+
+      // Batched progress maps (no N+1).
+      const lectureCountMap = {}, attendCountMap = {};
+      (lectureCounts || []).forEach(l => { lectureCountMap[l.course_id] = (lectureCountMap[l.course_id] || 0) + 1; });
+      (attendCounts || []).forEach(a => { attendCountMap[a.course_id] = (attendCountMap[a.course_id] || 0) + 1; });
       const enrichedEnrollments = (enrollments || []).map(e => {
         const total = lectureCountMap[e.course_id] || 0;
         const present = attendCountMap[e.course_id] || 0;
         const pct = total ? Math.round((present / total) * 100) : (e.progress_percentage || 0);
         return { ...e, progress_percentage: pct, attended_lectures: present, total_lectures: total };
       });
-      const { data: recordedLectures } = await supabaseAdmin.from('lectures').select('*').eq('is_recorded', true).limit(5);
-      const { data: homework } = await supabaseAdmin.from('assignments').select('*').eq('student_id', userId).order('due_date', { ascending: true }).limit(5);
-      const { data: skills } = await supabaseAdmin.from('user_skills').select('*').eq('user_id', userId).order('updated_at', { ascending: false }).limit(3);
-      const { data: feedback } = await supabaseAdmin.from('feedback').select('*').eq('from_user_id', userId).order('created_at', { ascending: false }).limit(5);
-      const { data: purchases } = await supabaseAdmin.from('marketplace_purchases').select('*, marketplace_listings(*, courses(title,category))').eq('buyer_id', userId).limit(5);
       dashboardData = {
         enrolledCourses: enrichedEnrollments,
         liveClasses: liveClasses || [],

@@ -215,6 +215,23 @@ router.post('/:classId/join', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'This class is no longer available' });
     }
 
+    // Access gate: only the course owner/teacher, admins, or ENROLLED students
+    // may join (and receive the meeting link). Prevents non-enrolled users from
+    // joining any class by guessing its id.
+    if (req.user.role !== 'admin') {
+      const { data: course } = await supabaseAdmin.from('courses').select('teacher_id').eq('id', liveClass.course_id).maybeSingle();
+      const isOwner = course && course.teacher_id === studentId;
+      let isEnrolled = false;
+      if (!isOwner) {
+        const { data: enr } = await supabaseAdmin.from('enrollments')
+          .select('id').eq('course_id', liveClass.course_id).eq('student_id', studentId).maybeSingle();
+        isEnrolled = !!enr;
+      }
+      if (!isOwner && !isEnrolled) {
+        return res.status(403).json({ error: 'Enroll in this course to join its live classes.' });
+      }
+    }
+
     // Check if already joined — if so, re-return meeting_link so the user can rejoin.
     const { data: existing } = await supabaseAdmin
       .from('class_attendees')
@@ -332,19 +349,26 @@ router.post('/:classId/start', authenticateToken, authorizeRole(CREATOR_ROLES), 
     // Verify teacher owns this class
     const { data: liveClass } = await supabase
       .from('live_classes')
-      .select('teacher_id')
+      .select('teacher_id, status, started_at')
       .eq('id', req.params.classId)
       .single();
 
     if (!liveClass || liveClass.teacher_id !== req.user.id) {
       return res.status(403).json({ error: 'Not authorized to start this class' });
     }
+    // Idempotency: don't restart a live/completed class (would overwrite started_at).
+    if (liveClass.status === 'live') {
+      return res.json({ message: 'Live class already started', liveClass });
+    }
+    if (liveClass.status === 'completed' || liveClass.status === 'cancelled') {
+      return res.status(400).json({ error: 'This class has already ended' });
+    }
 
     const { data: updatedClass, error } = await supabaseAdmin
       .from('live_classes')
       .update({
         status: 'live',
-        started_at: new Date().toISOString()
+        started_at: liveClass.started_at || new Date().toISOString()
       })
       .eq('id', req.params.classId)
       .select()
@@ -370,19 +394,24 @@ router.post('/:classId/end', authenticateToken, authorizeRole(CREATOR_ROLES), as
     // Verify teacher owns this class
     const { data: liveClass } = await supabase
       .from('live_classes')
-      .select('teacher_id')
+      .select('teacher_id, status, ended_at')
       .eq('id', req.params.classId)
       .single();
 
     if (!liveClass || liveClass.teacher_id !== req.user.id) {
       return res.status(403).json({ error: 'Not authorized to end this class' });
     }
+    // Idempotency: a second "End" must not overwrite the original ended_at.
+    if (liveClass.status === 'completed') {
+      const { data: existing } = await supabaseAdmin.from('live_classes').select('*').eq('id', req.params.classId).single();
+      return res.json({ message: 'Live class already ended', liveClass: existing });
+    }
 
     const { data: updatedClass, error } = await supabaseAdmin
       .from('live_classes')
       .update({
         status: 'completed',
-        ended_at: new Date().toISOString()
+        ended_at: liveClass.ended_at || new Date().toISOString()
       })
       .eq('id', req.params.classId)
       .select()

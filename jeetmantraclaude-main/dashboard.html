@@ -10,7 +10,7 @@
 <script>if('serviceWorker' in navigator) window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));</script>
 <style>
 /* Dashboard-specific styles — uses theme.css design tokens */
-body{display:flex;min-height:100vh}
+body{display:flex;min-height:100vh;overflow-x:clip}
 .sidebar{width:250px;background:var(--jm-deep);color:#fff;display:flex;flex-direction:column;position:fixed;height:100vh;z-index:100;transition:transform .3s}
 .sidebar-logo{position:relative;padding:24px 20px 16px;border-bottom:1px solid rgba(255,255,255,0.1)}
 /* Gradient brand strip on top of the sidebar — adds depth + product feel. */
@@ -26,12 +26,12 @@ body{display:flex;min-height:100vh}
 .nav-menu{flex:1;overflow-y:auto;padding:12px 0}
 .nav-item{display:flex;align-items:center;gap:12px;padding:12px 20px;cursor:pointer;transition:all .15s;font-size:14px;color:rgba(255,255,255,0.65);font-weight:500}
 .nav-item:hover{background:rgba(255,255,255,0.05);color:#fff}
-.nav-item.active{background:rgba(249,115,22,0.12);color:var(--jm-primary);border-right:3px solid var(--jm-primary)}
+.nav-item.active{background:rgba(124,58,237,0.14);color:var(--jm-primary);border-right:3px solid var(--jm-primary)}
 .nav-item .icon{font-size:18px;width:22px;text-align:center}
 .sidebar-footer{padding:16px 20px;border-top:1px solid rgba(255,255,255,0.1)}
 .btn-logout{width:100%;background:transparent;border:1.5px solid rgba(255,255,255,0.2);color:#fff;border-radius:var(--jm-radius-sm);padding:10px;cursor:pointer;font-size:13px;font-family:inherit;font-weight:600;transition:all .15s}
 .btn-logout:hover{background:var(--jm-primary);border-color:var(--jm-primary)}
-.main{margin-left:250px;flex:1;display:flex;flex-direction:column;min-height:100vh;background:var(--jm-bg)}
+.main{margin-left:250px;flex:1;min-width:0;display:flex;flex-direction:column;min-height:100vh;background:var(--jm-bg)}
 .topbar{background:var(--jm-surface);border-bottom:1px solid var(--jm-border);padding:14px 28px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:50;box-shadow:var(--jm-shadow-sm)}
 .topbar h3{font-size:16px;font-weight:700;flex:1;color:var(--jm-text)}
 .search-bar{display:flex;align-items:center;background:var(--jm-surface-2);border:1px solid var(--jm-border);border-radius:var(--jm-radius-sm);padding:8px 14px;gap:8px;flex:1;max-width:320px}
@@ -39,9 +39,9 @@ body{display:flex;min-height:100vh}
 .topbar-actions{display:flex;align-items:center;gap:10px}
 .icon-btn{background:var(--jm-surface);border:1px solid var(--jm-border);border-radius:var(--jm-radius-sm);padding:8px 12px;cursor:pointer;font-size:16px;color:var(--jm-text-muted);text-decoration:none;display:flex;align-items:center;transition:all .15s}
 .icon-btn:hover{border-color:var(--jm-primary);color:var(--jm-primary)}
-.content{padding:24px 28px;flex:1}
+.content{padding:24px 28px;flex:1;min-width:0;overflow-x:clip}
 /* Auto-fit so cards reflow at any width (was a fixed 4-col grid). */
-.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:24px}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:16px;margin-bottom:24px}
 /* Dark theme overrides — toggled via <html data-theme="dark"> from Settings. */
 html[data-theme="dark"]{
   --jm-bg:#0f1117;--jm-surface:#171a23;--jm-border:#262a36;
@@ -126,11 +126,13 @@ html[data-theme="dark"]{
 .course-group-head{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--jm-text-muted);padding:6px 0;margin-bottom:8px;border-bottom:1px solid var(--jm-border);display:flex;justify-content:space-between;align-items:center}
 .course-group-head .count{background:var(--jm-primary-tint);color:var(--jm-primary);padding:1px 8px;border-radius:var(--jm-radius-pill);font-size:11px}
 /* Grid view */
-.course-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.course-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(260px,100%),1fr));gap:14px}
 .course-grid-card{border:1px solid var(--jm-border);border-radius:12px;padding:16px;background:var(--jm-surface);display:flex;flex-direction:column;gap:8px;transition:all .18s}
 .course-grid-card:hover{border-color:var(--jm-primary);box-shadow:0 6px 18px rgba(0,0,0,.06);transform:translateY(-2px)}
-.course-grid-card .cg-title{font-weight:700;font-size:15px;line-height:1.3}
-.course-grid-card .cg-meta{font-size:11px;color:var(--jm-text-muted)}
+/* Clamp card titles to 2 lines + meta to 1 so long titles don't make cards
+   uneven or crowd the action row. */
+.course-grid-card .cg-title{font-weight:700;font-size:15px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.course-grid-card .cg-meta{font-size:11px;color:var(--jm-text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .course-grid-card .cg-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:auto;padding-top:8px}
 /* Book-like reader content pane */
 .book-page{background:var(--jm-surface);border:1px solid var(--jm-border);border-radius:4px;box-shadow:0 1px 3px rgba(0,0,0,.04),0 10px 30px rgba(0,0,0,.06);padding:48px 56px;max-width:780px;margin:0 auto;min-height:calc(100vh - 220px);position:relative;background-image:linear-gradient(var(--jm-surface),var(--jm-surface))}
@@ -147,6 +149,66 @@ html[data-theme="dark"]{
 .book-nav button:disabled{opacity:.4;cursor:not-allowed}
 .book-pageno{font-size:12px;color:var(--jm-text-muted);font-family:Georgia,serif}
 @media print{.sidebar,.topbar,.book-nav,.row-actions{display:none!important}.book-page{box-shadow:none;border:0}}
+@keyframes vpulse{0%,100%{box-shadow:0 6px 20px rgba(0,0,0,.3)}50%{box-shadow:0 0 0 12px rgba(124,58,237,.25)}}
+/* ── Motion system: subtle entrances, hover lifts, press feedback ────── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes shimmer{from{background-position:-200% 0}to{background-position:200% 0}}
+.section{animation:fadeUp .35s ease both}
+.stat-card{transition:transform .18s ease,box-shadow .18s ease}
+.stat-card:hover{transform:translateY(-3px);box-shadow:0 8px 22px rgba(0,0,0,.10)}
+.btn-sm:active,.btn-primary:active,.btn-outline:active{transform:scale(.96)}
+.configure-page.active>.configure-body{animation:fadeUp .3s ease both}
+.modal{animation:fadeUp .25s ease both}
+.msgr{animation:fadeUp .25s ease both}
+.item-list li{transition:background .15s ease}
+.item-list li:hover{background:var(--jm-surface-2)}
+.course-grid-card,.scene,.msgr-convo,.tree-item{transition:transform .15s ease,border-color .15s ease,background .15s ease}
+.skeleton{background:linear-gradient(90deg,var(--jm-surface-2) 25%,var(--jm-border) 50%,var(--jm-surface-2) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:8px;color:transparent!important;pointer-events:none}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+/* ══ MODERN DESIGN LAYER ══════════════════════════════════════════════
+   Calmer surfaces, soft-tinted actions (no saturated gradient pills),
+   refined type scale, compact ghost icon-actions, layered card depth. */
+.quick-actions .qa{
+  background:color-mix(in oklab,var(--qc,#7c3aed) 12%,transparent);
+  color:color-mix(in oklab,var(--qc,#7c3aed) 80%,var(--jm-text));
+  border:1px solid color-mix(in oklab,var(--qc,#7c3aed) 28%,transparent);
+  box-shadow:none;font-weight:700}
+.quick-actions .qa:hover{
+  background:color-mix(in oklab,var(--qc,#7c3aed) 20%,transparent);
+  box-shadow:0 4px 14px color-mix(in oklab,var(--qc,#7c3aed) 22%,transparent);transform:translateY(-1px)}
+.section-title{text-transform:none;letter-spacing:-0.01em;font-size:15px;border-bottom:0;padding-bottom:0}
+.section-title::before{width:8px;height:8px;border-radius:50%;background:var(--sc)}
+.section-title::after{background:linear-gradient(90deg,color-mix(in oklab,var(--jm-border) 60%,transparent),transparent)}
+.card{border-radius:14px;box-shadow:0 1px 2px rgba(15,23,42,.04),0 10px 28px -16px rgba(15,23,42,.14)}
+.stat-card{border-radius:14px}
+.stat-card::before{height:2px;opacity:.85}
+.stat-card .label::before{display:none}
+.stat-card .value{font-size:32px;letter-spacing:-0.03em}
+.stat-card .sub{margin-top:2px}
+.row-actions .btn-sm{background:var(--jm-surface-2);border-color:transparent;border-radius:8px;padding:6px 9px}
+.row-actions .btn-sm:hover{background:color-mix(in oklab,var(--jm-primary) 14%,transparent);color:var(--jm-primary);border-color:transparent}
+.row-actions .btn-sm.btn-primary{background:var(--jm-primary);color:#fff}
+.item-list li{border-radius:10px;padding:11px 8px}
+.badge{font-weight:600;letter-spacing:.01em}
+.bn-item.active{border-radius:12px}
+/* ═════════════════════════════════════════════════════════════════════ */
+/* Reader layout: notes column + TOC column collapse on smaller screens */
+.reader-shell{display:grid;grid-template-columns:1fr 320px;gap:18px}
+.reader-grid{display:grid;grid-template-columns:280px 1fr;gap:14px}
+@media(max-width:1100px){.reader-shell{grid-template-columns:1fr}}
+@media(max-width:760px){
+  .reader-grid{grid-template-columns:1fr}
+  .reader-grid>div:first-child{border-right:0!important;padding-right:0!important;max-height:240px!important}
+  .book-page{padding:22px 16px;min-height:auto}
+  .book-page h2.book-title{font-size:22px}
+  .book-page .book-body{font-size:15px;line-height:1.75}
+}
+/* Billing line-items: collapse the 5-col row into a 2-col wrap on phones */
+.bill-row{display:grid;grid-template-columns:1fr 70px 100px 100px 30px;gap:6px;margin-bottom:6px;align-items:center}
+@media(max-width:900px) and (min-width:641px){.bill-row{grid-template-columns:1fr 60px 84px 84px 28px}}
+@media(max-width:640px){.bill-row{grid-template-columns:1fr 1fr 1fr 32px;row-gap:4px}.bill-row>*:first-child{grid-column:1/-1}}
+/* Smartboard / 4K: keep content readable instead of stretching edge-to-edge. */
+@media(min-width:2200px){.content{max-width:1900px;margin:0 auto;width:100%;padding:32px 40px;font-size:17px}}
 /* WhatsApp-style unified messenger */
 .msgr-overlay{position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:24px}
 .msgr{width:100%;max-width:960px;height:88vh;background:var(--jm-surface);border-radius:14px;overflow:hidden;display:grid;grid-template-columns:300px 1fr;box-shadow:0 20px 60px rgba(0,0,0,.35)}
@@ -176,9 +238,11 @@ html[data-theme="dark"]{
 .msgr-compose input{flex:1;padding:10px 14px;border:1.5px solid var(--jm-border);border-radius:20px;background:var(--jm-surface);color:inherit;font-family:inherit;font-size:13px}
 .msgr-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--jm-text-muted);gap:8px;text-align:center;padding:30px}
 @media(max-width:720px){.msgr{grid-template-columns:1fr}.msgr.show-thread .msgr-list{display:none}.msgr:not(.show-thread) .msgr-thread{display:none}}
+@media(max-width:480px){.msgr-overlay{padding:0}.msgr{height:100vh;border-radius:0}.msgr-thread-head{padding:10px 12px}.msgr-thread-head select{max-width:100px}.msgr-msgs{padding:10px}.msgr-bubble{max-width:88%}}
 .btn-sm{padding:7px 14px;border-radius:var(--jm-radius-sm);font-size:12px;font-weight:700;cursor:pointer;border:1.5px solid transparent;font-family:inherit;transition:all .15s;display:inline-block}
 .btn-primary{background:linear-gradient(135deg,var(--jm-primary),#a855f7);color:#fff;box-shadow:0 2px 8px var(--jm-primary-glow);border:0}
 .btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 14px var(--jm-primary-glow);background:var(--jm-primary-2)}
+.btn-sm:active{transform:translateY(0) scale(.97)}
 .btn-outline{background:transparent;border-color:var(--jm-border);color:var(--jm-text)}
 .btn-outline:hover{border-color:var(--jm-primary);color:var(--jm-primary)}
 .btn-sm:focus-visible,.btn-primary:focus-visible,.btn-outline:focus-visible{outline:2px solid var(--jm-primary);outline-offset:2px}
@@ -199,7 +263,7 @@ html[data-theme="dark"]{
 .row-actions{display:flex;gap:6px;align-items:center}
 .row-actions .btn-sm{padding:4px 10px;font-size:11px}
 /* Modal — uses the marketplace pattern */
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,0.6);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,0.6);z-index:9995;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
 .modal-overlay.show{display:flex}
 .modal{background:var(--jm-surface);border-radius:var(--jm-radius);padding:28px;max-width:540px;width:90%;border:1px solid var(--jm-border);max-height:90vh;overflow-y:auto;box-shadow:var(--jm-shadow)}
 .modal h3{font-size:20px;font-weight:800;margin-bottom:18px;letter-spacing:-0.02em;color:var(--jm-text)}
@@ -207,7 +271,7 @@ html[data-theme="dark"]{
 .modal .form-row{margin-bottom:14px}
 .modal label{display:block;font-size:12px;color:var(--jm-text-strong);margin-bottom:6px;font-weight:600}
 .modal input,.modal select,.modal textarea{width:100%;background:var(--jm-surface);border:1.5px solid var(--jm-border);border-radius:var(--jm-radius-sm);padding:10px 12px;color:var(--jm-text);font-size:14px;outline:none;font-family:inherit;transition:all .15s}
-.modal input:focus,.modal select:focus,.modal textarea:focus{border-color:var(--jm-primary);box-shadow:0 0 0 3px rgba(249,115,22,0.12)}
+.modal input:focus,.modal select:focus,.modal textarea:focus{border-color:var(--jm-primary);box-shadow:0 0 0 3px rgba(124,58,237,0.22)}
 /* GLOBAL form-row — used by full-page views (billing/profile/wizard/att grid).
    Labels stack ABOVE inputs (was the "labels glued to fields" bug in the
    New Invoice form). Inputs span the row and breathe. */
@@ -216,7 +280,7 @@ html[data-theme="dark"]{
 .form-row > input:not([type=checkbox]):not([type=radio]),
 .form-row > select,
 .form-row > textarea{width:100%;background:var(--jm-surface);border:1.5px solid var(--jm-border);border-radius:var(--jm-radius-sm);padding:10px 12px;color:var(--jm-text);font-size:14px;outline:none;font-family:inherit;transition:border .15s,box-shadow .15s;box-sizing:border-box}
-.form-row > input:focus,.form-row > select:focus,.form-row > textarea:focus{border-color:var(--jm-primary);box-shadow:0 0 0 3px rgba(249,115,22,.12)}
+.form-row > input:focus,.form-row > select:focus,.form-row > textarea:focus{border-color:var(--jm-primary);box-shadow:0 0 0 3px rgba(124,58,237,.22)}
 .form-row > textarea{min-height:72px;resize:vertical;line-height:1.5}
 /* When a label has an inline mic-button or a flex-row of input+addon, the
    div wrapper still needs the input to fill remaining space. */
@@ -247,6 +311,13 @@ html[data-theme="dark"]{
 .configure-breadcrumb .crumb-sep{color:var(--jm-text-subtle)}
 .configure-body{flex:1;padding:24px 32px;max-width:1280px;margin:0 auto;width:100%}
 .cfg-header{margin-bottom:24px;display:flex;align-items:center;gap:14px}
+.cfg-guide{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:var(--jm-surface);border:1px solid var(--jm-border);border-radius:12px;padding:12px 16px;margin-bottom:18px}
+.cfg-guide-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex:1;min-width:0;font-size:13px;color:var(--jm-text)}
+.cfg-guide .cfg-step{width:22px;height:22px;border-radius:50%;background:var(--jm-primary);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0}
+.cfg-guide .cfg-arrow{color:var(--jm-text-muted)}
+@media(max-width:760px){.cfg-guide .cfg-arrow{display:none}.cfg-guide-row{font-size:12px}}
+.rich-field-prev{border:1px solid var(--jm-border);border-radius:8px;padding:10px 12px;background:var(--jm-bg);min-height:42px;max-height:260px;overflow:auto;font-size:13px}
+.rich-field-prev:empty{display:none}
 .cfg-header img{width:64px;height:64px;object-fit:cover;border-radius:10px;border:1px solid var(--jm-border)}
 .cfg-header h2{font-size:22px;font-weight:800;letter-spacing:-0.02em}
 .cfg-header .sub{font-size:12px;color:var(--jm-text-muted);margin-top:2px}
@@ -279,7 +350,7 @@ html[data-theme="dark"]{
 /* Empty state inside tree */
 .tree-empty{padding:14px 16px 14px 40px;font-size:12px;color:var(--jm-text-muted);font-style:italic}
 /* Toast */
-.toast{position:fixed;top:20px;right:20px;background:var(--jm-surface);border:1px solid var(--jm-border);border-left:4px solid var(--jm-success);border-radius:var(--jm-radius-sm);padding:14px 18px;box-shadow:var(--jm-shadow);font-size:14px;font-weight:600;color:var(--jm-text);z-index:300;animation:slideIn .3s}
+.toast{position:fixed;top:20px;right:20px;background:var(--jm-surface);border:1px solid var(--jm-border);border-left:4px solid var(--jm-success);border-radius:var(--jm-radius-sm);padding:14px 18px;box-shadow:var(--jm-shadow);font-size:14px;font-weight:600;color:var(--jm-text);z-index:10050;animation:slideIn .3s}
 .toast.error{border-left-color:var(--jm-danger)}
 @keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:none;opacity:1}}
 /* ── Responsive sweep — tables/grids/wizards scale below 900 / 600 ── */
@@ -309,8 +380,11 @@ html[data-theme="dark"]{
   #att-roster .item-meta{display:none}
   .topbar h3{font-size:16px}
   .search-bar{display:none}
-  .row-actions{flex-wrap:wrap}
-  .row-actions .btn-sm{font-size:11px;padding:4px 8px}
+  /* Course list rows: stack title above actions so the 9 action buttons can't
+     overlap the title on narrow screens. */
+  .item-list li{flex-direction:column;align-items:stretch;gap:8px}
+  .row-actions{flex-wrap:wrap;justify-content:flex-start;width:100%}
+  .row-actions .btn-sm{font-size:11px;padding:6px 9px;min-height:34px}
   /* ── MODALS (create/edit forms): full-width, stacked, comfortable ── */
   .modal{width:96%;padding:18px 16px;max-height:94vh}
   .modal h3{font-size:17px}
@@ -334,6 +408,14 @@ html[data-theme="dark"]{
   .grid-2,.grid-3{grid-template-columns:1fr}
   .overlay.show{display:block}
 }
+/* Tablet (769–1280px): narrow the sidebar so the content column isn't cramped,
+   and let the topbar wrap instead of its items overflowing. */
+@media(min-width:769px) and (max-width:1280px){
+  .sidebar{width:210px}
+  .main{margin-left:210px}
+  .topbar{flex-wrap:wrap;row-gap:8px}
+  .topbar .search-bar{flex:1 1 180px;min-width:0}
+}
 </style>
 <script src="/jm-theme.js"></script>
 </head>
@@ -343,8 +425,8 @@ html[data-theme="dark"]{
 <!-- ==================== COMMAND PALETTE (Ctrl+K) ==================== -->
 <div class="cmdk-overlay" id="cmdkOverlay" onclick="if(event.target===this)closeCmdK()">
   <div class="cmdk" onkeydown="cmdkKey(event)">
-    <input id="cmdkInput" placeholder="Search courses, classes, students, settings… (try 'live', 'attendance')" oninput="renderCmdK(this.value)" autocomplete="off">
-    <button id="cmdkMic" onclick="cmdkVoice()" title="Voice search" style="position:absolute;right:24px;top:18px;background:transparent;border:0;font-size:18px;cursor:pointer">🎤</button>
+    <input id="cmdkInput" placeholder="Search courses, classes, students, settings… (try 'live', 'attendance')" oninput="cmdkType(this.value)" autocomplete="off">
+    <button id="cmdkMic" onclick="cmdkVoice()" title="Voice search" aria-label="Voice search" style="position:absolute;right:24px;top:18px;background:transparent;border:0;font-size:18px;cursor:pointer">🎤</button>
     <div class="results" id="cmdkResults"></div>
     <div class="cmdk-foot"><span>↑↓ navigate · ⏎ open · esc close</span><span>⌘K / Ctrl+K</span></div>
   </div>
@@ -376,20 +458,19 @@ html[data-theme="dark"]{
     <h3 id="pageTitle">Dashboard</h3>
     <span id="pageCrumb" style="font-size:13px;color:var(--jm-text-muted);font-weight:500"></span>
     <div class="search-bar">
-      <span>🔍</span>
-      <input type="text" placeholder="Search courses..." oninput="debounceSearch(this.value)">
+      <span aria-hidden="true">🔍</span>
+      <input type="text" placeholder="Search courses..." data-i18n-placeholder="search_courses" aria-label="Search courses" oninput="debounceSearch(this.value)">
     </div>
     <div class="topbar-actions">
       <select id="langSwitch" onchange="setLang(this.value)" title="Language" style="background:transparent;border:1px solid var(--jm-border);border-radius:6px;padding:5px 8px;font-size:12px;font-weight:700;color:var(--jm-text);cursor:pointer">
         <option value="en">🇮🇳 EN</option>
         <option value="hi">🇮🇳 हिं</option>
       </select>
-      <button class="icon-btn" onclick="openAiKey()" title="AI assistant settings" style="border:none">🤖</button>
-      <button class="icon-btn" onclick="openWall('me')" title="Activity wall" style="border:none">📰</button>
-      <span class="icon-btn" onclick="toggleNotifs(event)" style="position:relative;cursor:pointer">🔔<span id="notifDot" style="display:none;position:absolute;top:6px;right:6px;width:8px;height:8px;border-radius:50%;background:#ef4444"></span>
+      <button class="icon-btn" onclick="openMessenger()" title="Messages" aria-label="Messages" style="border:none">💬</button>
+      <button class="icon-btn" onclick="toggleNotifs(event)" title="Notifications" aria-label="Notifications" style="position:relative;cursor:pointer;border:none;background:transparent">🔔<span id="notifDot" style="display:none;position:absolute;top:6px;right:6px;width:8px;height:8px;border-radius:50%;background:#ef4444"></span>
         <div class="notif-dropdown" id="notifDropdown" onclick="event.stopPropagation()"></div>
-      </span>
-      <a href="/marketplace.html" class="icon-btn" title="Marketplace">🛒</a>
+      </button>
+      <a href="/marketplace.html" class="icon-btn" title="Marketplace" aria-label="Marketplace">🛒</a>
     </div>
   </div>
 
@@ -942,7 +1023,7 @@ html[data-theme="dark"]{
     <span class="crumb active" id="rd-crumb">…</span>
     <div style="margin-left:auto"><button class="btn-sm btn-outline" onclick="closeReader()">← Back</button></div>
   </div>
-  <div class="configure-body" id="rd-body" style="display:grid;grid-template-columns:1fr 320px;gap:18px">Loading…</div>
+  <div class="configure-body reader-shell" id="rd-body">Loading…</div>
 </div>
 
 <!-- ==================== BOOKINGS / PAYMENTS DETAIL ==================== -->
@@ -968,6 +1049,7 @@ const NAV={
     {i:'📡',l:'Live Classes',t:'live'},
     {i:'📰',l:'Wall',t:'wall'},
     {i:'💬',l:'Messages',action:'openMessenger()'},
+    {i:'📅',l:'Calendar',action:'openCalendar()'},
     {i:'📍',l:'Near Me',action:'openNearbySearch()'},
     {i:'📥',l:'Downloads',action:'openDownloads()'},
     {i:'📹',l:'Recordings',action:'openRecordings()'},
@@ -1009,6 +1091,8 @@ const NAV={
     {i:'🏠',l:'Dashboard',t:'top',a:true},
     {i:'📅',l:'Bookings',t:'bookings'},
     {i:'💰',l:'Earnings',t:'earnings'},
+    {i:'💬',l:'Messages',action:'openMessenger()'},
+    {i:'📅',l:'Calendar',action:'openCalendar()'},
     {i:'🛰️',l:'EduOS',action:'openEduOS()'},
     {i:'💳',l:'Wallet',action:'openWallet()'},
     {i:'⚡',l:'Plans',action:'openPlans()'},
@@ -1021,16 +1105,22 @@ const NAV={
     {i:'📚',l:'Available Courses',t:'courses'},
     {i:'👨‍🏫',l:'Teachers',t:'teachers'},
     {i:'💳',l:'Payments',t:'payments'},
+    {i:'💬',l:'Messages',action:'openMessenger()'},
+    {i:'📅',l:'Calendar',action:'openCalendar()'},
     {i:'🛰️',l:'EduOS',action:'openEduOS()'},
+    {i:'💳',l:'Wallet',action:'openWallet()'},
     {i:'🛒',l:'Browse Marketplace',h:'/marketplace.html'},
     {i:'⚙️',l:'Settings',action:'openSettings()'},
-    {i:'🏫',l:'Profile',t:'profile'}
+    {i:'👤',l:'Profile',action:'openProfilePage()'}
   ],
   parent:[
     {i:'🏠',l:'Dashboard',t:'top',a:true},
     {i:'👨‍👩‍👧',l:'My Children',t:'children'},
     {i:'📈',l:'Snapshot',t:'snapshot'},
+    {i:'💬',l:'Messages',action:'openMessenger()'},
     {i:'📅',l:'Calendar',action:'openCalendar()'},
+    {i:'💳',l:'Wallet',action:'openWallet()'},
+    {i:'🛒',l:'Marketplace',h:'/marketplace.html'},
     {i:'⚙️',l:'Settings',action:'openSettings()'},
     {i:'👤',l:'Profile',action:'openProfilePage()'}
   ],
@@ -1040,44 +1130,61 @@ const NAV={
     {i:'👨‍🏫',l:'Teachers',t:'teachers'},
     {i:'💰',l:'Earnings',t:'earnings'},
     {i:'📚',l:'Platform Courses',t:'courses'},
+    {i:'💬',l:'Messages',action:'openMessenger()'},
+    {i:'📅',l:'Calendar',action:'openCalendar()'},
     {i:'🛰️',l:'EduOS',action:'openEduOS()'},
+    {i:'💳',l:'Wallet',action:'openWallet()'},
     {i:'🛒',l:'Browse Marketplace',h:'/marketplace.html'},
     {i:'⚙️',l:'Settings',action:'openSettings()'},
-    {i:'🏆',l:'Profile',t:'profile'}
+    {i:'👤',l:'Profile',action:'openProfilePage()'}
   ],
   admin:[
     {i:'🏠',l:'Dashboard',t:'top',a:true},
     {i:'👥',l:'Users',t:'users'},
     {i:'🛒',l:'Marketplace',t:'listings'},
     {i:'💳',l:'Transactions',t:'transactions'},
+    {i:'💬',l:'Messages',action:'openMessenger()'},
+    {i:'📅',l:'Calendar',action:'openCalendar()'},
+    {i:'⚙️',l:'Settings',action:'openSettings()'},
+    {i:'👤',l:'Profile',action:'openProfilePage()'},
     {i:'🔧',l:'Full Admin Panel',h:'/admin.html'}
   ],
   corporate_trainer:[
     {i:'🏠',l:'Dashboard',t:'top',a:true},
     {i:'📚',l:'My Programs',t:'programs'},
     {i:'👥',l:'Cohorts',t:'cohorts'},
+    {i:'💬',l:'Messages',action:'openMessenger()'},
+    {i:'📅',l:'Calendar',action:'openCalendar()'},
     {i:'🛰️',l:'EduOS',action:'openEduOS()'},
     {i:'💳',l:'Wallet',action:'openWallet()'},
     {i:'🛒',l:'Marketplace',h:'/marketplace.html'},
-    {i:'⚙️',l:'Settings',action:'openSettings()'}
+    {i:'⚙️',l:'Settings',action:'openSettings()'},
+    {i:'👤',l:'Profile',action:'openProfilePage()'}
   ],
   content_creator:[
     {i:'🏠',l:'Dashboard',t:'top',a:true},
     {i:'🎬',l:'My Content',t:'content'},
     {i:'📈',l:'Performance',t:'performance'},
+    {i:'💬',l:'Messages',action:'openMessenger()'},
+    {i:'📅',l:'Calendar',action:'openCalendar()'},
     {i:'🛰️',l:'EduOS',action:'openEduOS()'},
     {i:'💳',l:'Wallet',action:'openWallet()'},
     {i:'⚡',l:'Plans',action:'openPlans()'},
     {i:'🛒',l:'Marketplace',h:'/marketplace.html'},
-    {i:'⚙️',l:'Settings',action:'openSettings()'}
+    {i:'⚙️',l:'Settings',action:'openSettings()'},
+    {i:'👤',l:'Profile',action:'openProfilePage()'}
   ],
   franchise:[
     {i:'🏠',l:'Dashboard',t:'top',a:true},
     {i:'🏢',l:'Branches',t:'branches'},
     {i:'📊',l:'Performance',t:'performance'},
+    {i:'💬',l:'Messages',action:'openMessenger()'},
+    {i:'📅',l:'Calendar',action:'openCalendar()'},
     {i:'🛰️',l:'EduOS',action:'openEduOS()'},
     {i:'💳',l:'Wallet',action:'openWallet()'},
-    {i:'⚙️',l:'Settings',action:'openSettings()'}
+    {i:'🛒',l:'Marketplace',h:'/marketplace.html'},
+    {i:'⚙️',l:'Settings',action:'openSettings()'},
+    {i:'👤',l:'Profile',action:'openProfilePage()'}
   ]
 };
 const ROLE_LABELS={student:'🎓 Student',teacher:'👨‍🏫 Teacher',partner:'🤝 Partner',admin:'⚙️ Admin',school:'🏫 School',coaching:'🏆 Coaching',corporate_trainer:'💼 Corporate Trainer',content_creator:'🎬 Content Creator',franchise:'🏢 Franchise'};
@@ -1099,8 +1206,11 @@ function buildNav(role){
     // Translate the label if a matching i18n key exists (snake_case form of
     // the label). Falls back to the literal English label when no entry.
     const key=String(it.l).toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
-    const label=t(key)||it.l;
-    return `<div class="nav-item${it.a?' active':''}" onclick="${onclick}"><span class="icon">${it.i}</span>${label}</div>`;
+    // Use a translation only when one exists for the active language; otherwise
+    // keep the human English label (not the lowercase key).
+    const lang=localStorage.getItem('jm_lang')||'en';
+    const label=(I18N[lang]&&I18N[lang][key])||it.l;
+    return `<div class="nav-item${it.a?' active':''}" data-nav-key="${escHtml(it.t||'')}" role="button" tabindex="0" aria-label="${escHtml(label)}" onclick="${onclick}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}"><span class="icon" aria-hidden="true">${it.i}</span>${label}</div>`;
   }).join('');
 }
 // PAGE ROUTER — clicking a nav item shows ONLY the matching section(s); the
@@ -1256,9 +1366,40 @@ function renderStudentCourses(){
 // (cover image, category/level, price, status) in grid view. ────────────────
 function getTeacherCourseView(){ return localStorage.getItem('jm_tCourseView')||'list'; }
 function setTeacherCourseView(v){ localStorage.setItem('jm_tCourseView',v); renderTeacherCourses(); }
+// One-stop course hub — schedule a class, adjust price, batches, analytics and
+// configure content all from a single panel instead of hunting across menus.
+function openCourseHub(courseId, title){
+  const c=(window._teacherCoursesById||{})[courseId]||{};
+  showModal('🎛 Manage — '+(title||c.title||'Course'), `
+    <div class="form-row"><label>💰 Price (₹) — update instantly</label>
+      <div style="display:flex;gap:8px">
+        <input id="hub-price" type="number" min="0" value="${Number(c.price)||0}" style="flex:1">
+        <button class="btn-sm btn-primary" onclick="_hubSavePrice('${courseId}')">Save</button>
+      </div>
+    </div>
+    <h4 style="margin:14px 0 8px">Quick actions</h4>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(150px,100%),1fr));gap:8px">
+      <button class="btn-sm btn-outline" style="padding:11px" onclick="closeAnyModal();_hubSchedule('${courseId}')">📡 Schedule live class</button>
+      <button class="btn-sm btn-outline" style="padding:11px" onclick="closeAnyModal();openEduOS('batches')">👥 New batch</button>
+      <button class="btn-sm btn-outline" style="padding:11px" onclick="closeAnyModal();openCourseStudents('${courseId}','${(title||c.title||'Course').replace(/'/g,"\\'")}')">📊 Students &amp; analytics</button>
+      <button class="btn-sm btn-outline" style="padding:11px" onclick="closeAnyModal();openConfigure('${courseId}')">⚙️ Configure content</button>
+      <button class="btn-sm btn-outline" style="padding:11px" onclick="closeAnyModal();openModal('listCourse')">🛒 List on marketplace</button>
+      <button class="btn-sm btn-outline" style="padding:11px" onclick="closeAnyModal();openQuestionBank()">❓ Question bank</button>
+    </div>`);
+}
+async function _hubSavePrice(courseId){
+  const price=Number(val('hub-price')); if(isNaN(price)||price<0){ toast('Enter a valid price',true); return; }
+  try{ await api('/courses/'+courseId,'PUT',{price}); if((window._teacherCoursesById||{})[courseId]) window._teacherCoursesById[courseId].price=price; toast('✓ Price updated to ₹'+price); }
+  catch(e){ toast(e.message||'Update failed',true); }
+}
+function _hubSchedule(courseId){
+  openModal('scheduleLive');
+  setTimeout(()=>{ const s=document.getElementById('m-course'); if(s){ s.value=courseId; if(typeof scheduleLiveLoadTopics==='function') scheduleLiveLoadTopics(courseId); } },120);
+}
 function _tCourseActions(c){
   const t=(c.title||'Course').replace(/'/g,"\\'");
-  return `<button class="btn-sm btn-primary" onclick="previewCourse('${c.id}','${t}')" title="Preview as student">👁 Preview</button>`+
+  return `<button class="btn-sm btn-primary" onclick="openCourseHub('${c.id}','${t}')" title="Manage (schedule, price, batches, analytics)">🎛 Manage</button>`+
+    `<button class="btn-sm btn-outline" onclick="previewCourse('${c.id}','${t}')" title="Preview as student">👁 Preview</button>`+
     `<button class="btn-sm btn-outline" onclick="openConfigure('${c.id}')" title="Configure">⚙️</button>`+
     `<button class="btn-sm btn-outline" onclick="openEditCourse(window._teacherCoursesById['${c.id}'])" title="Edit">✏️</button>`+
     `<button class="btn-sm btn-outline" onclick="openCourseStudents('${c.id}','${t}')" title="Students">👥</button>`+
@@ -1269,7 +1410,7 @@ function _tCourseActions(c){
     `<button class="btn-sm btn-outline" onclick="archiveCourse('${c.id}',${c.archived?true:false})" title="${c.archived?'Unarchive':'Archive'}">${c.archived?'♻':'🗄'}</button>`;
 }
 function _tCoverHtml(c, h){
-  if(c.cover_image) return `<img src="${escHtml(c.cover_image)}" style="width:100%;height:${h}px;object-fit:cover;border-radius:8px 8px 0 0;display:block">`;
+  if(c.cover_image) return `<img src="${escHtml(c.cover_image)}" loading="lazy" decoding="async" style="width:100%;height:${h}px;object-fit:cover;border-radius:8px 8px 0 0;display:block">`;
   return `<div style="width:100%;height:${h}px;border-radius:8px 8px 0 0;background:linear-gradient(135deg,var(--jm-primary),#a855f7);display:flex;align-items:center;justify-content:center;font-size:32px">📚</div>`;
 }
 function renderTeacherCourses(){
@@ -1307,7 +1448,7 @@ function renderTeacherCourses(){
       const statusBadge=c.archived?'badge-yellow':(c.is_active?'badge-green':'badge-red');
       const statusTxt=c.archived?'Archived':(c.is_active?'Active':'Inactive');
       return `<li><div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
-        ${c.cover_image?`<img src="${escHtml(c.cover_image)}" style="width:48px;height:48px;object-fit:cover;border-radius:8px;flex-shrink:0">`:`<div style="width:48px;height:48px;border-radius:8px;background:var(--jm-primary-tint);display:flex;align-items:center;justify-content:center;flex-shrink:0">📚</div>`}
+        ${c.cover_image?`<img src="${escHtml(c.cover_image)}" loading="lazy" decoding="async" width="48" height="48" style="width:48px;height:48px;object-fit:cover;border-radius:8px;flex-shrink:0">`:`<div style="width:48px;height:48px;border-radius:8px;background:var(--jm-primary-tint);display:flex;align-items:center;justify-content:center;flex-shrink:0">📚</div>`}
         <div style="min-width:0"><div style="font-weight:600">${escHtml(c.title||'Course')}</div><div style="font-size:11px;color:var(--jm-text-muted)">${escHtml(c.category||'General')} · ${escHtml(c.level||'beginner')} · ${c.price?fmt(c.price):'Free'}</div></div>
       </div><div class="row-actions"><span class="badge ${statusBadge}">${statusTxt}</span>${_tCourseActions(c)}</div></li>`;
     }).join('')}</ul>`;
@@ -1468,7 +1609,7 @@ async function loadDashboard(){
     document.getElementById('loadingState').style.display='none';
     const sec=document.getElementById('section-'+role);
     if(sec)sec.classList.add('visible');
-    if(role==='student'){renderStudentDash(d); loadNotes(); loadStudentHistory(); loadWall(); startTimeTracking(); renderContinueLearning(); loadStudyActivity();}
+    if(role==='student'){renderStudentDash(d); loadNotes(); loadStudentHistory(); loadWall(); startTimeTracking(); renderContinueLearning(); loadStudyActivity(); loadSuggestions();}
     else if(role==='teacher'){renderTeacherDash(d); loadTeacherWall();}
     else if(role==='partner')renderPartnerDash(d);
     else if(role==='school'){renderSchoolDash(d); loadInstitutionTeachers(); loadInstitutionStudents();}
@@ -1481,7 +1622,7 @@ async function loadDashboard(){
     // EduOS UI polish — applies after the role section renders.
     try{ renderGreeting(); injectQuickActions(); renderTodaySchedule(); buildBottomNav(role); }catch(_){}
   }catch(e){
-    document.getElementById('loadingState').innerHTML='<div class="empty-state"><div class="icon">⚠️</div><div>Could not load dashboard.</div><div style="font-size:12px;margin-top:8px;color:#888">Make sure backend is running: cd backend && npm start</div></div>';
+    document.getElementById('loadingState').innerHTML='<div class="empty-state"><div class="icon">⚠️</div><div>We couldn\'t load your dashboard.</div><div style="font-size:13px;margin-top:6px;color:var(--jm-text-muted,#888)">Check your connection and try again.</div><button class="btn btn-sm" style="margin-top:14px" onclick="location.reload()">🔄 Retry</button></div>';
   }
 }
 let searchTimer=null;
@@ -1854,14 +1995,25 @@ const MODAL_DEFS={
         <div class="form-row"><label>Scheduled Time *</label><input id="m-time" type="datetime-local" value="${iso}"></div>
         <div class="form-row"><label>Duration (min)</label><input id="m-dur" type="number" value="60" min="15"></div>
       </div>
-      <div class="form-row"><label>Meeting Link</label><input id="m-link" placeholder="https://meet…"></div>`;
+      <div class="form-row"><label>Meeting Link <span style="font-size:11px;color:var(--jm-text-muted)">(optional — auto-generated if left blank)</span></label><input id="m-link" placeholder="Leave blank to use the built-in live room"></div>`;
     },
     onShow:()=>{ const c=document.getElementById('m-course'); if(c&&c.value) scheduleLiveLoadTopics(c.value); },
     submit:async ()=>{
-      const body={courseId:val('m-course'),topicId:val('m-topic')||undefined,title:val('m-title'),description:val('m-desc'),scheduledTime:new Date(val('m-time')).toISOString(),duration:Number(val('m-dur'))||60,meetingLink:val('m-link')};
+      // Auto-generate a unique meeting link when the teacher leaves it blank so
+      // there's always something to share. We use the platform's own live room.
+      let link=val('m-link');
+      if(!link){ const slug=(val('m-title')||'class').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,24); link='https://meet.jit.si/JeetMantra-'+(slug||'class')+'-'+Math.random().toString(36).slice(2,8); }
+      const body={courseId:val('m-course'),topicId:val('m-topic')||undefined,title:val('m-title'),description:val('m-desc'),scheduledTime:new Date(val('m-time')).toISOString(),duration:Number(val('m-dur'))||60,meetingLink:link};
       if(!body.courseId) throw new Error('Pick a course first');
       if(!body.title) throw new Error('Class title required');
-      const r=await api('/live-classes','POST',body); return 'Live class scheduled: '+(r.liveClass?.title||body.title);
+      const r=await api('/live-classes','POST',body);
+      // Prefer the in-app room (tracks attendance + recording) as the invite.
+      const id=r.liveClass?.id;
+      const invite=id?(location.origin+'/liveRoom.html?class='+id):link;
+      try{ await navigator.clipboard.writeText(invite); }catch(e){}
+      _lastInvite=invite;
+      setTimeout(()=>{ try{ _showInvite(invite, body.title); }catch(e){} }, 200);
+      return '✓ Scheduled — invite link copied to clipboard';
     }
   },
   takeAttendance: {
@@ -1913,7 +2065,7 @@ const MODAL_DEFS={
     title:'➕ Add Topic',
     body:()=>`
       <div class="form-row"><label>Topic Title *</label><input id="m-title" placeholder="e.g. Chapter 3 — Geometry"></div>
-      <div class="form-row"><label>Description</label><textarea id="m-desc" rows="2"></textarea></div>`,
+      <div class="form-row"><label>Description <span style="font-size:11px;color:var(--jm-text-muted)">(Notion-style — headings, tables, code…)</span></label>${richField('m-desc','')}</div>`,
     submit:async()=>{
       const courseId=_modalCtx.courseId;
       if(!val('m-title')) throw new Error('Title required');
@@ -1962,21 +2114,31 @@ const MODAL_DEFS={
       return `
       <div class="form-row"><label>Title *</label><input id="m-title" placeholder="e.g. Reference PDF"></div>
       <div class="form-row"><label>Topic</label><select id="m-topic"><option value="">— No topic —</option>${opts}</select></div>
-      <div class="form-row"><label>Type</label><select id="m-type"><option value="file">File upload</option><option value="link">Link</option><option value="image">Image</option><option value="note">Note</option></select></div>
+      <div class="form-row"><label>Type</label><select id="m-type" onchange="_matTypeChange(this.value)"><option value="file">File upload</option><option value="image">Image</option><option value="link">Link</option><option value="note">Note / text</option></select></div>
       <div class="form-row" id="m-file-row"><label>File</label><input id="m-file" type="file"></div>
-      <div class="form-row" id="m-url-row" style="display:none"><label>URL</label><input id="m-url" placeholder="https://…"></div>`;
+      <div class="form-row" id="m-url-row" style="display:none"><label>URL</label><input id="m-url" placeholder="https://…"></div>
+      <div class="form-row" id="m-note-row" style="display:none"><label>Note text</label><textarea id="m-note" rows="5" placeholder="Type the note / lesson text students will read…"></textarea></div>
+      <div class="form-row"><label>Description (optional)</label><input id="m-desc" placeholder="Short description shown under the title"></div>`;
     },
     submit:async()=>{
       const courseId=_modalCtx.courseId;
       const type=val('m-type');
       if(!val('m-title')) throw new Error('Title required');
+      // Per-type validation so nothing silently saves empty.
+      if(type==='link' && !val('m-url')) throw new Error('Enter the link URL');
+      if(type==='note' && !val('m-note') && !val('m-desc')) throw new Error('Enter the note text');
+      const file=document.getElementById('m-file')?.files?.[0];
+      if((type==='file'||type==='image') && !file) throw new Error('Choose a file to upload');
       const token=localStorage.getItem('jm_token');
       const fd=new FormData();
       fd.append('title',val('m-title'));
       fd.append('type',type);
       if(val('m-topic')) fd.append('topicId',val('m-topic'));
-      if(type==='link' && val('m-url')) fd.append('url',val('m-url'));
-      const file=document.getElementById('m-file')?.files?.[0];
+      if(type==='link') fd.append('url',val('m-url'));
+      // A note's body and any description both live in `description` (no separate
+      // notes column on materials) — combine so the text actually persists.
+      const desc=[val('m-note'),val('m-desc')].filter(Boolean).join('\n\n');
+      if(desc) fd.append('description',desc);
       if(file) fd.append('file',file);
       const r=await fetch(API+'/course-content/'+courseId+'/materials',{ method:'POST',headers:{'Authorization':'Bearer '+token},body:fd });
       const j=await r.json();
@@ -2051,6 +2213,33 @@ const MODAL_DEFS={
 };
 
 function val(id){return document.getElementById(id)?.value?.trim()||'';}
+// Shareable invite shown after scheduling a live class — copy/share the link.
+let _lastInvite='';
+function _showInvite(url, title){
+  _lastInvite=url;
+  let m=document.getElementById('invitePop');
+  if(!m){ m=document.createElement('div'); m.id='invitePop'; m.style.cssText='position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:16px'; document.body.appendChild(m); }
+  m.innerHTML=`<div style="background:var(--jm-surface);border-radius:14px;max-width:460px;width:100%;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+    <div style="font-weight:700;font-size:16px;margin-bottom:4px">🔗 Class invite ready</div>
+    <div style="font-size:13px;color:var(--jm-text-muted);margin-bottom:12px">Share this link so students can join${title?' “'+escHtml(title)+'”':''}. It's been copied to your clipboard.</div>
+    <input readonly value="${escHtml(url)}" onclick="this.select()" style="width:100%;padding:10px;border:1px solid var(--jm-border);border-radius:8px;background:var(--jm-bg);color:var(--jm-text);font-size:12px;margin-bottom:12px">
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn-sm btn-primary" onclick="navigator.clipboard.writeText(_lastInvite).then(()=>toast('Link copied'))">📋 Copy link</button>
+      <button class="btn-sm btn-outline" onclick="(navigator.share?navigator.share({title:'Class invite',url:_lastInvite}):window.open('https://wa.me/?text='+encodeURIComponent(_lastInvite)))">📤 Share</button>
+      <button class="btn-sm btn-outline" onclick="window.open(_lastInvite,'_blank')">▶ Open room</button>
+      <button class="btn-sm btn-outline" style="margin-left:auto" onclick="document.getElementById('invitePop').remove()">Done</button>
+    </div>
+  </div>`;
+  m.onclick=(e)=>{ if(e.target===m) m.remove(); };
+}
+// Add-Material modal: reveal the input relevant to the chosen material type so
+// links and notes can actually be entered (previously hidden → saved empty).
+function _matTypeChange(type){
+  const show=(id,on)=>{ const el=document.getElementById(id); if(el) el.style.display=on?'':'none'; };
+  show('m-file-row', type==='file'||type==='image');
+  show('m-url-row',  type==='link');
+  show('m-note-row', type==='note');
+}
 // Extract a human-readable error message from any backend response shape.
 // Without this, an `{ error: {...object...} }` body causes the toast to read
 // '[object Object]' — happened when the dashboard was loaded on a port where
@@ -2072,7 +2261,19 @@ async function api(path,method,body){
   if(inst) headers['X-Active-Institution']=inst;
   const r=await fetch(API+path,{method,headers,body:body?JSON.stringify(body):undefined});
   const j=await r.json().catch(()=>({}));
-  if(!r.ok) throw new Error(extractError(j, 'HTTP '+r.status));
+  if(!r.ok){
+    // Session expired / invalid token → bounce to login instead of showing a
+    // cryptic red "Error: jwt expired" on every panel. Guard against loops.
+    if(r.status===401 && !window._authRedirecting){
+      window._authRedirecting=true;
+      try{ toast('Your session expired — please sign in again.',true); }catch(e){}
+      localStorage.removeItem('jm_token');
+      setTimeout(()=>{ location.href='/login.html'; },1200);
+      throw new Error('Session expired');
+    }
+    if(r.status===403) throw new Error(extractError(j,'You don’t have permission to do that.'));
+    throw new Error(extractError(j, 'HTTP '+r.status));
+  }
   return j;
 }
 function openModal(type,ctx){
@@ -2117,7 +2318,7 @@ function startVoiceFor(fieldId){
   if(!SR){ toast('Voice not supported in this browser',true); return; }
   if(_activeRecognition){_activeRecognition.stop();_activeRecognition=null;return;}
   const rec=new SR();
-  rec.lang='en-IN';
+  rec.lang=(typeof _vLang==='function')?_vLang():'en-IN';
   rec.interimResults=true;
   rec.continuous=false;
   const original=el.value;
@@ -2202,6 +2403,7 @@ function showModal(title, bodyHtml){
     <div style="padding:20px 24px;overflow-y:auto"><h3 style="margin:0 0 14px">${escHtml(title)}</h3>${bodyHtml}</div>
   </div>`;
 }
+function closeAnyModal(){ const m=document.getElementById('jm-generic-modal'); if(m) m.style.display='none'; }
 
 // AI Quick-fill on the Create Course modal — calls /api/ai/create-course
 // with the description and fills the form fields with the suggestion.
@@ -2361,6 +2563,18 @@ async function _renderConfigurePage(courseId){
         </div>
       </div>`;
 
+    // Quick guidance + a fast path to write a rich page.
+    html+=`<div class="cfg-guide">
+      <div class="cfg-guide-row">
+        <span class="cfg-step">1</span><div><b>Add chapters</b> (Topics)</div>
+        <span class="cfg-arrow">→</span>
+        <span class="cfg-step">2</span><div><b>📝 Write a page</b> — Notion-style content (headings, tables, code, callouts)</div>
+        <span class="cfg-arrow">→</span>
+        <span class="cfg-step">3</span><div><b>Add</b> lectures, materials &amp; tests</div>
+      </div>
+      <button class="btn-sm btn-primary" onclick="cfgQuickPage('${courseId}')">📝 New page</button>
+    </div>`;
+
     // Helper: render one tree section (folder)
     const section=(key, icon, label, items, fields)=>{
       const expanded=_cfgExpanded.has(key);
@@ -2413,7 +2627,9 @@ async function _renderConfigurePage(courseId){
           const mode=offline?`🏫 ${escHtml(lc.venue||'Offline')}`:'🟢 Online';
           const stBadge=lc.status==='cancelled'?'badge-red':lc.status==='live'?'badge-green':lc.status==='completed'?'badge-blue':'badge-yellow';
           const canEdit=lc.status!=='completed'&&lc.status!=='cancelled';
-          const editBtns=canEdit?`<button class="btn-sm btn-outline" onclick="rescheduleLiveClass('${lc.id}','${courseId}')" title="Reschedule">🕑 Reschedule</button><button class="btn-sm btn-outline" onclick="cancelLiveClass('${lc.id}','${courseId}')" title="Cancel" style="color:#b91c1c">✕ Cancel</button>`:'';
+          const editBtns=canEdit
+            ?`<button class="btn-sm btn-outline" onclick="rescheduleLiveClass('${lc.id}','${courseId}')" title="Reschedule">🕑 Reschedule</button><button class="btn-sm btn-outline" onclick="cancelLiveClass('${lc.id}','${courseId}')" title="Cancel" style="color:#b91c1c">✕ Cancel</button>`
+            :`<button class="btn-sm btn-outline" onclick="manageCompletedClass('${lc.id}','${courseId}')" title="Manage">⚙ Manage</button>`;
           return `<div class="tree-item"><span class="item-icon">${offline?'🏫':'📡'}</span><div style="flex:1"><div class="item-title">${escHtml(lc.title||'Class')}</div><div class="item-meta">${when} · ${mode} · ${lc.duration||60} min</div></div><div class="item-actions"><span class="badge ${stBadge}">${lc.status||'scheduled'}</span>${editBtns}</div></div>`;
         }).join(''):'<div class="tree-empty">No classes scheduled. Use + One-off or 🔁 Recurring to add a timetable.</div>'}
       </div>
@@ -2426,7 +2642,7 @@ async function _renderConfigurePage(courseId){
     html+=section('assignments','📝','Assignments', assigns, ['title:Title*','description:Description','due_date:Due Date']);
 
     body.innerHTML=html;
-  }catch(e){ body.innerHTML='<div style="color:#b91c1c;padding:20px">Error: '+e.message+'</div>'; }
+  }catch(e){ body.innerHTML='<div style="color:#b91c1c;padding:20px">Error: '+escHtml(e.message)+'</div>'; }
 }
 
 function toggleTree(key){
@@ -2439,12 +2655,13 @@ function _renderTreeItem(key, it, idx, arr, courseId){
   const title=escHtml(it.title||'—');
   const imgThumb=(it.images&&it.images.length)?`<div style="display:flex;gap:4px;margin-top:4px">${it.images.slice(0,3).map(u=>`<img src="${escHtml(u)}" style="width:32px;height:32px;object-fit:cover;border-radius:4px">`).join('')}${it.images.length>3?`<span style="font-size:10px;color:var(--jm-text-muted)">+${it.images.length-3}</span>`:''}</div>`:'';
   const attBadge=(it.attachments&&it.attachments.length)?`<span style="font-size:10px;background:var(--jm-primary-tint);padding:1px 6px;border-radius:4px;margin-left:6px">📎 ${it.attachments.length}</span>`:'';
-  const desc=it.description?`<div style="font-size:11px;color:var(--jm-text-muted);margin-top:2px">${escHtml(it.description.slice(0,120))}${it.description.length>120?'…':''}</div>`:'';
+  const _descTxt=_stripHtml(it.description||'');
+  const desc=_descTxt?`<div style="font-size:11px;color:var(--jm-text-muted);margin-top:2px">${escHtml(_descTxt.slice(0,120))}${_descTxt.length>120?'…':''}</div>`:'';
   // Mark file-backed materials as AI-indexable (PDF/text auto-index on upload).
   const indexable=key==='materials'&&it.url&&/\.(pdf|txt|md|csv|docx?)$/i.test(it.url);
   const ragBadge=indexable?'<span style="font-size:10px;background:#ede9fe;color:#7c3aed;padding:1px 6px;border-radius:4px;margin-left:6px">🧠 AI-indexed</span>':'';
   const metas={
-    topics: escHtml(it.description||'')+imgThumb+attBadge,
+    topics: escHtml(_stripHtml(it.description||'').slice(0,140))+imgThumb+attBadge,
     lectures: escHtml((it.duration?it.duration+' min':'')+(it.is_recorded?' · recorded':' · live')+(it.video_url?' · '+it.video_url.slice(0,30)+'…':''))+desc,
     materials: escHtml(it.type+(it.url?' · '+it.url.slice(0,40)+'…':''))+ragBadge+desc,
     tests: (it.total_marks||100)+' marks · '+(it.duration_minutes||60)+' min'+desc,
@@ -2458,17 +2675,197 @@ function _renderTreeItem(key, it, idx, arr, courseId){
   const reorderBtns=canReorder?`${prev?`<button class="btn-sm btn-outline" onclick="reorderSwap('${single}','${it.id}','${prev.id}','${courseId}')">↑</button>`:''}${next?`<button class="btn-sm btn-outline" onclick="reorderSwap('${single}','${it.id}','${next.id}','${courseId}')">↓</button>`:''}`:'';
   const submissionsBtn=key==='assignments'?`<button class="btn-sm btn-outline" onclick="openSubmissions('${it.id}', window._configureItems?.assignments?.find(a=>a.id==='${it.id}')?.title||'')">📥 Submissions</button>`:'';
   const questionsBtn=key==='tests'?`<button class="btn-sm btn-primary" onclick="openQuestionEditor('${it.id}','${escHtml(it.title||'').replace(/'/g,'&#39;')}')">📝 Questions</button><button class="btn-sm btn-outline" onclick="openTestAnalytics('${it.id}','${escHtml(it.title||'').replace(/'/g,'&#39;')}')">📊 Analytics</button>`:'';
+  // Rich "page" content (Notion-style) lives on topics.
+  const pageBtn=key==='topics'?`<button class="btn-sm btn-primary" onclick="editTopicContent('${it.id}','${courseId}')" title="Open the full Notion-style editor for this topic's description">${(it.description||it.notes)?'📝 Rich edit':'📝 Write content'}</button>`:'';
   return `<div class="tree-item">
     <span class="item-icon">${icons[key]}</span>
     <div style="flex:1">
       <div class="item-title">${title}</div>
       ${metas[key]?`<div class="item-meta">${metas[key]}</div>`:''}
     </div>
-    <div class="item-actions">${reorderBtns}${submissionsBtn}${questionsBtn}
+    <div class="item-actions">${reorderBtns}${pageBtn}${submissionsBtn}${questionsBtn}
       <button class="btn-sm btn-outline" onclick="cfgStartEdit('${key}','${it.id}','${courseId}')">✏️</button>
       <button class="btn-sm btn-outline" onclick="cfgDelete('${key}','${it.id}','${courseId}')">×</button>
     </div>
   </div>`;
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// NOTION-STYLE RICH PAGE EDITOR — block content for course topics.
+// Word-style formatting (headings, bold/italic, color, highlight, lists),
+// plus insertable blocks: table, code, callout, quote, divider, image.
+// ══════════════════════════════════════════════════════════════════════
+let _reSaveCb=null;
+function _richCss(){
+  if(document.getElementById('rich-css')) return;
+  const s=document.createElement('style'); s.id='rich-css';
+  s.textContent=`
+  .re-overlay{position:fixed;inset:0;z-index:10000;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;padding:18px}
+  .re-modal{background:var(--jm-surface);width:min(920px,100%);max-height:92vh;border-radius:16px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 70px rgba(0,0,0,.3)}
+  .re-head{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--jm-border)}
+  .re-title{flex:1;font-size:18px;font-weight:700;border:0;background:transparent;color:var(--jm-text);outline:none}
+  .re-toolbar{display:flex;flex-wrap:wrap;gap:4px;padding:8px 14px;border-bottom:1px solid var(--jm-border);background:var(--jm-bg)}
+  .re-tb{border:1px solid var(--jm-border);background:var(--jm-surface);color:var(--jm-text);border-radius:7px;padding:6px 9px;font-size:13px;cursor:pointer;min-width:32px;display:inline-flex;align-items:center;justify-content:center;line-height:1}
+  .re-tb:hover{background:var(--jm-primary-tint);border-color:var(--jm-primary)}
+  .re-tb.sep{border:0;background:var(--jm-border);width:1px;padding:0;margin:2px 4px;min-width:1px}
+  .re-body{flex:1;overflow-y:auto;padding:22px 28px}
+  .re-content{min-height:300px;outline:none;font-size:15px;line-height:1.7;color:var(--jm-text)}
+  .re-content:empty:before{content:attr(data-ph);color:var(--jm-text-muted)}
+  .re-foot{display:flex;gap:8px;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--jm-border)}
+  .rich-content h1,.re-content h1{font-size:28px;font-weight:800;margin:18px 0 8px;line-height:1.25}
+  .rich-content h2,.re-content h2{font-size:22px;font-weight:700;margin:16px 0 6px;line-height:1.3}
+  .rich-content h3,.re-content h3{font-size:18px;font-weight:700;margin:14px 0 6px}
+  .rich-content p,.re-content p{margin:8px 0}
+  .rich-content ul,.re-content ul{padding-left:22px;margin:8px 0;list-style:disc}
+  .rich-content ol,.re-content ol{padding-left:22px;margin:8px 0;list-style:decimal}
+  .rich-content blockquote,.re-content blockquote{border-left:3px solid var(--jm-primary);margin:10px 0;padding:4px 14px;color:var(--jm-text-muted)}
+  .rich-content table,.re-content table{border-collapse:collapse;width:100%;margin:12px 0}
+  .rich-content th,.rich-content td,.re-content th,.re-content td{border:1px solid var(--jm-border);padding:8px 10px;text-align:left}
+  .rich-content th,.re-content th{background:var(--jm-bg);font-weight:700}
+  .rich-content pre,.re-content pre{background:#0f172a;color:#e2e8f0;border-radius:10px;padding:14px 16px;overflow-x:auto;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:13px;margin:12px 0;white-space:pre-wrap}
+  .rich-content :not(pre)>code,.re-content :not(pre)>code{background:var(--jm-bg);border:1px solid var(--jm-border);padding:1px 5px;border-radius:5px;font-size:.9em;font-family:'JetBrains Mono',ui-monospace,monospace}
+  .rich-content .callout,.re-content .callout{display:flex;gap:10px;background:var(--jm-primary-tint);border:1px solid var(--jm-border);border-radius:10px;padding:12px 14px;margin:12px 0}
+  .rich-content hr,.re-content hr{border:0;border-top:1px solid var(--jm-border);margin:18px 0}
+  .rich-content img,.re-content img{max-width:100%;border-radius:8px;margin:8px 0}
+  .re-menu{position:fixed;background:var(--jm-surface);border:1px solid var(--jm-border);border-radius:10px;box-shadow:0 12px 30px rgba(0,0,0,.25);padding:6px;z-index:10001;min-width:210px}
+  .re-menu button{display:flex;gap:10px;align-items:center;width:100%;border:0;background:transparent;color:var(--jm-text);padding:8px 10px;border-radius:7px;cursor:pointer;font-size:13px;text-align:left}
+  .re-menu button:hover{background:var(--jm-primary-tint)}
+  @media(max-width:600px){.re-modal{max-height:96vh}.re-body{padding:14px}}`;
+  document.head.appendChild(s);
+}
+function openRichEditor(opts){
+  opts=opts||{}; _richCss(); _reSaveCb=opts.onSave||null;
+  const ov=document.createElement('div'); ov.className='re-overlay'; ov.id='reOverlay';
+  ov.onclick=e=>{ if(e.target===ov) _reClose(); };
+  const tb=(label,cmd,title)=>`<button class="re-tb" title="${title||''}" onmousedown="event.preventDefault()" onclick="${cmd}">${label}</button>`;
+  const sep='<span class="re-tb sep"></span>';
+  ov.innerHTML=`<div class="re-modal">
+    <div class="re-head"><span style="font-size:18px">📝</span>
+      ${opts.noTitle?`<div style="flex:1;font-weight:700;font-size:15px">${escHtml(opts.heading||'Edit content')}</div>`:`<input class="re-title" id="reTitle" placeholder="Untitled page" value="${escHtml(opts.title||'')}">`}
+      <button class="re-tb" onclick="_reClose()" title="Close">✕</button>
+    </div>
+    <div class="re-toolbar">
+      ${tb('H1',"_reFormat('h1')",'Heading 1')}${tb('H2',"_reFormat('h2')",'Heading 2')}${tb('H3',"_reFormat('h3')",'Heading 3')}${tb('¶',"_reFormat('p')",'Paragraph')}${sep}
+      ${tb('<b>B</b>',"_reCmd('bold')",'Bold')}${tb('<i>I</i>',"_reCmd('italic')",'Italic')}${tb('<u>U</u>',"_reCmd('underline')",'Underline')}${tb('<s>S</s>',"_reCmd('strikeThrough')",'Strikethrough')}${tb('A',"_reColor('fore')",'Text color')}${tb('🖍',"_reColor('back')",'Highlight')}${sep}
+      ${tb('•',"_reCmd('insertUnorderedList')",'Bulleted list')}${tb('1.',"_reCmd('insertOrderedList')",'Numbered list')}${tb('❝',"_reBlock('quote')",'Quote')}${sep}
+      ${tb('🔗',"_reLink()",'Link')}${tb('&lt;/&gt;',"_reBlock('code')",'Code block')}${tb('▦',"_reBlock('table')",'Table')}${tb('💡',"_reBlock('callout')",'Callout')}${tb('—',"_reBlock('divider')",'Divider')}${tb('🖼',"_reBlock('image')",'Image')}${sep}
+      ${tb('＋ Add',"_reAddMenu(event)",'Insert element')}
+    </div>
+    <div class="re-body"><div class="re-content" id="reContent" contenteditable="true" data-ph="Write here… use the toolbar or “＋ Add” to insert headings, tables, code, callouts…">${opts.html||''}</div></div>
+    <div class="re-foot"><button class="btn-sm btn-outline" onclick="_reClose()">Cancel</button><button class="btn-sm btn-primary" onclick="_reSave()">💾 Save page</button></div>
+  </div>`;
+  document.body.appendChild(ov);
+  setTimeout(()=>document.getElementById('reContent')?.focus(),60);
+}
+function _reEl(){ return document.getElementById('reContent'); }
+function _reCmd(cmd,val){ _reEl()&&_reEl().focus(); try{ document.execCommand(cmd,false,val||null); }catch(e){} }
+function _reFormat(tag){ _reEl()&&_reEl().focus(); try{ document.execCommand('formatBlock',false,tag.toUpperCase()); }catch(e){} }
+function _reColor(kind){ const i=document.createElement('input'); i.type='color'; i.value=kind==='back'?'#fff3a3':'#7c3aed'; i.onchange=()=>{ _reEl()&&_reEl().focus(); try{ document.execCommand(kind==='back'?'hiliteColor':'foreColor',false,i.value); }catch(e){} }; i.click(); }
+function _reLink(){ const u=prompt('Link URL:'); if(u){ _reEl()&&_reEl().focus(); try{ document.execCommand('createLink',false,u); }catch(e){} } }
+function _reInsert(html){ _reEl()&&_reEl().focus(); try{ document.execCommand('insertHTML',false,html); }catch(e){} }
+// Insert a BLOCK element (pre/table/callout/hr/blockquote/img) as a real node at
+// the top level of the editor — execCommand('insertHTML') flattens blocks into
+// inline spans when the caret is inside a paragraph, so we place the node by hand
+// after the current top-level block and drop a fresh paragraph + caret after it.
+function _reInsertBlock(html){
+  const el=_reEl(); if(!el) return; el.focus();
+  const tpl=document.createElement('template'); tpl.innerHTML=html.trim();
+  const node=tpl.content.firstElementChild; if(!node) return;
+  const sel=window.getSelection();
+  let anchor=null;
+  if(sel.rangeCount && el.contains(sel.getRangeAt(0).commonAncestorContainer)){
+    let n=sel.getRangeAt(0).endContainer;
+    while(n && n.parentNode!==el) n=n.parentNode;
+    if(n && n.parentNode===el) anchor=n;
+  }
+  if(anchor) anchor.after(node); else el.appendChild(node);
+  const p=document.createElement('p'); p.innerHTML='<br>'; node.after(p);
+  const nr=document.createRange(); nr.setStart(p,0); nr.collapse(true); sel.removeAllRanges(); sel.addRange(nr);
+}
+function _reBlock(type){
+  if(type==='divider') return _reInsertBlock('<hr>');
+  if(type==='quote') return _reInsertBlock('<blockquote>Quote…</blockquote>');
+  if(type==='callout') return _reInsertBlock('<div class="callout"><span>💡</span><div>Callout — type your note…</div></div>');
+  if(type==='code') return _reInsertBlock('<pre><code>// your code or snippet here</code></pre>');
+  if(type==='image'){ const u=prompt('Image URL:'); if(u) _reInsertBlock('<img src="'+String(u).replace(/"/g,'&quot;')+'">'); return; }
+  if(type==='table'){ const r=Math.max(1,Math.min(20,parseInt(prompt('Rows:','3'))||3)); const c=Math.max(1,Math.min(10,parseInt(prompt('Columns:','3'))||3));
+    let t='<table><thead><tr>'; for(let j=0;j<c;j++) t+='<th>Head '+(j+1)+'</th>'; t+='</tr></thead><tbody>';
+    for(let i=0;i<r;i++){ t+='<tr>'; for(let j=0;j<c;j++) t+='<td>&nbsp;</td>'; t+='</tr>'; } t+='</tbody></table>';
+    return _reInsertBlock(t);
+  }
+}
+function _reAddMenu(ev){
+  ev.stopPropagation(); document.getElementById('reMenu')&&document.getElementById('reMenu').remove();
+  const m=document.createElement('div'); m.className='re-menu'; m.id='reMenu';
+  const items=[["_reFormat('h1')",'📰 Heading 1'],["_reFormat('h2')",'🔖 Heading 2'],["_reFormat('h3')",'🔹 Heading 3'],["_reCmd('insertUnorderedList')",'• Bulleted list'],["_reCmd('insertOrderedList')",'1. Numbered list'],["_reBlock('quote')",'❝ Quote'],["_reBlock('code')",'&lt;/&gt; Code / snippet'],["_reBlock('table')",'▦ Table'],["_reBlock('callout')",'💡 Callout'],["_reBlock('image')",'🖼 Image'],["_reBlock('divider')",'— Divider']];
+  m.innerHTML=items.map(it=>`<button onmousedown="event.preventDefault()" onclick="document.getElementById('reMenu').remove();${it[0]}">${it[1]}</button>`).join('');
+  const r=ev.currentTarget.getBoundingClientRect(); m.style.left=Math.min(r.left,window.innerWidth-230)+'px'; m.style.top=(r.bottom+4)+'px';
+  document.body.appendChild(m);
+  setTimeout(()=>{ const close=e=>{ if(!m.contains(e.target)){ m.remove(); document.removeEventListener('mousedown',close); } }; document.addEventListener('mousedown',close); },10);
+}
+function _reSave(){ const html=_reEl()?_reEl().innerHTML:''; const title=document.getElementById('reTitle')?document.getElementById('reTitle').value:''; const cb=_reSaveCb; _reClose(); if(cb) cb(html,title); }
+function _reClose(){ document.getElementById('reMenu')&&document.getElementById('reMenu').remove(); document.getElementById('reOverlay')&&document.getElementById('reOverlay').remove(); }
+// Allowlist sanitizer for RENDERING saved rich content (strips script/handlers).
+function sanitizeRich(html){
+  const tpl=document.createElement('template'); tpl.innerHTML=String(html||'');
+  const ALLOW=new Set(['H1','H2','H3','H4','P','BR','HR','B','STRONG','I','EM','U','S','STRIKE','SPAN','FONT','UL','OL','LI','BLOCKQUOTE','PRE','CODE','TABLE','THEAD','TBODY','TR','TH','TD','DIV','A','IMG']);
+  const walk=(node)=>{ [...node.childNodes].forEach(n=>{
+    if(n.nodeType===1){
+      if(!ALLOW.has(n.tagName)){ n.replaceWith(...n.childNodes); return; }
+      [...n.attributes].forEach(a=>{ const nm=a.name.toLowerCase();
+        if(nm.startsWith('on')) n.removeAttribute(a.name);
+        else if((nm==='href'||nm==='src')&&/^\s*javascript:/i.test(a.value)) n.removeAttribute(a.name);
+        else if(!['style','class','color','href','src','target','colspan','rowspan','align'].includes(nm)) n.removeAttribute(a.name);
+      });
+      if(n.tagName==='A') n.setAttribute('target','_blank');
+      walk(n);
+    } else if(n.nodeType===8){ n.remove(); }
+  }); };
+  walk(tpl.content);
+  return tpl.innerHTML;
+}
+// Plain-text from rich HTML (for truncated list previews / meta).
+function _stripHtml(html){ const d=document.createElement('div'); d.innerHTML=String(html||''); return (d.textContent||d.innerText||'').replace(/\s+/g,' ').trim(); }
+// A reusable "rich description" form field: a hidden holder that carries the
+// HTML (so existing val()-based submits keep working), a live preview, and an
+// "Edit" button that opens the Notion-style block editor. Drop-in replacement
+// for a plain <textarea>.
+function richField(id, html){
+  if(typeof _richCss==='function') _richCss(); // ensure rich-content preview styles
+  const h=html||'';
+  return `<div class="rich-field">
+    <input type="hidden" id="${id}" value="${escHtml(h)}">
+    <div class="rich-field-prev rich-content" id="${id}-prev">${h?sanitizeRich(h):'<span style="color:var(--jm-text-muted)">No content yet — click “📝 Edit” to write with headings, tables, code…</span>'}</div>
+    <button type="button" class="btn-sm btn-outline" style="margin-top:6px" onclick="_richFieldEdit('${id}')">📝 Edit rich content</button>
+  </div>`;
+}
+function _richFieldEdit(id){
+  const holder=document.getElementById(id); const cur=holder?holder.value:'';
+  openRichEditor({ noTitle:true, heading:'Description', html:sanitizeRich(cur), onSave:(out)=>{
+    if(holder) holder.value=out;
+    const p=document.getElementById(id+'-prev');
+    if(p) p.innerHTML=out?sanitizeRich(out):'<span style="color:var(--jm-text-muted)">No content yet — click “📝 Edit” to write with headings, tables, code…</span>';
+  }});
+}
+// Open the rich editor for a topic's description (Notion-style content).
+async function editTopicContent(topicId, courseId){
+  let topic=null;
+  try{ const f=await api('/course-content/'+courseId+'/full','GET'); topic=(f.topics||[]).find(t=>t.id===topicId); }catch(e){}
+  if(!topic){ toast('Topic not found',true); return; }
+  openRichEditor({ title:topic.title||'', html: sanitizeRich(topic.description||topic.notes||''), onSave: async (html,title)=>{
+    try{ await api('/course-content/topics/'+topicId,'PUT',{ title:(title||topic.title), description:html }); toast('✓ Saved'); if(typeof _renderConfigurePage==='function') _renderConfigurePage(courseId); }
+    catch(e){ toast(e.message||'Save failed',true); }
+  }});
+}
+// Fast path: create a new chapter (topic) and jump straight into its rich editor.
+async function cfgQuickPage(courseId){
+  const title=prompt('Page / chapter title:','New page'); if(title===null) return;
+  try{
+    const r=await api('/course-content/'+courseId+'/topics','POST',{title:(title||'New page')});
+    const tid=r.topic&&r.topic.id; if(!tid) throw new Error('Could not create page');
+    if(!_cfgExpanded.has('topics')) _cfgExpanded.add('topics');
+    editTopicContent(tid, courseId);
+  }catch(e){ toast(e.message||'Could not create page',true); }
 }
 
 function cfgStartAdd(key, courseId){
@@ -2501,7 +2898,9 @@ function _renderInlineForm(key, existingItem, courseId, fields){
   let inputs='';
   const FIELD_DEF={
     'title:Title*':`<div class="form-row"><label>Title *</label><div style="display:flex;align-items:center"><input id="${id}-title" value="${(existingItem?.title||'').replace(/"/g,'&quot;')}" placeholder="Title…">${micBtn(id+'-title')}</div></div>`,
-    'description:Description':`<div class="form-row"><label>Description</label><div style="display:flex;align-items:flex-start"><textarea id="${id}-desc" rows="2">${existingItem?.description||''}</textarea>${micBtn(id+'-desc')}</div></div>`,
+    'description:Description': key==='topics'
+      ? `<div class="form-row"><label>Description <span style="font-size:11px;color:var(--jm-text-muted)">(Notion-style — headings, tables, code…)</span></label>${richField(id+'-desc', existingItem?.description||'')}</div>`
+      : `<div class="form-row"><label>Description</label><div style="display:flex;align-items:flex-start"><textarea id="${id}-desc" rows="2">${existingItem?.description||''}</textarea>${micBtn(id+'-desc')}</div></div>`,
     'video_url:Video URL':`<div class="form-row"><label>Video URL or upload</label><input id="${id}-video" value="${existingItem?.video_url||''}" placeholder="https://…"><input type="file" id="${id}-file" accept="video/*" style="margin-top:6px"></div>`,
     'duration:Duration (min)':`<div class="form-row"><label>Duration (min)</label><input type="number" id="${id}-dur" value="${existingItem?.duration||30}"></div>`,
     'topic_id:Topic':`<div class="form-row"><label>Topic</label><select id="${id}-topic"><option value="">— No topic —</option>${topicOpts}</select></div>`,
@@ -2618,7 +3017,7 @@ async function _reopenConfigure(courseId){
           ${(t.items||[]).length?(t.items||[]).map(t.render).join(''):'<div style="color:var(--jm-text-muted);font-size:12px;padding:8px 10px">None yet.</div>'}
         </div>
       `).join('')}`;
-  }catch(e){body.innerHTML='<div style="color:#b91c1c">Error: '+e.message+'</div>';}
+  }catch(e){body.innerHTML='<div style="color:#b91c1c">Error: '+escHtml(e.message)+'</div>';}
 }
 async function delContent(type, id, courseId){
   if(!confirm('Remove this '+type.slice(0,-1)+'?'))return;
@@ -2681,7 +3080,7 @@ async function openStudentCourseView(courseId){
           return `<div style="display:flex;justify-content:space-between;padding:10px;border-bottom:1px solid var(--jm-border);align-items:center"><div><div style="font-weight:600">${a.title}</div><div style="font-size:11px;color:var(--jm-text-muted)">Due ${due}</div>${sub?.feedback?'<div style="font-size:11px;color:var(--jm-text-strong);margin-top:4px"><em>Teacher: '+sub.feedback+'</em></div>':''}</div>${action}</div>`;
         }).join('') : '<div style="color:var(--jm-text-muted);padding:8px">No assignments.</div>'}
       </div>`;
-  }catch(e){ body.innerHTML='<div style="color:#b91c1c">Error: '+e.message+'</div>'; }
+  }catch(e){ body.innerHTML='<div style="color:#b91c1c">Error: '+escHtml(e.message)+'</div>'; }
 }
 async function openTakeTest(testIdx){
   const t=(window._studentTests||[])[testIdx];
@@ -2799,7 +3198,8 @@ async function _enableProctoring(session, test){
     const cam=document.createElement('video');
     cam.id='proctor-cam'; cam.autoplay=true; cam.muted=true;
     cam.srcObject=_proctorStream;
-    cam.style.cssText='position:fixed;bottom:14px;right:14px;width:160px;height:120px;border:2px solid var(--jm-primary);border-radius:8px;background:#000;z-index:9999;object-fit:cover';
+    // Bottom-LEFT so it never collides with the voice FAB (bottom-right).
+    cam.style.cssText='position:fixed;bottom:14px;left:14px;width:160px;height:120px;border:2px solid var(--jm-primary);border-radius:8px;background:#000;z-index:9999;object-fit:cover';
     document.body.appendChild(cam);
   }catch(e){ toast('Camera required for proctored test: '+e.message,true); }
   const log=(eventType,metadata)=>api('/course-content/sessions/'+session.id+'/proctor-event','POST',{eventType,metadata}).catch(()=>{});
@@ -2865,7 +3265,7 @@ async function openLiveRoster(classId){
           <div><div style="font-weight:600">${a.full_name||a.email||a.student_id.slice(0,8)}</div><div style="font-size:11px;color:var(--jm-text-muted)">${a.email||''}</div></div>
           <div style="font-size:11px;color:var(--jm-text-muted)">Joined ${new Date(a.joined_at).toLocaleTimeString()}</div>
         </div>`).join('')}`;
-  }catch(e){ body.innerHTML='<div style="color:#b91c1c">Error: '+e.message+'</div>'; }
+  }catch(e){ body.innerHTML='<div style="color:#b91c1c">Error: '+escHtml(e.message)+'</div>'; }
 }
 
 // ── Attendance log per course (teacher: everyone; student: just self)
@@ -2887,7 +3287,7 @@ async function openAttendanceLog(courseId, courseTitle){
           <div><strong>${row.student_name||'You'}</strong><div style="font-size:11px;color:var(--jm-text-muted)">${new Date(row.date).toLocaleDateString()}</div></div>
           <span class="badge ${row.status==='present'?'badge-green':row.status==='late'?'badge-yellow':'badge-red'}">${row.status}</span>
         </div>`).join('') : '<div style="color:var(--jm-text-muted);text-align:center;padding:20px">No attendance records yet.</div>'}`;
-  }catch(e){ body.innerHTML='<div style="color:#b91c1c">Error: '+e.message+'</div>'; }
+  }catch(e){ body.innerHTML='<div style="color:#b91c1c">Error: '+escHtml(e.message)+'</div>'; }
 }
 
 // ── Teacher: open Edit Course modal ────────────────────────────────────
@@ -2932,7 +3332,7 @@ async function openSubmissions(assignmentId, title){
     }).join('');
     // Inject the inline-JSON-encoded submissions into a window var so onclick can read by id
     window._pendingSubmissions=Object.fromEntries(r.submissions.map(s=>[s.id,s]));
-  }catch(e){ document.getElementById('subs-body').innerHTML='<div style="color:#b91c1c">Error: '+e.message+'</div>'; }
+  }catch(e){ document.getElementById('subs-body').innerHTML='<div style="color:#b91c1c">Error: '+escHtml(e.message)+'</div>'; }
 }
 function openGradeSubmission(sid){
   const s=window._pendingSubmissions?.[sid];
@@ -2970,7 +3370,7 @@ async function openCourseStudents(courseId, title){
           </div>
           <span class="badge ${s.progress_percentage===100?'badge-green':'badge-blue'}">${s.progress_percentage}%</span>
         </div>`).join('')}`;
-  }catch(e){ document.getElementById('cs-body').innerHTML='<div style="color:#b91c1c">Error: '+e.message+'</div>'; }
+  }catch(e){ document.getElementById('cs-body').innerHTML='<div style="color:#b91c1c">Error: '+escHtml(e.message)+'</div>'; }
 }
 
 // ── Per-student detail panel: progress, assignments, tests, activity, doubts.
@@ -3020,7 +3420,7 @@ async function openN8nConfig(){
         <button class="btn-sm btn-outline" onclick="testN8n()">🔔 Send Test Event</button>
       </div>
       <div id="n8n-result" style="margin-top:12px;font-size:13px"></div>`;
-  }catch(e){ body.innerHTML='<div style="color:#b91c1c">Error: '+e.message+'</div>'; }
+  }catch(e){ body.innerHTML='<div style="color:#b91c1c">Error: '+escHtml(e.message)+'</div>'; }
 }
 async function saveN8nConfig(enabled){
   try{
@@ -3102,7 +3502,7 @@ async function openAiKey(){
         <button class="btn-sm btn-outline" onclick="clearAiKey()">Remove Key</button>
       </div>
       <div style="font-size:12px;color:var(--jm-text-muted);margin-top:10px">Your key is encrypted at rest. Without your own key the platform falls back to ${lim} shared-quota calls per day.</div>`;
-  }catch(e){ body.innerHTML='<div style="color:#b91c1c">Error: '+e.message+'</div>'; }
+  }catch(e){ body.innerHTML='<div style="color:#b91c1c">Error: '+escHtml(e.message)+'</div>'; }
 }
 async function saveAiKey(){
   const provider=val('m-aiprov');
@@ -3160,6 +3560,47 @@ async function rescheduleLiveClass(id, courseId){
   if(isNaN(dt.getTime())){ toast('Invalid date/time format',true); return; }
   try{ await api('/live-classes/'+id,'PUT',{scheduledTime:dt.toISOString()}); toast('✓ Rescheduled'); _renderConfigurePage(courseId); }
   catch(e){ toast(e.message||'Reschedule failed',true); }
+}
+// Post-class management for a completed/cancelled class: recording, AI summary,
+// attendance, share, and re-open.
+async function manageCompletedClass(id, courseId){
+  showModal('⚙ Manage class', '<div id="mcc-body"><div style="text-align:center;padding:24px;color:#888">Loading…</div></div>');
+  await _mccRender(id, courseId);
+}
+async function _mccRender(id, courseId){
+  const body=document.getElementById('mcc-body'); if(!body) return;
+  try{
+    const r=await api('/live-classes/'+id,'GET');
+    const c=r.liveClass||r.class||r||{};
+    const rec=c.recording_url;
+    const recBlock=rec
+      ? `<video src="${escHtml(rec)}" controls preload="metadata" style="width:100%;border-radius:8px;background:#000;max-height:220px"></video>
+         <div style="display:flex;gap:8px;margin-top:8px"><a href="${escHtml(rec)}" download class="btn-sm btn-outline" style="text-decoration:none">⬇ Download</a><button class="btn-sm btn-outline" onclick="navigator.clipboard.writeText(location.origin+'${escHtml(rec)}').then(()=>toast('Link copied'))">📤 Share recording</button></div>`
+      : `<div style="font-size:13px;color:var(--jm-text-muted)">No recording uploaded. Record from inside the live room or Studio (⏺) and choose “save in app”.</div>`;
+    const summaryBlock=c.summary
+      ? `<div style="font-size:13px;white-space:pre-wrap;background:var(--jm-bg);border-radius:8px;padding:10px;max-height:180px;overflow:auto">${escHtml(c.summary)}</div>`
+      : `<div style="font-size:13px;color:var(--jm-text-muted);margin-bottom:8px">No summary yet.</div><button class="btn-sm btn-primary" onclick="_mccGenSummary('${id}','${courseId}')">🤖 Generate AI summary</button>`;
+    body.innerHTML=`
+      <div style="font-weight:700;margin-bottom:2px">${escHtml(c.title||'Class')}</div>
+      <div style="font-size:12px;color:var(--jm-text-muted);margin-bottom:14px">${c.scheduled_time?new Date(c.scheduled_time).toLocaleString():''} · <span class="badge ${c.status==='cancelled'?'badge-red':'badge-blue'}">${escHtml(c.status||'completed')}</span></div>
+      <h4 style="margin:0 0 6px">📹 Recording</h4>${recBlock}
+      <h4 style="margin:16px 0 6px">📝 AI summary</h4>${summaryBlock}
+      <h4 style="margin:16px 0 6px">🛠 Actions</h4>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn-sm btn-outline" onclick="openAttendanceLog('${courseId}','')">🗓 Attendance log</button>
+        <button class="btn-sm btn-outline" onclick="_mccReopen('${id}','${courseId}')">↺ Re-open (reschedule)</button>
+      </div>`;
+  }catch(e){ body.innerHTML='<div style="color:#b91c1c">'+escHtml(e.message)+'</div>'; }
+}
+async function _mccGenSummary(id, courseId){
+  try{ toast('🤖 generating summary…'); await api('/live-classes/'+id+'/summary','POST',{}); toast('✓ Summary ready'); _mccRender(id, courseId); }
+  catch(e){ toast(e.message||'Summary failed',true); }
+}
+async function _mccReopen(id, courseId){
+  const when=prompt('Re-open at new date & time (YYYY-MM-DD HH:MM, 24h):'); if(!when) return;
+  const dt=new Date(when.replace(' ','T')); if(isNaN(dt.getTime())){ toast('Invalid date/time',true); return; }
+  try{ await api('/live-classes/'+id,'PUT',{status:'scheduled',scheduledTime:dt.toISOString()}); toast('✓ Re-opened'); closeAnyModal(); _renderConfigurePage(courseId); }
+  catch(e){ toast(e.message||'Re-open failed',true); }
 }
 async function renderChat(){
   if(!_activeChat) return;
@@ -3261,7 +3702,7 @@ async function _renderTimetable(){
             </div>`).join('') : '<div style="padding:8px 12px;color:var(--jm-text-muted);font-size:12px">Nothing scheduled.</div>'}
         </div>`;
       }).join('')}`;
-  }catch(e){ body.innerHTML='<div style="color:#b91c1c">Error: '+e.message+'</div>'; }
+  }catch(e){ body.innerHTML='<div style="color:#b91c1c">Error: '+escHtml(e.message)+'</div>'; }
 }
 
 // ── TEACHER ANNOUNCEMENT — open announcement modal for a course
@@ -3284,7 +3725,7 @@ async function editContent(type, item, courseId){
   const def=({
     topic: { title:'✏️ Edit Topic', map:i=>({title:i.title,description:i.description}), put:i=>({title:val('m-title'),description:val('m-desc')}),
              body:i=>`<div class="form-row"><label>Title *</label><input id="m-title" value="${(i.title||'').replace(/"/g,'&quot;')}"></div>
-                     <div class="form-row"><label>Description</label><textarea id="m-desc" rows="3">${i.description||''}</textarea></div>` },
+                     <div class="form-row"><label>Description <span style="font-size:11px;color:var(--jm-text-muted)">(Notion-style)</span></label>${richField('m-desc', i.description||'')}</div>` },
     lecture:{ title:'✏️ Edit Lecture', body:i=>`
                 <div class="form-row"><label>Title *</label><input id="m-title" value="${(i.title||'').replace(/"/g,'&quot;')}"></div>
                 <div class="form-row"><label>Video URL</label><input id="m-video" value="${i.video_url||''}"></div>
@@ -3619,6 +4060,107 @@ async function qeDeleteBank(id){
   if(!confirm('Delete from bank?')) return;
   try{ await api('/course-content/question-bank/'+id,'DELETE'); qeOpenBank(); }catch(e){ toast(e.message,true); }
 }
+
+// ── STANDALONE QUESTION BANK — create questions directly, then attach to any
+// course's test. Reachable from the teacher quick-actions (not just a test).
+async function openQuestionBank(){
+  showModal('📚 Question Bank', '<div id="qb-body"><div style="text-align:center;padding:30px;color:#888">Loading…</div></div>');
+  await _qbRenderList();
+}
+async function _qbRenderList(){
+  const body=document.getElementById('qb-body'); if(!body) return;
+  try{
+    const r=await api('/course-content/question-bank','GET');
+    const items=r.items||[];
+    body.innerHTML=`
+      <button class="btn-sm btn-primary" style="margin-bottom:12px" onclick="_qbShowCreate()">＋ Create question</button>
+      <div style="font-size:12px;color:var(--jm-text-muted);margin-bottom:8px">${items.length} saved question${items.length!==1?'s':''} — reusable across all your courses.</div>
+      ${items.length?items.map(b=>`
+        <div style="border:1px solid var(--jm-border);border-radius:8px;padding:10px;margin-bottom:8px">
+          <div style="display:flex;justify-content:space-between;gap:8px">
+            <div style="flex:1;min-width:0"><strong>${escHtml(b.question_text)}</strong>
+              <div style="font-size:11px;color:var(--jm-text-muted);margin-top:3px">${escHtml(b.type)} · ${b.marks} mark${b.marks!==1?'s':''} · ${escHtml(b.difficulty||'medium')}</div>
+            </div>
+            <div class="row-actions">
+              <button class="btn-sm btn-primary" onclick="_qbAttach('${b.id}')" title="Attach to a course test">📎 Attach</button>
+              <button class="btn-sm btn-outline" style="color:#b91c1c" onclick="_qbDelete('${b.id}')">×</button>
+            </div>
+          </div>
+        </div>`).join('')
+        :'<div class="empty-state"><div class="icon">📚</div>No saved questions yet — create one above.</div>'}`;
+  }catch(e){ body.innerHTML='<div style="color:#b91c1c">'+escHtml(e.message)+'</div>'; }
+}
+function _qbShowCreate(){
+  const body=document.getElementById('qb-body'); if(!body) return;
+  body.innerHTML=`
+    <button class="btn-sm btn-outline" style="margin-bottom:12px" onclick="_qbRenderList()">← Back to bank</button>
+    <div class="form-row"><label>Type</label><select id="qb-type" onchange="_qbTypeChange(this.value)">
+      <option value="mcq">Multiple choice (single)</option><option value="multi">Multiple choice (multiple)</option>
+      <option value="truefalse">True / False</option><option value="short">Short answer</option>
+      <option value="long">Long answer</option></select></div>
+    <div class="form-row"><label>Question *</label><textarea id="qb-text" rows="2" placeholder="Enter the question"></textarea></div>
+    <div class="form-row" id="qb-opts-row"><label>Options (one per line)</label><textarea id="qb-options" rows="4" placeholder="Option A&#10;Option B&#10;Option C"></textarea></div>
+    <div class="form-row" id="qb-correct-row"><label>Correct answer</label><input id="qb-correct" placeholder="e.g. exact option text, or true/false"></div>
+    <div class="grid-2">
+      <div class="form-row"><label>Marks</label><input id="qb-marks" type="number" min="1" value="1"></div>
+      <div class="form-row"><label>Difficulty</label><select id="qb-diff"><option value="easy">Easy</option><option value="medium" selected>Medium</option><option value="hard">Hard</option></select></div>
+    </div>
+    <div class="form-row"><label>Explanation (optional)</label><input id="qb-expl" placeholder="Shown after answering"></div>
+    <button class="btn-sm btn-primary" style="width:100%;padding:11px" onclick="_qbSave()">💾 Save to bank</button>`;
+  _qbTypeChange('mcq');
+}
+function _qbTypeChange(type){
+  const show=(id,on)=>{const el=document.getElementById(id);if(el)el.style.display=on?'':'none';};
+  show('qb-opts-row', type==='mcq'||type==='multi');
+  show('qb-correct-row', type!=='long'&&type!=='short');
+  const c=document.getElementById('qb-correct'); if(c&&type==='truefalse') c.placeholder='true or false';
+}
+async function _qbSave(){
+  const type=val('qb-type'), text=val('qb-text');
+  if(!text){ toast('Question text required',true); return; }
+  let options=null, correctAnswer=val('qb-correct')||null;
+  if(type==='mcq'||type==='multi'){
+    options=(document.getElementById('qb-options')?.value||'').split(/\n/).map(s=>s.trim()).filter(Boolean);
+    if(options.length<2){ toast('At least 2 options required',true); return; }
+  }
+  if(type==='truefalse'&&!options){ options=['True','False']; }
+  try{
+    await api('/course-content/question-bank','POST',{
+      type, questionText:text, options, correctAnswer,
+      marks:Number(val('qb-marks'))||1, difficulty:val('qb-diff')||'medium', explanation:val('qb-expl')
+    });
+    toast('✓ Saved to bank'); await _qbRenderList();
+  }catch(e){ toast(e.message,true); }
+}
+async function _qbDelete(id){
+  if(!confirm('Delete this question from your bank?')) return;
+  try{ await api('/course-content/question-bank/'+id,'DELETE'); _qbRenderList(); }catch(e){ toast(e.message,true); }
+}
+// Attach a bank question to a test inside a chosen course (course → test).
+async function _qbAttach(bankId){
+  const body=document.getElementById('qb-body'); if(!body) return;
+  const courses=window._teacherCourses||[];
+  if(!courses.length){ toast('Create a course first',true); return; }
+  body.innerHTML=`<button class="btn-sm btn-outline" style="margin-bottom:12px" onclick="_qbRenderList()">← Back</button>
+    <h4 style="margin:0 0 8px">📎 Attach question to a course</h4>
+    <div class="form-row"><label>Course</label><select id="qb-att-course" onchange="_qbLoadTests(this.value,'${bankId}')"><option value="">— pick a course —</option>${courses.map(c=>`<option value="${c.id}">${escHtml(c.title||'Course')}</option>`).join('')}</select></div>
+    <div id="qb-att-tests"><div class="hint" style="font-size:12px;color:var(--jm-text-muted)">Pick a course to list its tests.</div></div>`;
+}
+async function _qbLoadTests(courseId, bankId){
+  const box=document.getElementById('qb-att-tests'); if(!courseId||!box) return;
+  box.innerHTML='Loading tests…';
+  try{
+    const full=await api('/course-content/'+courseId+'/full','GET');
+    const tests=full.tests||[];
+    box.innerHTML=tests.length
+      ? tests.map(t=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px;border:1px solid var(--jm-border);border-radius:8px;margin-bottom:6px"><div>${escHtml(t.title||'Test')}${t.topic_title?` · <span style="color:var(--jm-text-muted);font-size:12px">${escHtml(t.topic_title)}</span>`:''}</div><button class="btn-sm btn-primary" onclick="_qbDoAttach('${t.id}','${bankId}')">Attach here →</button></div>`).join('')
+      : '<div class="hint" style="font-size:12px;color:var(--jm-text-muted)">No tests in this course yet. Create a test under a topic first (Configure → Tests), then attach.</div>';
+  }catch(e){ box.innerHTML='<div style="color:#b91c1c">'+escHtml(e.message)+'</div>'; }
+}
+async function _qbDoAttach(testId, bankId){
+  try{ await api('/course-content/tests/'+testId+'/questions/from-bank/'+bankId,'POST',{}); toast('✓ Attached to test'); _qbRenderList(); }
+  catch(e){ toast(e.message,true); }
+}
 async function qeOpenSettings(){
   const t=window._qeTestRow||{};
   const html=`<div style="margin-bottom:14px"><button class="btn-sm btn-outline" onclick="_renderQuestionEditor()">← Back</button></div>
@@ -3678,6 +4220,56 @@ async function qeAiSuggest(){
     if(document.getElementById('qe-expl')) document.getElementById('qe-expl').value=parsed.explanation||'';
     toast('✓ filled — review and click Add');
   }catch(e){ toast(e.message,true); }
+}
+
+// ── AI "For You": personalized suggestions learned from the student's own
+// history (progress, scores, study time, activity). Uses their profile AI
+// key when set; the backend falls back to grounded heuristics otherwise.
+async function loadSuggestions(){
+  let r; try{ r=await api('/ai/suggest','POST',{}); }catch(e){ return; }
+  const list=r.suggestions||[]; if(!list.length) return;
+  const sec=document.getElementById('section-student'); if(!sec) return;
+  let host=document.getElementById('foryou-card');
+  if(!host){ host=document.createElement('div'); host.id='foryou-card'; host.className='section';
+    const anchor=document.getElementById('study-activity-card')||document.getElementById('sec-student-courses');
+    if(anchor&&anchor.parentNode) anchor.parentNode.insertBefore(host,anchor); else sec.appendChild(host); }
+  const typeBadge={course:'badge-blue',skill:'badge-green',habit:'badge-yellow',revision:'badge-red'};
+  host.innerHTML=`<div class="section-title">✨ Suggested for you
+      <div class="actions"><span style="font-size:10px;color:var(--jm-text-muted)">${r.source==='ai'?'🤖 personalised by AI':'from your activity'}</span></div>
+    </div>
+    <div class="card" style="padding:14px">
+      ${list.map(s=>`<div style="display:flex;gap:12px;align-items:flex-start;padding:10px 4px;border-bottom:1px solid var(--jm-border)">
+        <div style="font-size:22px;flex-shrink:0">${escHtml(s.icon||'✨')}</div>
+        <div style="flex:1;min-width:0"><div style="font-weight:600;font-size:14px">${escHtml(s.title||'')}</div>
+          <div style="font-size:12px;color:var(--jm-text-muted);margin-top:2px">${escHtml(s.reason||'')}</div></div>
+        <span class="badge ${typeBadge[s.type]||'badge-blue'}" style="flex-shrink:0">${escHtml(s.type||'tip')}</span>
+      </div>`).join('')}
+    </div>`;
+}
+
+// ── OFFLINE TUTOR: when there's no internet (or the AI is unreachable),
+// answer from the student's DOWNLOADED courses in IndexedDB — keyword
+// retrieval over topic/lecture content, clearly labelled as offline.
+async function offlineTutorAnswer(q){
+  let recs=[]; try{ recs=await _idbAll(); }catch(e){ return null; }
+  if(!recs.length) return null;
+  const terms=(q||'').toLowerCase().split(/\W+/).filter(t=>t.length>2);
+  if(!terms.length) return null;
+  const hits=[];
+  recs.forEach(rec=>{
+    const items=[
+      ...((rec.full?.topics)||[]).map(t=>({title:t.title||'Topic', text:(t.title||'')+'. '+(t.description||'')})),
+      ...((rec.full?.lectures)||[]).map(l=>({title:l.title||'Lecture', text:(l.title||'')+'. '+(l.description||'')}))
+    ];
+    items.forEach(it=>{
+      const lc=it.text.toLowerCase(); let score=0;
+      terms.forEach(tm=>{ let i=0; while((i=lc.indexOf(tm,i))!==-1){ score++; i+=tm.length; } });
+      if(score>0) hits.push({course:rec.title, title:it.title, text:it.text, s:score/Math.sqrt(it.text.length||1)});
+    });
+  });
+  hits.sort((a,b)=>b.s-a.s);
+  if(!hits.length) return null;
+  return '📴 Offline — answering from your downloaded courses:\n\n'+hits.slice(0,2).map(h=>'▸ '+h.title+' ('+h.course+')\n'+h.text.slice(0,260)).join('\n\n');
 }
 
 // ── Per-day study activity: streak + last-14-days bar chart. ───────────
@@ -3844,22 +4436,51 @@ async function msgrRenderRoom(){
     el.scrollTop=el.scrollHeight;
   }catch(e){ el.innerHTML='<div style="color:#b91c1c;padding:16px">'+escHtml(e.message)+'</div>'; }
 }
+// Ask the AI assistant inside the messenger thread (shared by typed Send and the
+// voice assistant). Pushes the question + answer into the AI log, renders, and
+// optionally speaks the reply. Returns the answer text.
+async function msgrAskAI(text, opts){
+  opts=opts||{};
+  _msgr.aiLog.push({role:'user',text});
+  _msgr.aiLog.push({role:'ai',text:'…thinking',pending:true}); msgrRenderAILog();
+  const courseId=(document.getElementById('msgr-ai-course')||{}).value||undefined;
+  const topicId=(document.getElementById('msgr-ai-topic')||{}).value||undefined;
+  let answer='';
+  if(!navigator.onLine){
+    const off=await offlineTutorAnswer(text);
+    _msgr.aiLog.pop();
+    answer=off||'📴 You are offline and this topic isn\'t in your downloaded courses. Download a course to study offline.';
+    _msgr.aiLog.push({role:'ai',text:answer});
+  } else {
+    try{
+      const r=await api('/ai/tutor','POST',{courseId,topicId,question:text});
+      _msgr.aiLog.pop();
+      answer=r.answer||'(no answer)';
+      _msgr.aiLog.push({role:'ai',text:answer,sources:r.sources,grounded:r.grounded});
+    }catch(e){
+      const off=await offlineTutorAnswer(text);
+      _msgr.aiLog.pop();
+      answer=off||('⚠️ '+e.message);
+      _msgr.aiLog.push({role:'ai',text:answer});
+    }
+  }
+  msgrRenderAILog();
+  if(opts.speak) vSpeak(String(answer).slice(0,300));
+  return answer;
+}
+// Post a plain assistant line into the AI log (e.g. a voice command confirmation).
+function msgrPostAILine(userText, aiText){
+  if(userText) _msgr.aiLog.push({role:'user',text:userText});
+  _msgr.aiLog.push({role:'ai',text:aiText});
+  msgrRenderAILog();
+}
 // ── Unified send ───────────────────────────────────────────────────────
 async function msgrSend(){
   const input=document.getElementById('msgr-input'); const text=input?input.value.trim():''; if(!text) return;
   input.value='';
   const a=_msgr.active;
   if(a&&a.type==='ai'){
-    _msgr.aiLog.push({role:'user',text});
-    _msgr.aiLog.push({role:'ai',text:'…thinking',pending:true}); msgrRenderAILog();
-    const courseId=(document.getElementById('msgr-ai-course')||{}).value||undefined;
-    const topicId=(document.getElementById('msgr-ai-topic')||{}).value||undefined;
-    try{
-      const r=await api('/ai/tutor','POST',{courseId,topicId,question:text});
-      _msgr.aiLog.pop();
-      _msgr.aiLog.push({role:'ai',text:r.answer||'(no answer)',sources:r.sources,grounded:r.grounded});
-    }catch(e){ _msgr.aiLog.pop(); _msgr.aiLog.push({role:'ai',text:'⚠️ '+e.message}); }
-    msgrRenderAILog();
+    await msgrAskAI(text);
   } else if(a&&a.type==='room'){
     try{ await api('/chat/rooms/'+a.id+'/messages','POST',{content:text}); await msgrRenderRoom(); }
     catch(e){ toast(e.message,true); }
@@ -4531,7 +5152,7 @@ async function openRecordings(){
           <div style="font-weight:800;font-size:15px;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--jm-primary)">📚 ${escHtml(course)}</div>
           ${Object.keys(byTopic).sort().map(topic=>`
             <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--jm-text-muted);margin:10px 0 8px">📁 ${escHtml(topic)} <span style="opacity:.6">(${byTopic[topic].length})</span></div>
-            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px">${byTopic[topic].map(card).join('')}</div>`).join('')}
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(320px,100%),1fr));gap:16px">${byTopic[topic].map(card).join('')}</div>`).join('')}
         </div>`;
       }).join('')}
     </div>`;
@@ -4566,12 +5187,52 @@ async function openProctorEvents(sessionId){
 }
 
 // ── AI lesson plan generator (teacher) ─────────────────────────────────
-async function openLessonPlanner(){
-  const topic=prompt('Topic for the lesson plan:');
-  if(!topic) return;
+// One brief (typed or dictated) + optional reference text → full plan.
+let _lpAttachText='';
+function openLessonPlanner(){
+  _lpAttachText='';
+  const ov=document.createElement('div'); ov.id='lpInput';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9998;display:flex;align-items:center;justify-content:center;padding:20px';
+  ov.onclick=e=>{ if(e.target===ov) ov.remove(); };
+  ov.innerHTML=`<div style="background:var(--jm-surface);max-width:520px;width:100%;border-radius:14px;padding:22px;max-height:90vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><h3 style="margin:0">🤖 AI Lesson Plan</h3><button onclick="document.getElementById('lpInput').remove()" style="border:0;background:none;font-size:20px;cursor:pointer">×</button></div>
+    <div style="font-size:13px;color:var(--jm-text-muted);margin-bottom:12px">Describe the lesson in a line or two — type or dictate. AI fills in objectives, a timed plan, materials, assessment & homework.</div>
+    <div class="form-row"><label>What's the lesson about? *</label>
+      <div style="display:flex;gap:6px;align-items:flex-start">
+        <textarea id="lp-brief" rows="3" placeholder="e.g. Intro to photosynthesis for class 7 — focus on the light reaction, with a quick experiment" style="flex:1"></textarea>
+        <button type="button" class="btn-sm btn-outline" title="Dictate" onclick="startVoiceFor('lp-brief')" style="padding:8px 10px">🎤</button>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="form-row"><label>Level</label><select id="lp-level"><option value="beginner">Beginner</option><option value="intermediate">Intermediate</option><option value="advanced">Advanced</option></select></div>
+      <div class="form-row"><label>Duration (min)</label><input id="lp-dur" type="number" min="10" value="45"></div>
+    </div>
+    <div class="form-row"><label>Reference notes (optional)</label>
+      <input id="lp-file" type="file" accept=".txt,.md,.csv,text/*" onchange="_lpReadAttach(this)">
+      <div id="lp-attach-note" style="font-size:11px;color:var(--jm-text-muted);margin-top:4px">Attach a .txt/.md outline to ground the plan in your material.</div>
+    </div>
+    <button class="btn-sm btn-primary" style="width:100%;padding:11px;margin-top:6px" onclick="_lpGenerate()">✨ Generate lesson plan</button>
+  </div>`;
+  document.body.appendChild(ov);
+  setTimeout(()=>document.getElementById('lp-brief')?.focus(),100);
+}
+function _lpReadAttach(input){
+  const f=input.files?.[0]; const note=document.getElementById('lp-attach-note');
+  if(!f){ _lpAttachText=''; return; }
+  if(f.size>200000){ note.textContent='⚠️ File too large — using filename only as a hint.'; _lpAttachText='Reference document: '+f.name; return; }
+  const r=new FileReader();
+  r.onload=()=>{ _lpAttachText=String(r.result||'').slice(0,4000); note.textContent='✓ '+f.name+' attached as reference.'; };
+  r.onerror=()=>{ _lpAttachText='Reference document: '+f.name; note.textContent='Couldn\'t read the file — using its name as a hint.'; };
+  r.readAsText(f);
+}
+async function _lpGenerate(){
+  const brief=val('lp-brief'); if(!brief){ toast('Describe the lesson first',true); return; }
+  const level=val('lp-level')||'beginner'; const dur=Number(val('lp-dur'))||45;
+  const topic=brief+(_lpAttachText?('\n\nReference material to base the plan on:\n'+_lpAttachText):'');
+  document.getElementById('lpInput')?.remove();
   try{
     toast('🤖 designing lesson…');
-    const r=await api('/ai/lesson-plan','POST',{topic, durationMinutes:45, level:'beginner'});
+    const r=await api('/ai/lesson-plan','POST',{topic, durationMinutes:dur, level});
     const p=r.plan||{};
     const overlay=document.createElement('div');
     overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9998;display:flex;align-items:center;justify-content:center;padding:20px';
@@ -4742,6 +5403,196 @@ function _tutorCourses(){
 // AI tutor now lives inside the unified messenger. The reader's "Ask Tutor"
 // button and the nav both converge here (course pre-selected from reader).
 function openAiTutor(){ openMessenger('ai'); }
+
+// ══════════════════════════════════════════════════════════════════════
+// VOICE ASSISTANT — talk to the app in Hindi or English. Speech →
+// intent (navigate / open feature / schedule) with an AI-tutor fallback
+// for open questions; responses are spoken back via speechSynthesis.
+// ══════════════════════════════════════════════════════════════════════
+const VOICE_INTENTS=[
+  {re:/(course|कोर्स|पाठ्यक्रम)/i,           act:()=>navByLabel('courses'),        en:'Opening your courses',     hi:'आपके कोर्स खोल रहे हैं'},
+  {re:/(live|लाइव)/i,                          act:()=>navByLabel('live'),           en:'Opening live classes',     hi:'लाइव क्लास खोल रहे हैं'},
+  {re:/(schedule|शेड्यूल)/i,                   act:()=>openModal('scheduleLive'),    en:'Scheduling a class',       hi:'क्लास शेड्यूल कर रहे हैं'},
+  {re:/(new course|create course|नया कोर्स)/i,act:()=>openWizard(),                 en:'Creating a new course',    hi:'नया कोर्स बना रहे हैं'},
+  {re:/(calendar|कैलेंडर)/i,                   act:()=>openCalendar(),               en:'Opening the calendar',     hi:'कैलेंडर खोल रहे हैं'},
+  {re:/(message|chat|मैसेज|चैट|संदेश)/i,      act:()=>openMessenger(),              en:'Opening messages',         hi:'मैसेज खोल रहे हैं'},
+  {re:/(wall|वॉल|गतिविधि)/i,                  act:()=>navByLabel('wall'),           en:'Opening the wall',          hi:'वॉल खोल रहे हैं'},
+  {re:/(recording|रिकॉर्डिंग)/i,               act:()=>openRecordings(),             en:'Opening recordings',       hi:'रिकॉर्डिंग खोल रहे हैं'},
+  {re:/(studio|स्टूडियो|कैमरा)/i,             act:()=>location.href='/studio.html', en:'Opening the studio',       hi:'स्टूडियो खोल रहे हैं'},
+  {re:/(download|डाउनलोड|offline|ऑफलाइन)/i, act:()=>openDownloads(),              en:'Opening downloads',        hi:'डाउनलोड खोल रहे हैं'},
+  {re:/(attendance|हाज़िरी|हाजिरी|उपस्थिति)/i,act:()=>{ try{openAttendanceReport()}catch(e){openAttGrid()} }, en:'Opening attendance', hi:'हाज़िरी खोल रहे हैं'},
+  {re:/(payment|पेमेंट|भुगतान)/i,             act:()=>openPayments(),               en:'Opening payments',         hi:'पेमेंट खोल रहे हैं'},
+  {re:/(wallet|वॉलेट)/i,                       act:()=>openWallet(),                 en:'Opening your wallet',      hi:'वॉलेट खोल रहे हैं'},
+  {re:/(coupon|कूपन)/i,                        act:()=>openCoupons(),                en:'Opening coupons',          hi:'कूपन खोल रहे हैं'},
+  {re:/(setting|सेटिंग)/i,                     act:()=>openSettings(),               en:'Opening settings',         hi:'सेटिंग खोल रहे हैं'},
+  {re:/(profile|प्रोफ़ाइल|प्रोफाइल)/i,        act:()=>openProfilePage(),            en:'Opening your profile',     hi:'प्रोफ़ाइल खोल रहे हैं'},
+  {re:/(marketplace|मार्केट|बाज़ार)/i,        act:()=>location.href='/marketplace.html', en:'Opening the marketplace', hi:'मार्केटप्लेस खोल रहे हैं'},
+  {re:/(near|nearby|आस ?पास|नज़दीक)/i,       act:()=>openNearbySearch(),           en:'Finding courses near you', hi:'आपके पास के कोर्स खोज रहे हैं'},
+  {re:/(log ?out|लॉग ?आउट)/i,                 act:()=>logout(),                     en:'Logging out',              hi:'लॉग आउट कर रहे हैं'}
+];
+function navByLabel(t){ const role=(JSON.parse(localStorage.getItem('jm_user')||'{}').role)||'student'; try{ navScroll(null,'sec-'+role+'-'+t); }catch(e){} }
+function _vLang(){ return (typeof jmLangBcp==='function')?jmLangBcp(localStorage.getItem('jm_lang')||'en'):'en-IN'; }
+function _pickVoice(bcp){ try{ const vs=speechSynthesis.getVoices()||[]; return vs.find(v=>v.lang===bcp)||vs.find(v=>v.lang&&v.lang.slice(0,2)===bcp.slice(0,2))||null; }catch(e){ return null; } }
+// Voices load asynchronously in most browsers; prime them at startup and refresh
+// on the voiceschanged event so _pickVoice can find a language-matched voice
+// rather than silently falling back to the default (English) voice.
+try{ if(typeof speechSynthesis!=='undefined'){ speechSynthesis.getVoices(); speechSynthesis.addEventListener('voiceschanged', ()=>{ try{ speechSynthesis.getVoices(); }catch(e){} }); } }catch(e){}
+function vSpeak(txt, langOverride){ try{ const u=new SpeechSynthesisUtterance(txt); u.lang=langOverride||_vLang(); const v=_pickVoice(u.lang); if(v) u.voice=v; speechSynthesis.cancel(); speechSynthesis.speak(u); }catch(e){} }
+
+// ── Course reader: tap-to-hear (read-aloud in the selected language) ───────
+let _rdSpeaking=false;
+function readerStopTTS(){ _rdSpeaking=false; try{ speechSynthesis.cancel(); }catch(e){} document.querySelectorAll('.tts-on').forEach(e=>e.classList.remove('tts-on')); }
+function readerSpeakAll(){
+  if(_rdSpeaking || speechSynthesis.speaking){ readerStopTTS(); return; }
+  const main=document.getElementById('rd-main'); if(!main) return;
+  const lang=_vLang(), v=_pickVoice(lang);
+  const seen=new Set();
+  const blocks=[...main.querySelectorAll('.book-title,.book-body,.rich-content p,.rich-content li,.rich-content h1,.rich-content h2,.rich-content h3')]
+    .filter(el=>{ if(seen.has(el)) return false; seen.add(el); return (el.innerText||el.textContent||'').trim(); });
+  if(!blocks.length){ try{ toast('Nothing to read on this page'); }catch(e){} return; }
+  _rdSpeaking=true; let i=0;
+  const next=()=>{
+    if(!_rdSpeaking || i>=blocks.length){ readerStopTTS(); return; }
+    const el=blocks[i++], txt=(el.innerText||el.textContent||'').trim();
+    document.querySelectorAll('.tts-on').forEach(e=>e.classList.remove('tts-on')); el.classList.add('tts-on');
+    try{ el.scrollIntoView({block:'center',behavior:'smooth'}); }catch(e){}
+    const u=new SpeechSynthesisUtterance(txt); u.lang=lang; if(v) u.voice=v;
+    // Advance at most once per block. A watchdog covers browsers that drop an
+    // utterance without ever firing onend/onerror (would otherwise hang).
+    let advanced=false; const go=()=>{ if(advanced) return; advanced=true; clearTimeout(wd); next(); };
+    const wd=setTimeout(go, Math.min(2500+txt.length*70, 20000));
+    u.onend=go; u.onerror=go;
+    try{ speechSynthesis.speak(u); }catch(e){ go(); }
+  };
+  next();
+}
+function _readerWireTTS(scope){
+  if(!document.getElementById('rdTtsCss')){ const s=document.createElement('style'); s.id='rdTtsCss'; s.textContent='.tts-on{background:var(--jm-primary-tint);border-radius:6px;box-shadow:0 0 0 4px var(--jm-primary-tint)}'; document.head.appendChild(s); }
+  scope.querySelectorAll('.book-body,.rich-content p,.rich-content li,.rich-content h1,.rich-content h2,.rich-content h3').forEach(el=>{
+    if(el.dataset.ttsWired) return; el.dataset.ttsWired='1';
+    el.style.cursor='pointer'; el.title='Tap to listen';
+    el.addEventListener('click', ev=>{
+      if(ev.target.closest('a,button,img,input')) return;
+      const txt=(el.innerText||el.textContent||'').trim(); if(!txt) return;
+      readerStopTTS(); el.classList.add('tts-on');
+      const u=new SpeechSynthesisUtterance(txt); u.lang=_vLang(); const v=_pickVoice(u.lang); if(v) u.voice=v;
+      u.onend=()=>el.classList.remove('tts-on'); u.onerror=()=>el.classList.remove('tts-on');
+      try{ speechSynthesis.cancel(); speechSynthesis.speak(u); }catch(e){}
+    });
+  });
+}
+
+// ── Select-text → translate to the local language (floating popup) ─────────
+function _installSelectTranslate(){
+  if(window._selTrInstalled) return; window._selTrInstalled=true;
+  let pop=null;
+  const hide=()=>{ if(pop){ pop.remove(); pop=null; } };
+  document.addEventListener('mousedown', e=>{ if(pop && !pop.contains(e.target)) hide(); });
+  document.addEventListener('mouseup', ()=>{
+    setTimeout(async ()=>{
+      const sel=window.getSelection(); const text=sel && sel.toString().trim();
+      if(!text || text.length<2 || text.length>600) return;
+      const an=sel.anchorNode; const ael=an && (an.nodeType===1?an:an.parentElement);
+      if(ael && ael.closest('input,textarea,[contenteditable="true"],.no-i18n')) return;
+      if(!localStorage.getItem('jm_token')) return;
+      const code=localStorage.getItem('jm_lang')||'en';
+      // When reading in English, translate selection to a chosen reading language (default Hindi).
+      const target = code==='en' ? (localStorage.getItem('jm_read_lang')||'hi') : code;
+      let rect; try{ rect=sel.getRangeAt(0).getBoundingClientRect(); }catch(e){ return; }
+      hide();
+      pop=document.createElement('div'); pop.className='no-i18n';
+      pop.style.cssText='position:fixed;z-index:10060;max-width:300px;background:var(--jm-surface);border:1px solid var(--jm-border);border-radius:10px;box-shadow:0 12px 34px rgba(0,0,0,.32);padding:10px 12px;font-size:13px;color:var(--jm-text)';
+      pop.style.left=Math.max(8, Math.min(rect.left, window.innerWidth-308))+'px';
+      pop.style.top=Math.min(window.innerHeight-96, rect.bottom+8)+'px';
+      pop.innerHTML='<div style="font-size:11px;color:var(--jm-text-muted);margin-bottom:4px">🌐 '+jmLangName(target)+'</div><div id="_selTrBody">…</div>';
+      document.body.appendChild(pop);
+      let tr=text;
+      try{
+        const r=await fetch(API+'/ai/translate',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('jm_token')},body:JSON.stringify({q:[text],target,source:'auto'})});
+        const j=await r.json(); tr=(j.map && j.map[text]) || text;
+      }catch(e){}
+      if(!pop) return;
+      const body=pop.querySelector('#_selTrBody'); if(body) body.textContent=tr;
+      const bar=document.createElement('div'); bar.style.cssText='margin-top:8px;display:flex;gap:8px;justify-content:flex-end';
+      const sb=document.createElement('button'); sb.className='btn-sm btn-primary'; sb.style.padding='4px 10px'; sb.textContent='🔊 Listen';
+      sb.onclick=()=>vSpeak(tr, jmLangBcp(target)); bar.appendChild(sb); pop.appendChild(bar);
+    }, 10);
+  });
+}
+let _vRec=null,_vBusy=false;
+// Make sure the messenger is open AND on the AI thread, so voice flows into the
+// same chat the user can see and scroll. Idempotent.
+async function ensureMessengerAI(){
+  if(!document.getElementById('jmMessenger')) await openMessenger('ai');
+  if(!_msgr.active || _msgr.active.type!=='ai') msgrOpenAI();
+}
+function toggleVoice(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){ toast('Voice not supported in this browser',true); return; }
+  if(_vRec){ try{_vRec.stop();}catch(e){} _vRec=null; _vUi(false); return; }
+  // Open the chat so the spoken conversation appears in the AI assistant thread.
+  ensureMessengerAI();
+  const rec=new SR(); _vRec=rec;
+  rec.lang=_vLang(); rec.interimResults=true; rec.continuous=false;
+  _vUi(true,'…');
+  rec.onresult=(e)=>{
+    const t=[...e.results].map(r=>r[0].transcript).join(' ').trim();
+    _vUi(true,t);
+    // Live transcript previews in the chat input so the user sees what's heard.
+    const inp=document.getElementById('msgr-input'); if(inp) inp.value=t;
+    if(e.results[e.results.length-1].isFinal) vHandle(t);
+  };
+  rec.onerror=(e)=>{ _vUi(false); _vRec=null; if(e.error==='not-allowed') toast('Microphone permission denied',true); };
+  rec.onend=()=>{ if(_vRec===rec){ _vRec=null; setTimeout(()=>{ if(!_vBusy) _vUi(false); },400); } };
+  try{ rec.start(); }catch(e){ _vUi(false); _vRec=null; }
+}
+async function vHandle(text){
+  if(!text){ _vUi(false); return; }
+  const hi=_vLang()==='hi-IN';
+  const inp=document.getElementById('msgr-input'); if(inp) inp.value='';
+  // App-action commands (open courses, schedule a class, etc.) — run the action
+  // and log a spoken confirmation into the chat.
+  for(const it of VOICE_INTENTS){
+    if(it.re.test(text)){
+      const say=hi?it.hi:it.en;
+      _vUi(true,text,say);
+      try{ await ensureMessengerAI(); msgrPostAILine(text, '✅ '+say); }catch(e){}
+      vSpeak(say);
+      try{ it.act(); }catch(e){}
+      setTimeout(()=>_vUi(false),1400);
+      return;
+    }
+  }
+  // Otherwise it's a question → ask the AI assistant IN the chat and speak the reply.
+  _vBusy=true; _vUi(true,text,hi?'सोच रहे हैं…':'Thinking…');
+  try{
+    await ensureMessengerAI();
+    await msgrAskAI(text,{speak:true});
+  }catch(e){ toast(e.message||'Voice error',true); }
+  _vUi(false);
+  _vBusy=false;
+}
+function _vUi(on, heard, reply){
+  let fab=document.getElementById('voiceFab');
+  if(!fab){
+    fab=document.createElement('button'); fab.id='voiceFab'; fab.title='Voice assistant (speak in Hindi or English)';
+    fab.style.cssText='position:fixed;right:16px;bottom:84px;width:54px;height:54px;border-radius:50%;border:0;background:linear-gradient(135deg,var(--jm-primary),#a855f7);color:#fff;font-size:22px;cursor:pointer;z-index:9990;box-shadow:0 6px 20px rgba(0,0,0,.3)';
+    fab.textContent='🎤'; fab.onclick=toggleVoice; document.body.appendChild(fab);
+    const panel=document.createElement('div'); panel.id='voicePanel';
+    panel.style.cssText='position:fixed;right:16px;bottom:148px;width:min(320px,calc(100vw - 32px));background:var(--jm-surface);border:1px solid var(--jm-border);border-radius:14px;padding:14px;z-index:9990;box-shadow:0 10px 30px rgba(0,0,0,.3);display:none';
+    panel.innerHTML='<div style="font-size:11px;color:var(--jm-text-muted);margin-bottom:6px" id="vp-state"></div><div style="font-size:14px;font-weight:600" id="vp-heard"></div><div style="font-size:13px;margin-top:8px;color:var(--jm-text)" id="vp-reply"></div>';
+    document.body.appendChild(panel);
+  }
+  const panel=document.getElementById('voicePanel');
+  if(!on){ panel.style.display='none'; fab.style.animation=''; return; }
+  panel.style.display='block';
+  fab.style.animation='vpulse 1.2s infinite';
+  document.getElementById('vp-state').textContent=_vRec?(_vLang()==='hi-IN'?'🎙 सुन रहे हैं…':'🎙 Listening…'):'';
+  document.getElementById('vp-heard').textContent=heard&&heard!=='…'?'“'+heard+'”':'';
+  document.getElementById('vp-reply').textContent=reply||'';
+}
+// Boot the floating mic once the dashboard is up.
+setTimeout(()=>{ try{ _vUi(false); }catch(e){} },1200);
 // Populate the topic dropdown for the selected course. Uses reader's loaded
 // data when available, else fetches the course content.
 async function aiTutorLoadTopics(){
@@ -5080,7 +5931,7 @@ async function _renderReader(){
     window._reader.playerEmbed=playerEmbed;
 
     body.innerHTML=`
-      <div style="display:grid;grid-template-columns:280px 1fr;gap:14px">
+      <div class="reader-grid">
         ${toc}
         <div><div id="rd-main"></div><div class="book-nav" id="rd-nav"></div></div>
       </div>
@@ -5091,6 +5942,7 @@ async function _renderReader(){
 // Render a single "book page" by index into #rd-main + update prev/next nav.
 function readerRenderPage(idx){
   const r=window._reader; if(!r) return;
+  if(typeof _richCss==='function') _richCss(); // ensure rich-content styles are present
   const main=document.getElementById('rd-main'); const nav=document.getElementById('rd-nav');
   if(!main) return;
   const pages=r.pages||[];
@@ -5110,7 +5962,7 @@ function readerRenderPage(idx){
       ${pg.topicTitle?`<div class="book-kicker">${escHtml(pg.topicTitle)}</div>`:'<div class="book-kicker">Lecture</div>'}
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap">
         <h2 class="book-title" style="flex:1;min-width:0">${escHtml(lec.title||'Lecture')}</h2>
-        <div class="row-actions"><button class="btn-sm btn-outline" onclick="markLectureComplete('${lec.id}')">✓ Complete</button><button class="btn-sm btn-outline" onclick="aiSummarize('lecture','${lec.id}')">🤖 Summarize</button><button class="btn-sm btn-outline" onclick="aiExplain('lecture','${lec.id}')">💡 Explain</button><button class="btn-sm btn-primary" onclick="openAiTutor()">🤖 Ask Tutor</button></div>
+        <div class="row-actions"><button class="btn-sm btn-outline" onclick="markLectureComplete('${lec.id}')">✓ Complete</button><button class="btn-sm btn-outline" onclick="readerSpeakAll()" title="Read aloud in your language">🔊 Listen</button><button class="btn-sm btn-outline" onclick="aiSummarize('lecture','${lec.id}')">🤖 Summarize</button><button class="btn-sm btn-outline" onclick="aiExplain('lecture','${lec.id}')">💡 Explain</button><button class="btn-sm btn-primary" onclick="openAiTutor()">🤖 Ask Tutor</button></div>
       </div>
       <div style="color:var(--jm-text-muted);font-size:12px;margin:6px 0 16px">${lec.duration?lec.duration+' min':''}</div>
       ${player?`<div class="book-figure">${player}</div>`:''}
@@ -5124,16 +5976,18 @@ function readerRenderPage(idx){
       <div class="book-kicker">Chapter</div>
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap">
         <h2 class="book-title" style="flex:1;min-width:0">${escHtml(t.title||'Topic')}</h2>
-        <div class="row-actions"><button class="btn-sm btn-outline" onclick="aiSummarize('topic','${t.id}')">🤖 Summarize</button><button class="btn-sm btn-outline" onclick="aiExplain('topic','${t.id}')">💡 Explain</button><button class="btn-sm btn-primary" onclick="openAiTutor()">🤖 Ask Tutor</button></div>
+        <div class="row-actions"><button class="btn-sm btn-outline" onclick="readerSpeakAll()" title="Read aloud in your language">🔊 Listen</button><button class="btn-sm btn-outline" onclick="aiSummarize('topic','${t.id}')">🤖 Summarize</button><button class="btn-sm btn-outline" onclick="aiExplain('topic','${t.id}')">💡 Explain</button><button class="btn-sm btn-primary" onclick="openAiTutor()">🤖 Ask Tutor</button></div>
       </div>
       <div style="margin-bottom:8px"></div>
-      ${t.description?`<div class="book-body">${escHtml(t.description)}</div>`:''}
+      ${(function(){ const rich=t.description||t.notes||''; if(!rich) return ''; return /<[a-z][\s\S]*>/i.test(rich)?`<div class="rich-content">${sanitizeRich(rich)}</div>`:`<div class="book-body">${escHtml(rich).replace(/\n/g,'<br>')}</div>`; })()}
       ${imgs}
       ${atts?`<div style="margin-top:16px">${atts}</div>`:''}
-      ${!t.description&&!imgs&&!atts?'<div class="empty-state"><div class="icon">📁</div>This chapter has no content yet.</div>':''}
+      ${!t.description&&!t.notes&&!imgs&&!atts?'<div class="empty-state"><div class="icon">📁</div>This chapter has no content yet.</div>':''}
     </div>`;
   }
   main.innerHTML=html;
+  if(typeof _readerWireTTS==='function') _readerWireTTS(main);
+  if(typeof readerStopTTS==='function') readerStopTTS();
   main.scrollIntoView({block:'start',behavior:'smooth'});
   if(nav){
     nav.innerHTML=`<button onclick="readerGoPage(-1)" ${idx===0?'disabled':''}>← Previous</button>
@@ -5272,7 +6126,7 @@ async function openMyInstitutions(){
       <div style="max-width:900px;margin:0 auto">
         <h2 style="margin-bottom:14px">🏫 My Institutions (${links.length})</h2>
         <div style="color:var(--jm-text-muted);font-size:13px;margin-bottom:18px">You're a member of multiple institutions with a single JeetMantra account. Switch the active one to filter your dashboard.</div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(280px,100%),1fr));gap:14px">
           ${links.map(i=>{
             const id=i.institution_id||i.id;
             const isActive=active===id;
@@ -5319,7 +6173,7 @@ function openSettings(){
     <h2 style="margin-bottom:6px">⚙️ Settings</h2>
     <div style="color:var(--jm-text-muted);font-size:13px;margin-bottom:18px">Personal preferences and workspace configuration</div>
     <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--jm-text-muted);margin:8px 0 10px">Personal</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:24px">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:14px;margin-bottom:24px">
       ${tile('#7c3aed','👤','Profile','Name · contact · address · photo','openProfilePage()')}
       ${tile('#0ea5e9','🏫','My Institutions','Manage school / coaching links','openMyInstitutions()')}
       ${tile('#10b981','🤖','AI assistant key','Configure provider (OpenAI / Anthropic / Gemini)','openAiKey()')}
@@ -5327,12 +6181,11 @@ function openSettings(){
     </div>
     <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--jm-text-muted);margin:8px 0 10px">Appearance &amp; language</div>
     <div class="card" style="padding:18px;margin-bottom:24px">
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px;align-items:end">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:18px;align-items:end">
         <div class="form-row" style="margin:0">
           <label>🌐 Language</label>
           <select id="st-lang" onchange="setLang(this.value)">
-            <option value="en" ${lang==='en'?'selected':''}>🇮🇳 English</option>
-            <option value="hi" ${lang==='hi'?'selected':''}>🇮🇳 हिन्दी</option>
+            ${JM_LANGS.map(l=>`<option value="${l.c}" ${lang===l.c?'selected':''}>🇮🇳 ${l.n}</option>`).join('')}
           </select>
         </div>
         <div class="form-row" style="margin:0">
@@ -5353,7 +6206,7 @@ function openSettings(){
       </div>
     </div>
     <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--jm-text-muted);margin:8px 0 10px">Workspace</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:24px">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:14px;margin-bottom:24px">
       ${tile('#f97316','🏢','CRM configuration','Company · invoice format · branding · logo','openCRMConfig()')}
       ${tile('#f59e0b','🧾','Billing &amp; invoices','Issue invoices · mark paid · PDF','openBilling()')}
       ${tile('#7c3aed','📅','Calendar','Month view of classes, tests, assignments','openCalendar()')}
@@ -5362,13 +6215,13 @@ function openSettings(){
     </div>
     ${isAdmin?`
     <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--jm-text-muted);margin:8px 0 10px">Admin</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:24px">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:14px;margin-bottom:24px">
       ${tile('#ef4444','🛡','Audit log','Recent admin actions',"toast('See Admin page')")}
       ${tile('#7c3aed','💰','Commission rate','Platform commission %',"window.location.href='/admin.html'")}
       ${tile('#ec4899','🔌','n8n / webhooks','Configure automations','openN8nConfig()')}
     </div>`:''}
     <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--jm-text-muted);margin:8px 0 10px">Account</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:14px">
       ${tile('#0ea5e9','🔑','Change password','Send a reset link to your email','stChangePassword()')}
       ${tile('#ef4444','🚪','Log out','End your session on this device','logout()')}
     </div>
@@ -5481,21 +6334,21 @@ function openCRMConfig(){
     .crm-wrap{max-width:980px;margin:0 auto;padding-bottom:60px}
     .crm-section{background:var(--jm-surface,#fff);border:1px solid var(--jm-border,#e2e8f0);border-radius:14px;padding:22px;margin-bottom:18px}
     .crm-section h3{font-size:15px;font-weight:800;margin:0 0 14px;display:flex;align-items:center;gap:8px}
-    .crm-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+    .crm-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:14px}
     .crm-field{display:flex;flex-direction:column;gap:6px}
     .crm-field label{font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em}
     .crm-field input,.crm-field select,.crm-field textarea{padding:10px 12px;border:1.5px solid var(--jm-border,#e2e8f0);border-radius:8px;font-size:13px;font-family:inherit;background:#fff;color:#0f172a;outline:none;transition:.15s}
-    .crm-field input:focus,.crm-field select:focus,.crm-field textarea:focus{border-color:#f97316;box-shadow:0 0 0 3px rgba(249,115,22,.12)}
+    .crm-field input:focus,.crm-field select:focus,.crm-field textarea:focus{border-color:#7c3aed;box-shadow:0 0 0 3px rgba(124,58,237,.12)}
     .crm-help{font-size:11px;color:#94a3b8;margin-top:4px;line-height:1.5}
     .crm-help code{background:#f1f5f9;padding:1px 5px;border-radius:3px;font-family:'JetBrains Mono',monospace;font-size:10px;color:#334155}
     .crm-uploader{border:2px dashed #e2e8f0;border-radius:10px;padding:24px;text-align:center;cursor:pointer;transition:.15s;background:#f8fafc}
-    .crm-uploader:hover{border-color:#f97316;background:#fff8f5}
+    .crm-uploader:hover{border-color:#7c3aed;background:#f5f3ff}
     .crm-uploader.has-file{padding:12px;background:#fff}
     .crm-preview-img{max-width:100%;max-height:80px;border-radius:6px;object-fit:contain}
     .crm-swatch{width:40px;height:40px;border-radius:10px;cursor:pointer;border:3px solid transparent;transition:.15s}
     .crm-swatch.active{border-color:#0f172a;transform:scale(1.08)}
     .crm-theme-card{padding:14px;border-radius:10px;cursor:pointer;border:2px solid transparent;transition:.15s;text-align:center;color:#fff;font-weight:700;font-size:12px}
-    .crm-theme-card.active{border-color:#f97316;box-shadow:0 0 0 3px rgba(249,115,22,.2)}
+    .crm-theme-card.active{border-color:#7c3aed;box-shadow:0 0 0 3px rgba(124,58,237,.2)}
     .crm-att-tile{border:1px solid var(--jm-border,#e2e8f0);border-radius:10px;padding:10px;display:flex;gap:10px;align-items:center;margin-bottom:8px;background:#fff}
     .crm-att-tile img{width:56px;height:56px;object-fit:cover;border-radius:6px}
     .crm-att-tile .meta{flex:1;min-width:0}
@@ -5570,7 +6423,7 @@ function openCRMConfig(){
       </div>
       <div class="crm-field">
         <label>Background theme</label>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(140px,100%),1fr));gap:10px">
           ${[
             {k:'midnight',l:'Midnight Blue',bg:'linear-gradient(135deg,#0f172a,#1e3a5f)'},
             {k:'light',   l:'Daylight',     bg:'linear-gradient(135deg,#ffffff,#f1f5f9)',color:'#0f172a'},
@@ -5920,7 +6773,7 @@ async function renderEduOSTab(k){
       const r=await fetch('/api/eduos/report-card/'+me,{headers:H}).then(x=>x.json());
       const s=r.stats||{};
       body.innerHTML=`
-        <div class="stats-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px">
+        <div class="stats-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(160px,100%),1fr));gap:12px;margin-bottom:16px">
           <div class="stat-card"><div class="label">Attendance</div><div class="value">${s.attendancePct||0}%</div></div>
           <div class="stat-card"><div class="label">Avg Score</div><div class="value">${s.avgScore??'—'}</div></div>
           <div class="stat-card"><div class="label">Progress</div><div class="value">${s.avgProgress||0}%</div></div>
@@ -5940,7 +6793,7 @@ async function renderEduOSTab(k){
           </select></td>
           <td>${new Date(a.applied_at||a.created_at).toLocaleDateString()}</td></tr>`).join('');
       body.innerHTML=`
-        <form onsubmit="event.preventDefault();createAdmission(this)" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin-bottom:16px">
+        <form onsubmit="event.preventDefault();createAdmission(this)" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(160px,100%),1fr));gap:8px;margin-bottom:16px">
           <input name="studentName" placeholder="Name" required>
           <input name="studentEmail" type="email" placeholder="Email">
           <input name="studentPhone" placeholder="Phone">
@@ -6045,7 +6898,7 @@ async function loadBatches(courseId){
   const teacherOpts=(includeNone)=>`${includeNone?'<option value="">— none —</option>':''}<option value="${me.id}">Me (${esc(me.fullName||me.email||'')})</option>`+
     teachers.filter(t=>(t.teacher_id||t.id)!==me.id).map(t=>`<option value="${t.teacher_id||t.id}">${esc(t.full_name||t.email||'Teacher')}</option>`).join('');
   document.getElementById('batchListBox').innerHTML=`
-    <form onsubmit="event.preventDefault();createBatch('${courseId}',this)" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:16px;align-items:end">
+    <form onsubmit="event.preventDefault();createBatch('${courseId}',this)" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(150px,100%),1fr));gap:8px;margin-bottom:16px;align-items:end">
       <label style="font-size:11px">Batch name<input name="name" placeholder="Morning A" required style="display:block;width:100%"></label>
       <label style="font-size:11px">Class / grade<input name="classGrade" placeholder="e.g. Class 10" style="display:block;width:100%"></label>
       <label style="font-size:11px">Start<input name="startDate" type="date" style="display:block;width:100%"></label>
@@ -6154,7 +7007,7 @@ async function studentQRCheckin(){
 function cmdkVoice(){
   const R=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!R){toast('Voice not supported on this browser',true);return;}
-  const rec=new R(); rec.lang='en-IN'; rec.interimResults=false;
+  const rec=new R(); rec.lang=(typeof _vLang==='function')?_vLang():'en-IN'; rec.interimResults=false;
   rec.onresult=async e=>{
     const q=e.results[0][0].transcript;
     document.getElementById('cmdkInput').value=q;
@@ -6294,7 +7147,7 @@ async function openPlans(){
       <h2 style="margin-bottom:6px">⚡ SaaS plans</h2>
       <div style="color:var(--jm-text-muted);font-size:13px;margin-bottom:18px">Scale your institute with the right plan. Switch any time.</div>
       ${current?`<div class="card" style="padding:14px;margin-bottom:18px;display:flex;align-items:center;gap:10px;background:var(--jm-primary-tint)"><span style="font-size:22px">✅</span><div><div style="font-weight:700">Current plan: ${escHtml(current.plan_code||current.plan_name||'')}</div><div style="font-size:12px;color:var(--jm-text-muted)">Active until ${current.expires_at?new Date(current.expires_at).toLocaleDateString('en-IN'):'—'}</div></div></div>`:''}
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr));gap:14px">
         ${plans.map(p=>{
           const isCurrent=current && current.plan_code===p.code;
           const c=planColor[p.code]||'#7c3aed';
@@ -6326,8 +7179,8 @@ let _cmdkSel=0;
 const CMDK_ACTIONS=()=>{
   const a=[
     {c:'Navigate', l:'🏠 Dashboard',    f:()=>navScroll(null,null)},
-    {c:'Navigate', l:'📚 My Courses',   f:()=>{const el=[...document.querySelectorAll('.nav-item')].find(x=>/courses/i.test(x.textContent));el?.click();}},
-    {c:'Navigate', l:'📡 Live Classes', f:()=>{const el=[...document.querySelectorAll('.nav-item')].find(x=>/live/i.test(x.textContent));el?.click();}},
+    {c:'Navigate', l:'📚 My Courses',   f:()=>{const el=document.querySelector('.nav-item[data-nav-key="courses"]')||[...document.querySelectorAll('.nav-item')].find(x=>/courses/i.test(x.textContent));el?.click();}},
+    {c:'Navigate', l:'📡 Live Classes', f:()=>{const el=document.querySelector('.nav-item[data-nav-key="live"]')||[...document.querySelectorAll('.nav-item')].find(x=>/live/i.test(x.textContent));el?.click();}},
     {c:'Navigate', l:'📅 Calendar',     f:()=>typeof openCalendar==='function'&&openCalendar()},
     {c:'Navigate', l:'📹 Recordings',   f:()=>typeof openRecordings==='function'&&openRecordings()},
     {c:'Navigate', l:'📊 Bookings',     f:()=>typeof openBookings==='function'&&openBookings()},
@@ -6353,6 +7206,10 @@ function openCmdK(){
   renderCmdK('');
 }
 function closeCmdK(){ document.getElementById('cmdkOverlay').classList.remove('show'); }
+// Debounce the per-keystroke filter+rebuild so fast typing coalesces into one
+// render (arrow-key navigation still calls renderCmdK directly for immediacy).
+let _cmdkDebounce;
+function cmdkType(v){ clearTimeout(_cmdkDebounce); _cmdkDebounce=setTimeout(()=>renderCmdK(v),120); }
 function renderCmdK(q){
   q=(q||'').toLowerCase();
   const all=CMDK_ACTIONS();
@@ -6407,14 +7264,17 @@ function injectQuickActions(){
   const bar=document.createElement('div');
   bar.className='quick-actions';
   bar.innerHTML=`
-    <button class="qa" style="--qc:#7c3aed" onclick="openWizard()">➕ New course</button>
-    <button class="qa" style="--qc:#ec4899" onclick="openModal('scheduleLive')">📡 Schedule live</button>
-    <button class="qa" style="--qc:#0ea5e9" onclick="openAttGrid()">📝 Attendance</button>
-    <button class="qa" style="--qc:#10b981" onclick="openCalendar()">📅 Calendar</button>
-    <button class="qa" style="--qc:#f59e0b" onclick="openLessonPlanner()">🤖 AI lesson plan</button>`;
+    <button class="qa" style="--qc:#7c3aed" data-i18n="new_course" onclick="openWizard()">➕ New course</button>
+    <button class="qa" style="--qc:#ec4899" data-i18n="schedule_live" onclick="openModal('scheduleLive')">📡 Schedule live</button>
+    <button class="qa" style="--qc:#0ea5e9" data-i18n="take_attendance" onclick="openAttGrid()">📝 Attendance</button>
+    <button class="qa" style="--qc:#10b981" data-i18n="calendar_qa" onclick="openCalendar()">📅 Calendar</button>
+    <button class="qa" style="--qc:#f59e0b" data-i18n="ai_lesson_plan" onclick="openLessonPlanner()">🤖 AI lesson plan</button>
+    <button class="qa" style="--qc:#8b5cf6" data-i18n="question_bank" onclick="openQuestionBank()">❓ Question bank</button>`;
   const statsGrid=sec.querySelector('.stats-grid');
   if(statsGrid) statsGrid.insertAdjacentElement('afterend', bar);
   else sec.prepend(bar);
+  // Re-apply the chosen language to the freshly-inserted buttons.
+  if(typeof setLang==='function') setLang(localStorage.getItem('jm_lang')||'en');
 }
 
 // ============================================================
@@ -6546,7 +7406,7 @@ async function renderParentDash(){
       list.innerHTML='<div class="empty-state"><div class="icon">👨‍👩‍👧</div>No children linked yet. Click + Link a child to start.</div>';
       return;
     }
-    list.innerHTML=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px">${
+    list.innerHTML=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(220px,100%),1fr));gap:10px">${
       kids.map(k=>`<div class="card" style="padding:14px;cursor:pointer" onclick="paOpenSnapshot('${k.student_id}')">
         <div style="display:flex;align-items:center;gap:10px">
           ${k.profile_image?`<img src="${escHtml(k.profile_image)}" style="width:42px;height:42px;border-radius:50%;object-fit:cover">`:'<div style="width:42px;height:42px;border-radius:50%;background:var(--jm-primary-tint);display:flex;align-items:center;justify-content:center;font-size:20px">👦</div>'}
@@ -6584,7 +7444,7 @@ async function renderCorporateTrainerDash(){
   document.getElementById('ct-learners').textContent=learners;
   const list=document.getElementById('ct-programList');
   list.innerHTML=courses.length
-    ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px">${courses.map(_courseCardMini).join('')}</div>`
+    ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(200px,100%),1fr));gap:12px">${courses.map(_courseCardMini).join('')}</div>`
     : '<div class="empty-state"><div class="icon">📚</div>No programs yet. Create your first corporate training.</div>';
 }
 async function renderContentCreatorDash(){
@@ -6597,7 +7457,7 @@ async function renderContentCreatorDash(){
   if(rated.length) document.getElementById('cc-rating').textContent=(rated.reduce((s,c)=>s+Number(c.rating),0)/rated.length).toFixed(1)+'★';
   const list=document.getElementById('cc-contentList');
   list.innerHTML=courses.length
-    ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px">${courses.map(_courseCardMini).join('')}</div>`
+    ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(200px,100%),1fr));gap:12px">${courses.map(_courseCardMini).join('')}</div>`
     : '<div class="empty-state"><div class="icon">🎬</div>No content yet. Publish your first course.</div>';
 }
 async function renderFranchiseDash(){
@@ -6666,36 +7526,202 @@ async function toggleWishlist(courseId, btn){
 const I18N = {
   en: {},
   hi: {
+    // Nav
     dashboard:'डैशबोर्ड', my_courses:'मेरे कोर्स', live_classes:'लाइव क्लास',
     assignments:'असाइनमेंट', notes:'नोट्स', attendance:'उपस्थिति',
     my_institutions:'मेरे संस्थान', payments:'भुगतान', marketplace:'मार्केटप्लेस',
     profile:'प्रोफ़ाइल', recordings:'रिकॉर्डिंग', bookings:'बुकिंग',
     calendar:'कैलेंडर', essay_grading:'निबंध जाँच', billing:'बिलिंग',
+    wall:'वॉल', messages:'संदेश', studio:'स्टूडियो', settings:'सेटिंग्स',
+    coupons:'कूपन', wallet:'वॉलेट', plans:'प्लान', eduos:'EduOS',
+    near_me:'मेरे पास', downloads:'डाउनलोड', children:'मेरे बच्चे',
+    snapshot:'झलक', teachers:'शिक्षक', earnings:'कमाई', users:'उपयोगकर्ता',
+    transactions:'लेन-देन', listings:'लिस्टिंग', available_courses:'उपलब्ध कोर्स',
+    // Stats / overview
     enrolled_courses:'पंजीकृत कोर्स', completed:'पूर्ण', assignments_due:'देय असाइनमेंट',
     skills_tracked:'ट्रैक किए गए कौशल', active:'सक्रिय', finished:'समाप्त',
-    pending:'लंबित', this_week:'इस सप्ताह'
+    pending:'लंबित', this_week:'इस सप्ताह', published:'प्रकाशित', all_time:'अब तक',
+    total:'कुल', on_marketplace:'मार्केटप्लेस पर',
+    // Common section titles
+    my_courses_title:'📚 मेरे कोर्स', marketplace_listings:'🛒 मार्केटप्लेस लिस्टिंग',
+    class_wall:'📰 क्लास वॉल', recent_bookings:'📊 हाल की बुकिंग',
+    earnings_title:'💰 कमाई', profile_title:'👤 प्रोफ़ाइल',
+    // Common buttons / actions
+    new_course:'➕ नया कोर्स', schedule_live:'📡 लाइव शेड्यूल', take_attendance:'📝 उपस्थिति लें',
+    ai_lesson_plan:'🤖 AI पाठ योजना', question_bank:'❓ प्रश्न बैंक', calendar_qa:'📅 कैलेंडर', view_all:'सभी देखें →', logout:'🚪 लॉगआउट',
+    search_courses:'कोर्स खोजें...', save:'सहेजें', cancel:'रद्द करें', edit:'संपादित करें',
+    delete:'हटाएँ', create:'बनाएँ', name:'नाम', email:'ईमेल', role:'भूमिका'
   }
 };
+// Full language roster. The topbar quick-toggle stays EN/HI (per requirement);
+// the complete list is offered in Settings. `bcp` drives TTS + speech-recognition
+// locale; `n` is the language's own native name.
+const JM_LANGS = [
+  {c:'en', n:'English',  bcp:'en-IN'},
+  {c:'hi', n:'हिन्दी',    bcp:'hi-IN'},
+  {c:'bn', n:'বাংলা',     bcp:'bn-IN'},
+  {c:'mr', n:'मराठी',     bcp:'mr-IN'},
+  {c:'ta', n:'தமிழ்',     bcp:'ta-IN'},
+  {c:'te', n:'తెలుగు',    bcp:'te-IN'},
+  {c:'gu', n:'ગુજરાતી',   bcp:'gu-IN'},
+  {c:'kn', n:'ಕನ್ನಡ',     bcp:'kn-IN'},
+  {c:'pa', n:'ਪੰਜਾਬੀ',   bcp:'pa-IN'}
+];
+const JM_LANG_SET = new Set(JM_LANGS.map(l=>l.c));
+function jmLangName(c){ const l=JM_LANGS.find(x=>x.c===c); return l?l.n:c; }
+function jmLangBcp(c){ const l=JM_LANGS.find(x=>x.c===c); return l?l.bcp:'en-IN'; }
+
+// ── Runtime auto-translation engine ───────────────────────────────────────
+// The app's authored text is English. For any non-English language we walk the
+// DOM, translate visible English text + key attributes via /api/ai/translate
+// (server-cached, so each unique string is paid for once across ALL users), and
+// cache results in localStorage so a language renders instantly thereafter. A
+// MutationObserver re-translates dynamically rendered content (toasts, modals,
+// course lists), so coverage isn't limited to the ~30% wrapped in data-i18n.
+let _i18nCache={}; try{ _i18nCache=JSON.parse(localStorage.getItem('jm_i18n_cache')||'{}'); }catch(e){ _i18nCache={}; }
+let _i18nSaveT=null;
+function _i18nSave(){ clearTimeout(_i18nSaveT); _i18nSaveT=setTimeout(()=>{ try{ localStorage.setItem('jm_i18n_cache', JSON.stringify(_i18nCache)); }catch(e){} }, 600); }
+let _i18nApplying=false, _i18nWarned=false;
+const _I18N_ATTRS=['placeholder','title','aria-label'];
+const _I18N_SKIP_TAG=/^(SCRIPT|STYLE|NOSCRIPT|CODE|PRE|TEXTAREA|SVG|CANVAS|OPTION)$/;
+function _i18nTranslatable(s){
+  if(!s) return false;
+  const t=s.trim();
+  if(t.length<2) return false;
+  if(((t.match(/[A-Za-z]/g)||[]).length)<2) return false;        // already non-Latin / symbols only
+  if(/^[\d\s.,:%/()+\-_#*•|]+$/.test(t)) return false;            // numbers / punctuation only
+  if(/^https?:\/\//i.test(t)||/^[\w.+-]+@[\w.-]+$/.test(t)) return false; // url / email
+  return true;
+}
+function _i18nSkip(el){
+  for(let p=el; p && p!==document.body; p=p.parentElement){
+    if(_I18N_SKIP_TAG.test(p.tagName)) return true;
+    if(p.isContentEditable) return true;
+    if(p.id==='msgr-input') return true;
+    if(p.classList && p.classList.contains('no-i18n')) return true;
+  }
+  return false;
+}
+function _i18nCollect(root, code, need, appliers){
+  const cache=_i18nCache[code]||(_i18nCache[code]={});
+  const push=(key, apply)=>{ const tr=cache[key]; if(tr!=null) apply(tr); else { need.add(key); appliers.push({key, apply}); } };
+  const tw=document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode(n){
+    if(!n.nodeValue || !n.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
+    if(n.parentElement && _i18nSkip(n.parentElement)) return NodeFilter.FILTER_REJECT;
+    return NodeFilter.FILTER_ACCEPT;
+  }});
+  let n;
+  while((n=tw.nextNode())){
+    const orig=(n.__i18nOrig!=null)?n.__i18nOrig:n.nodeValue;
+    const pre=(orig.match(/^\s*/)||[''])[0], post=(orig.match(/\s*$/)||[''])[0];
+    const key=orig.slice(pre.length, orig.length-post.length);
+    if(!_i18nTranslatable(key)) continue;
+    n.__i18nOrig=orig; const node=n;
+    push(key, tr=>{ const out=pre+tr+post; if(node.nodeValue!==out) node.nodeValue=out; });
+  }
+  if(root.querySelectorAll){
+    const sel='['+_I18N_ATTRS.join('],[')+']';
+    const els=(root.matches&&root.matches(sel))?[root,...root.querySelectorAll(sel)]:[...root.querySelectorAll(sel)];
+    els.forEach(el=>{
+      if(_i18nSkip(el)) return;
+      _I18N_ATTRS.forEach(a=>{
+        if(!el.hasAttribute(a)) return;
+        const store='__i18nA_'+a;
+        const orig=(el[store]!=null)?el[store]:el.getAttribute(a); if(orig==null) return;
+        const key=orig.trim(); if(!_i18nTranslatable(key)) return;
+        el[store]=orig;
+        push(key, tr=>{ el.setAttribute(a, orig.replace(key, tr)); });
+      });
+    });
+  }
+}
+function _i18nRestore(root){
+  const tw=document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+  let n; while((n=tw.nextNode())){ if(n.__i18nOrig!=null && n.nodeValue!==n.__i18nOrig) n.nodeValue=n.__i18nOrig; }
+  if(root.querySelectorAll) root.querySelectorAll('*').forEach(el=>{
+    _I18N_ATTRS.forEach(a=>{ const store='__i18nA_'+a; if(el[store]!=null && el.getAttribute(a)!==el[store]) el.setAttribute(a, el[store]); });
+  });
+}
+async function autoTranslate(root){
+  root=root||document.body;
+  const code=localStorage.getItem('jm_lang')||'en';
+  if(!JM_LANG_SET.has(code)) return;
+  if(code==='en'){ _i18nApplying=true; try{ _i18nRestore(root); }finally{ _i18nApplying=false; } return; }
+  const cache=_i18nCache[code]||(_i18nCache[code]={});
+  const need=new Set(), appliers=[];
+  _i18nApplying=true; try{ _i18nCollect(root, code, need, appliers); }finally{ _i18nApplying=false; }
+  if(!need.size) return;
+  if(!localStorage.getItem('jm_token')) return;        // not logged in → keep English, no calls
+  const list=[...need].slice(0,240);                   // bound first-load cost; observer covers the rest as you navigate
+  for(let i=0;i<list.length;i+=60){
+    const batch=list.slice(i,i+60);
+    let map=null;
+    try{
+      const r=await fetch(API+'/ai/translate',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+localStorage.getItem('jm_token')},body:JSON.stringify({q:batch,target:code,source:'en'})});
+      map=(await r.json()).map;
+    }catch(e){ map=null; }
+    if(!map){ if(!_i18nWarned){ _i18nWarned=true; try{ toast('Translation service unavailable — showing English. Add an AI key in Settings.', true); }catch(e){} } continue; }
+    let changed=false;
+    for(const k in map){ if(map[k]!=null){ cache[k]=map[k]; changed=true; } }
+    if(changed) _i18nSave();
+  }
+  // Apply once, after every batch has resolved — each applier fires at most once
+  // (re-applying per batch was redundant). Drop the mutations we just made so the
+  // observer never reacts to our own writes.
+  _i18nApplying=true;
+  try{ for(const ap of appliers){ const tr=cache[ap.key]; if(tr!=null) ap.apply(tr); } }
+  finally{ if(_i18nObs){ try{ _i18nObs.takeRecords(); }catch(e){} } _i18nApplying=false; }
+}
+let _i18nObs=null, _i18nQueue=new Set(), _i18nObsT=null;
+function _i18nInstallObserver(){
+  if(_i18nObs) return;
+  _i18nObs=new MutationObserver(muts=>{
+    const code=localStorage.getItem('jm_lang')||'en';
+    if(code==='en'||!JM_LANG_SET.has(code)) return;
+    if(_i18nApplying) return;                                   // ignore our own apply pass
+    for(const m of muts){
+      m.addedNodes && m.addedNodes.forEach(nd=>{ if(nd.nodeType===1) _i18nQueue.add(nd); else if(nd.nodeType===3 && nd.parentElement) _i18nQueue.add(nd.parentElement); });
+      // Only re-queue character changes that are still source text — our own
+      // translated (non-Latin) writes are skipped by _i18nTranslatable, so this
+      // can't self-trigger or storm.
+      if(m.type==='characterData' && m.target && m.target.parentElement && _i18nTranslatable(m.target.nodeValue||'')) _i18nQueue.add(m.target.parentElement);
+    }
+    if(!_i18nQueue.size) return;
+    clearTimeout(_i18nObsT);
+    _i18nObsT=setTimeout(()=>{ const nodes=[..._i18nQueue]; _i18nQueue.clear(); nodes.forEach(nd=>{ if(nd.isConnected) autoTranslate(nd); }); }, 350);
+  });
+  _i18nObs.observe(document.body, {childList:true, subtree:true, characterData:true});
+}
+
 function setLang(code){
-  if(!I18N[code]) code='en';
+  if(!JM_LANG_SET.has(code)) code='en';
   localStorage.setItem('jm_lang', code);
   document.documentElement.lang=code;
-  const sw=document.getElementById('langSwitch'); if(sw) sw.value=code;
+  const sw=document.getElementById('langSwitch'); if(sw && [...sw.options].some(o=>o.value===code)) sw.value=code;
+  const sl=document.getElementById('st-lang'); if(sl) sl.value=code;
+  const dict=I18N[code]||{};
+  // 1) curated dictionary for known keys (instant, exact — esp. Hindi nav/stats)
   document.querySelectorAll('[data-i18n]').forEach(el=>{
-    const k=el.getAttribute('data-i18n'); const v=I18N[code][k]; if(v) el.textContent=v;
+    if(el.dataset.i18nOrig==null) el.dataset.i18nOrig=el.textContent;
+    const k=el.getAttribute('data-i18n');
+    el.textContent = dict[k] || el.dataset.i18nOrig;
   });
   document.querySelectorAll('[data-i18n-placeholder]').forEach(el=>{
-    const k=el.getAttribute('data-i18n-placeholder'); const v=I18N[code][k]; if(v) el.placeholder=v;
+    if(el.dataset.i18nOrigPh==null) el.dataset.i18nOrigPh=el.placeholder;
+    const k=el.getAttribute('data-i18n-placeholder');
+    el.placeholder = dict[k] || el.dataset.i18nOrigPh;
   });
-  // Re-render the nav so labels translate.
   if(typeof buildNav==='function'){
     const u=JSON.parse(localStorage.getItem('jm_user')||'{}');
     if(u.user_type||u.role) buildNav(u.user_type||u.role);
   }
+  // 2) runtime auto-translate everything else (restore to English when code==='en')
+  _i18nInstallObserver();
+  autoTranslate(document.body);
 }
 function t(key){ const lang=localStorage.getItem('jm_lang')||'en'; return I18N[lang]?.[key] || I18N.en[key] || key; }
-// Apply saved lang on every load (before render).
-(function(){ const l=localStorage.getItem('jm_lang')||'en'; document.documentElement.lang=l; window.addEventListener('DOMContentLoaded',()=>setLang(l)); })();
+// Apply saved lang on every load (before render) + wire select-to-translate.
+(function(){ const l=localStorage.getItem('jm_lang')||'en'; document.documentElement.lang=l; window.addEventListener('DOMContentLoaded',()=>{ setLang(l); _installSelectTranslate(); }); })();
 
 // ============================================================
 // BILLING / INVOICES (CRM-style) — issue, list, mark paid, print PDF.
@@ -6791,7 +7817,7 @@ function blOpenNew(){
 }
 function blRenderItems(){
   const host=document.getElementById('bl-items');
-  host.innerHTML=_blItems.map((it,i)=>`<div style="display:grid;grid-template-columns:1fr 70px 100px 100px 30px;gap:6px;margin-bottom:6px;align-items:center">
+  host.innerHTML=_blItems.map((it,i)=>`<div class="bill-row">
     <input placeholder="Description" value="${escHtml(it.description||'')}" oninput="_blItems[${i}].description=this.value">
     <input type="number" min="0" placeholder="Qty" value="${it.qty}" oninput="_blItems[${i}].qty=Number(this.value)||0;blRenderTotals()">
     <input type="number" min="0" placeholder="Rate" value="${it.rate}" oninput="_blItems[${i}].rate=Number(this.value)||0;blRenderTotals()">
@@ -6916,7 +7942,11 @@ function _calMonthHtml(){
   const firstDow=(new Date(y,m,1).getDay()+6)%7, daysInMonth=new Date(y,m+1,0).getDate();
   const cells=[]; for(let i=0;i<firstDow;i++)cells.push(null); for(let d=1;d<=daysInMonth;d++)cells.push(d); while(cells.length%7)cells.push(null);
   const todayIso=_iso(new Date());
-  return `<div class="card" style="padding:14px">
+  // The 7-column grid would crush to unreadable slivers on phones, so wrap it in
+  // a horizontal-scroll container and give the grid a min-width: it scrolls on
+  // small screens instead of overflowing/squishing.
+  return `<div class="card" style="padding:14px;overflow-x:auto;-webkit-overflow-scrolling:touch">
+   <div style="min-width:560px">
     <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;font-size:11px;color:var(--jm-text-muted);font-weight:700;text-transform:uppercase;margin-bottom:6px">${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d=>`<div style="text-align:center">${d}</div>`).join('')}</div>
     <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px">
       ${cells.map(d=>{
@@ -6929,12 +7959,12 @@ function _calMonthHtml(){
           ${evs.slice(0,4).map(e=>_calPill(e,true)).join('')}${evs.length>4?`<div style="font-size:10px;color:var(--jm-text-muted)">+${evs.length-4} more</div>`:''}
         </div>`;
       }).join('')}
-    </div></div>`;
+    </div></div></div>`;
 }
 function _calWeekHtml(start){
   const todayIso=_iso(new Date());
   const cols=[]; for(let i=0;i<7;i++){ const d=new Date(start); d.setDate(start.getDate()+i); cols.push(d); }
-  return `<div class="card" style="padding:14px;overflow-x:auto"><div style="display:grid;grid-template-columns:repeat(7,minmax(120px,1fr));gap:6px">
+  return `<div class="card" style="padding:14px;overflow-x:auto"><div style="display:grid;grid-template-columns:repeat(7,minmax(min(120px,100%),1fr));gap:6px">
     ${cols.map(d=>{ const iso=_iso(d); const evs=(_calEventsByDay[iso]||[]).slice().sort((a,b)=>new Date(a.time)-new Date(b.time)); const isToday=iso===todayIso;
       return `<div onclick="_calOpenDay('${iso}')" style="cursor:pointer">
         <div style="text-align:center;font-size:11px;font-weight:700;color:${isToday?'var(--jm-primary)':'var(--jm-text-muted)'};padding:4px;border-bottom:2px solid ${isToday?'var(--jm-primary)':'var(--jm-border)'};margin-bottom:6px">${d.toLocaleDateString('en-IN',{weekday:'short'})}<br>${d.getDate()}</div>
@@ -6942,17 +7972,78 @@ function _calWeekHtml(start){
       </div>`; }).join('')}
   </div></div>`;
 }
+// Hour-based day grid (6am–9pm). Empty hours are clickable to add an event;
+// server events + local notes/reminders are placed in their hour row.
 function _calDayHtml(d){
-  const iso=_iso(d); const evs=(_calEventsByDay[iso]||[]).slice().sort((a,b)=>new Date(a.time)-new Date(b.time));
-  return `<div class="card" style="padding:16px">${evs.length?evs.map(ev=>{
-    const t=new Date(ev.time).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
-    const joinBtn=ev.type==='live'?`<button class="btn-sm btn-primary" onclick="event.stopPropagation();calJoin('${ev.id}')">▶ Join</button>`:'';
-    return `<div onclick="calEventDetail('${ev.id}')" style="display:flex;align-items:center;gap:12px;padding:12px;border-left:4px solid ${_calColor(ev.type)};background:var(--jm-bg);border-radius:8px;margin-bottom:8px;cursor:pointer">
-      <div style="font-family:monospace;font-weight:700;font-size:14px;min-width:60px">${t}</div>
-      <div style="flex:1;min-width:0"><div style="font-weight:600">${escHtml(ev.title)}</div><div style="font-size:12px;color:var(--jm-text-muted)">${escHtml(ev.course_title||'')} · ${ev.type}</div></div>
-      ${joinBtn}
-    </div>`;
-  }).join(''):'<div class="empty-state"><div class="icon">📅</div>Nothing scheduled this day.</div>'}</div>`;
+  const iso=_iso(d);
+  const server=(_calEventsByDay[iso]||[]).slice();
+  const locals=_calLocalFor(iso); // notes / reminders / meetings saved locally
+  const all=server.concat(locals);
+  const byHour={}; all.forEach(ev=>{ const h=new Date(ev.time).getHours(); (byHour[h]=byHour[h]||[]).push(ev); });
+  const START=6,ENDH=21;
+  const rows=[];
+  for(let h=START;h<=ENDH;h++){
+    const evs=(byHour[h]||[]).sort((a,b)=>new Date(a.time)-new Date(b.time));
+    const hl=(h%12===0?12:h%12)+(h<12?' AM':' PM');
+    rows.push(`<div style="display:grid;grid-template-columns:64px 1fr;border-bottom:1px solid var(--jm-border);min-height:46px">
+      <div style="font-size:11px;color:var(--jm-text-muted);padding:6px 8px;text-align:right;font-family:monospace">${hl}</div>
+      <div onclick="_calAddAt('${iso}',${h})" style="padding:4px 6px;cursor:pointer;position:relative" title="Click to add at ${hl}">
+        ${evs.map(ev=>{
+          const t=new Date(ev.time).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+          const cid=ev._local?('calLocalDetail(\''+ev.id+'\')'):('calEventDetail(\''+ev.id+'\')');
+          return `<div onclick="event.stopPropagation();${cid}" style="background:${_calColor(ev.type)};color:#fff;font-size:12px;padding:5px 8px;border-radius:5px;margin-bottom:3px;cursor:pointer;display:flex;gap:6px;align-items:center"><strong>${t}</strong><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(ev.title)}</span></div>`;
+        }).join('')||`<div style="font-size:11px;color:var(--jm-border);padding:4px 2px">+ add</div>`}
+      </div>
+    </div>`);
+  }
+  return `<div class="card" style="padding:8px 12px">${rows.join('')}</div>`;
+}
+// Local (client-side) calendar items — meetings / notes / reminders the teacher
+// jots without a backend row. Keyed by date in localStorage.
+function _calLocalKey(){ try{ const u=JSON.parse(localStorage.getItem('jm_user')||'{}'); return 'jm_cal_local_'+(u.id||'anon'); }catch(e){ return 'jm_cal_local_anon'; } }
+function _calLocalAll(){ try{ return JSON.parse(localStorage.getItem(_calLocalKey())||'{}'); }catch(e){ return {}; } }
+function _calLocalFor(iso){ return (_calLocalAll()[iso]||[]).map(x=>({...x,_local:true})); }
+function _calLocalSave(iso, item){ const all=_calLocalAll(); (all[iso]=all[iso]||[]).push(item); localStorage.setItem(_calLocalKey(),JSON.stringify(all)); }
+function _calLocalDelete(iso,id){ const all=_calLocalAll(); all[iso]=(all[iso]||[]).filter(x=>x.id!==id); localStorage.setItem(_calLocalKey(),JSON.stringify(all)); _renderCalendar(); }
+// Chooser shown when a teacher clicks an empty hour slot.
+function _calAddAt(iso, hour){
+  const timeStr=String(hour).padStart(2,'0')+':00';
+  showModal('Add to '+iso+' · '+timeStr, `
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button class="btn-sm btn-primary" style="padding:11px" onclick="closeAnyModal&&closeAnyModal();_calSchedClassAt('${iso}',${hour})">📡 Schedule a class</button>
+      <button class="btn-sm btn-outline" style="padding:11px" onclick="_calAddLocal('${iso}',${hour},'meeting')">🤝 Meeting</button>
+      <button class="btn-sm btn-outline" style="padding:11px" onclick="_calAddLocal('${iso}',${hour},'note')">📝 Note / plan</button>
+      <button class="btn-sm btn-outline" style="padding:11px" onclick="_calAddLocal('${iso}',${hour},'reminder')">⏰ Reminder</button>
+    </div>`);
+}
+function _calSchedClassAt(iso, hour){
+  // Open the scheduleLive modal and prefill its datetime-local input.
+  openModal('scheduleLive');
+  setTimeout(()=>{ const inp=document.getElementById('m-time'); if(inp) inp.value=iso+'T'+String(hour).padStart(2,'0')+':00'; },120);
+}
+function _calAddLocal(iso, hour, type){
+  const what=prompt((type==='reminder'?'Reminder':type==='meeting'?'Meeting title':'Note')+':'); if(!what) return;
+  const time=new Date(iso+'T'+String(hour).padStart(2,'0')+':00:00').toISOString();
+  _calLocalSave(iso,{ id:'loc_'+Date.now(), type, title:what, time });
+  if(typeof closeAnyModal==='function') closeAnyModal();
+  _renderCalendar();
+  toast('✓ '+type+' added');
+}
+function calLocalDetail(id){
+  const all=_calLocalAll(); let found=null, iso=null;
+  Object.keys(all).forEach(k=>{ (all[k]||[]).forEach(x=>{ if(x.id===id){ found=x; iso=k; } }); });
+  if(!found) return;
+  const t=new Date(found.time).toLocaleString('en-IN',{weekday:'long',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'});
+  const icon={meeting:'🤝',note:'📝',reminder:'⏰'}[found.type]||'•';
+  showModal(icon+' '+escHtml(found.title), `
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="font-size:13px"><strong>When:</strong> ${escHtml(t)}</div>
+      <div style="font-size:12px;color:var(--jm-text-muted)">Saved on this device.</div>
+      <div style="margin-top:8px;display:flex;gap:8px">
+        <button class="btn-sm btn-outline" onclick="navigator.clipboard.writeText('${icon} '+${JSON.stringify(found.title)}+' — '+${JSON.stringify(t)}).then(()=>toast('Copied'))">📤 Share</button>
+        <button class="btn-sm btn-outline" style="color:#b91c1c" onclick="closeAnyModal&&closeAnyModal();_calLocalDelete('${iso}','${id}')">🗑 Delete</button>
+      </div>
+    </div>`);
 }
 function _calOpenDay(iso){ _calRef=new Date(iso+'T12:00:00'); calSetView('day'); }
 // Event detail popup with Join (live) / context.
@@ -6961,14 +8052,23 @@ function calEventDetail(id){
   const t=new Date(ev.time).toLocaleString('en-IN',{weekday:'long',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'});
   const typeLabel={live:'📡 Live class',test:'✏️ Test',assignment:'📝 Assignment'}[ev.type]||ev.type;
   const join=ev.type==='live'?`<button class="btn-sm btn-primary" onclick="calJoin('${ev.id}')">▶ Join class</button>`:'';
+  // Share = copy the join/invite link; Edit = reschedule (live classes only).
+  const share=ev.type==='live'?`<button class="btn-sm btn-outline" onclick="calShareEvent('${ev.id}')">📤 Share</button>`:'';
+  const edit=ev.type==='live'?`<button class="btn-sm btn-outline" onclick="closeAnyModal();rescheduleLiveClass('${ev.id}','${ev.course_id||''}')">✏️ Edit</button>`:'';
   showModal(escHtml(ev.title||'Event'), `
     <div style="display:flex;flex-direction:column;gap:8px">
       <div><span style="display:inline-block;padding:3px 10px;border-radius:20px;background:${_calColor(ev.type)};color:#fff;font-size:12px;font-weight:700">${typeLabel}</span></div>
       <div style="font-size:13px"><strong>When:</strong> ${escHtml(t)}</div>
       ${ev.course_title?`<div style="font-size:13px"><strong>Course:</strong> ${escHtml(ev.course_title)}</div>`:''}
       ${ev.duration?`<div style="font-size:13px"><strong>Duration:</strong> ${ev.duration} min</div>`:''}
-      <div style="margin-top:10px;display:flex;gap:8px">${join}</div>
+      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">${join}${share}${edit}</div>
     </div>`);
+}
+function calShareEvent(id){
+  const ev=(window._calEventIndex||{})[id]; if(!ev) return;
+  const invite=location.origin+'/liveRoom.html?class='+id;
+  if(navigator.share){ navigator.share({title:ev.title||'Class invite',url:invite}).catch(()=>{}); }
+  else { navigator.clipboard.writeText(invite).then(()=>toast('Invite link copied')).catch(()=>toast(invite)); }
 }
 function calJoin(id){ window.location.href='/liveRoom.html?class='+id; }
 
@@ -7150,8 +8250,12 @@ loadDashboard();
   *::-webkit-scrollbar-thumb{background:var(--jm-border);border-radius:6px}
   *::-webkit-scrollbar-thumb:hover{background:var(--jm-text-subtle,#94a3b8)}
   /* Offline banner */
-  #jmx-offline{position:fixed;left:0;right:0;top:0;z-index:9999;background:#b45309;color:#fff;text-align:center;font-size:13px;font-weight:600;padding:7px 12px;transform:translateY(-100%);transition:transform .25s ease}
+  #jmx-offline{position:fixed;left:0;right:0;top:0;z-index:10010;background:#b45309;color:#fff;text-align:center;font-size:13px;font-weight:600;padding:7px 12px;transform:translateY(-100%);transition:transform .25s ease}
   #jmx-offline.show{transform:translateY(0)}
+  /* When the offline banner is visible, push the fixed sidebar + sticky topbar
+     down by its height so it never covers them (zero-overlap). */
+  body.jmx-offline-on .sidebar{top:34px}
+  body.jmx-offline-on .topbar{top:34px}
   /* Card hover lift (subtle, additive) */
   .card{transition:box-shadow .15s ease, transform .15s ease}
 
@@ -7179,10 +8283,13 @@ loadDashboard();
   /* ── Large screens: ultrawide / TV / smartboard ── */
   @media(min-width:1600px){
     .sidebar{width:280px;font-size:15px}
-    .main-content{margin-left:280px;padding:28px 40px}
-    .topbar{left:280px;padding:0 40px;height:64px}
+    /* The real layout classes are .main (margin offset) + .content (padding).
+       The sidebar is fixed, so .main's margin-left MUST track the sidebar width
+       or the widened sidebar overlaps the content column. */
+    .main{margin-left:280px}
+    .content{padding:28px 40px}
+    .topbar{padding:0 40px;height:64px}
     .stats-grid{grid-template-columns:repeat(4,1fr);gap:20px}
-    .content-section{padding:24px 28px}
     h2{font-size:22px}
     .role-section li{padding:14px 18px;font-size:15px}
     .btn-sm{padding:8px 14px;font-size:13px}
@@ -7195,10 +8302,9 @@ loadDashboard();
   }
   @media(min-width:2000px){
     .sidebar{width:320px}
-    .main-content{margin-left:320px;padding:32px 56px}
-    .topbar{left:320px}
+    .main{margin-left:320px}
+    .content{padding:32px 56px}
     .stats-grid{grid-template-columns:repeat(5,1fr)}
-    .content-section{border-radius:18px}
   }
   /* Touch-target sizing for smartboard / large touch displays */
   @media(pointer:coarse) and (min-width:1200px){
@@ -7213,7 +8319,7 @@ loadDashboard();
 (function(){
   // Offline / online banner
   var ob=document.getElementById('jmx-offline');
-  function sync(){ if(ob) ob.classList.toggle('show', !navigator.onLine); }
+  function sync(){ const off=!navigator.onLine; if(ob) ob.classList.toggle('show', off); document.body.classList.toggle('jmx-offline-on', off); }
   window.addEventListener('online',sync); window.addEventListener('offline',sync); sync();
   // Honour OS "reduce motion" — kill animations for users who ask
   if(window.matchMedia && matchMedia('(prefers-reduced-motion:reduce)').matches){

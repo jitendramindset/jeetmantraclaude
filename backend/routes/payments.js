@@ -12,6 +12,17 @@ const RZP_KEY_ID = process.env.RAZORPAY_KEY_ID || '';
 const RZP_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET || '';
 const RZP_MODE = RZP_KEY_ID && RZP_KEY_SECRET ? 'live' : 'demo';
 
+// Has this user already redeemed this coupon? Backed by the coupon_redemptions
+// table (UNIQUE(coupon_code,user_id)). Returns false if the table is missing so
+// the flow degrades to the global max_uses cap rather than breaking.
+async function couponRedeemedBy(code, userId) {
+  try {
+    const { data } = await supabaseAdmin.from('coupon_redemptions')
+      .select('id').eq('coupon_code', code).eq('user_id', userId).maybeSingle();
+    return !!data;
+  } catch (e) { return false; }
+}
+
 // ── COUPONS: validate a code + apply against an amount. Returns the
 // discounted amount the order should be created with.
 router.post('/coupons/apply', authenticateToken, async (req, res) => {
@@ -23,6 +34,7 @@ router.post('/coupons/apply', authenticateToken, async (req, res) => {
     if (c.expires_at && new Date(c.expires_at) < new Date()) return res.status(400).json({ error: 'Coupon expired' });
     if (c.used_count >= c.max_uses) return res.status(400).json({ error: 'Coupon exhausted' });
     if (c.course_id && c.course_id !== courseId) return res.status(400).json({ error: 'Coupon not valid for this course' });
+    if (await couponRedeemedBy(c.code, req.user.id)) return res.status(400).json({ error: 'You have already used this coupon.' });
     const orig = Number(amount);
     let discounted = orig;
     if (c.discount_percent) discounted = orig - (orig * Number(c.discount_percent) / 100);
@@ -97,6 +109,8 @@ router.post('/order', authenticateToken, async (req, res) => {
     // Re-validate coupon server-side (don't trust client discount).
     if (couponCode) {
       const { data: c } = await supabaseAdmin.from('coupons').select('*').eq('code', String(couponCode).toUpperCase()).maybeSingle();
+      const alreadyUsed = c ? await couponRedeemedBy(c.code, req.user.id) : false;
+      if (alreadyUsed) return res.status(400).json({ error: 'You have already used this coupon.' });
       if (c && (!c.expires_at || new Date(c.expires_at) > new Date()) && c.used_count < c.max_uses && (!c.course_id || c.course_id === courseId)) {
         if (c.discount_percent) appliedAmount = appliedAmount - (appliedAmount * Number(c.discount_percent) / 100);
         else if (c.discount_flat) appliedAmount = appliedAmount - Number(c.discount_flat);
@@ -143,6 +157,15 @@ router.post('/verify', authenticateToken, async (req, res) => {
     const { paymentRowId, razorpayOrderId, razorpayPaymentId, razorpaySignature, courseId } = req.body;
     if (!paymentRowId) return res.status(400).json({ error: 'paymentRowId required' });
 
+    // The payment row must exist, belong to the caller, and still be pending —
+    // otherwise a user could verify someone else's order or re-verify a row to
+    // enroll for free (esp. in demo mode where any demo_* id "passes").
+    const { data: payRow } = await supabaseAdmin.from('payments').select('id, user_id, status, course_id').eq('id', paymentRowId).maybeSingle();
+    if (!payRow) return res.status(404).json({ error: 'Payment not found' });
+    if (payRow.user_id !== req.user.id) return res.status(403).json({ error: 'Not your payment' });
+    if (payRow.status === 'paid') return res.json({ message: 'Already verified', paymentRowId });
+    if (payRow.status !== 'pending') return res.status(400).json({ error: 'Payment is not pending' });
+
     let verified = false;
     if (RZP_MODE === 'demo' && String(razorpayOrderId || '').startsWith('demo_')) {
       verified = true;
@@ -169,14 +192,32 @@ router.post('/verify', authenticateToken, async (req, res) => {
         });
       }
     }
-    // Increment coupon use_count if one was applied (read from the persisted
-    // payments row's notes — simplest: client sends couponCode again on verify).
+    // Record the coupon redemption (per-user) and bump the global used_count.
+    // The coupon_redemptions UNIQUE(coupon_code,user_id) makes this idempotent:
+    // a repeat redemption by the same user hits the unique constraint and does
+    // NOT double-count. If the table is missing we fall back to counting (so the
+    // global max_uses cap still applies).
     if (req.body?.couponCode) {
-      await supabaseAdmin.rpc('increment_coupon', { p_code: String(req.body.couponCode).toUpperCase() }).catch(async () => {
-        // RPC may not exist — fall back to read-then-update.
-        const { data: c } = await supabaseAdmin.from('coupons').select('used_count').eq('code', String(req.body.couponCode).toUpperCase()).maybeSingle();
-        if (c) await supabaseAdmin.from('coupons').update({ used_count: (Number(c.used_count) || 0) + 1 }).eq('code', String(req.body.couponCode).toUpperCase());
-      });
+      const code = String(req.body.couponCode).toUpperCase();
+      let firstRedemption = true;
+      try {
+        const { error: insErr } = await supabaseAdmin.from('coupon_redemptions')
+          .insert({ coupon_code: code, user_id: req.user.id, payment_id: paymentRowId });
+        if (insErr && (insErr.code === '23505' || /duplicate|unique/i.test(insErr.message || ''))) {
+          firstRedemption = false; // already redeemed by this user → don't re-count
+        }
+      } catch (e) { /* table missing → behave as before */ }
+      if (firstRedemption) {
+        for (let i = 0; i < 5; i++) {
+          const { data: c } = await supabaseAdmin.from('coupons').select('used_count, max_uses').eq('code', code).maybeSingle();
+          if (!c) break;
+          const cur = Number(c.used_count) || 0;
+          if (cur >= Number(c.max_uses)) break;
+          const { data: upd } = await supabaseAdmin.from('coupons')
+            .update({ used_count: cur + 1 }).eq('code', code).eq('used_count', cur).select();
+          if (upd && upd.length) break;
+        }
+      }
     }
     res.json({ message: 'Payment verified', paymentRowId });
   } catch (e) {
@@ -242,12 +283,17 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
   }
 });
 
-// Refund — production would call Razorpay's /payments/:id/refund endpoint.
+// Refund — privileged. Production would call Razorpay's /payments/:id/refund.
 router.post('/:id/refund', authenticateToken, async (req, res) => {
   try {
+    // Refunds are an admin-only operation (move money back). Previously any
+    // authenticated user could refund any payment by id (IDOR).
+    if (req.user.role !== 'admin') return res.status(403).json({ error: 'Only admins can issue refunds' });
     const { data: p } = await supabaseAdmin.from('payments').select('*').eq('id', req.params.id).single();
     if (!p) return res.status(404).json({ error: 'Payment not found' });
     if (p.status === 'refunded') return res.status(400).json({ error: 'Already refunded' });
+    // Only a paid payment can be refunded.
+    if (p.status !== 'paid') return res.status(400).json({ error: 'Only paid payments can be refunded' });
     await supabaseAdmin.from('payments').update({
       status: 'refunded', updated_at: new Date().toISOString()
     }).eq('id', req.params.id);

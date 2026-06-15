@@ -10,8 +10,8 @@
 
     :root {
       /* Aligned with website.html palette via theme.css */
-      --primary: #f97316;
-      --primary-dark: #ea580c;
+      --primary: #7c3aed;
+      --primary-dark: #6d28d9;
       --bg: #f4f6f8;
       --bg-secondary: #ffffff;
       --text: #0f172a;
@@ -430,7 +430,9 @@
       .role-grid, .role-cards { grid-template-columns: 1fr !important; }
       input, select, textarea { font-size: 16px; }  /* prevent iOS zoom */
     }
-  </style>
+  
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+</style>
   <script src="/jm-theme.js"></script>
 </head>
 <body>
@@ -808,7 +810,7 @@
 
       <div style="background: var(--bg); padding: 20px; border-radius: 8px; margin-bottom: 24px;">
         <h3 style="margin-bottom: 16px; color: var(--text); font-size: 16px; font-weight: 700;">Account Information</h3>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; font-size: 14px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 16px; font-size: 14px;">
           <div>
             <strong style="color: var(--text-light);">Name:</strong>
             <div id="review-name">—</div>

@@ -10,11 +10,30 @@
  *   POST   /api/ai/transcribe-summary — paste a long description, get a concise summary
  */
 const express = require('express');
+const crypto = require('crypto');
 const { supabaseAdmin } = require('../config/supabase');
 const { authenticateToken } = require('../middleware/auth');
 const { ai, encrypt, safeJson } = require('../config/aiProvider');
+const { get: ldbGet, put: ldbPut } = require('../config/leveldb');
 
 const router = express.Router();
+
+// Human-readable names for the 9 supported UI languages. Used both as the
+// localizer's target and to gate requests to known languages.
+const TR_LANGS = {
+  en: 'English', hi: 'Hindi', bn: 'Bengali', mr: 'Marathi', ta: 'Tamil',
+  te: 'Telugu', gu: 'Gujarati', kn: 'Kannada', pa: 'Punjabi'
+};
+// Tolerant array-of-strings parser for the localizer's JSON reply.
+function parseTrArray(text) {
+  if (!text) return null;
+  const fenced = text.match(/```(?:json)?\s*([\s\S]+?)\s*```/);
+  const raw = fenced ? fenced[1] : text;
+  try { const v = JSON.parse(raw); if (Array.isArray(v)) return v; } catch (e) { /* fall through */ }
+  const m = raw.match(/\[[\s\S]*\]/);
+  if (m) { try { const v = JSON.parse(m[0]); if (Array.isArray(v)) return v; } catch (e) { /* give up */ } }
+  return null;
+}
 
 router.get('/key', authenticateToken, async (req, res) => {
   const { data } = await supabaseAdmin.from('jeetmantra_users')
@@ -61,6 +80,65 @@ router.post('/generate', authenticateToken, async (req, res) => {
     res.json(out);
   } catch (e) {
     res.status(e.code === 'RATE_LIMITED' ? 429 : 400).json({ error: e.message, code: e.code });
+  }
+});
+
+// Batch UI/text localizer. Powers (a) full-page runtime translation when a
+// student picks a language and (b) the select-text → translate popup.
+// Every unique string is persisted in LevelDB keyed by target+hash, so it is
+// translated by a model exactly once and is then free for every other user and
+// every later page load. Degrades to source text (English) on quota/provider
+// error so the UI never breaks.
+router.post('/translate', authenticateToken, async (req, res) => {
+  try {
+    let { q, target, source } = req.body || {};
+    target = String(target || '').toLowerCase();
+    source = String(source || 'en').toLowerCase();
+    if (!TR_LANGS[target]) return res.status(400).json({ error: 'Unsupported target language' });
+    if (typeof q === 'string') q = [q];
+    if (!Array.isArray(q)) return res.status(400).json({ error: 'q (string or array) required' });
+    // Dedupe, drop blanks, and cap the batch so cost stays bounded.
+    q = [...new Set(q.filter(s => typeof s === 'string' && s.trim()))].slice(0, 80);
+    if (!q.length) return res.json({ map: {} });
+    // Identity when the source is a known language equal to the target.
+    if (TR_LANGS[source] && source === target) {
+      const m = {}; q.forEach(s => { m[s] = s; }); return res.json({ map: m, calls: 0 });
+    }
+
+    const map = {};
+    const miss = [];
+    for (const s of q) {
+      const key = 'tr:' + target + ':' + crypto.createHash('sha1').update(s).digest('hex');
+      const hit = await ldbGet(key);
+      if (typeof hit === 'string') map[s] = hit;
+      else miss.push({ s, key });
+    }
+    if (!miss.length) return res.json({ map, calls: 0 });
+
+    const items = miss.map(m => m.s);
+    const srcName = TR_LANGS[source] || 'the source language';
+    const sys = `You are a professional UI localizer for a mobile education app. Translate each input string from ${srcName} to ${TR_LANGS[target]}. Keep translations short and natural for buttons, labels and reading. Preserve any leading emoji, numbers, %, currency symbols and placeholders such as {x} or :id exactly. Do NOT translate brand names (JeetMantra, EduOS) or code. Reply with ONLY a JSON array of translated strings, same length and order as the input — no keys, no prose, no markdown.`;
+    let arr = null;
+    try {
+      const out = await ai(req.user.id, sys, JSON.stringify(items), { json: true, action: 'translate' });
+      arr = parseTrArray(out.text);
+    } catch (e) {
+      // Quota / provider failure → return cached hits only; UI keeps source text.
+      return res.status(e.code === 'RATE_LIMITED' ? 429 : 200)
+        .json({ map, error: e.message, code: e.code, degraded: true });
+    }
+    if (Array.isArray(arr)) {
+      for (let i = 0; i < miss.length; i++) {
+        const tr = (arr[i] != null) ? String(arr[i]) : miss[i].s;
+        map[miss[i].s] = tr;
+        ldbPut(miss[i].key, tr).catch(() => {}); // persist durably (no TTL)
+      }
+    } else {
+      for (const m of miss) map[m.s] = m.s; // unparseable → leave source
+    }
+    res.json({ map, calls: 1 });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
   }
 });
 
@@ -264,6 +342,65 @@ router.post('/tutor', authenticateToken, async (req, res) => {
     res.json({ answer: out.text, provider: out.provider, sources, grounded: sources.length > 0 });
   } catch (e) {
     res.status(e.code === 'RATE_LIMITED' ? 429 : 400).json({ error: e.message, code: e.code });
+  }
+});
+
+// ── AI SUGGESTIONS: personalized next steps learned from the student's
+// HISTORY — enrollments + progress, recent test scores, study time, and
+// activity. Advanced path uses the user's own profile API key (via ai());
+// when no key is available it falls back to grounded heuristics so the
+// feature always answers, even with the AI provider unreachable.
+router.post('/suggest', authenticateToken, async (req, res) => {
+  try {
+    const { supabaseAdmin } = require('../config/supabase');
+    const uid = req.user.id;
+    const since14 = new Date(Date.now() - 14 * 86400000).toISOString();
+    const [{ data: enrollments }, { data: sessions }, { data: activity }, { data: testSubs }] = await Promise.all([
+      supabaseAdmin.from('enrollments').select('progress_percentage, courses(title,category,level)').eq('student_id', uid).limit(10),
+      supabaseAdmin.from('user_sessions').select('duration_seconds').eq('user_id', uid).gte('started_at', since14),
+      supabaseAdmin.from('activity_feed').select('event_type, message').eq('actor_id', uid).order('created_at', { ascending: false }).limit(10),
+      supabaseAdmin.from('test_submissions').select('score').eq('student_id', uid).order('submitted_at', { ascending: false }).limit(5)
+    ]);
+    const studyMin = Math.round((sessions || []).reduce((s, r) => s + (r.duration_seconds || 0), 0) / 60);
+    const courses = (enrollments || []).map(e => ({ title: e.courses?.title, category: e.courses?.category, progress: e.progress_percentage || 0 }));
+    const cats = [...new Set(courses.map(c => c.category).filter(Boolean))];
+    const history = {
+      courses, categories: cats, studyMinutesLast14Days: studyMin,
+      recentScores: (testSubs || []).map(t => t.score).filter(s => s != null),
+      recentActivity: (activity || []).map(a => a.message || a.event_type).slice(0, 8)
+    };
+    // Advanced path: the user's own AI key (or shared free tier).
+    try {
+      const out = await ai(uid,
+        'You are a personal education advisor for an Indian student. Reply ONLY with JSON.',
+        `Student history: ${JSON.stringify(history)}\n\nSuggest exactly 4 personalized next steps as JSON: {"suggestions":[{"icon":"<emoji>","title":"...","reason":"one short sentence grounded in THEIR history","type":"course|skill|habit|revision"}]}. Mix types; be concrete about their categories and progress.`,
+        { json: true, action: 'suggest' });
+      const parsed = safeJson(out.text);
+      if (parsed && Array.isArray(parsed.suggestions) && parsed.suggestions.length) {
+        return res.json({ suggestions: parsed.suggestions.slice(0, 4), source: 'ai', provider: out.provider });
+      }
+    } catch (e) { /* no key / provider down — heuristics below */ }
+    // Heuristic fallback — grounded in the same history.
+    const sugg = [];
+    const stalled = courses.filter(c => c.progress > 0 && c.progress < 60).sort((a, b) => a.progress - b.progress)[0];
+    if (stalled) sugg.push({ icon: '📖', title: `Resume “${stalled.title}”`, reason: `You're at ${stalled.progress}% — one short session will push it forward.`, type: 'revision' });
+    if (studyMin < 120) sugg.push({ icon: '⏰', title: 'Build a 20-minute daily study habit', reason: `Only ${studyMin} min studied in the last 2 weeks — small daily blocks beat cramming.`, type: 'habit' });
+    else sugg.push({ icon: '🔥', title: 'Keep your study streak going', reason: `${studyMin} min in 2 weeks — schedule today's session now.`, type: 'habit' });
+    const SKILL_MAP = [
+      [/science|physics|chem|bio/i, '🔬 Try practical experiments & olympiad problems'],
+      [/math/i, '🧮 Add mental-math speed drills'],
+      [/cod|program|computer|it/i, '💻 Build a small project from your course'],
+      [/lang|english|hindi/i, '🗣 Add daily speaking practice']
+    ];
+    const cat = cats[0] || 'General';
+    const skill = (SKILL_MAP.find(([re]) => re.test(cat)) || [null, '🧠 Learn spaced-revision note-taking'])[1];
+    sugg.push({ icon: '✨', title: skill, reason: `Complements your ${cat} courses.`, type: 'skill' });
+    const low = history.recentScores.find(s => s < 50);
+    if (low != null) sugg.push({ icon: '📝', title: 'Revise your weakest test topic', reason: `A recent score of ${low} suggests a focused revision would pay off.`, type: 'revision' });
+    else sugg.push({ icon: '📍', title: 'Explore courses near you', reason: 'Use Near Me to find offline/hybrid programs in your city.', type: 'course' });
+    res.json({ suggestions: sugg.slice(0, 4), source: 'heuristic' });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
   }
 });
 

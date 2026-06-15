@@ -24,18 +24,37 @@ async function ensureWallet(userId) {
   return created;
 }
 
-// Helper: append a ledger entry + bump balance atomically(ish).
+// Helper: append a ledger entry + bump balance with a compare-and-swap so two
+// concurrent debits can't both read the same balance and double-spend. The
+// UPDATE only applies if the balance is still what we read (`.eq('balance',cur)`);
+// if another request changed it first, the update matches 0 rows and we retry.
+// A negative result is rejected (insufficient funds) before writing.
 async function postTransaction(userId, type, amount, reference, notes) {
-  const w = await ensureWallet(userId);
-  const newBalance = Number(w.balance) + Number(amount);
-  await supabaseAdmin.from('wallets').update({
-    balance: newBalance, updated_at: new Date().toISOString()
-  }).eq('user_id', userId);
-  await supabaseAdmin.from('wallet_transactions').insert({
-    id: uuidv4(), user_id: userId, type, amount,
-    balance_after: newBalance, reference, notes
-  });
-  return newBalance;
+  const delta = Number(amount);
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const w = await ensureWallet(userId);
+    const cur = Number(w.balance) || 0;
+    const newBalance = cur + delta;
+    if (newBalance < 0) {
+      const e = new Error('Insufficient wallet balance');
+      e.code = 'INSUFFICIENT'; e.balance = cur;
+      throw e;
+    }
+    const { data: updated } = await supabaseAdmin.from('wallets')
+      .update({ balance: newBalance, updated_at: new Date().toISOString() })
+      .eq('user_id', userId).eq('balance', cur).select();
+    if (updated && updated.length) {
+      await supabaseAdmin.from('wallet_transactions').insert({
+        id: uuidv4(), user_id: userId, type, amount,
+        balance_after: newBalance, reference, notes
+      });
+      return newBalance;
+    }
+    // Lost the race — another transaction changed the balance; re-read and retry.
+  }
+  const e = new Error('Wallet busy, please retry');
+  e.code = 'CONFLICT';
+  throw e;
 }
 
 // ── WALLET — balance + recent transactions.
@@ -94,11 +113,15 @@ router.post('/spend', authenticateToken, async (req, res) => {
     const { amount, reference, notes } = req.body || {};
     const amt = Number(amount);
     if (!amt || amt <= 0) return res.status(400).json({ error: 'amount required' });
-    const w = await ensureWallet(req.user.id);
-    if (Number(w.balance) < amt) return res.status(400).json({ error: 'Insufficient wallet balance', balance: w.balance });
+    // The atomic debit inside postTransaction enforces sufficiency; no separate
+    // read-then-check (which raced with concurrent spends).
     const newBalance = await postTransaction(req.user.id, 'spend', -amt, reference || null, notes || null);
     res.json({ message: 'Wallet debited', balance: newBalance });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    if (e.code === 'INSUFFICIENT') return res.status(400).json({ error: 'Insufficient wallet balance', balance: e.balance });
+    if (e.code === 'CONFLICT') return res.status(409).json({ error: 'Wallet busy, please retry' });
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ── REFERRALS ─────────────────────────────────────────────────────────

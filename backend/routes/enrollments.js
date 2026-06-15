@@ -44,7 +44,19 @@ router.get('/my', authenticateToken, async (req, res) => {
 router.post('/', authenticateToken, async (req, res) => {
   try {
     const { courseId } = req.body;
+    if (!courseId) return res.status(400).json({ error: 'courseId required' });
     const enrollmentId = uuidv4();
+
+    // Paid courses can't be free-enrolled here — require a verified payment.
+    // (This generic endpoint previously enrolled anyone in any course for free,
+    // bypassing the marketplace/payment flow entirely.)
+    const { data: course } = await supabaseAdmin.from('courses').select('id, price').eq('id', courseId).maybeSingle();
+    if (!course) return res.status(404).json({ error: 'Course not found' });
+    if (Number(course.price) > 0 && req.user.role === 'student') {
+      const { data: paid } = await supabaseAdmin.from('payments')
+        .select('id').eq('user_id', req.user.id).eq('course_id', courseId).eq('status', 'paid').maybeSingle();
+      if (!paid) return res.status(402).json({ error: 'This is a paid course — complete payment to enrol.', requiresPayment: true });
+    }
 
     // Check if already enrolled
     const { data: existing } = await supabaseAdmin
