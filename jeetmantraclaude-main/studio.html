@@ -548,7 +548,7 @@ initGL(); renderLoop(); renderScenes(); renderLayerList(); refreshDevices();
 // If Studio was opened from a live class (?class=), show the bound-class badge.
 if(CLASS_ID){ _bindClass(CLASS_ID,'class'); fetch(API+'/live-classes/'+CLASS_ID,{headers:{Authorization:'Bearer '+TOKEN}}).then(x=>x.json()).then(r=>{ const c=r.liveClass||r.class||r; if(c&&c.title) _bindClass(CLASS_ID,c.title); }).catch(()=>{}); }
 </script>
-<script src="/i18n-seed.js?v=3"></script>
-<script src="/i18n-lite.js?v=3" defer></script>
+<script src="/i18n-seed.js?v=4"></script>
+<script src="/i18n-lite.js?v=4" defer></script>
 </body>
 </html>

@@ -399,8 +399,8 @@ button:active:not(:disabled){transform:translateY(1px)}
     w.document.write('<html><head><title>Print</title>');
     document.querySelectorAll('link[rel="stylesheet"],style').forEach(s =>
       w.document.write(s.outerHTML));
-    w.document.write('</head><body>' + node.outerHTML + '<script src="/i18n-seed.js?v=3"></script>
-<script src="/i18n-lite.js?v=3" defer></script>
+    w.document.write('</head><body>' + node.outerHTML + '<script src="/i18n-seed.js?v=4"></script>
+<script src="/i18n-lite.js?v=4" defer></script>
 </body></html>');
     w.document.close(); w.print();
   };
