@@ -530,14 +530,25 @@ async function toggleRecord(){ const btn=document.getElementById('btnRec'); if(r
     if(!recChunks.length){ alert('⚠️ No video data was captured. The recording was empty.'); return; }
     const blob=new Blob(recChunks,{type:mime||'video/webm'});
     const target=document.getElementById('saveTarget').value;
-    const wantLocal=target==='local'||target==='both';
+    let wantLocal=target==='local'||target==='both';
     const wantClass=(target==='class'||target==='both');
+    // SAFETY NET: if the user picked "Save in app" only but the studio isn't
+    // connected to a class (or isn't signed in), the cloud upload would silently
+    // throw the recording away. Force a local download as a fallback so the
+    // recording is never lost. We tell the user truthfully what happened.
+    const cloudBlocked = wantClass && (!_boundClass || !TOKEN);
+    if(cloudBlocked && !wantLocal){ wantLocal=true; }
     if(wantLocal){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='studio-recording-'+Date.now()+'.'+recExt; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),4000); }
     if(wantClass){
-      if(!_boundClass){ alert('💾 Saved to your device.\nTo save inside the app, click “📡 Teach a course” to connect this Studio to a live class first.'); return; }
-      if(!TOKEN){ alert('💾 Saved to your device. (Sign in to also save it in the app.)'); return; }
-      try{ const fd=new FormData(); fd.append('recording',blob,'studio.'+recExt); const r=await fetch(API+'/live-classes/'+_boundClass+'/recording',{method:'POST',headers:{Authorization:'Bearer '+TOKEN},body:fd}); if(!r.ok) throw new Error('HTTP '+r.status); alert('✓ Recording saved'+(wantLocal?' to your device and':'')+' to the class.'); }
-      catch(e){ alert('⚠️ Couldn\'t upload to the class ('+(e.message||e.name)+').'+(wantLocal?' It was still saved to your device.':' Try "Save to device" instead.')); }
+      if(!_boundClass){ alert('💾 Recording saved to your device.\n\nTo also save it inside the app, click “📡 Teach a course” to connect this Studio to a live class FIRST, then record.'); return; }
+      if(!TOKEN){ alert('💾 Recording saved to your device.\n\nSign in to also save it in the app.'); return; }
+      try{
+        const fd=new FormData(); fd.append('recording',blob,'studio.'+recExt);
+        const r=await fetch(API+'/live-classes/'+_boundClass+'/recording',{method:'POST',headers:{Authorization:'Bearer '+TOKEN},body:fd});
+        if(!r.ok){ let msg='HTTP '+r.status; try{ const j=await r.json(); if(j&&j.error) msg=j.error; }catch(e){} throw new Error(msg); }
+        alert('✓ Recording saved'+(wantLocal?' to your device and':'')+' to the class. Students can replay it from “Recordings”.');
+      }
+      catch(e){ alert('⚠️ Couldn\'t upload to the class ('+(e.message||e.name)+').\n\n'+(wantLocal?'It is still saved to your device.':'Try "💾 Save to device" instead.')); }
     }
   };
   try{ rec.start(1000); }catch(e){ alert('Could not start recording: '+(e.message||e.name)); return; }
