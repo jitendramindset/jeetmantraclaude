@@ -39,6 +39,17 @@
 
   // ── Per-user translation cache (localStorage; survives reloads) ──
   let cache = {}; try { cache = JSON.parse(localStorage.getItem('jm_i18n_cache') || '{}') || {}; } catch(e){}
+  // Merge the baked-in seed dictionary (~120 common UI labels × 12 languages)
+  // so the UI translates INSTANTLY on language switch with no API call.
+  // Anything the user has already paid to translate (in localStorage) wins
+  // over the seed; the seed wins over an empty cache.
+  if (window.JM_I18N_SEED){
+    for (const code in window.JM_I18N_SEED){
+      cache[code] = cache[code] || {};
+      const sd = window.JM_I18N_SEED[code];
+      for (const k in sd){ if (cache[code][k] == null) cache[code][k] = sd[k]; }
+    }
+  }
   let saveT = null;
   function saveCache(){ clearTimeout(saveT); saveT = setTimeout(() => {
     try { localStorage.setItem('jm_i18n_cache', JSON.stringify(cache)); } catch(e){}
@@ -90,9 +101,25 @@
     let n;
     while ((n = tw.nextNode())){
       const orig = (n.__i18nOrig != null) ? n.__i18nOrig : n.nodeValue;
-      const pre  = (orig.match(/^\s*/) || [''])[0];
-      const post = (orig.match(/\s*$/) || [''])[0];
-      const key  = orig.slice(pre.length, orig.length - post.length);
+      // Find the first and last letter so leading/trailing emoji, arrows,
+      // bullets, separators and stray punctuation are treated as decoration
+      // and don't block a seed-dict match. E.g. "Continue →" → key "Continue".
+      let first = -1, last = -1;
+      try {
+        const m = orig.match(/\p{L}/u);
+        if (m){ first = m.index; }
+        if (first >= 0){
+          for (let i = orig.length - 1; i >= first; i--){ try { if (/\p{L}/u.test(orig[i])){ last = i; break; } } catch(e){ break; } }
+        }
+      } catch(e){
+        // Older engines without /u\p{L}/ support — fall back to whitespace-only stripping.
+        const pre0 = (orig.match(/^\s*/) || [''])[0];
+        const post0 = (orig.match(/\s*$/) || [''])[0];
+        first = pre0.length; last = orig.length - post0.length - 1;
+      }
+      if (first < 0 || last < first) continue;
+      const pre = orig.slice(0, first), post = orig.slice(last + 1);
+      const key = orig.slice(first, last + 1);
       if (!translatable(key)) continue;
       n.__i18nOrig = orig;
       const node = n;

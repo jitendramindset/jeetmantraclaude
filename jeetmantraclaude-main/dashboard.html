@@ -1034,6 +1034,7 @@ html[data-theme="dark"]{
   <div class="configure-body" id="bk-body">Loading…</div>
 </div>
 
+<script src="/i18n-seed.js?v=3"></script>
 <script>
 const API=window.location.origin+'/api';
 let currentUser=null,allUsers=[];
@@ -7856,6 +7857,10 @@ function closeLangPicker(){ const o=document.getElementById('jmLangPickOv'); if(
 // MutationObserver re-translates dynamically rendered content (toasts, modals,
 // course lists), so coverage isn't limited to the ~30% wrapped in data-i18n.
 let _i18nCache={}; try{ _i18nCache=JSON.parse(localStorage.getItem('jm_i18n_cache')||'{}'); }catch(e){ _i18nCache={}; }
+// Merge baked-in seed dictionary so the top ~120 UI labels translate INSTANTLY
+// with no API call. User-cached translations from the runtime translator still
+// win over the seed. (i18n-seed.js sets window.JM_I18N_SEED.)
+if(window.JM_I18N_SEED){ for(const _c in window.JM_I18N_SEED){ _i18nCache[_c]=_i18nCache[_c]||{}; const _sd=window.JM_I18N_SEED[_c]; for(const _k in _sd){ if(_i18nCache[_c][_k]==null) _i18nCache[_c][_k]=_sd[_k]; } } }
 let _i18nSaveT=null;
 function _i18nSave(){ clearTimeout(_i18nSaveT); _i18nSaveT=setTimeout(()=>{ try{ localStorage.setItem('jm_i18n_cache', JSON.stringify(_i18nCache)); }catch(e){} }, 600); }
 let _i18nApplying=false, _i18nWarned=false;
@@ -7890,8 +7895,15 @@ function _i18nCollect(root, code, need, appliers){
   let n;
   while((n=tw.nextNode())){
     const orig=(n.__i18nOrig!=null)?n.__i18nOrig:n.nodeValue;
-    const pre=(orig.match(/^\s*/)||[''])[0], post=(orig.match(/\s*$/)||[''])[0];
-    const key=orig.slice(pre.length, orig.length-post.length);
+    // Find first/last letter so leading/trailing emoji + arrows + punctuation
+    // are treated as decoration and don't block a seed-dict match.
+    // "Continue →" → key "Continue", pre "", post " →".
+    let _first=-1,_last=-1;
+    try{ const _m=orig.match(/\p{L}/u); if(_m){ _first=_m.index; for(let _i=orig.length-1;_i>=_first;_i--){ if(/\p{L}/u.test(orig[_i])){ _last=_i; break; } } } }
+    catch(e){ const _p=(orig.match(/^\s*/)||[''])[0], _q=(orig.match(/\s*$/)||[''])[0]; _first=_p.length; _last=orig.length-_q.length-1; }
+    if(_first<0||_last<_first) continue;
+    const pre=orig.slice(0,_first), post=orig.slice(_last+1);
+    const key=orig.slice(_first,_last+1);
     if(!_i18nTranslatable(key)) continue;
     n.__i18nOrig=orig; const node=n;
     push(key, tr=>{ const out=pre+tr+post; if(node.nodeValue!==out) node.nodeValue=out; });
