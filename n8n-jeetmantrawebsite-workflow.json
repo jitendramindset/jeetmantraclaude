@@ -1,0 +1,96 @@
+{
+  "name": "jeetmantrawebsite",
+  "nodes": [
+    {
+  "parameters": {
+    "values": {
+      "webhookUrl": "https://studious-yodel-g6v9jvxv5x62ww96-3000.app.github.dev/webhook/jeetmantra"
+    },
+    "name": "Set Webhook URL",
+    "type": "n8n-nodes-base.set",
+    "typeVersion": 2,
+    "position": [150, 100],
+    "id": "set_webhook_url"
+  },
+  "parameters": {
+    "path": "webhook/jeetmantra",
+    "responseMode": "responseNode"
+  },
+  "id": "webhook_node",
+  "name": "Webhook - Unified Router",
+  "type": "n8n-nodes-base.webhook",
+  "typeVersion": 1,
+  "position": [250, 250]
+},
+    {
+      "parameters": {
+        "jsCode": "const action = $json.action; const data = $json.data; if (!action || !data) { return [{ success: false, code: 'INVALID', error: 'Missing action or data' }]; } return [{ action, data, valid: true }];"
+      },
+      "id": "validate_request",
+      "name": "Validate Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 250]
+    },
+    {
+      "parameters": {
+        "cases": [
+          {"condition": {"type": "string", "value": "user-signup", "operation": "equals"}, "output": 1},
+          {"condition": {"type": "string", "value": "user-login", "operation": "equals"}, "output": 2},
+          {"condition": {"type": "string", "value": "user-profile-get", "operation": "equals"}, "output": 3},
+          {"condition": {"type": "string", "value": "course-create", "operation": "equals"}, "output": 4},
+          {"condition": {"type": "string", "value": "course-list", "operation": "equals"}, "output": 5},
+          {"condition": {"type": "string", "value": "course-enroll", "operation": "equals"}, "output": 6},
+          {"condition": {"type": "string", "value": "mcp-validate", "operation": "equals"}, "output": 7},
+          {"condition": {"type": "string", "value": "mcp-recommend", "operation": "equals"}, "output": 8},
+          {"condition": {"type": "string", "value": "admin-get-users", "operation": "equals"}, "output": 9},
+          {"condition": {"type": "string", "value": "admin-block-user", "operation": "equals"}, "output": 10},
+          {"condition": {"type": "string", "value": "dashboard-student", "operation": "equals"}, "output": 11},
+          {"condition": {"type": "string", "value": "dashboard-teacher", "operation": "equals"}, "output": 12}
+        ],
+        "fallbackOutput": 0
+      },
+      "id": "route_by_action",
+      "name": "Route by Action",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [650, 250]
+    },
+    {"parameters": {"jsCode": "const {fullName, email} = $json.data; return [{success: true, code: 'SUCCESS', data: {userId: 'user_' + Date.now(), email: email, fullName: fullName}, message: 'Signup successful'}];"}, "id": "user_signup_flow", "name": "User Signup", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [850, 100]},
+    {"parameters": {"jsCode": "const {email, password} = $json.data; return [{success: true, code: 'SUCCESS', data: {token: 'jwt_' + Date.now(), user: {id: 'user_123', email: email, role: 'student'}}, message: 'Login successful'}];"}, "id": "user_login_flow", "name": "User Login", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [850, 160]},
+    {"parameters": {"jsCode": "const {userId} = $json.data; return [{success: true, code: 'SUCCESS', data: {userId: userId, email: 'user@example.com'}}];"}, "id": "user_profile_get_flow", "name": "User Profile Get", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [850, 220]},
+    {"parameters": {"jsCode": "const {title} = $json.data; return [{success: true, code: 'SUCCESS', data: {courseId: 'course_' + Date.now(), title: title}}];"}, "id": "course_create_flow", "name": "Course Create", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [850, 280]},
+    {"parameters": {"jsCode": "return [{success: true, code: 'SUCCESS', data: {courses: [], total: 0}}];"}, "id": "course_list_flow", "name": "Course List", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [850, 340]},
+    {"parameters": {"jsCode": "const {courseId, studentId} = $json.data; return [{success: true, code: 'SUCCESS', data: {enrollmentId: 'enroll_' + Date.now()}}];"}, "id": "course_enroll_flow", "name": "Course Enroll", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [850, 400]},
+    {"parameters": {"jsCode": "return [{success: true, code: 'SUCCESS', data: {valid: true, errors: []}}];"}, "id": "mcp_validate_flow", "name": "MCP Validate", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [850, 460]},
+    {"parameters": {"jsCode": "return [{success: true, code: 'SUCCESS', data: {recommendations: []}}];"}, "id": "mcp_recommend_flow", "name": "MCP Recommend", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [850, 520]},
+    {"parameters": {"jsCode": "return [{success: true, code: 'SUCCESS', data: {users: [], total: 0}}];"}, "id": "admin_get_users_flow", "name": "Admin Get Users", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [850, 580]},
+    {"parameters": {"jsCode": "const {userId} = $json.data; return [{success: true, code: 'SUCCESS', data: {userId: userId, status: 'blocked'}}];"}, "id": "admin_block_user_flow", "name": "Admin Block User", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [850, 640]},
+    {"parameters": {"jsCode": "const {userId} = $json.data; return [{success: true, code: 'SUCCESS', data: {userId: userId, enrolledCourses: []}}];"}, "id": "dashboard_student_flow", "name": "Dashboard Student", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [850, 700]},
+    {"parameters": {"jsCode": "const {userId} = $json.data; return [{success: true, code: 'SUCCESS', data: {userId: userId, courses: []}}];"}, "id": "dashboard_teacher_flow", "name": "Dashboard Teacher", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [850, 760]},
+    {"parameters": {"jsCode": "const action = $json.action || 'unknown'; return [{success: false, code: 'UNKNOWN_ACTION', error: 'Unknown action: ' + action}];"}, "id": "error_unknown_action", "name": "Error - Unknown Action", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [850, 820]},
+    {"parameters": {"responseData": "lastNode"}, "id": "respond_webhook", "name": "Respond to Webhook", "type": "n8n-nodes-base.respondToWebhook", "typeVersion": 1, "position": [1050, 400]}
+  ],
+  "connections": {
+    "Webhook - Unified Router": {"main": [[{"node": "Validate Request", "type": "main", "index": 0}]]},
+    "Validate Request": {"main": [[{"node": "Route by Action", "type": "main", "index": 0}]]},
+    "Route by Action": {"main": [[{"node": "Error - Unknown Action", "type": "main", "index": 0}], [{"node": "User Signup", "type": "main", "index": 0}], [{"node": "User Login", "type": "main", "index": 0}], [{"node": "User Profile Get", "type": "main", "index": 0}], [{"node": "Course Create", "type": "main", "index": 0}], [{"node": "Course List", "type": "main", "index": 0}], [{"node": "Course Enroll", "type": "main", "index": 0}], [{"node": "MCP Validate", "type": "main", "index": 0}], [{"node": "MCP Recommend", "type": "main", "index": 0}], [{"node": "Admin Get Users", "type": "main", "index": 0}], [{"node": "Admin Block User", "type": "main", "index": 0}], [{"node": "Dashboard Student", "type": "main", "index": 0}], [{"node": "Dashboard Teacher", "type": "main", "index": 0}]]},
+    "User Signup": {"main": [[{"node": "Respond to Webhook", "type": "main", "index": 0}]]},
+    "User Login": {"main": [[{"node": "Respond to Webhook", "type": "main", "index": 0}]]},
+    "User Profile Get": {"main": [[{"node": "Respond to Webhook", "type": "main", "index": 0}]]},
+    "Course Create": {"main": [[{"node": "Respond to Webhook", "type": "main", "index": 0}]]},
+    "Course List": {"main": [[{"node": "Respond to Webhook", "type": "main", "index": 0}]]},
+    "Course Enroll": {"main": [[{"node": "Respond to Webhook", "type": "main", "index": 0}]]},
+    "MCP Validate": {"main": [[{"node": "Respond to Webhook", "type": "main", "index": 0}]]},
+    "MCP Recommend": {"main": [[{"node": "Respond to Webhook", "type": "main", "index": 0}]]},
+    "Admin Get Users": {"main": [[{"node": "Respond to Webhook", "type": "main", "index": 0}]]},
+    "Admin Block User": {"main": [[{"node": "Respond to Webhook", "type": "main", "index": 0}]]},
+    "Dashboard Student": {"main": [[{"node": "Respond to Webhook", "type": "main", "index": 0}]]},
+    "Dashboard Teacher": {"main": [[{"node": "Respond to Webhook", "type": "main", "index": 0}]]},
+    "Error - Unknown Action": {"main": [[{"node": "Respond to Webhook", "type": "main", "index": 0}]]}
+  },
+  "active": false,
+  "settings": {"executionOrder": "v1"},
+  "id": null,
+  "tags": ["jeetmantra", "webhook", "unified"]
+}

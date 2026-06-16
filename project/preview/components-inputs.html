@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f4f6f8; }
+
+  .form-wrap { max-width: 720px; margin: 0 auto; padding: 0 0 40px; }
+  .form-header { background: linear-gradient(135deg, #0f172a, #1e3a5f); padding: 32px 32px 28px; }
+  .form-header h1 { font-size: 22px; font-weight: 800; color: white; margin-bottom: 8px; letter-spacing: -0.02em; }
+  .form-header p { font-size: 13px; color: rgba(255,255,255,0.6); line-height: 1.6; }
+  .form-body { background: white; padding: 28px 32px; display: flex; flex-direction: column; gap: 22px; }
+
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  label { font-size: 13px; font-weight: 700; color: #0f172a; }
+  label .req { color: #ef4444; margin-left: 2px; }
+  .hint { font-size: 11px; color: #64748b; }
+  input[type=text], input[type=email], input[type=tel], input[type=number], input[type=url], input[type=date], select, textarea {
+    font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; color: #0f172a;
+    border: 1.5px solid #e5e7eb; border-radius: 9px; padding: 10px 13px;
+    outline: none; width: 100%; transition: border-color 200ms, box-shadow 200ms; background: white;
+  }
+  input:focus, select:focus, textarea:focus { border-color: #f97316; box-shadow: 0 0 0 3px rgba(249,115,22,0.1); }
+  input::placeholder, textarea::placeholder { color: #9ca3af; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+  /* Checkboxes */
+  .check-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .check-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border-radius: 9px; border: 1.5px solid #e5e7eb; cursor: pointer; transition: all 150ms; }
+  .check-item:hover { border-color: #f97316; background: #fff7ed; }
+  .check-item input[type=checkbox] { width: 16px; height: 16px; accent-color: #f97316; margin-top: 1px; flex-shrink: 0; }
+  .check-item span { font-size: 13px; color: #374151; line-height: 1.4; }
+
+  /* Radio */
+  .radio-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .radio-item { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 9999px; border: 1.5px solid #e5e7eb; cursor: pointer; font-size: 13px; color: #374151; transition: all 150ms; }
+  .radio-item:hover { border-color: #f97316; background: #fff7ed; color: #f97316; }
+  .radio-item input[type=radio] { accent-color: #f97316; }
+
+  /* Star / scale rating */
+  .scale-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .scale-btn { width: 36px; height: 36px; border-radius: 8px; border: 1.5px solid #e5e7eb; background: white; font-size: 13px; font-weight: 700; color: #64748b; cursor: pointer; transition: all 150ms; font-family: inherit; }
+  .scale-btn:hover { border-color: #f97316; background: #fff7ed; color: #f97316; }
+  .scale-label { font-size: 11px; color: #9ca3af; }
+
+  /* Matrix table */
+  .matrix-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .matrix-table th { padding: 8px 10px; text-align: center; font-size: 11px; font-weight: 700; color: #64748b; letter-spacing: 0.06em; background: #f8fafc; border-bottom: 1.5px solid #e5e7eb; }
+  .matrix-table th:first-child { text-align: left; }
+  .matrix-table td { padding: 10px 10px; border-bottom: 1px solid #f1f5f9; }
+  .matrix-table td:not(:first-child) { text-align: center; }
+  .matrix-table tr:last-child td { border-bottom: none; }
+  .matrix-table input[type=radio] { width: 16px; height: 16px; accent-color: #f97316; cursor: pointer; }
+  .row-label { font-size: 12px; color: #374151; font-weight: 500; }
+
+  /* Upload zone */
+  .upload-zone { border: 2px dashed #e5e7eb; border-radius: 10px; padding: 20px; text-align: center; cursor: pointer; transition: all 200ms; }
+  .upload-zone:hover { border-color: #f97316; background: #fff7ed; }
+  .upload-icon { width: 40px; height: 40px; border-radius: 10px; background: #f4f6f8; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; }
+  .upload-text { font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 3px; }
+  .upload-hint { font-size: 11px; color: #9ca3af; }
+
+  /* Section divider */
+  .section-divider { font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #9ca3af; padding: 4px 0 0; border-top: 1.5px solid #f1f5f9; }
+
+  /* Submit */
+  .submit-btn { background: #f97316; color: white; border: none; border-radius: 10px; padding: 14px; font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit; width: 100%; box-shadow: 0 0 20px rgba(249,115,22,0.3); transition: all 200ms; }
+  .submit-btn:hover { background: #ea6c0a; transform: translateY(-1px); }
+
+  .affordability-scale { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .aff-label { font-size: 11px; color: #64748b; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div class="form-wrap">
+  <div class="form-header">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+      <img src="../assets/logo.png" alt="JeetMantra" style="width:44px;height:44px;object-fit:contain;">
+      <div style="font-size:18px;font-weight:800;color:white;letter-spacing:-0.02em;">Jeet<span style="color:#f97316;">Mantra</span></div>
+    </div>
+    <h1>Partner Registration 2026</h1>
+    <p>Register your institution/services across various categories (Art, Dance, Yoga, Sports, etc.) to partner with us for student learning and training programs.</p>
+    <div style="margin-top:14px;background:rgba(255,255,255,0.08);border-radius:8px;padding:10px 14px;font-size:12px;color:rgba(255,255,255,0.55);">
+      * Indicates required question
+    </div>
+  </div>
+
+  <div class="form-body">
+
+    <!-- Basic Info -->
+    <div class="section-divider">Basic Information</div>
+
+    <div class="field">
+      <label>Email <span class="req">*</span></label>
+      <input type="email" placeholder="your@email.com">
+    </div>
+
+    <div class="two-col">
+      <div class="field">
+        <label>Institute / Organization Name</label>
+        <input type="text" placeholder="e.g. CodeSpark Academy">
+      </div>
+      <div class="field">
+        <label>Contact Person Full Name</label>
+        <input type="text" placeholder="Full name">
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="field">
+        <label>Email Address for Communication</label>
+        <input type="email" placeholder="contact@institute.com">
+      </div>
+      <div class="field">
+        <label>WhatsApp Number <span class="hint">(with country code)</span></label>
+        <input type="tel" placeholder="+91 98765 43210">
+      </div>
+    </div>
+
+    <!-- Categories -->
+    <div class="section-divider">Categories of Expertise</div>
+
+    <div class="field">
+      <label>Primary Categories of Expertise <span class="hint">(Select all that apply)</span></label>
+      <div class="check-grid">
+        <label class="check-item"><input type="checkbox"><span>Art / Visual Arts (Drawing, Painting, Sculpture…)</span></label>
+        <label class="check-item"><input type="checkbox"><span>Dance (Classical, Contemporary, Folk, Western…)</span></label>
+        <label class="check-item"><input type="checkbox"><span>Yoga / Wellness / Fitness</span></label>
+        <label class="check-item"><input type="checkbox"><span>Team Sports (Cricket, Football, Basketball…)</span></label>
+        <label class="check-item"><input type="checkbox"><span>Individual Sports (Tennis, Swimming, Martial Arts…)</span></label>
+        <label class="check-item"><input type="checkbox"><span>Athletics (Running, Jumps, Throws…)</span></label>
+        <label class="check-item"><input type="checkbox"><span>Gym / Strength Training / Bodybuilding</span></label>
+        <label class="check-item"><input type="checkbox"><span>Music / Instrument Training</span></label>
+        <label class="check-item"><input type="checkbox"><span>Performing Arts (Drama, Theater…)</span></label>
+        <label class="check-item"><input type="checkbox"><span>Other (specify below)</span></label>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>If 'Other' selected, please specify</label>
+      <input type="text" placeholder="Describe the category / discipline…">
+    </div>
+
+    <!-- Institute details -->
+    <div class="section-divider">Institute Details</div>
+
+    <div class="two-col">
+      <div class="field">
+        <label>Year of Establishment</label>
+        <input type="number" placeholder="e.g. 2010" min="1900" max="2026">
+      </div>
+      <div class="field">
+        <label>Total Instructors / Coaches</label>
+        <input type="number" placeholder="e.g. 12" min="1">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Institution Mission & Expertise <span class="hint">(min 150 characters)</span></label>
+      <textarea rows="3" placeholder="Describe your institution's mission and expertise in the chosen categories…"></textarea>
+    </div>
+
+    <div class="field">
+      <label>Full Address of Primary Training Facility</label>
+      <textarea rows="2" placeholder="Street, Area, City, State, PIN…"></textarea>
+    </div>
+
+    <!-- Programs -->
+    <div class="section-divider">Programs Offered</div>
+
+    <div class="field">
+      <label>Type of Courses / Training Programs <span class="hint">(Select all that apply)</span></label>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <label class="check-item"><input type="checkbox"><span>Short-term Workshops (Less than 3 months)</span></label>
+        <label class="check-item"><input type="checkbox"><span>Certification Courses (3 to 12 months)</span></label>
+        <label class="check-item"><input type="checkbox"><span>Long-term Degree / Diploma Programs (1 year or more)</span></label>
+        <label class="check-item"><input type="checkbox"><span>Personalized / One-on-One Training Sessions</span></label>
+        <label class="check-item"><input type="checkbox"><span>Online / Virtual Courses</span></label>
+      </div>
+    </div>
+
+    <!-- Rates -->
+    <div class="section-divider">Rates & Availability</div>
+
+    <div class="two-col">
+      <div class="field">
+        <label>Monthly Tuition Rate (₹) <span class="req">*</span></label>
+        <select>
+          <option value="">Select…</option>
+          <option>₹500 – ₹1,000</option><option>₹1,000 – ₹2,000</option><option>₹2,000 – ₹5,000</option><option>₹5,000+</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Hourly Tuition Rate (₹) <span class="req">*</span></label>
+        <div class="radio-row" style="flex-wrap:wrap;gap:6px;">
+          {[10,20,30,40,50,60,100,200,300,400,500,600,700,800,900].map(r => `<label class="radio-item" style="padding:6px 12px;font-size:12px;"><input type="radio" name="hourly" value="${r}">₹${r}</label>`).join('')}
+          <label class="radio-item" style="padding:6px 12px;font-size:12px;"><input type="radio" name="hourly">Other</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Number of Classes per Week <span class="req">*</span></label>
+      <input type="number" placeholder="e.g. 5" min="1" max="7" style="max-width:180px;">
+    </div>
+
+    <div class="field">
+      <label>General Affordability for Students</label>
+      <div class="affordability-scale">
+        <span class="aff-label">Very Expensive</span>
+        <div class="scale-row" style="gap:6px;">
+          <button class="scale-btn">1</button>
+          <button class="scale-btn">2</button>
+          <button class="scale-btn">3</button>
+          <button class="scale-btn">4</button>
+          <button class="scale-btn">5</button>
+        </div>
+        <span class="aff-label">Very Affordable</span>
+      </div>
+    </div>
+
+    <!-- Online presence -->
+    <div class="section-divider">Online Presence</div>
+
+    <div class="two-col">
+      <div class="field"><label>Website</label><input type="url" placeholder="https://yoursite.com"></div>
+      <div class="field"><label>Instagram</label><input type="url" placeholder="https://instagram.com/yourhandle"></div>
+    </div>
+    <div class="field"><label>YouTube Channel</label><input type="url" placeholder="https://youtube.com/@yourchannel"></div>
+
+    <!-- Upload -->
+    <div class="field">
+      <label>Fee Details Document</label>
+      <div class="hint" style="margin-bottom:6px;">Upload a document listing your standard course offerings, duration, and corresponding fee structure. Max 10 MB.</div>
+      <div class="upload-zone">
+        <div class="upload-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </div>
+        <div class="upload-text">Click to upload or drag & drop</div>
+        <div class="upload-hint">PDF, DOCX, XLSX — Max 10 MB</div>
+      </div>
+    </div>
+
+    <!-- Target groups -->
+    <div class="section-divider">Target Students & Levels</div>
+
+    <div class="field">
+      <label>Target Student Age Groups</label>
+      <div class="radio-row">
+        <label class="radio-item"><input type="checkbox">Children (Under 10)</label>
+        <label class="radio-item"><input type="checkbox">Teens (10–18)</label>
+        <label class="radio-item"><input type="checkbox">Adults (18+)</label>
+        <label class="radio-item"><input type="checkbox">All Ages</label>
+      </div>
+    </div>
+
+    <!-- Matrix: Level of training -->
+    <div class="field">
+      <label>Level of Training Offered</label>
+      <div style="overflow-x:auto;">
+        <table class="matrix-table">
+          <thead>
+            <tr>
+              <th style="min-width:180px;text-align:left;">Course Level</th>
+              <th>Not Offered</th>
+              <th>Offered Occasionally</th>
+              <th>Core Offering</th>
+            </tr>
+          </thead>
+          <tbody>
+            {['Beginner Level','Intermediate Level','Advanced / Professional','Coaching for Competitions'].map(l => `
+              <tr>
+                <td class="row-label">${l}</td>
+                <td><input type="radio" name="level-${l.replace(/\s/g,'-')}"></td>
+                <td><input type="radio" name="level-${l.replace(/\s/g,'-')}"></td>
+                <td><input type="radio" name="level-${l.replace(/\s/g,'-')}"></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Instructor quality -->
+    <div class="field">
+      <label>Quality of Your Instructors / Coaches</label>
+      <div class="scale-row">
+        <button class="scale-btn">1</button>
+        <button class="scale-btn">2</button>
+        <button class="scale-btn">3</button>
+        <button class="scale-btn">4</button>
+        <button class="scale-btn">5</button>
+      </div>
+    </div>
+
+    <!-- Partnership start -->
+    <div class="section-divider">Partnership Details</div>
+
+    <div class="field" style="max-width:260px;">
+      <label>Preferred Start Date for Partnership</label>
+      <input type="date">
+    </div>
+
+    <div class="field">
+      <label>How did you hear about us?</label>
+      <div class="check-grid">
+        <label class="check-item"><input type="radio" name="source"><span>Online Advertisement / Social Media</span></label>
+        <label class="check-item"><input type="radio" name="source"><span>Search Engine (Google, Bing…)</span></label>
+        <label class="check-item"><input type="radio" name="source"><span>Referral from a Friend / Family Member</span></label>
+        <label class="check-item"><input type="radio" name="source"><span>Newspaper / Magazine Ad</span></label>
+        <label class="check-item"><input type="radio" name="source"><span>Educational Fair / Event</span></label>
+        <label class="check-item"><input type="radio" name="source"><span>WhatsApp</span></label>
+        <label class="check-item"><input type="radio" name="source"><span>Other</span></label>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Referral Friend / Family Member Name</label>
+      <input type="text" placeholder="Name of person who referred you (if applicable)">
+    </div>
+
+    <button class="submit-btn">Submit Registration →</button>
+    <div style="font-size:11px;color:#9ca3af;text-align:center;margin-top:-10px;">A copy of your responses will be emailed to you. Never submit passwords through this form.</div>
+
+  </div>
+</div>
+
+<script>
+// Scale button interactive toggle
+document.querySelectorAll('.scale-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    const parent = this.closest('.scale-row,.affordability-scale');
+    const btns = parent.querySelectorAll('.scale-btn');
+    const idx = Array.from(btns).indexOf(this);
+    btns.forEach((b, i) => {
+      if (i <= idx) { b.style.background='#f97316'; b.style.color='white'; b.style.borderColor='#f97316'; }
+      else { b.style.background='white'; b.style.color='#64748b'; b.style.borderColor='#e5e7eb'; }
+    });
+  });
+});
+// Check item highlight
+document.querySelectorAll('.check-item').forEach(item => {
+  const inp = item.querySelector('input');
+  inp.addEventListener('change', () => {
+    if (inp.type === 'radio') {
+      document.querySelectorAll(`input[name="${inp.name}"]`).forEach(r => {
+        r.closest('.check-item,.radio-item').style.borderColor = '#e5e7eb';
+        r.closest('.check-item,.radio-item').style.background = 'white';
+      });
+    }
+    if (inp.checked) { item.style.borderColor='#f97316'; item.style.background='#fff7ed'; }
+    else { item.style.borderColor='#e5e7eb'; item.style.background='white'; }
+  });
+});
+</script>
+</body>
+</html>

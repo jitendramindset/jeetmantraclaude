@@ -1,0 +1,8 @@
+{
+  "servers": {
+    "supabase": {
+      "type": "http",
+      "url": "https://api.mantravat.cloud/project/default/integrations?showConnect=true&connectTab=mcp"
+    }
+  }
+}

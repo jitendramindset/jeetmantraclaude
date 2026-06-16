@@ -1,0 +1,312 @@
+/* ============================================================
+   JeetMantra Design System — Colors & Typography
+   Version: 1.0 | April 2026
+   Font: Plus Jakarta Sans (Google Fonts) + JetBrains Mono
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* ============================================================
+   BASE COLOR TOKENS
+   ============================================================ */
+:root {
+  /* --- Saffron Orange (Primary) --- */
+  --color-orange-50:  #fff7ed;
+  --color-orange-100: #ffedd5;
+  --color-orange-200: #fed7aa;
+  --color-orange-300: #fdba74;
+  --color-orange-400: #fb923c;
+  --color-orange-500: #f97316; /* Brand Primary */
+  --color-orange-600: #ea6c0a;
+  --color-orange-700: #c2520a;
+  --color-orange-800: #9a3e0c;
+  --color-orange-900: #7c3410;
+
+  /* --- Deep Navy (Primary Dark) --- */
+  --color-navy-50:  #f0f4ff;
+  --color-navy-100: #dbe4ff;
+  --color-navy-200: #bfcfff;
+  --color-navy-300: #93acfc;
+  --color-navy-400: #6080f5;
+  --color-navy-500: #3b5bdb;
+  --color-navy-600: #1e3a5f;
+  --color-navy-700: #162d4a;
+  --color-navy-800: #0f2037;
+  --color-navy-900: #0f172a; /* Brand Navy */
+
+  /* --- Teal (Logo Arc — Secondary Accent) --- */
+  --color-teal-50:  #f0fdfa;
+  --color-teal-100: #ccfbf1;
+  --color-teal-300: #5eead4;
+  --color-teal-400: #14b8a6;
+  --color-teal-500: #0d9488; /* Brand Teal — from logo */
+  --color-teal-600: #0f766e;
+  --color-teal-700: #115e59;
+
+  /* --- Amber (Secondary Accent) --- */
+  --color-amber-300: #fcd34d;
+  --color-amber-400: #fbbf24; /* Brand Amber */
+  --color-amber-500: #f59e0b;
+  --color-amber-600: #d97706;
+
+  /* --- Neutral Grays --- */
+  --color-gray-50:  #f9fafb;
+  --color-gray-100: #f4f6f8; /* Light bg */
+  --color-gray-200: #e5e7eb;
+  --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+  --color-gray-500: #6b7280;
+  --color-gray-600: #4b5563;
+  --color-gray-700: #374151;
+  --color-gray-800: #1f2937;
+  --color-gray-900: #111827;
+
+  /* --- Semantic Colors --- */
+  --color-success: #22c55e;
+  --color-success-bg: #f0fdf4;
+  --color-warning: #f59e0b;
+  --color-warning-bg: #fffbeb;
+  --color-error: #ef4444;
+  --color-error-bg: #fef2f2;
+  --color-info: #3b82f6;
+  --color-info-bg: #eff6ff;
+
+  /* ============================================================
+     SEMANTIC / ALIAS TOKENS
+     ============================================================ */
+
+  /* Backgrounds */
+  --bg-page:         var(--color-gray-100);
+  --bg-surface:      #ffffff;
+  --bg-surface-2:    var(--color-gray-50);
+  --bg-dark:         var(--color-navy-900);
+  --bg-dark-2:       var(--color-navy-600);
+  --bg-primary:      var(--color-orange-500);
+  --bg-primary-hover:var(--color-orange-600);
+
+  /* Foreground / Text */
+  --fg-1:        var(--color-navy-900);   /* Primary text */
+  --fg-2:        var(--color-gray-600);   /* Secondary text */
+  --fg-3:        var(--color-gray-400);   /* Placeholder / muted */
+  --fg-on-dark:  #ffffff;
+  --fg-on-primary: #ffffff;
+  --fg-accent:   var(--color-orange-500);
+  --fg-amber:    var(--color-amber-400);
+
+  --fg-teal:     var(--color-teal-500);
+  --bg-teal:     var(--color-teal-500);
+
+  /* Borders */
+  --border-light:  1px solid rgba(0,0,0,0.07);
+  --border-medium: 1px solid var(--color-gray-200);
+  --border-strong: 1px solid var(--color-gray-300);
+  --border-focus:  2px solid var(--color-orange-500);
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.10);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.14);
+  --shadow-xl: 0 16px 48px rgba(0,0,0,0.18);
+  --shadow-glow-orange: 0 0 24px rgba(249,115,22,0.30);
+  --shadow-glow-navy:   0 0 24px rgba(15,23,42,0.25);
+
+  /* Border Radius */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 28px;
+  --radius-full: 9999px;
+
+  /* Spacing (4px base) */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+  --space-32: 128px;
+
+  /* ============================================================
+     TYPOGRAPHY TOKENS
+     ============================================================ */
+
+  /* Font Families */
+  --font-display: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-body:    'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-mono:    'JetBrains Mono', 'Courier New', monospace;
+
+  /* Font Weights */
+  --fw-light:     300;
+  --fw-regular:   400;
+  --fw-medium:    500;
+  --fw-semibold:  600;
+  --fw-bold:      700;
+  --fw-extrabold: 800;
+
+  /* Type Scale */
+  --text-xs:   11px;
+  --text-sm:   13px;
+  --text-base: 16px;
+  --text-md:   18px;
+  --text-lg:   20px;
+  --text-xl:   24px;
+  --text-2xl:  30px;
+  --text-3xl:  36px;
+  --text-4xl:  48px;
+  --text-5xl:  60px;
+  --text-6xl:  72px;
+  --text-7xl:  96px;
+
+  /* Line Heights */
+  --lh-tight:  1.1;
+  --lh-snug:   1.25;
+  --lh-normal: 1.5;
+  --lh-relaxed:1.65;
+  --lh-loose:  1.8;
+
+  /* Letter Spacing */
+  --ls-tight:  -0.03em;
+  --ls-normal: 0em;
+  --ls-wide:   0.05em;
+  --ls-wider:  0.1em;
+  --ls-widest: 0.15em;
+
+  /* Animation */
+  --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out:     cubic-bezier(0, 0, 0.2, 1);
+  --ease-in:      cubic-bezier(0.4, 0, 1, 1);
+  --ease-spring:  cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-fast:   150ms;
+  --duration-base:   250ms;
+  --duration-slow:   400ms;
+  --duration-slower: 600ms;
+}
+
+/* ============================================================
+   SEMANTIC TYPE STYLES (apply these classes)
+   ============================================================ */
+
+/* Headings */
+.h1 {
+  font-family: var(--font-display);
+  font-size: var(--text-5xl);
+  font-weight: var(--fw-extrabold);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--ls-tight);
+  color: var(--fg-1);
+}
+.h2 {
+  font-family: var(--font-display);
+  font-size: var(--text-4xl);
+  font-weight: var(--fw-bold);
+  line-height: var(--lh-snug);
+  letter-spacing: var(--ls-tight);
+  color: var(--fg-1);
+}
+.h3 {
+  font-family: var(--font-display);
+  font-size: var(--text-3xl);
+  font-weight: var(--fw-bold);
+  line-height: var(--lh-snug);
+  color: var(--fg-1);
+}
+.h4 {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-snug);
+  color: var(--fg-1);
+}
+.h5 {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-normal);
+  color: var(--fg-1);
+}
+.h6 {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-normal);
+  color: var(--fg-1);
+}
+
+/* Display (Hero-level) */
+.display-xl {
+  font-family: var(--font-display);
+  font-size: var(--text-7xl);
+  font-weight: var(--fw-extrabold);
+  line-height: 1.0;
+  letter-spacing: var(--ls-tight);
+}
+.display-lg {
+  font-family: var(--font-display);
+  font-size: var(--text-6xl);
+  font-weight: var(--fw-extrabold);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--ls-tight);
+}
+
+/* Body */
+.body-lg {
+  font-family: var(--font-body);
+  font-size: var(--text-md);
+  font-weight: var(--fw-regular);
+  line-height: var(--lh-relaxed);
+  color: var(--fg-2);
+}
+.body {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  font-weight: var(--fw-regular);
+  line-height: var(--lh-relaxed);
+  color: var(--fg-2);
+}
+.body-sm {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--fw-regular);
+  line-height: var(--lh-normal);
+  color: var(--fg-2);
+}
+
+/* Labels */
+.label {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-normal);
+  color: var(--fg-1);
+}
+.label-sm {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-weight: var(--fw-bold);
+  line-height: var(--lh-normal);
+  letter-spacing: var(--ls-wider);
+  text-transform: uppercase;
+  color: var(--fg-2);
+}
+.caption {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-weight: var(--fw-regular);
+  line-height: var(--lh-normal);
+  color: var(--fg-3);
+}
+
+/* Code */
+code, .mono {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: var(--fw-regular);
+}

@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webhook Tester - JeetMantra</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 900px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            padding: 30px;
+        }
+
+        .section {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .section h2 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #333;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+
+        select, input, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            font-family: 'Courier New', monospace;
+        }
+
+        select:focus, input:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 200px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-send {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-send:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-clear {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-clear:hover {
+            background: #e0e0e0;
+        }
+
+        .preset-buttons {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+
+        .preset-btn {
+            padding: 8px 12px;
+            background: #f0f0f0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .preset-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .response-section {
+            background: #f8f8f8;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+
+        .response-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-loading {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        #responseBody {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 12px;
+            font-size: 12px;
+            font-family: 'Courier New', monospace;
+            max-height: 300px;
+            overflow-y: auto;
+            color: #333;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .empty-state {
+            color: #999;
+            text-align: center;
+            padding: 30px;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+            animation: pulse 2s infinite;
+        }
+
+        .status-indicator.connected {
+            background: #28a745;
+        }
+
+        .status-indicator.disconnected {
+            background: #dc3545;
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .loading {
+            display: inline-block;
+            opacity: 0;
+        }
+
+        .loading.show {
+            opacity: 1;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔄 Webhook Tester</h1>
+            <p>Test JeetMantra Unified Webhook: POST /webhook/jeetmantra</p>
+            <p style="margin-top: 10px;">
+                <span class="status-indicator" id="statusIndicator"></span>
+                <span id="statusText">Checking connection...</span>
+            </p>
+        </div>
+
+        <div class="content">
+            <!-- Request Section -->
+            <div class="section">
+                <h2>📤 Request</h2>
+
+                <div class="form-group">
+                    <label>Action</label>
+                    <select id="actionSelect" onchange="updatePayload()">
+                        <option value="">-- Select Action --</option>
+                        <optgroup label="User Operations">
+                            <option value="user-signup">user-signup</option>
+                            <option value="user-login">user-login</option>
+                            <option value="user-profile-get">user-profile-get</option>
+                            <option value="user-profile-update">user-profile-update</option>
+                        </optgroup>
+                        <optgroup label="Course Operations">
+                            <option value="course-create">course-create</option>
+                            <option value="course-list">course-list</option>
+                            <option value="course-enroll">course-enroll</option>
+                            <option value="course-search">course-search</option>
+                        </optgroup>
+                        <optgroup label="MCP Operations">
+                            <option value="mcp-validate">mcp-validate</option>
+                            <option value="mcp-recommend">mcp-recommend</option>
+                        </optgroup>
+                        <optgroup label="Admin Operations">
+                            <option value="admin-get-users">admin-get-users</option>
+                            <option value="admin-block-user">admin-block-user</option>
+                        </optgroup>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Payload (JSON)</label>
+                    <textarea id="requestBody" placeholder='{\n  "action": "user-signup",\n  "data": { ... }\n}'></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Webhook URL (editable)</label>
+                    <input type="text" id="webhookUrl" value="https://work.mantravat.cloud/webhook/jeetmantra" placeholder="Enter webhook URL">
+                    <div style="margin-top: 6px; display: flex; gap: 6px; flex-wrap: wrap;">
+                        <button class="preset-btn" onclick="document.getElementById('webhookUrl').value='https://work.mantravat.cloud/webhook/jeetmantra'">Production</button>
+                        <button class="preset-btn" onclick="document.getElementById('webhookUrl').value='http://localhost:5678/webhook/jeetmantra'">Local</button>
+                        <button class="preset-btn" onclick="document.getElementById('webhookUrl').value='http://localhost:5678/webhook-test/jeetmantra'">Test</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Quick Presets:</label>
+                    <div class="preset-buttons">
+                        <button class="preset-btn" onclick="loadPreset('signup')">Signup</button>
+                        <button class="preset-btn" onclick="loadPreset('login')">Login</button>
+                        <button class="preset-btn" onclick="loadPreset('validate')">Validate</button>
+                        <button class="preset-btn" onclick="loadPreset('getusers')">Get Users</button>
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn-send" onclick="sendRequest()">Send <span class="loading" id="sendLoader">⏳</span></button>
+                    <button class="btn-clear" onclick="clearRequest()">Clear</button>
+                </div>
+            </div>
+
+            <!-- Response Section -->
+            <div class="section">
+                <h2>📥 Response</h2>
+                <div class="response-section">
+                    <div class="response-header">
+                        <span>Result:</span>
+                        <span class="status-badge" id="statusBadge">Waiting...</span>
+                    </div>
+                    <div id="responseBody" class="empty-state">No request sent yet</div>
+                    <button class="btn-clear" style="margin-top: 10px; width: 100%;" onclick="copyResponse()">📋 Copy Response</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="webhook-handler.js"></script>
+    <script>
+        const presets = {
+            signup: {
+                action: 'user-signup',
+                data: {
+                    fullName: 'John Doe',
+                    email: 'john@example.com',
+                    phone: '+91 9876543210',
+                    password: 'SecurePass123!',
+                    userType: 'student',
+                    skills: ['Python', 'Mathematics'],
+                    aiProvider: 'openai',
+                    apiKey: null
+                }
+            },
+            login: {
+                action: 'user-login',
+                data: {
+                    email: 'john@example.com',
+                    password: 'SecurePass123!'
+                }
+            },
+            validate: {
+                action: 'mcp-validate',
+                data: {
+                    formType: 'course-creation',
+                    formData: {
+                        title: 'Python Basics',
+                        price: 4999,
+                        duration: 30
+                    }
+                }
+            },
+            getusers: {
+                action: 'admin-get-users',
+                data: {
+                    filter: 'active',
+                    limit: 10,
+                    offset: 0
+                }
+            }
+        };
+
+        function loadPreset(name) {
+            const preset = presets[name];
+            if (preset) {
+                document.getElementById('actionSelect').value = preset.action;
+                document.getElementById('requestBody').value = JSON.stringify(preset, null, 2);
+            }
+        }
+
+        function updatePayload() {
+            const action = document.getElementById('actionSelect').value;
+            if (action) {
+                const preset = Object.values(presets).find(p => p.action === action);
+                if (preset) {
+                    document.getElementById('requestBody').value = JSON.stringify(preset, null, 2);
+                }
+            }
+        }
+
+        function clearRequest() {
+            document.getElementById('actionSelect').value = '';
+            document.getElementById('requestBody').value = '';
+        }
+
+        async function sendRequest() {
+            const webhookUrl = document.getElementById('webhookUrl').value;
+            let payload;
+
+            try {
+                payload = JSON.parse(document.getElementById('requestBody').value);
+            } catch (e) {
+                showResponse(false, 'Invalid JSON: ' + e.message);
+                return;
+            }
+
+            if (!payload.action) {
+                showResponse(false, 'Error: Missing "action" field');
+                return;
+            }
+
+            const loader = document.getElementById('sendLoader');
+            loader.classList.add('show');
+
+            try {
+                const response = await fetch(webhookUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+                showResponse(data.success !== false, JSON.stringify(data, null, 2));
+            } catch (error) {
+                showResponse(false, `Error: ${error.message}`);
+            } finally {
+                loader.classList.remove('show');
+            }
+        }
+
+        function showResponse(success, data) {
+            const badge = document.getElementById('statusBadge');
+            const body = document.getElementById('responseBody');
+
+            if (success) {
+                badge.textContent = '✅ Success';
+                badge.className = 'status-badge status-success';
+            } else {
+                badge.textContent = '❌ Error';
+                badge.className = 'status-badge status-error';
+            }
+
+            body.textContent = data;
+        }
+
+        function copyResponse() {
+            const responseText = document.getElementById('responseBody').textContent;
+            if (responseText && responseText !== 'No request sent yet') {
+                navigator.clipboard.writeText(responseText).then(() => {
+                    alert('Response copied to clipboard!');
+                });
+            }
+        }
+
+        // Check webhook connection on load
+        async function checkConnection() {
+            const indicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('statusText');
+
+            try {
+                const response = await fetch('http://localhost:5678/health', {
+                    method: 'GET',
+                    mode: 'no-cors'
+                });
+                indicator.className = 'status-indicator connected';
+                statusText.textContent = '✅ n8n is running and webhook is ready';
+            } catch (e) {
+                indicator.className = 'status-indicator disconnected';
+                statusText.textContent = '❌ n8n not running. Start n8n with: docker-compose up -d n8n';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', checkConnection);
+    </script>
+</body>
+</html>
