@@ -90,6 +90,21 @@ select,input[type=text]{width:100%;padding:8px;border-radius:6px;border:1px soli
     <input type="file" id="docFile" accept="image/*" style="display:none" onchange="addImage(this)">
     <button class="btn" style="width:100%" onclick="openCoursePicker()">📚 Course content</button>
     <div class="hint">USB/built-in cams, phone-as-webcam, screen, whiteboard, documents &amp; course content can all be scenes. DSLR/IP/HDMI need the desktop app.</div>
+    <h4>🎭 Virtual Background</h4>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:8px" id="vbgSwatches">
+      <button class="btn" title="None (black)" onclick="clearVbg()" style="font-size:18px;padding:6px;aspect-ratio:1">🚫</button>
+      <button class="btn" title="Classroom" onclick="setVbgColor('#1e3a5f')" style="background:#1e3a5f;border-color:#1e3a5f;aspect-ratio:1;padding:0"></button>
+      <button class="btn" title="Office" onclick="setVbgColor('#2d2d2d')" style="background:#2d2d2d;border-color:#2d2d2d;aspect-ratio:1;padding:0"></button>
+      <button class="btn" title="Nature" onclick="setVbgColor('#1a4731')" style="background:#1a4731;border-color:#1a4731;aspect-ratio:1;padding:0"></button>
+      <button class="btn" title="Sunset" onclick="setVbgColor('#7c2d12')" style="background:#7c2d12;border-color:#7c2d12;aspect-ratio:1;padding:0"></button>
+      <button class="btn" title="Sky" onclick="setVbgColor('#0369a1')" style="background:#0369a1;border-color:#0369a1;aspect-ratio:1;padding:0"></button>
+      <button class="btn" title="Purple" onclick="setVbgColor('#4c1d95')" style="background:#4c1d95;border-color:#4c1d95;aspect-ratio:1;padding:0"></button>
+      <button class="btn" title="Custom color" onclick="document.getElementById('vbgColorPick').click()" style="font-size:18px;padding:6px;aspect-ratio:1">🎨</button>
+    </div>
+    <input type="color" id="vbgColorPick" style="display:none" onchange="setVbgColor(this.value)">
+    <button class="btn" style="width:100%;margin-bottom:4px" onclick="document.getElementById('vbgFilePick').click()">🖼 Upload background image</button>
+    <input type="file" id="vbgFilePick" accept="image/*" style="display:none" onchange="loadVbgImage(this)">
+    <div class="hint" id="vbgHint">Background fills behind your camera. Tip: use a solid colour for best contrast.</div>
     <h4>🎬 Scenes (switch live)</h4>
     <div id="sceneList"></div>
     <button class="btn pri" style="width:100%" onclick="addScene()">+ New scene/preset</button>
@@ -166,6 +181,11 @@ let _boundClass=CLASS_ID||null, _boundClassTitle='';
 function crmKey(){ try{ const u=JSON.parse(localStorage.getItem('jm_user')||'{}'); return u&&u.id?('jm_crm_'+u.id):'jm_crm'; }catch(e){ return 'jm_crm'; } }
 function getCrm(){ try{ let r=localStorage.getItem(crmKey()); if(r===null&&crmKey()!=='jm_crm') r=localStorage.getItem('jm_crm'); return JSON.parse(r||'{}'); }catch(e){ return {}; } }
 let sources={}, scenes=[], activeScene=null, _adjustMode=false;
+// Virtual background
+let _vbgImg=null, _vbgColor='#000000', _vbgMode='none';
+function clearVbg(){ _vbgMode='none'; _vbgImg=null; _vbgColor='#000'; document.getElementById('vbgHint').textContent='Background: none'; }
+function setVbgColor(c){ _vbgColor=c; _vbgMode='color'; document.getElementById('vbgHint').textContent='Background: solid colour'; }
+function loadVbgImage(input){ const f=input.files?.[0]; if(!f) return; const r=new Image(); r.onload=()=>{ _vbgImg=r; _vbgMode='image'; document.getElementById('vbgHint').textContent='Background: '+f.name; }; r.src=URL.createObjectURL(f); }
 let gl=null, prog=null, tex=null, glCanvas=null, micStream=null, brandImg=null;
 const out=document.getElementById('out'), octx=out.getContext('2d');
 
@@ -468,7 +488,9 @@ function renderLoop(){ requestAnimationFrame(renderLoop);
   // Skip all paint work while the tab is hidden (rAF is already throttled, but
   // this avoids any stray work and is explicit).
   if(document.hidden) return;
-  octx.fillStyle='#000'; octx.fillRect(0,0,out.width,out.height);
+  if(_vbgMode==='image'&&_vbgImg){ try{ octx.drawImage(_vbgImg,0,0,out.width,out.height); }catch(e){ octx.fillStyle='#000'; octx.fillRect(0,0,out.width,out.height); } }
+  else if(_vbgMode==='color'){ octx.fillStyle=_vbgColor; octx.fillRect(0,0,out.width,out.height); }
+  else { octx.fillStyle='#000'; octx.fillRect(0,0,out.width,out.height); }
   // Composite mode: scene has multiple arranged elements → draw them all.
   if(activeScene && activeScene.layers && activeScene.layers.length){
     renderComposite(activeScene);
