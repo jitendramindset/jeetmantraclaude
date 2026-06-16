@@ -998,6 +998,11 @@ function renderLoop(){ requestAnimationFrame(renderLoop);
           const cw2=out.width*fw, ch2=out.height*fw;
           const cx2=(out.width-cw2)/2, cy2=(out.height-ch2)/2;
           octx.save(); octx.translate(out.width/2,out.height/2); octx.rotate((activeScene.rotation||0)*Math.PI/180); const z=activeScene.zoom||1; octx.scale(z,z); octx.drawImage(glCanvas,cx2-out.width/2,cy2-out.height/2,cw2,ch2); octx.restore();
+        } else if(_srcCropMode){
+          // AR crop: draw only the selected region of glCanvas, scaled to fill output
+          const sx=_srcCrop.x*glCanvas.width, sy=_srcCrop.y*glCanvas.height;
+          const sw=_srcCrop.w*glCanvas.width, sh=_srcCrop.h*glCanvas.height;
+          octx.save(); octx.translate(out.width/2,out.height/2); octx.rotate((activeScene.rotation||0)*Math.PI/180); const z=activeScene.zoom||1; octx.scale(z,z); octx.drawImage(glCanvas,sx,sy,sw,sh,-out.width/2,-out.height/2,out.width,out.height); octx.restore();
         } else {
           octx.save(); octx.translate(out.width/2,out.height/2); octx.rotate((activeScene.rotation||0)*Math.PI/180); const z=activeScene.zoom||1; octx.scale(z,z); octx.drawImage(glCanvas,-out.width/2,-out.height/2,out.width,out.height); octx.restore();
         }
