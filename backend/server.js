@@ -42,7 +42,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Serve frontend files
-const frontendPath = path.join(__dirname, '..', 'jeetmantraclaude-main');
+const frontendPath = path.join(__dirname, '..', 'public');
 app.use(express.static(frontendPath));
 
 // LevelDB wiring for ALL /api routes:
