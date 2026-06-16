@@ -1052,6 +1052,9 @@ const NAV={
     {i:'📥',l:'Downloads',action:'openDownloads()'},
     {i:'📹',l:'Recordings',action:'openRecordings()'},
     {i:'📝',l:'Assignments',t:'hw'},
+    {i:'🧪',l:'Take Exam',h:'/exam-platform.html'},
+    {i:'🈯',l:'Bhasha Setu',h:'/bhasha-setu.html'},
+    {i:'📊',l:'My Results',action:'openMyExternalResults()'},
     {i:'🗒️',l:'Notes',t:'notes'},
     {i:'🗓',l:'Attendance',action:'openAttendanceReport()'},
     {i:'🏫',l:'My Institutions',action:'openMyInstitutions()'},
@@ -1068,6 +1071,8 @@ const NAV={
     {i:'📚',l:'My Courses',t:'courses'},
     {i:'📡',l:'Live Classes',t:'live'},
     {i:'🎥',l:'Studio',h:'/studio.html'},
+    {i:'📝',l:'Exam Builder',h:'/exam-platform.html'},
+    {i:'🈯',l:'Bhasha Setu',h:'/bhasha-setu.html'},
     {i:'📰',l:'Wall',t:'wall'},
     {i:'💬',l:'Messages',action:'openMessenger()'},
     {i:'📅',l:'Calendar',action:'openCalendar()'},
@@ -2155,6 +2160,10 @@ const MODAL_DEFS={
       <div class="grid-2">
         <div class="form-row"><label>Total Marks</label><input id="m-marks" type="number" min="1" value="100"></div>
         <div class="form-row"><label>Duration (min)</label><input id="m-dur" type="number" min="5" value="60"></div>
+      </div>
+      <div class="form-row" style="margin-top:12px;padding:10px;background:rgba(124,58,237,.08);border:1px dashed #7c3aed;border-radius:8px">
+        <div style="font-size:12px;color:var(--jm-text-muted);margin-bottom:6px">Or skip the form and let AI build it from a topic name:</div>
+        <button type="button" class="btn ghost" style="width:100%" onclick="(function(){const c=_modalCtx.courseId;const t=document.getElementById('m-topic');const tid=t&&t.value||'';const topicName=(t&&t.options[t.selectedIndex]?.text)||document.getElementById('m-title').value||'';const u='/exam-platform.html?mode=create&courseId='+encodeURIComponent(c)+'&topicId='+encodeURIComponent(tid)+'&topic='+encodeURIComponent(topicName);window.open(u,'_blank');})()">🤖 Build with AI in Exam Builder →</button>
       </div>`;
     },
     submit:async()=>{
@@ -8177,6 +8186,36 @@ let _calView='month';        // 'day' | 'week' | 'month'
 let _calEventsByDay={};       // iso -> [events]
 const _calColor=t=>t==='live'?'#7c3aed':t==='test'?'#ef4444':'#0ea5e9';
 const _iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+// 📊 My Results — shows exam-platform attempts (localStorage) + bhasha-setu sessions,
+// alongside server-side test history. Lightweight modal; no new page.
+function openMyExternalResults(){
+  const exams = JSON.parse(localStorage.getItem('jm_exam_results')||'[]');
+  const bhasha = JSON.parse(localStorage.getItem('jm_bhasha_progress')||'[]');
+  const fmt = ts => { try { return new Date(ts).toLocaleString(); } catch(e){ return '—'; } };
+  const examRows = exams.length ? exams.map(r=>`<tr>
+    <td style="padding:6px 8px">${fmt(r.ts)}</td>
+    <td style="padding:6px 8px">${(r.topic||r.subject||'—').replace(/[<>&]/g,'')}</td>
+    <td style="padding:6px 8px;text-align:right">${r.score}/${r.total}</td>
+    <td style="padding:6px 8px;text-align:right"><b style="color:${r.pct>=70?'#16a34a':r.pct>=50?'#d97706':'#dc2626'}">${r.pct}%</b></td>
+    <td style="padding:6px 8px">${r.grade}</td></tr>`).join('') : '<tr><td colspan="5" style="padding:14px;text-align:center;color:var(--jm-text-muted)">No exam attempts yet. Open Take Exam to start.</td></tr>';
+  const bhashaRows = bhasha.length ? bhasha.slice(0,30).map(r=>`<tr>
+    <td style="padding:6px 8px">${fmt(r.ts)}</td>
+    <td style="padding:6px 8px">${(r.title||r.topic||'—').replace(/[<>&]/g,'')}</td>
+    <td style="padding:6px 8px">${(r.lang||'').toUpperCase()}</td>
+    <td style="padding:6px 8px;text-align:right">${r.turns||0} turns</td></tr>`).join('') : '<tr><td colspan="4" style="padding:14px;text-align:center;color:var(--jm-text-muted)">No language practice yet. Open Bhasha Setu to begin.</td></tr>';
+  const html = `<div id="jmResModal" style="position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:center;justify-content:center" onclick="if(event.target===this)this.remove()">
+    <div style="background:#fff;border-radius:14px;max-width:780px;width:92%;max-height:84vh;overflow:auto;box-shadow:0 24px 60px rgba(0,0,0,.3)">
+      <div style="padding:18px 22px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center"><h3 style="margin:0;font-size:17px">📊 My Results &amp; Progress</h3><button onclick="document.getElementById('jmResModal').remove()" style="border:none;background:transparent;font-size:22px;cursor:pointer">✕</button></div>
+      <div style="padding:18px 22px">
+        <div style="font-size:13px;font-weight:700;margin-bottom:8px;color:#7c3aed">🧪 Exam Attempts</div>
+        <table style="width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:18px"><thead><tr style="background:#f6f3ff"><th style="padding:8px;text-align:left">When</th><th style="padding:8px;text-align:left">Topic</th><th style="padding:8px;text-align:right">Score</th><th style="padding:8px;text-align:right">%</th><th style="padding:8px;text-align:left">Grade</th></tr></thead><tbody>${examRows}</tbody></table>
+        <div style="font-size:13px;font-weight:700;margin-bottom:8px;color:#16a34a">🈯 Language Practice (Bhasha Setu)</div>
+        <table style="width:100%;border-collapse:collapse;font-size:12.5px"><thead><tr style="background:#f0fdf4"><th style="padding:8px;text-align:left">When</th><th style="padding:8px;text-align:left">Lesson</th><th style="padding:8px;text-align:left">Lang</th><th style="padding:8px;text-align:right">Activity</th></tr></thead><tbody>${bhashaRows}</tbody></table>
+      </div>
+    </div></div>`;
+  const wrap = document.createElement('div'); wrap.innerHTML = html; document.body.appendChild(wrap.firstElementChild);
+}
+
 async function openCalendar(){
   document.getElementById('calendarPage').classList.add('active');
   document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
