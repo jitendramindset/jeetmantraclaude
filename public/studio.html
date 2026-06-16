@@ -251,8 +251,8 @@ select,input[type=text]{width:100%;padding:8px;border-radius:6px;border:1px soli
 <div id="arCropModal" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.9);flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px">
   <div style="font-size:15px;font-weight:700;color:#fff">🖼 Select which part of the frame to show</div>
   <div style="font-size:12px;color:var(--mut)">Drag the purple box to reposition · drag corner handles to resize</div>
-  <div id="arCropWrap" style="position:relative;display:inline-block;max-width:min(88vw,960px);cursor:default;user-select:none">
-    <canvas id="arCropPreview" style="display:block;max-width:100%;border-radius:8px;background:#111"></canvas>
+  <div id="arCropWrap" style="position:relative;max-width:min(88vw,960px);width:min(88vw,960px);cursor:default;user-select:none;line-height:0">
+    <canvas id="arCropPreview" style="display:block;width:100%;height:auto;border-radius:8px;background:#111"></canvas>
     <!-- dimming overlay outside selection — 4 divs for top/bottom/left/right -->
     <div id="arcDimT" style="position:absolute;top:0;left:0;right:0;background:rgba(0,0,0,.55);pointer-events:none"></div>
     <div id="arcDimB" style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.55);pointer-events:none"></div>
@@ -316,6 +316,8 @@ const out=document.getElementById('out'), octx=out.getContext('2d');
 
 // ── Simple Crop mode ────────────────────────────────────────────────────
 let _cropMode=false, _cropRect={x:0,y:0,w:1,h:1};
+// ── AR-based source crop: maps a region of the SOURCE to fill the OUTPUT ──
+let _srcCropMode=false, _srcCrop={x:0,y:0,w:1,h:1};
 function toggleCropMode(){
   _cropMode=!_cropMode;
   document.getElementById('btnSimpleCrop').classList.toggle('on',_cropMode);
@@ -783,21 +785,31 @@ function openArCropSelector(newFmt){
   const [tw,th]=newFmt.split('x').map(Number);
   const targetAR=tw/th;
   const preview=document.getElementById('arCropPreview');
+  // Snapshot the current live canvas frame into the preview
   preview.width=out.width; preview.height=out.height;
-  preview.getContext('2d').drawImage(out,0,0);
+  try{ preview.getContext('2d').drawImage(out,0,0); }catch(e){}
+  // Init crop box centered, fitted to target AR within the source frame
   const srcAR=out.width/out.height;
   let bw,bh;
   if(targetAR>=srcAR){bw=1;bh=srcAR/targetAR;}else{bh=1;bw=targetAR/srcAR;}
   _arCropBox={x:(1-bw)/2,y:(1-bh)/2,w:bw,h:bh};
   document.getElementById('arCropModal').style.display='flex';
-  setTimeout(()=>{_arUpdateBox(targetAR);_arBindDrag(targetAR);},50);
+  // Wait for layout before positioning — poll until offsetWidth is non-zero
+  let _tries=0;
+  function _waitLayout(){
+    if(preview.offsetWidth>0||_tries++>30){_arUpdateBox(targetAR);_arBindDrag(targetAR);}
+    else requestAnimationFrame(_waitLayout);
+  }
+  requestAnimationFrame(_waitLayout);
 }
 
 function _arUpdateBox(ar){
-  const preview=document.getElementById('arCropPreview');
+  const wrap=document.getElementById('arCropWrap');
   const box=document.getElementById('arCropBox');
-  if(!preview||!box) return;
-  const pw=preview.offsetWidth, ph=preview.offsetHeight;
+  if(!wrap||!box) return;
+  // Use wrap dimensions — the canvas CSS-scales inside it
+  const pw=wrap.offsetWidth, ph=wrap.offsetHeight;
+  if(!pw||!ph) return;
   const px=_arCropBox.x*pw, py=_arCropBox.y*ph;
   const bw=_arCropBox.w*pw, bh=_arCropBox.h*ph;
   box.style.left=px+'px'; box.style.top=py+'px';
@@ -811,9 +823,9 @@ function _arUpdateBox(ar){
 }
 
 function _arBindDrag(targetAR){
-  const preview=document.getElementById('arCropPreview');
+  const wrap=document.getElementById('arCropWrap');
   const box=document.getElementById('arCropBox');
-  if(!preview||!box) return;
+  if(!wrap||!box) return;
   let drag=null;
   box.onpointerdown=e=>{
     if(e.target!==box) return;
@@ -823,7 +835,7 @@ function _arBindDrag(targetAR){
   };
   box.onpointermove=e=>{
     if(!drag) return;
-    const pw=preview.offsetWidth, ph=preview.offsetHeight;
+    const pw=wrap.offsetWidth, ph=wrap.offsetHeight;
     const dx=(e.clientX-drag.sx)/pw, dy=(e.clientY-drag.sy)/ph;
     _arCropBox.x=Math.max(0,Math.min(1-_arCropBox.w,drag.ox+dx));
     _arCropBox.y=Math.max(0,Math.min(1-_arCropBox.h,drag.oy+dy));
@@ -839,7 +851,7 @@ function _arBindDrag(targetAR){
     };
     h.onpointermove=e=>{
       if(!rd) return;
-      const pw=preview.offsetWidth, ph=preview.offsetHeight;
+      const pw=wrap.offsetWidth, ph=wrap.offsetHeight;
       const dx=(e.clientX-rd.sx)/pw, dy=(e.clientY-rd.sy)/ph;
       let {x,y,w,h:bh2}=rd.box;
       let nw,nh;
@@ -856,14 +868,15 @@ function _arBindDrag(targetAR){
 }
 
 function applyArCrop(){
-  _cropRect={x:_arCropBox.x,y:_arCropBox.y,w:_arCropBox.w,h:_arCropBox.h};
-  _cropMode=true;
+  // Store as source-region crop: the renderLoop scales this region to fill the output
+  _srcCrop={x:_arCropBox.x,y:_arCropBox.y,w:_arCropBox.w,h:_arCropBox.h};
+  _srcCropMode=true;
   _applyFormat(_pendingFmt);
   document.getElementById('arCropModal').style.display='none';
 }
 
 function applyArCropFull(){
-  _cropMode=false;
+  _srcCropMode=false;
   _applyFormat(_pendingFmt);
   document.getElementById('arCropModal').style.display='none';
 }
@@ -960,6 +973,12 @@ function renderLoop(){ requestAnimationFrame(renderLoop);
         const cw2=out.width*fw, ch2=out.height*fw;
         const cx2=(out.width-cw2)/2, cy2=(out.height-ch2)/2;
         try{ octx.drawImage(s.el,cx2,cy2,cw2,ch2); }catch(e){}
+      } else if(_srcCropMode){
+        // AR crop: scale selected source region to fill the full output canvas
+        const el=s.el;
+        const nw=el.videoWidth||el.width||out.width;
+        const nh=el.videoHeight||el.height||out.height;
+        try{ octx.drawImage(el,_srcCrop.x*nw,_srcCrop.y*nh,_srcCrop.w*nw,_srcCrop.h*nh,0,0,out.width,out.height); }catch(e){}
       } else {
         try{ octx.drawImage(s.el,0,0,out.width,out.height); }catch(e){}
       }
