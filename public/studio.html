@@ -42,6 +42,8 @@ select,input[type=text]{width:100%;padding:8px;border-radius:6px;border:1px soli
 @media(min-width:2200px){.main{grid-template-columns:340px 1fr 400px}.btn{font-size:16px;padding:12px 20px}h4{font-size:14px}select,input[type=text]{font-size:15px;padding:11px}.scene .nm{font-size:15px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 .arc-h{position:absolute;width:14px;height:14px;background:#7c3aed;border:2px solid #fff;border-radius:3px;transform:translate(-50%,-50%);touch-action:none}
+.wb-tool,.wb-bg-btn{padding:4px 8px;font-size:14px;min-width:32px}
+.wb-tool.on,.wb-bg-btn.on{background:#7c3aed;color:#fff;border-color:#7c3aed}
 
 /* ── Welcome Guide overlay ── */
 #studioGuide{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.82);display:flex;align-items:center;justify-content:center;padding:20px}
@@ -208,6 +210,47 @@ select,input[type=text]{width:100%;padding:8px;border-radius:6px;border:1px soli
       <canvas id="out" width="1280" height="720"></canvas>
       <svg id="cornerSvg" viewBox="0 0 1280 720" preserveAspectRatio="none"></svg>
       <div id="cropOverlay"></div>
+    </div>
+    <!-- Whiteboard floating toolbar — shown only when a whiteboard scene is active -->
+    <div id="wbToolbar" style="display:none;flex-wrap:wrap;gap:5px;align-items:center;margin-top:8px;padding:7px 10px;background:var(--panel);border-radius:10px;border:1px solid var(--bd)">
+      <!-- Tools -->
+      <button class="btn wb-tool on" data-tool="pen" onclick="wbSetTool('pen')" title="Pen">✏️</button>
+      <button class="btn wb-tool" data-tool="eraser" onclick="wbSetTool('eraser')" title="Eraser">🧹</button>
+      <button class="btn wb-tool" data-tool="line" onclick="wbSetTool('line')" title="Line">╱</button>
+      <button class="btn wb-tool" data-tool="rect" onclick="wbSetTool('rect')" title="Rectangle">▭</button>
+      <button class="btn wb-tool" data-tool="circle" onclick="wbSetTool('circle')" title="Circle/Ellipse">○</button>
+      <button class="btn wb-tool" data-tool="arrow" onclick="wbSetTool('arrow')" title="Arrow">→</button>
+      <div style="width:1px;height:24px;background:var(--bd);margin:0 3px"></div>
+      <!-- Color -->
+      <label title="Color" style="display:flex;align-items:center;gap:4px;cursor:pointer">
+        <span id="wbColorSwatch" style="width:22px;height:22px;border-radius:50%;background:#1a1a25;border:2px solid var(--bd);display:inline-block"></span>
+        <input type="color" value="#1a1a25" oninput="wbSetColor(this.value)" style="opacity:0;width:0;height:0;position:absolute">
+      </label>
+      <!-- Preset colors -->
+      <button onclick="wbSetColor('#1a1a25')" style="width:18px;height:18px;border-radius:50%;background:#1a1a25;border:2px solid var(--bd);padding:0" title="Black"></button>
+      <button onclick="wbSetColor('#e53e3e')" style="width:18px;height:18px;border-radius:50%;background:#e53e3e;border:none;padding:0" title="Red"></button>
+      <button onclick="wbSetColor('#3182ce')" style="width:18px;height:18px;border-radius:50%;background:#3182ce;border:none;padding:0" title="Blue"></button>
+      <button onclick="wbSetColor('#38a169')" style="width:18px;height:18px;border-radius:50%;background:#38a169;border:none;padding:0" title="Green"></button>
+      <button onclick="wbSetColor('#d69e2e')" style="width:18px;height:18px;border-radius:50%;background:#d69e2e;border:none;padding:0" title="Yellow"></button>
+      <button onclick="wbSetColor('#805ad5')" style="width:18px;height:18px;border-radius:50%;background:#805ad5;border:none;padding:0" title="Purple"></button>
+      <div style="width:1px;height:24px;background:var(--bd);margin:0 3px"></div>
+      <!-- Size -->
+      <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--mut)">Size
+        <input type="range" min="1" max="30" value="4" oninput="wbSetSize(this.value)" style="width:70px">
+      </label>
+      <div style="width:1px;height:24px;background:var(--bd);margin:0 3px"></div>
+      <!-- Background -->
+      <span style="font-size:11px;color:var(--mut)">BG:</span>
+      <button class="btn wb-bg-btn on" data-bg="white" onclick="wbSetBg('white')" title="White">⬜</button>
+      <button class="btn wb-bg-btn" data-bg="grid" onclick="wbSetBg('grid')" title="Grid">⊞</button>
+      <button class="btn wb-bg-btn" data-bg="dotgrid" onclick="wbSetBg('dotgrid')" title="Dot grid">⁘</button>
+      <button class="btn wb-bg-btn" data-bg="graph" onclick="wbSetBg('graph')" title="Graph paper">📊</button>
+      <button class="btn wb-bg-btn" data-bg="lines" onclick="wbSetBg('lines')" title="Ruled lines">≡</button>
+      <button class="btn wb-bg-btn" data-bg="black" onclick="wbSetBg('black')" title="Dark board">⬛</button>
+      <div style="width:1px;height:24px;background:var(--bd);margin:0 3px"></div>
+      <!-- Actions -->
+      <button class="btn" onclick="wbUndo()" title="Undo">↩</button>
+      <button class="btn" onclick="wbClear()" title="Clear board" style="color:#e53e3e">🗑</button>
     </div>
     <div style="display:flex;gap:8px;margin-top:10px">
       <span class="badge" id="srcLabel">No source</span><span class="badge">1280×720</span>
@@ -523,14 +566,24 @@ async function startCamera(deviceId){ if(!deviceId) return; if(sources[deviceId]
 async function addScreen(){ try{ const stream=await navigator.mediaDevices.getDisplayMedia({video:{frameRate:30},audio:false}); const id='screen_'+Date.now(); registerVideo(id,stream,'Screen'); stream.getVideoTracks()[0].addEventListener('ended',()=>{ delete sources[id]; }); }catch(e){} }
 function registerVideo(id,stream,label){ const v=document.createElement('video'); v.srcObject=stream; v.autoplay=true; v.muted=true; v.playsInline=true; v.setAttribute('playsinline',''); document.getElementById('srcHolder').appendChild(v); v.play().catch(()=>{}); sources[id]={el:v,type:'video',stream,label}; if(!scenes.length) addScene(id); else pickSource(id); }
 // Whiteboard source — a drawable canvas.
-function addWhiteboard(){ const id='wb_'+Date.now(); const cv=document.createElement('canvas'); cv.width=1280; cv.height=720; const c=cv.getContext('2d'); c.fillStyle='#fff'; c.fillRect(0,0,1280,720); sources[id]={el:cv,type:'whiteboard',ctx:c,label:'Whiteboard'}; addScene(id); enableWbDraw(id); }
+function addWhiteboard(){
+  const id='wb_'+Date.now();
+  const cv=document.createElement('canvas'); cv.width=out.width||1280; cv.height=out.height||720;
+  const c=cv.getContext('2d');
+  c.fillStyle='#fff'; c.fillRect(0,0,cv.width,cv.height);
+  sources[id]={el:cv,type:'whiteboard',ctx:c,label:'Whiteboard',undoStack:[]};
+  addScene(id); enableWbDraw(id);
+}
 // Image/document source.
 function addImage(input){ const f=input.files?.[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ const im=new Image(); im.onload=()=>{ const id='img_'+Date.now(); sources[id]={el:im,type:'image',label:'Document'}; addScene(id); }; im.src=r.result; }; r.readAsDataURL(f); input.value=''; }
 function addImageUrl(url,label){ const im=new Image(); im.crossOrigin='anonymous'; im.onload=()=>{ const id='img_'+Date.now(); sources[id]={el:im,type:'image',label:label||'Content'}; addScene(id); }; im.onerror=()=>alert('Could not load that content as an image (PDFs/links may not embed).'); im.src=url; }
 function pickSource(id){ if(activeScene){ activeScene.sourceId=id; renderScenes(); } document.getElementById('srcLabel').textContent=(sources[id]?.label||'Source'); }
 
 // Whiteboard drawing (on the main preview when its scene is active).
-function enableWbDraw(id){ /* drawing handled in pointer handler on #out when active scene is whiteboard */ }
+function enableWbDraw(id){
+  document.getElementById('wbToolbar').style.display='flex';
+  wbSetTool('pen');
+}
 
 // ── Course content picker ──────────────────────────────────────────────
 async function openCoursePicker(){ document.getElementById('coursePicker').style.display='flex';
@@ -612,7 +665,7 @@ async function tGoLive(){
 // ── Scenes ─────────────────────────────────────────────────────────────
 function addScene(sourceId){ const sid=sourceId||activeScene?.sourceId||Object.keys(sources)[0]||''; const sc={id:'sc_'+Date.now(),name:(sources[sid]?.label||'Scene')+' '+(scenes.length+1),sourceId:sid,corners:defaultCorners(),zoom:1,rotation:0}; scenes.push(sc); activeScene=sc; renderScenes(); loadEditor(); }
 function defaultCorners(){ return [{x:0,y:0},{x:1,y:0},{x:1,y:1},{x:0,y:1}]; }
-function switchScene(id){ activeScene=scenes.find(s=>s.id===id); _selLayer=(activeScene&&activeScene.layers&&activeScene.layers[0])?activeScene.layers[0].id:null; renderScenes(); loadEditor(); document.getElementById('srcLabel').textContent=(sources[activeScene?.sourceId]?.label||'Source'); drawCorners(); renderLayerList(); drawLayout(); }
+function switchScene(id){ activeScene=scenes.find(s=>s.id===id); _selLayer=(activeScene&&activeScene.layers&&activeScene.layers[0])?activeScene.layers[0].id:null; renderScenes(); loadEditor(); document.getElementById('srcLabel').textContent=(sources[activeScene?.sourceId]?.label||'Source'); drawCorners(); renderLayerList(); drawLayout(); const isWb=activeScene&&sources[activeScene.sourceId]?.type==='whiteboard'; document.getElementById('wbToolbar').style.display=isWb?'flex':'none'; if(isWb) wbSetTool(wbTool); }
 function renderScenes(){ document.getElementById('sceneList').innerHTML=scenes.map(s=>{ const ic={video:'🎥',screen:'🖥',whiteboard:'🖍',image:'📄'}[sources[s.sourceId]?.type]||'🎬'; return `<div class="scene ${activeScene?.id===s.id?'active':''}" onclick="switchScene('${s.id}')"><div class="thumb">${ic}</div><div class="nm">${s.name||'Scene'}</div><button class="btn" style="padding:3px 8px" onclick="event.stopPropagation();delScene('${s.id}')">×</button></div>`; }).join('')||'<div class="hint">No scenes yet.</div>'; }
 function delScene(id){ scenes=scenes.filter(s=>s.id!==id); if(activeScene?.id===id) activeScene=scenes[0]||null; renderScenes(); loadEditor(); }
 function updatePreset(k,v){ if(activeScene){ activeScene[k]=v; if(k==='name') renderScenes(); } }
@@ -785,11 +838,19 @@ function openArCropSelector(newFmt){
   const [tw,th]=newFmt.split('x').map(Number);
   const targetAR=tw/th;
   const preview=document.getElementById('arCropPreview');
-  // Snapshot the current live canvas frame into the preview
-  preview.width=out.width; preview.height=out.height;
-  try{ preview.getContext('2d').drawImage(out,0,0); }catch(e){}
+  // Snapshot the RAW source (not the already-cropped output) so re-selecting
+  // layout always shows the full original frame, not a previously cropped view
+  const s=activeScene&&sources[activeScene.sourceId];
+  const srcEl=s?s.el:null;
+  const rawW=(srcEl&&(srcEl.videoWidth||srcEl.width))||out.width;
+  const rawH=(srcEl&&(srcEl.videoHeight||srcEl.height))||out.height;
+  preview.width=rawW; preview.height=rawH;
+  try{
+    const pc=preview.getContext('2d');
+    pc.fillStyle='#222'; pc.fillRect(0,0,rawW,rawH);
+    if(srcEl) pc.drawImage(srcEl,0,0,rawW,rawH);
+  }catch(e){}
   // Init crop box centered, fitted to target AR within the source frame
-  const srcAR=out.width/out.height;
   let bw,bh;
   if(targetAR>=srcAR){bw=1;bh=srcAR/targetAR;}else{bh=1;bw=targetAR/srcAR;}
   _arCropBox={x:(1-bw)/2,y:(1-bh)/2,w:bw,h:bh};
@@ -896,12 +957,146 @@ function setFormat(v){
 window.addEventListener('resize', drawCorners);
 function loadBrandLogo(input){ const f=input.files?.[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ const im=new Image(); im.onload=()=>brandImg=im; im.src=r.result; }; r.readAsDataURL(f); }
 
-// Whiteboard drawing on #out when active scene's source is a whiteboard.
-let wbDraw=false,wbLast=null;
-out.addEventListener('pointerdown',e=>{ const s=activeScene&&sources[activeScene.sourceId]; if(_adjustMode||!s||s.type!=='whiteboard') return; wbDraw=true; wbLast=wbPt(e); });
-out.addEventListener('pointermove',e=>{ if(!wbDraw) return; const s=sources[activeScene.sourceId]; const p=wbPt(e); s.ctx.strokeStyle='#1a1a25'; s.ctx.lineWidth=4; s.ctx.lineCap='round'; s.ctx.beginPath(); s.ctx.moveTo(wbLast.x,wbLast.y); s.ctx.lineTo(p.x,p.y); s.ctx.stroke(); wbLast=p; });
-window.addEventListener('pointerup',()=>{ wbDraw=false; });
-function wbPt(e){ const r=outRect(); return {x:(e.clientX-r.left)/r.width*1280, y:(e.clientY-r.top)/r.height*720}; }
+// ── Whiteboard tools ───────────────────────────────────────────────────
+let wbDraw=false, wbLast=null, wbStart=null;
+let wbTool='pen', wbColor='#1a1a25', wbSize=4, wbBg='white';
+let wbSnap=null; // snapshot before shape preview
+
+function _wbS(){ const s=activeScene&&sources[activeScene.sourceId]; return s&&s.type==='whiteboard'?s:null; }
+function wbPt(e){ const r=outRect(); const s=_wbS(); const cw=s?s.el.width:out.width; const ch=s?s.el.height:out.height; return {x:(e.clientX-r.left)/r.width*cw, y:(e.clientY-r.top)/r.height*ch}; }
+
+// Draw whiteboard background pattern
+function wbDrawBg(s, bg){
+  const ctx=s.ctx, W=s.el.width, H=s.el.height;
+  if(bg==='white'){ ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,W,H); }
+  else if(bg==='black'){ ctx.fillStyle='#1a1a2e'; ctx.fillRect(0,0,W,H); }
+  else if(bg==='grid'){
+    ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,W,H);
+    ctx.strokeStyle='#d0d0e0'; ctx.lineWidth=1;
+    for(let x=0;x<=W;x+=40){ ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke(); }
+    for(let y=0;y<=H;y+=40){ ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke(); }
+  } else if(bg==='dotgrid'){
+    ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#b0b0c8';
+    for(let x=0;x<=W;x+=40) for(let y=0;y<=H;y+=40){ ctx.beginPath();ctx.arc(x,y,2,0,Math.PI*2);ctx.fill(); }
+  } else if(bg==='graph'){
+    ctx.fillStyle='#f0f8ff'; ctx.fillRect(0,0,W,H);
+    // minor lines
+    ctx.strokeStyle='#c8ddf0'; ctx.lineWidth=0.5;
+    for(let x=0;x<=W;x+=20){ ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke(); }
+    for(let y=0;y<=H;y+=20){ ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke(); }
+    // major lines
+    ctx.strokeStyle='#8ab4d4'; ctx.lineWidth=1;
+    for(let x=0;x<=W;x+=100){ ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke(); }
+    for(let y=0;y<=H;y+=100){ ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke(); }
+  } else if(bg==='lines'){
+    ctx.fillStyle='#fffef0'; ctx.fillRect(0,0,W,H);
+    ctx.strokeStyle='#c0c8e0'; ctx.lineWidth=1;
+    for(let y=60;y<=H;y+=40){ ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke(); }
+    ctx.strokeStyle='#f0a0a0'; ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(80,0);ctx.lineTo(80,H);ctx.stroke();
+  }
+}
+
+function wbSetBg(bg){
+  const s=_wbS(); if(!s) return;
+  wbBg=bg;
+  wbDrawBg(s,bg);
+  document.querySelectorAll('.wb-bg-btn').forEach(b=>b.classList.toggle('on',b.dataset.bg===bg));
+}
+
+function wbClear(){
+  const s=_wbS(); if(!s) return;
+  wbDrawBg(s,wbBg);
+}
+
+function wbUndo(){
+  const s=_wbS(); if(!s||!s.undoStack||!s.undoStack.length) return;
+  const img=s.undoStack.pop();
+  s.ctx.putImageData(img,0,0);
+}
+
+function _wbPushUndo(){
+  const s=_wbS(); if(!s) return;
+  if(!s.undoStack) s.undoStack=[];
+  if(s.undoStack.length>30) s.undoStack.shift();
+  s.undoStack.push(s.ctx.getImageData(0,0,s.el.width,s.el.height));
+}
+
+function wbSetTool(t){
+  wbTool=t;
+  document.querySelectorAll('.wb-tool').forEach(b=>b.classList.toggle('on',b.dataset.tool===t));
+  out.style.cursor=t==='eraser'?'cell':t==='pen'?'crosshair':'default';
+}
+
+function wbSetColor(c){ wbColor=c; document.getElementById('wbColorSwatch').style.background=c; }
+function wbSetSize(v){ wbSize=+v; }
+
+// Shape drawing helpers
+function _wbDrawShape(ctx,tool,x0,y0,x1,y1,color,size){
+  ctx.strokeStyle=color; ctx.lineWidth=size; ctx.lineCap='round'; ctx.lineJoin='round';
+  ctx.beginPath();
+  if(tool==='line'){ ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke(); }
+  else if(tool==='rect'){ ctx.strokeRect(x0,y0,x1-x0,y1-y0); }
+  else if(tool==='circle'){
+    const rx=(x1-x0)/2, ry=(y1-y0)/2;
+    ctx.ellipse(x0+rx,y0+ry,Math.abs(rx),Math.abs(ry),0,0,Math.PI*2); ctx.stroke();
+  } else if(tool==='arrow'){
+    ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke();
+    const angle=Math.atan2(y1-y0,x1-x0);
+    const hs=Math.max(size*4,16);
+    ctx.beginPath();
+    ctx.moveTo(x1,y1);
+    ctx.lineTo(x1-hs*Math.cos(angle-0.4),y1-hs*Math.sin(angle-0.4));
+    ctx.lineTo(x1-hs*Math.cos(angle+0.4),y1-hs*Math.sin(angle+0.4));
+    ctx.closePath(); ctx.fillStyle=color; ctx.fill();
+  }
+}
+
+out.addEventListener('pointerdown',e=>{
+  const s=_wbS(); if(_adjustMode||!s) return;
+  e.preventDefault();
+  _wbPushUndo();
+  const p=wbPt(e);
+  wbDraw=true; wbLast=p; wbStart=p;
+  if(wbTool==='pen'||wbTool==='eraser'){
+    s.ctx.beginPath(); s.ctx.moveTo(p.x,p.y);
+  } else {
+    wbSnap=s.ctx.getImageData(0,0,s.el.width,s.el.height);
+  }
+  out.setPointerCapture(e.pointerId);
+});
+
+out.addEventListener('pointermove',e=>{
+  if(!wbDraw){ const s=_wbS(); if(s) out.style.cursor=wbTool==='eraser'?'cell':'crosshair'; return; }
+  const s=_wbS(); if(!s) return;
+  const p=wbPt(e);
+  if(wbTool==='pen'){
+    s.ctx.strokeStyle=wbColor; s.ctx.lineWidth=wbSize; s.ctx.lineCap='round'; s.ctx.lineJoin='round';
+    s.ctx.lineTo(p.x,p.y); s.ctx.stroke(); s.ctx.beginPath(); s.ctx.moveTo(p.x,p.y);
+  } else if(wbTool==='eraser'){
+    s.ctx.globalCompositeOperation='destination-out';
+    s.ctx.beginPath(); s.ctx.arc(p.x,p.y,wbSize*3,0,Math.PI*2); s.ctx.fill();
+    s.ctx.globalCompositeOperation='source-over';
+    // Redraw bg under erased area by drawing bg to a temp then compositing — simple: just fill with bg color
+    const bgCol=wbBg==='black'?'#1a1a2e':'#ffffff';
+    s.ctx.globalCompositeOperation='destination-over';
+    s.ctx.fillStyle=bgCol; s.ctx.beginPath(); s.ctx.arc(p.x,p.y,wbSize*3,0,Math.PI*2); s.ctx.fill();
+    s.ctx.globalCompositeOperation='source-over';
+  } else {
+    // Shape preview: restore snapshot then draw current shape
+    if(wbSnap) s.ctx.putImageData(wbSnap,0,0);
+    _wbDrawShape(s.ctx,wbTool,wbStart.x,wbStart.y,p.x,p.y,wbColor,wbSize);
+  }
+  wbLast=p;
+});
+
+window.addEventListener('pointerup',e=>{
+  if(!wbDraw) return;
+  wbDraw=false; wbSnap=null;
+  const s=_wbS(); if(!s) return;
+  if(wbTool==='pen'||wbTool==='eraser'){ s.ctx.beginPath(); }
+});
 
 // ── Homography + WebGL ─────────────────────────────────────────────────
 function solveHomography(src,dst){ const A=[],b=[]; for(let i=0;i<4;i++){ const {x,y}=src[i],{x:u,y:v}=dst[i]; A.push([x,y,1,0,0,0,-u*x,-u*y]); b.push(u); A.push([0,0,0,x,y,1,-v*x,-v*y]); b.push(v);} const h=gauss(A,b); h.push(1); return h; }
