@@ -377,4 +377,58 @@ router.get('/compare', authenticateToken, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ── STUDENT CALENDAR ─────────────────────────────────────────────────────────
+// GET /api/student/calendar?year=2026&month=6
+// Returns days:{iso:[events]} for the requested month — enrolled live classes,
+// tests and assignments due in that month.
+router.get('/calendar', authenticateToken, async (req, res) => {
+  try {
+    const year  = parseInt(req.query.year)  || new Date().getFullYear();
+    const month = parseInt(req.query.month) || new Date().getMonth() + 1;
+    const start = `${year}-${String(month).padStart(2,'0')}-01`;
+    const end   = new Date(year, month, 0).toISOString().slice(0, 10); // last day
+
+    // Get all enrolled course IDs
+    const { data: enrollments } = await supabaseAdmin
+      .from('enrollments').select('course_id').eq('student_id', req.user.id);
+    const courseIds = (enrollments || []).map(e => e.course_id);
+
+    const days = {};
+    const addEvent = (iso, ev) => { (days[iso] = days[iso] || []).push(ev); };
+
+    if (courseIds.length) {
+      // Live classes in range
+      const { data: classes } = await supabaseAdmin
+        .from('live_classes').select('id, title, course_id, scheduled_time, status')
+        .in('course_id', courseIds)
+        .gte('scheduled_time', start + 'T00:00:00')
+        .lte('scheduled_time', end + 'T23:59:59');
+      (classes || []).forEach(c => {
+        const iso = c.scheduled_time?.slice(0,10);
+        if (iso) addEvent(iso, { id: c.id, type: 'live', title: c.title, time: c.scheduled_time, status: c.status });
+      });
+
+      // Tests due in range
+      const { data: tests } = await supabaseAdmin
+        .from('course_tests').select('id, title, course_id, due_date')
+        .in('course_id', courseIds)
+        .gte('due_date', start).lte('due_date', end);
+      (tests || []).forEach(t => {
+        if (t.due_date) addEvent(t.due_date, { id: t.id, type: 'test', title: t.title, time: t.due_date + 'T00:00:00' });
+      });
+
+      // Assignments due in range
+      const { data: assignments } = await supabaseAdmin
+        .from('assignments').select('id, title, course_id, due_date')
+        .in('course_id', courseIds)
+        .gte('due_date', start).lte('due_date', end);
+      (assignments || []).forEach(a => {
+        if (a.due_date) addEvent(a.due_date, { id: a.id, type: 'assignment', title: a.title, time: a.due_date + 'T00:00:00' });
+      });
+    }
+
+    res.json({ year, month, days });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 module.exports = router;
