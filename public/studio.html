@@ -40,16 +40,75 @@ select,input[type=text]{width:100%;padding:8px;border-radius:6px;border:1px soli
 @media(max-width:480px){.topbar{padding:8px 10px;gap:6px}.btn{padding:9px 12px;font-size:12px;min-height:40px}#fmtSelect{width:100%;order:10}.col{padding:10px}.hint{display:none}}
 /* Smartboard / 4K: scale up controls and type so they stay legible from a distance. */
 @media(min-width:2200px){.main{grid-template-columns:340px 1fr 400px}.btn{font-size:16px;padding:12px 20px}h4{font-size:14px}select,input[type=text]{font-size:15px;padding:11px}.scene .nm{font-size:15px}}
-
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+
+/* ── Welcome Guide overlay ── */
+#studioGuide{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.82);display:flex;align-items:center;justify-content:center;padding:20px}
+#studioGuide .guide-card{background:var(--panel);border:1px solid rgba(255,255,255,.15);border-radius:16px;padding:32px;max-width:680px;width:100%;text-align:center}
+#studioGuide h2{font-size:24px;margin:0 0 6px}
+#studioGuide p.sub{color:var(--mut);font-size:14px;margin:0 0 24px}
+.guide-choices{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-bottom:20px}
+.guide-choice{flex:1;min-width:160px;max-width:200px;background:var(--panel2);border:1px solid var(--bd);border-radius:12px;padding:22px 16px;cursor:pointer;transition:border-color .15s}
+.guide-choice:hover{border-color:var(--pri)}
+.guide-choice .gc-icon{font-size:32px;margin-bottom:10px}
+.guide-choice .gc-title{font-size:14px;font-weight:700;margin-bottom:4px}
+.guide-choice .gc-desc{font-size:11px;color:var(--mut)}
+#guideSkip{font-size:12px;color:var(--mut);background:none;border:none;cursor:pointer;text-decoration:underline}
+#guideSkip:hover{color:var(--txt)}
+
+/* ── Template panel dropdown ── */
+#templatePanel{position:absolute;top:100%;left:0;margin-top:4px;z-index:100;background:var(--panel);border:1px solid var(--bd);border-radius:10px;padding:14px;width:300px;display:none}
+#templatePanel.open{display:block}
+.tpl-row{display:flex;align-items:center;gap:8px;padding:8px;border:1px solid var(--bd);border-radius:8px;margin-bottom:6px;cursor:pointer;background:var(--panel2)}
+.tpl-row:hover{border-color:var(--pri)}
+.tpl-row .tpl-nm{flex:1;font-size:13px;font-weight:600}
+.tpl-btn-wrap{position:relative;display:inline-flex}
+
+/* ── Crop rect overlay ── */
+#cropOverlay{position:absolute;border:2px dashed var(--pri);box-sizing:border-box;z-index:6;pointer-events:none;display:none}
+
+/* ── Toast ── */
+#studioToast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--bd);color:var(--txt);padding:10px 20px;border-radius:8px;font-size:13px;z-index:300;opacity:0;transition:opacity .25s;pointer-events:none}
+#studioToast.show{opacity:1}
 </style>
 </head>
 <body>
 <h1 style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden">JeetMantra Studio — Smart Camera &amp; Recording</h1>
+
+<!-- ── Welcome guide overlay ── -->
+<div id="studioGuide" style="display:none">
+  <div class="guide-card">
+    <h2>🎥 JeetMantra Studio</h2>
+    <p class="sub">Smart camera &amp; recording — pick how to start</p>
+    <div class="guide-choices">
+      <div class="guide-choice" onclick="enableDevices().then(()=>dismissGuide())">
+        <div class="gc-icon">📸</div>
+        <div class="gc-title">Start Camera</div>
+        <div class="gc-desc">Enable your webcam and microphone</div>
+      </div>
+      <div class="guide-choice" onclick="addScreen();dismissGuide()">
+        <div class="gc-icon">🖥</div>
+        <div class="gc-title">Share Screen</div>
+        <div class="gc-desc">Capture your screen or a window</div>
+      </div>
+      <div class="guide-choice" onclick="_showGuideTemplate()">
+        <div class="gc-icon">📋</div>
+        <div class="gc-title">Load Template</div>
+        <div class="gc-desc">Restore a saved scene layout</div>
+      </div>
+    </div>
+    <div id="guideTemplateArea" style="display:none;text-align:left;margin-bottom:16px;max-height:180px;overflow-y:auto"></div>
+    <button id="guideSkip" onclick="dismissGuide()">Skip — I'll set up manually</button>
+  </div>
+</div>
+
+<!-- ── Toast notification ── -->
+<div id="studioToast"></div>
+
 <div class="topbar">
   <div class="logo">Jeet<span class="a">Mantra</span> Studio</div>
   <span class="badge">🎥 Smart Camera</span>
-  <button class="btn" id="btnAdjust" onclick="toggleAdjust()" title="Drag corners on the big preview">✂️ Adjust corners</button>
+  <button class="btn" id="btnAdjust" onclick="toggleAdjust()" title="Drag corners on the big preview to fix perspective">✂️ Crop</button>
   <button class="btn" id="btnLayout" onclick="toggleLayout()" title="Arrange multiple elements on the preview (drag to move, corner to resize)">🧩 Arrange layout</button>
   <button class="btn" id="btnTeach" onclick="openTeach()" title="Connect this Studio to a course's live class and go live">📡 Teach a course</button>
   <span id="boundClassBadge" class="badge" style="display:none;background:#7f1d1d;color:#fecaca"></span>
@@ -60,6 +119,7 @@ select,input[type=text]{width:100%;padding:8px;border-radius:6px;border:1px soli
     <option value="1080x1080">1:1 · Square</option>
     <option value="960x720">4:3 · Classic</option>
   </select>
+  <span id="fmtBadge" class="badge" style="background:rgba(124,58,237,.18);color:var(--pri)">16:9 · 720p</span>
   <div style="flex:1"></div>
   <span id="recStatus" style="display:none;font-size:13px"><span class="rec-dot"></span> REC <span id="recTime">00:00</span></span>
   <select id="saveTarget" title="Where to save the recording" style="width:auto;margin:0;padding:7px 10px">
@@ -67,6 +127,20 @@ select,input[type=text]{width:100%;padding:8px;border-radius:6px;border:1px soli
     <option value="class">☁️ Save in app (class)</option>
     <option value="both" selected>💾☁️ Both</option>
   </select>
+  <!-- Templates button with dropdown -->
+  <div class="tpl-btn-wrap" id="tplBtnWrap">
+    <button class="btn" id="btnTemplates" onclick="toggleTemplatePanel()" title="Save or load scene templates">💾 Templates</button>
+    <div id="templatePanel">
+      <h4 style="margin-top:0">💾 Save current layout</h4>
+      <div style="display:flex;gap:6px;margin-bottom:10px">
+        <input type="text" id="tplNameInput" placeholder="Template name…" style="margin:0;flex:1">
+        <button class="btn pri" style="padding:7px 12px" onclick="saveTemplate()">Save</button>
+      </div>
+      <h4>📂 Saved templates</h4>
+      <div id="tplList"><div class="hint">No templates yet.</div></div>
+    </div>
+  </div>
+  <button class="btn" onclick="openGuide()" title="Show welcome guide">❓ Guide</button>
   <button class="btn pri" id="btnEnable" onclick="enableDevices()">🔓 Enable camera &amp; mic</button>
   <button class="btn" id="btnRec" onclick="toggleRecord()">⏺ Record</button>
   <button class="btn" onclick="location.href='/dashboard.html'">← Exit</button>
@@ -104,6 +178,20 @@ select,input[type=text]{width:100%;padding:8px;border-radius:6px;border:1px soli
     <input type="color" id="vbgColorPick" style="display:none" onchange="setVbgColor(this.value)">
     <button class="btn" style="width:100%;margin-bottom:4px" onclick="document.getElementById('vbgFilePick').click()">🖼 Upload background image</button>
     <input type="file" id="vbgFilePick" accept="image/*" style="display:none" onchange="loadVbgImage(this)">
+    <!-- VBG frame size slider -->
+    <div class="row" style="margin-top:4px">
+      <label style="flex:1">Camera frame size</label>
+      <input type="range" id="vbgFrameSlider" min="0.4" max="1.0" step="0.05" value="0.85" oninput="_vbgFrame=+this.value" style="flex:2">
+    </div>
+    <!-- VBG background image position -->
+    <div id="vbgPositionBtns" style="display:none;margin-bottom:6px">
+      <div style="font-size:11px;color:var(--mut);margin-bottom:4px">Background position:</div>
+      <div style="display:flex;gap:6px">
+        <button class="btn" style="flex:1;font-size:11px;padding:5px" onclick="_vbgFit='fill'">Fill</button>
+        <button class="btn" style="flex:1;font-size:11px;padding:5px" onclick="_vbgFit='contain'">Fit</button>
+        <button class="btn" style="flex:1;font-size:11px;padding:5px" onclick="_vbgFit='center'">Center</button>
+      </div>
+    </div>
     <div class="hint" id="vbgHint">Background fills behind your camera. Tip: use a solid colour for best contrast.</div>
     <h4>🎬 Scenes (switch live)</h4>
     <div id="sceneList"></div>
@@ -118,6 +206,7 @@ select,input[type=text]{width:100%;padding:8px;border-radius:6px;border:1px soli
     <div id="outWrap">
       <canvas id="out" width="1280" height="720"></canvas>
       <svg id="cornerSvg" viewBox="0 0 1280 720" preserveAspectRatio="none"></svg>
+      <div id="cropOverlay"></div>
     </div>
     <div style="display:flex;gap:8px;margin-top:10px">
       <span class="badge" id="srcLabel">No source</span><span class="badge">1280×720</span>
@@ -127,8 +216,18 @@ select,input[type=text]{width:100%;padding:8px;border-radius:6px;border:1px soli
   <!-- EDITOR -->
   <div class="col right">
     <h4>✂️ Perspective</h4>
-    <div class="hint">Click <b>✂️ Adjust corners</b> in the top bar, then drag the 4 dots on the big preview to the corners of your board/area. Studio straightens &amp; crops it.</div>
-    <button class="btn" style="width:100%" onclick="resetCorners()">↺ Reset corners</button>
+    <!-- Simple Crop mode -->
+    <div style="margin-bottom:8px">
+      <button class="btn" style="width:100%;margin-bottom:6px" id="btnSimpleCrop" onclick="toggleCropMode()">🔳 Simple Crop</button>
+      <button class="btn" style="width:100%;margin-bottom:6px" onclick="resetCrop()">↺ Reset Crop</button>
+    </div>
+    <details style="margin-bottom:8px">
+      <summary style="font-size:11px;color:var(--mut);cursor:pointer;user-select:none">⚙️ Fine-tune perspective (advanced)</summary>
+      <div style="margin-top:8px">
+        <div class="hint">Click <b>✂️ Crop</b> in the top bar, then drag the 4 dots on the big preview to the corners of your board/area. Studio straightens &amp; crops it.</div>
+        <button class="btn" style="width:100%" onclick="resetCorners()">↺ Reset corners</button>
+      </div>
+    </details>
     <div class="row" style="margin-top:12px"><label style="flex:1">Zoom</label><input type="range" id="zoom" min="1" max="3" step="0.05" value="1" oninput="updatePreset('zoom',+this.value)" style="flex:2"></div>
     <div class="row"><label style="flex:1">Rotation</label><input type="range" id="rot" min="-180" max="180" step="1" value="0" oninput="updatePreset('rotation',+this.value)" style="flex:2"></div>
     <div class="row"><label style="flex:1">Perspective fix</label><input type="checkbox" id="perspOn" checked></div>
@@ -182,12 +281,193 @@ function crmKey(){ try{ const u=JSON.parse(localStorage.getItem('jm_user')||'{}'
 function getCrm(){ try{ let r=localStorage.getItem(crmKey()); if(r===null&&crmKey()!=='jm_crm') r=localStorage.getItem('jm_crm'); return JSON.parse(r||'{}'); }catch(e){ return {}; } }
 let sources={}, scenes=[], activeScene=null, _adjustMode=false;
 // Virtual background
-let _vbgImg=null, _vbgColor='#000000', _vbgMode='none';
-function clearVbg(){ _vbgMode='none'; _vbgImg=null; _vbgColor='#000'; document.getElementById('vbgHint').textContent='Background: none'; }
-function setVbgColor(c){ _vbgColor=c; _vbgMode='color'; document.getElementById('vbgHint').textContent='Background: solid colour'; }
-function loadVbgImage(input){ const f=input.files?.[0]; if(!f) return; const r=new Image(); r.onload=()=>{ _vbgImg=r; _vbgMode='image'; document.getElementById('vbgHint').textContent='Background: '+f.name; }; r.src=URL.createObjectURL(f); }
+let _vbgImg=null, _vbgColor='#000000', _vbgMode='none', _vbgFrame=0.85, _vbgFit='fill';
+function clearVbg(){ _vbgMode='none'; _vbgImg=null; _vbgColor='#000'; document.getElementById('vbgHint').textContent='Background: none'; document.getElementById('vbgPositionBtns').style.display='none'; }
+function setVbgColor(c){ _vbgColor=c; _vbgMode='color'; document.getElementById('vbgHint').textContent='Background: solid colour'; document.getElementById('vbgPositionBtns').style.display='none'; }
+function loadVbgImage(input){ const f=input.files?.[0]; if(!f) return; const r=new Image(); r.onload=()=>{ _vbgImg=r; _vbgMode='image'; document.getElementById('vbgHint').textContent='Background: '+f.name; document.getElementById('vbgPositionBtns').style.display='block'; }; r.src=URL.createObjectURL(f); }
 let gl=null, prog=null, tex=null, glCanvas=null, micStream=null, brandImg=null;
 const out=document.getElementById('out'), octx=out.getContext('2d');
+
+// ── Simple Crop mode ────────────────────────────────────────────────────
+let _cropMode=false, _cropRect={x:0,y:0,w:1,h:1};
+function toggleCropMode(){
+  _cropMode=!_cropMode;
+  document.getElementById('btnSimpleCrop').classList.toggle('on',_cropMode);
+  _updateCropOverlay();
+}
+function resetCrop(){ _cropRect={x:0,y:0,w:1,h:1}; _updateCropOverlay(); }
+function _updateCropOverlay(){
+  const ov=document.getElementById('cropOverlay');
+  if(!_cropMode){ ov.style.display='none'; return; }
+  const rr=outRect();
+  ov.style.display='block';
+  ov.style.left=(_cropRect.x*rr.width)+'px';
+  ov.style.top=(_cropRect.y*rr.height)+'px';
+  ov.style.width=(_cropRect.w*rr.width)+'px';
+  ov.style.height=(_cropRect.h*rr.height)+'px';
+  ov.style.pointerEvents='none';
+  // Use CSS resize for the rectangle — achieved via a transparent inner resize handle
+  _attachCropHandles(ov, rr);
+}
+function _attachCropHandles(ov, rr){
+  // Remove old handles
+  ov.querySelectorAll('.crop-handle').forEach(h=>h.remove());
+  const corners=[
+    {cx:0,cy:0,cursor:'nwse-resize'},
+    {cx:1,cy:0,cursor:'nesw-resize'},
+    {cx:0,cy:1,cursor:'nesw-resize'},
+    {cx:1,cy:1,cursor:'nwse-resize'}
+  ];
+  ov.style.pointerEvents='auto';
+  corners.forEach(({cx,cy,cursor})=>{
+    const h=document.createElement('div');
+    h.className='crop-handle';
+    h.style.cssText=`position:absolute;width:14px;height:14px;background:var(--pri);border:2px solid #fff;border-radius:3px;cursor:${cursor};z-index:7;transform:translate(-50%,-50%);left:${cx*100}%;top:${cy*100}%`;
+    h.addEventListener('pointerdown',e=>{
+      e.preventDefault(); e.stopPropagation(); h.setPointerCapture?.(e.pointerId);
+      const startX=e.clientX, startY=e.clientY;
+      const orig={...rr, rc:{...(_cropRect)}};
+      const mv=ev=>{
+        const dx=(ev.clientX-startX)/orig.width, dy=(ev.clientY-startY)/orig.height;
+        const nr={...orig.rc};
+        if(cx===0){ nr.x=Math.min(orig.rc.x+dx, orig.rc.x+orig.rc.w-0.05); nr.w=orig.rc.w-(nr.x-orig.rc.x); }
+        else { nr.w=Math.max(0.05, orig.rc.w+dx); }
+        if(cy===0){ nr.y=Math.min(orig.rc.y+dy, orig.rc.y+orig.rc.h-0.05); nr.h=orig.rc.h-(nr.y-orig.rc.y); }
+        else { nr.h=Math.max(0.05, orig.rc.h+dy); }
+        _cropRect=nr;
+        const rr2=outRect();
+        ov.style.left=(_cropRect.x*rr2.width)+'px';
+        ov.style.top=(_cropRect.y*rr2.height)+'px';
+        ov.style.width=(_cropRect.w*rr2.width)+'px';
+        ov.style.height=(_cropRect.h*rr2.height)+'px';
+      };
+      const up=()=>{ window.removeEventListener('pointermove',mv); window.removeEventListener('pointerup',up); };
+      window.addEventListener('pointermove',mv); window.addEventListener('pointerup',up);
+    });
+    ov.appendChild(h);
+  });
+  // Move handle in center
+  const mh=document.createElement('div'); mh.className='crop-handle';
+  mh.style.cssText='position:absolute;width:20px;height:20px;background:rgba(124,58,237,.5);border:2px solid #fff;border-radius:50%;cursor:move;z-index:7;transform:translate(-50%,-50%);left:50%;top:50%';
+  mh.addEventListener('pointerdown',e=>{
+    e.preventDefault(); e.stopPropagation(); mh.setPointerCapture?.(e.pointerId);
+    let px=e.clientX, py=e.clientY;
+    const mv=ev=>{
+      const rr2=outRect();
+      const dx=(ev.clientX-px)/rr2.width, dy=(ev.clientY-py)/rr2.height;
+      px=ev.clientX; py=ev.clientY;
+      _cropRect.x=Math.max(0,Math.min(1-_cropRect.w,_cropRect.x+dx));
+      _cropRect.y=Math.max(0,Math.min(1-_cropRect.h,_cropRect.y+dy));
+      ov.style.left=(_cropRect.x*rr2.width)+'px';
+      ov.style.top=(_cropRect.y*rr2.height)+'px';
+    };
+    const up=()=>{ window.removeEventListener('pointermove',mv); window.removeEventListener('pointerup',up); };
+    window.addEventListener('pointermove',mv); window.addEventListener('pointerup',up);
+  });
+  ov.appendChild(mh);
+}
+window.addEventListener('resize',()=>{ if(_cropMode) _updateCropOverlay(); });
+
+// ── Welcome Guide ───────────────────────────────────────────────────────
+function openGuide(){
+  document.getElementById('studioGuide').style.display='flex';
+  document.getElementById('guideTemplateArea').style.display='none';
+}
+function dismissGuide(){
+  localStorage.setItem('studio_seen','1');
+  document.getElementById('studioGuide').style.display='none';
+}
+function _showGuideTemplate(){
+  const area=document.getElementById('guideTemplateArea');
+  area.style.display='block';
+  const keys=Object.keys(localStorage).filter(k=>k.startsWith('jm_studio_tpl_'));
+  if(!keys.length){ area.innerHTML='<div class="hint">No saved templates yet.</div>'; return; }
+  area.innerHTML=keys.map(k=>{
+    const name=k.replace('jm_studio_tpl_','');
+    return `<div class="tpl-row" onclick="_loadTemplateByKey('${k}');dismissGuide()"><div class="tpl-nm">${_esc(name)}</div><span style="color:var(--pri);font-size:12px">Load →</span></div>`;
+  }).join('');
+}
+// Show guide on first load
+if(!localStorage.getItem('studio_seen')){
+  document.getElementById('studioGuide').style.display='flex';
+}
+
+// ── Toast ────────────────────────────────────────────────────────────────
+let _toastTimer=null;
+function showToast(msg){
+  const t=document.getElementById('studioToast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(_toastTimer); _toastTimer=setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+// ── Templates ───────────────────────────────────────────────────────────
+function toggleTemplatePanel(){
+  const p=document.getElementById('templatePanel');
+  p.classList.toggle('open');
+  if(p.classList.contains('open')) renderTemplateList();
+}
+// Close template panel when clicking outside
+document.addEventListener('click',e=>{
+  const wrap=document.getElementById('tplBtnWrap');
+  if(wrap && !wrap.contains(e.target)) document.getElementById('templatePanel').classList.remove('open');
+});
+function saveTemplate(){
+  const name=document.getElementById('tplNameInput').value.trim();
+  if(!name){ alert('Enter a name for this template.'); return; }
+  const data={
+    format: document.getElementById('fmtSelect').value,
+    vbgMode: _vbgMode,
+    vbgColor: _vbgColor,
+    scenes: scenes.map(s=>({name:s.name,zoom:s.zoom,rotation:s.rotation,corners:s.corners,layers:s.layers||[]}))
+  };
+  localStorage.setItem('jm_studio_tpl_'+name, JSON.stringify(data));
+  document.getElementById('tplNameInput').value='';
+  showToast('Template "'+name+'" saved!');
+  renderTemplateList();
+}
+function renderTemplateList(){
+  const box=document.getElementById('tplList');
+  const keys=Object.keys(localStorage).filter(k=>k.startsWith('jm_studio_tpl_'));
+  if(!keys.length){ box.innerHTML='<div class="hint">No templates yet.</div>'; return; }
+  box.innerHTML=keys.map(k=>{
+    const name=k.replace('jm_studio_tpl_','');
+    return `<div class="tpl-row">
+      <div class="tpl-nm" onclick="_loadTemplateByKey('${_esc(k)}')">${_esc(name)}</div>
+      <button class="btn" style="padding:3px 8px;font-size:11px" onclick="_loadTemplateByKey('${_esc(k)}')">Load</button>
+      <button class="btn" style="padding:3px 8px;font-size:11px" onclick="_deleteTemplate('${_esc(k)}')">×</button>
+    </div>`;
+  }).join('');
+}
+function _loadTemplateByKey(key){
+  try{
+    const data=JSON.parse(localStorage.getItem(key)||'{}');
+    if(data.format) setFormat(data.format);
+    if(data.vbgColor) _vbgColor=data.vbgColor;
+    if(data.vbgMode) _vbgMode=data.vbgMode;
+    if(Array.isArray(data.scenes) && data.scenes.length){
+      // Restore scene layout (sources can't be restored — they're live streams)
+      scenes=data.scenes.map((s,i)=>({
+        id:'sc_'+Date.now()+'_'+i,
+        name:s.name||'Scene '+(i+1),
+        sourceId:activeScene?.sourceId||Object.keys(sources)[0]||'',
+        corners:s.corners||defaultCorners(),
+        zoom:s.zoom||1,
+        rotation:s.rotation||0,
+        layers:s.layers||[]
+      }));
+      activeScene=scenes[0]||null;
+      renderScenes(); loadEditor(); renderLayerList();
+    }
+    const name=key.replace('jm_studio_tpl_','');
+    showToast('Template "'+name+'" loaded!');
+    document.getElementById('templatePanel').classList.remove('open');
+  }catch(e){ alert('Could not load template: '+e.message); }
+}
+function _deleteTemplate(key){
+  const name=key.replace('jm_studio_tpl_','');
+  if(!confirm('Delete template "'+name+'"?')) return;
+  localStorage.removeItem(key);
+  renderTemplateList();
+}
 
 (function(){ const crm=getCrm();
   if(crm.companyName && crm.companyName!=='JeetMantra Classes') document.getElementById('brandText').value=crm.companyName;
@@ -296,7 +576,7 @@ async function tGoLive(){
     await fetch(API+'/live-classes/'+_tSelected.id,{method:'PUT',headers:{'Content-Type':'application/json',Authorization:'Bearer '+TOKEN},body:JSON.stringify({status:'live'})}).catch(()=>{});
     _bindClass(_tSelected.id,_tSelected.title);
     document.getElementById('teachModal').style.display='none';
-    const openRoom=confirm('📡 You\'re live with “'+_tSelected.title+'”.\nRecordings now save to this class.\n\nOpen the live room (for students / screen share) in a new tab?');
+    const openRoom=confirm('📡 You\'re live with "'+_tSelected.title+'".\nRecordings now save to this class.\n\nOpen the live room (for students / screen share) in a new tab?');
     if(openRoom) window.open('/liveRoom.html?class='+_tSelected.id,'_blank');
   }catch(e){ alert('Couldn\'t go live: '+(e.message||e)); }
 }
@@ -448,13 +728,32 @@ function drawCorners(){
     window.addEventListener('pointermove',mv); window.addEventListener('pointerup',up); });
   wrap.appendChild(mh);
 }
-function setFormat(v){ const sel=document.getElementById('fmtSelect'); if(sel&&sel.value!==v) sel.value=v; const [w,h]=v.split('x').map(Number); out.width=w; out.height=h; if(glCanvas){ glCanvas.width=w; glCanvas.height=h; }
+
+// ── Format names for badge + toast ─────────────────────────────────────
+const FMT_LABELS={
+  '1280x720':'16:9 · 720p',
+  '1920x1080':'16:9 · 1080p',
+  '720x1280':'Portrait 9:16',
+  '1080x1080':'1:1 · Square',
+  '960x720':'4:3 · Classic'
+};
+function setFormat(v){
+  const sel=document.getElementById('fmtSelect'); if(sel&&sel.value!==v) sel.value=v;
+  const [w,h]=v.split('x').map(Number); out.width=w; out.height=h;
+  if(glCanvas){ glCanvas.width=w; glCanvas.height=h; }
   // Lock the displayed box to the chosen aspect ratio so the preview isn't
   // stretched/blurred and the corner overlay stays aligned after a format change.
   out.style.aspectRatio=w+' / '+h; out.style.height='auto';
   const svg=document.getElementById('cornerSvg'); if(svg) svg.setAttribute('viewBox','0 0 '+w+' '+h);
   const badge=document.querySelector('.stage .badge+.badge'); if(badge) badge.textContent=w+'×'+h;
-  if(activeScene) drawCorners(); }
+  // Update format badge in topbar
+  const fb=document.getElementById('fmtBadge'); if(fb) fb.textContent=FMT_LABELS[v]||v;
+  // Auto-reset corners so overlay doesn't clip wrongly after format change
+  resetCorners();
+  // Toast notification
+  showToast('Switched to '+(FMT_LABELS[v]||v));
+  if(activeScene) drawCorners();
+}
 window.addEventListener('resize', drawCorners);
 function loadBrandLogo(input){ const f=input.files?.[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ const im=new Image(); im.onload=()=>brandImg=im; im.src=r.result; }; r.readAsDataURL(f); }
 
@@ -484,11 +783,33 @@ function initGL(){ glCanvas=document.createElement('canvas'); glCanvas.width=128
 let _Hcache=null, _HcacheKey='';
 function srcReady(s){ if(!s) return false; if(s.type==='video') return s.el.readyState>=2; return true; }
 const _dst4=[{x:0,y:0},{x:1,y:0},{x:1,y:1},{x:0,y:1}];
+
+// Helper: draw VBG image respecting _vbgFit
+function _drawVbgImage(){
+  if(!_vbgImg) return;
+  try{
+    const iw=_vbgImg.naturalWidth||_vbgImg.width||1;
+    const ih=_vbgImg.naturalHeight||_vbgImg.height||1;
+    const ow=out.width, oh=out.height;
+    if(_vbgFit==='contain'){
+      const scale=Math.min(ow/iw,oh/ih);
+      const dw=iw*scale,dh=ih*scale;
+      octx.fillStyle='#000'; octx.fillRect(0,0,ow,oh);
+      octx.drawImage(_vbgImg,(ow-dw)/2,(oh-dh)/2,dw,dh);
+    } else if(_vbgFit==='center'){
+      octx.fillStyle='#000'; octx.fillRect(0,0,ow,oh);
+      octx.drawImage(_vbgImg,(ow-iw)/2,(oh-ih)/2,iw,ih);
+    } else { // fill (default)
+      octx.drawImage(_vbgImg,0,0,ow,oh);
+    }
+  }catch(e){ octx.fillStyle='#000'; octx.fillRect(0,0,out.width,out.height); }
+}
+
 function renderLoop(){ requestAnimationFrame(renderLoop);
   // Skip all paint work while the tab is hidden (rAF is already throttled, but
   // this avoids any stray work and is explicit).
   if(document.hidden) return;
-  if(_vbgMode==='image'&&_vbgImg){ try{ octx.drawImage(_vbgImg,0,0,out.width,out.height); }catch(e){ octx.fillStyle='#000'; octx.fillRect(0,0,out.width,out.height); } }
+  if(_vbgMode==='image'&&_vbgImg){ _drawVbgImage(); }
   else if(_vbgMode==='color'){ octx.fillStyle=_vbgColor; octx.fillRect(0,0,out.width,out.height); }
   else { octx.fillStyle='#000'; octx.fillRect(0,0,out.width,out.height); }
   // Composite mode: scene has multiple arranged elements → draw them all.
@@ -499,8 +820,24 @@ function renderLoop(){ requestAnimationFrame(renderLoop);
   }
   const s=activeScene&&sources[activeScene.sourceId];
   if(srcReady(s)){
+    // Apply simple crop clipping if active
+    if(_cropMode){
+      const cx2=_cropRect.x*out.width, cy2=_cropRect.y*out.height;
+      const cw2=_cropRect.w*out.width, ch2=_cropRect.h*out.height;
+      octx.save(); octx.beginPath(); octx.rect(cx2,cy2,cw2,ch2); octx.clip();
+    }
     // In adjust mode show the RAW source so corners line up with reality.
-    if(_adjustMode || !gl){ try{ octx.drawImage(s.el,0,0,out.width,out.height); }catch(e){} }
+    if(_adjustMode || !gl){
+      // VBG single-source mode: draw camera at reduced size
+      if(_vbgMode!=='none' && !_adjustMode){
+        const fw=_vbgFrame;
+        const cw2=out.width*fw, ch2=out.height*fw;
+        const cx2=(out.width-cw2)/2, cy2=(out.height-ch2)/2;
+        try{ octx.drawImage(s.el,cx2,cy2,cw2,ch2); }catch(e){}
+      } else {
+        try{ octx.drawImage(s.el,0,0,out.width,out.height); }catch(e){}
+      }
+    }
     else {
       gl.bindTexture(gl.TEXTURE_2D,tex);
       try{ gl.texImage2D(gl.TEXTURE_2D,0,gl.RGB,gl.RGB,gl.UNSIGNED_BYTE,s.el);
@@ -510,9 +847,18 @@ function renderLoop(){ requestAnimationFrame(renderLoop);
         gl.uniform1f(prog.uPersp,document.getElementById('perspOn').checked?1:0);
         gl.uniformMatrix3fv(prog.uH,false,new Float32Array(H)); gl.uniform1i(prog.uTex,0);
         gl.viewport(0,0,glCanvas.width,glCanvas.height); gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
-        octx.save(); octx.translate(out.width/2,out.height/2); octx.rotate((activeScene.rotation||0)*Math.PI/180); const z=activeScene.zoom||1; octx.scale(z,z); octx.drawImage(glCanvas,-out.width/2,-out.height/2,out.width,out.height); octx.restore();
+        // VBG single-source mode: draw at reduced size
+        if(_vbgMode!=='none'){
+          const fw=_vbgFrame;
+          const cw2=out.width*fw, ch2=out.height*fw;
+          const cx2=(out.width-cw2)/2, cy2=(out.height-ch2)/2;
+          octx.save(); octx.translate(out.width/2,out.height/2); octx.rotate((activeScene.rotation||0)*Math.PI/180); const z=activeScene.zoom||1; octx.scale(z,z); octx.drawImage(glCanvas,cx2-out.width/2,cy2-out.height/2,cw2,ch2); octx.restore();
+        } else {
+          octx.save(); octx.translate(out.width/2,out.height/2); octx.rotate((activeScene.rotation||0)*Math.PI/180); const z=activeScene.zoom||1; octx.scale(z,z); octx.drawImage(glCanvas,-out.width/2,-out.height/2,out.width,out.height); octx.restore();
+        }
       }catch(e){}
     }
+    if(_cropMode) octx.restore();
   } else { octx.fillStyle='#555'; octx.font='20px sans-serif'; octx.textAlign='center'; octx.fillText('Pick a source (Enable camera, or add screen/whiteboard/document)', out.width/2, out.height/2); }
   if(!_adjustMode) drawBranding();
 }
@@ -563,13 +909,13 @@ async function toggleRecord(){ const btn=document.getElementById('btnRec'); if(r
     if(cloudBlocked && !wantLocal){ wantLocal=true; }
     if(wantLocal){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='studio-recording-'+Date.now()+'.'+recExt; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),4000); }
     if(wantClass){
-      if(!_boundClass){ alert('💾 Recording saved to your device.\n\nTo also save it inside the app, click “📡 Teach a course” to connect this Studio to a live class FIRST, then record.'); return; }
+      if(!_boundClass){ alert('💾 Recording saved to your device.\n\nTo also save it inside the app, click "📡 Teach a course" to connect this Studio to a live class FIRST, then record.'); return; }
       if(!TOKEN){ alert('💾 Recording saved to your device.\n\nSign in to also save it in the app.'); return; }
       try{
         const fd=new FormData(); fd.append('recording',blob,'studio.'+recExt);
         const r=await fetch(API+'/live-classes/'+_boundClass+'/recording',{method:'POST',headers:{Authorization:'Bearer '+TOKEN},body:fd});
         if(!r.ok){ let msg='HTTP '+r.status; try{ const j=await r.json(); if(j&&j.error) msg=j.error; }catch(e){} throw new Error(msg); }
-        alert('✓ Recording saved'+(wantLocal?' to your device and':'')+' to the class. Students can replay it from “Recordings”.');
+        alert('✓ Recording saved'+(wantLocal?' to your device and':'')+' to the class. Students can replay it from "Recordings".');
       }
       catch(e){ alert('⚠️ Couldn\'t upload to the class ('+(e.message||e.name)+').\n\n'+(wantLocal?'It is still saved to your device.':'Try "💾 Save to device" instead.')); }
     }
