@@ -567,7 +567,7 @@ html[data-theme="dark"]{
         <button class="qa" style="--qc:#f59e0b" onclick="openModal('addTest')">🧪 New Test</button>
         <button class="qa" style="--qc:#ec4899" onclick="openLessonPlanner()">🤖 AI Lesson Plan</button>
         <button class="qa" style="--qc:#6366f1" onclick="openCalendar()">📅 Calendar</button>
-        <button class="qa" style="--qc:#14b8a6" onclick="window.open('/studio.html','_blank')">🎥 Studio</button>
+        <button class="qa" style="--qc:#14b8a6" onclick="openEmbed('/studio.html','🎥 Studio')">🎥 Studio</button>
       </div>
       <!-- Stat cards -->
       <div class="stats-grid" style="grid-template-columns:repeat(auto-fit,minmax(min(180px,100%),1fr))">
@@ -641,7 +641,7 @@ html[data-theme="dark"]{
         <div class="section-title">🎬 Recordings
           <div class="actions">
             <button class="btn-sm btn-outline" onclick="openTeacherRecordings()">View All →</button>
-            <button class="btn-sm btn-primary" onclick="window.open('/studio.html','_blank')">🎥 Open Studio</button>
+            <button class="btn-sm btn-primary" onclick="openEmbed('/studio.html','🎥 Studio')">🎥 Open Studio</button>
           </div>
         </div>
         <div class="card"><ul class="item-list" id="t-recordingsList"><li style="width:100%"><div class="empty-state"><div class="icon">🎬</div>No recordings yet — record in Studio to save here</div></li></ul></div>
@@ -1436,7 +1436,7 @@ function _buildCourseWorkspace(){
       <div style="margin-left:auto;display:flex;gap:8px">
         <button class="btn-sm btn-outline" onclick="openEditCourse(window._teacherCoursesById[_cwCourseId])">✏️ Edit</button>
         <button class="btn-sm btn-primary" onclick="_hubSchedule(_cwCourseId)">📡 Schedule Class</button>
-        <button class="btn-sm btn-outline" onclick="window.open('/studio.html?course='+_cwCourseId,'_blank')">🎥 Studio</button>
+        <button class="btn-sm btn-outline" onclick="openEmbed('/studio.html?course='+_cwCourseId,'🎥 Studio')">🎥 Studio</button>
       </div>
     </div>
     <!-- Tab bar -->
@@ -1573,7 +1573,7 @@ async function _cwLoadTab(tab){
       const recs=(r.recordings||[]).filter(rec=>rec.course_id===cid||!rec.course_id);
       body.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
         <h2 style="margin:0;font-size:18px">🎬 Recordings (${recs.length})</h2>
-        <button class="btn-sm btn-primary" onclick="window.open('/studio.html?course=${cid}','_blank')">🎥 Record Now</button>
+        <button class="btn-sm btn-primary" onclick="openEmbed('/studio.html?course=${cid}','🎥 Studio')">🎥 Record Now</button>
       </div>
       ${recs.length?recs.map(rec=>{
         const when=rec.created_at?new Date(rec.created_at).toLocaleString():'—';
@@ -1586,7 +1586,7 @@ async function _cwLoadTab(tab){
             <button class="btn-sm btn-outline" onclick="copyToClipboard('${escHtml(rec.url||'')}')">📋 Share</button>
           </div>
         </div>`;
-      }).join(''):`<div class="empty-state" style="padding:60px"><div class="icon">🎬</div><div>No recordings yet</div><div style="font-size:13px;margin-top:8px;color:var(--jm-text-muted)">Use Smart Studio to record your sessions</div><button class="btn-sm btn-primary" style="margin-top:12px" onclick="window.open('/studio.html?course=${cid}','_blank')">🎥 Open Studio</button></div>`}`;
+      }).join(''):`<div class="empty-state" style="padding:60px"><div class="icon">🎬</div><div>No recordings yet</div><div style="font-size:13px;margin-top:8px;color:var(--jm-text-muted)">Use Smart Studio to record your sessions</div><button class="btn-sm btn-primary" style="margin-top:12px" onclick="openEmbed('/studio.html?course=${cid}','🎥 Studio')">🎥 Open Studio</button></div>`}`;
     }
     else if(tab==='analytics'){
       body.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h2 style="margin:0;font-size:18px">📊 Analytics</h2></div>
@@ -1899,7 +1899,7 @@ let searchTimer=null;
 function debounceSearch(q){
   clearTimeout(searchTimer);
   if(!q.trim())return;
-  searchTimer=setTimeout(()=>{window.location.href='/marketplace.html?q='+encodeURIComponent(q);},700);
+  searchTimer=setTimeout(()=>{openEmbed('/marketplace.html?q='+encodeURIComponent(q),'🛒 Marketplace');},700);
 }
 function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('overlay').classList.toggle('show');}
 function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('overlay').classList.remove('show');}
@@ -4815,7 +4815,7 @@ async function openTeacherRecordings(){
       <div style="padding:18px 22px;border-bottom:1px solid var(--jm-border);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:var(--jm-surface)">
         <div><h3 style="margin:0;font-size:17px;color:var(--jm-text)">🎬 All Recordings</h3><div style="font-size:12px;color:var(--jm-text-muted);margin-top:2px">${recs.length} recording${recs.length!==1?'s':''} saved</div></div>
         <div style="display:flex;gap:8px;align-items:center">
-          <button class="btn-sm btn-outline" onclick="window.open('/studio.html','_blank')">🎥 Open Studio</button>
+          <button class="btn-sm btn-outline" onclick="openEmbed('/studio.html','🎥 Studio')">🎥 Open Studio</button>
           <button onclick="this.closest('[style*=fixed]').remove()" style="border:none;background:transparent;font-size:22px;cursor:pointer;color:var(--jm-text-muted)">✕</button>
         </div>
       </div>
@@ -5936,7 +5936,7 @@ const VOICE_INTENTS=[
   {re:/(message|chat|मैसेज|चैट|संदेश)/i,      act:()=>openMessenger(),              en:'Opening messages',         hi:'मैसेज खोल रहे हैं'},
   {re:/(wall|वॉल|गतिविधि)/i,                  act:()=>navByLabel('wall'),           en:'Opening the wall',          hi:'वॉल खोल रहे हैं'},
   {re:/(recording|रिकॉर्डिंग)/i,               act:()=>openRecordings(),             en:'Opening recordings',       hi:'रिकॉर्डिंग खोल रहे हैं'},
-  {re:/(studio|स्टूडियो|कैमरा)/i,             act:()=>location.href='/studio.html', en:'Opening the studio',       hi:'स्टूडियो खोल रहे हैं'},
+  {re:/(studio|स्टूडियो|कैमरा)/i,             act:()=>openEmbed('/studio.html','🎥 Studio'), en:'Opening the studio',       hi:'स्टूडियो खोल रहे हैं'},
   {re:/(download|डाउनलोड|offline|ऑफलाइन)/i, act:()=>openDownloads(),              en:'Opening downloads',        hi:'डाउनलोड खोल रहे हैं'},
   {re:/(attendance|हाज़िरी|हाजिरी|उपस्थिति)/i,act:()=>{ try{openAttendanceReport()}catch(e){openAttGrid()} }, en:'Opening attendance', hi:'हाज़िरी खोल रहे हैं'},
   {re:/(payment|पेमेंट|भुगतान)/i,             act:()=>openPayments(),               en:'Opening payments',         hi:'पेमेंट खोल रहे हैं'},
@@ -5944,7 +5944,7 @@ const VOICE_INTENTS=[
   {re:/(coupon|कूपन)/i,                        act:()=>openCoupons(),                en:'Opening coupons',          hi:'कूपन खोल रहे हैं'},
   {re:/(setting|सेटिंग)/i,                     act:()=>openSettings(),               en:'Opening settings',         hi:'सेटिंग खोल रहे हैं'},
   {re:/(profile|प्रोफ़ाइल|प्रोफाइल)/i,        act:()=>openProfilePage(),            en:'Opening your profile',     hi:'प्रोफ़ाइल खोल रहे हैं'},
-  {re:/(marketplace|मार्केट|बाज़ार)/i,        act:()=>location.href='/marketplace.html', en:'Opening the marketplace', hi:'मार्केटप्लेस खोल रहे हैं'},
+  {re:/(marketplace|मार्केट|बाज़ार)/i,        act:()=>openEmbed('/marketplace.html','🛒 Marketplace'), en:'Opening the marketplace', hi:'मार्केटप्लेस खोल रहे हैं'},
   {re:/(near|nearby|आस ?पास|नज़दीक)/i,       act:()=>openNearbySearch(),           en:'Finding courses near you', hi:'आपके पास के कोर्स खोज रहे हैं'},
   {re:/(log ?out|लॉग ?आउट)/i,                 act:()=>logout(),                     en:'Logging out',              hi:'लॉग आउट कर रहे हैं'}
 ];
@@ -6805,7 +6805,7 @@ function openSettings(){
     <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--jm-text-muted);margin:8px 0 10px">Admin</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:14px;margin-bottom:24px">
       ${tile('#ef4444','🛡','Audit log','Recent admin actions',"toast('See Admin page')")}
-      ${tile('#7c3aed','💰','Commission rate','Platform commission %',"window.location.href='/admin.html'")}
+      ${tile('#7c3aed','💰','Commission rate','Platform commission %',"openEmbed('/admin.html','⚙️ Admin')")}
       ${tile('#ec4899','🔌','n8n / webhooks','Configure automations','openN8nConfig()')}
     </div>`:''}
     <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--jm-text-muted);margin:8px 0 10px">Account</div>
@@ -7783,7 +7783,7 @@ const CMDK_ACTIONS=()=>{
     {c:'Action',   l:'➕ New course',    f:()=>typeof openWizard==='function'&&openWizard()},
     {c:'Action',   l:'📝 Take attendance', f:()=>typeof openAttGrid==='function'&&openAttGrid()},
     {c:'Action',   l:'🤖 Lesson planner', f:()=>typeof openLessonPlanner==='function'&&openLessonPlanner()},
-    {c:'Action',   l:'🛒 Marketplace',  f:()=>{window.location.href='/marketplace.html';}},
+    {c:'Action',   l:'🛒 Marketplace',  f:()=>openEmbed('/marketplace.html','🛒 Marketplace')},
     {c:'Action',   l:'🚪 Log out',      f:()=>logout()}
   ];
   return a;
@@ -9072,6 +9072,26 @@ loadDashboard();
     document.head.appendChild(s);
   }
 })();
+</script>
+
+<!-- Embed overlay for Studio / Marketplace / Admin — keeps user in-app -->
+<div id="embedOverlay" style="display:none;position:fixed;inset:0;z-index:500;flex-direction:column;background:var(--jm-bg,#0f0f1a)">
+  <div style="display:flex;align-items:center;gap:10px;padding:8px 14px;background:var(--jm-surface,#1a1a2e);border-bottom:1px solid var(--jm-border,#2a2a3a);flex-shrink:0">
+    <span id="embedTitle" style="font-weight:700;font-size:15px;color:var(--jm-text,#e2e8f0);flex:1"></span>
+    <button onclick="closeEmbed()" style="border:none;background:var(--jm-surface2,#252540);color:var(--jm-text,#e2e8f0);border-radius:8px;padding:6px 14px;font-size:13px;font-weight:700;cursor:pointer">✕ Close</button>
+  </div>
+  <iframe id="embedIframe" src="" style="flex:1;border:none;width:100%;height:100%"></iframe>
+</div>
+<script>
+function openEmbed(url,title){
+  document.getElementById('embedTitle').textContent=title||url;
+  document.getElementById('embedIframe').src=url;
+  document.getElementById('embedOverlay').style.display='flex';
+}
+function closeEmbed(){
+  document.getElementById('embedOverlay').style.display='none';
+  document.getElementById('embedIframe').src='';
+}
 </script>
 </body>
 </html>
