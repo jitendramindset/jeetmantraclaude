@@ -716,4 +716,31 @@ router.post('/announcement', authenticateToken, authorizeRole(CREATOR_ROLES), as
   }
 });
 
+// ── GET /teacher/recordings — all saved recordings for teacher's live classes
+router.get('/recordings', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
+  try {
+    const { data: courses } = await supabaseAdmin
+      .from('courses').select('id, title').eq('teacher_id', req.user.id);
+    const courseIds = (courses || []).map(c => c.id);
+    if (!courseIds.length) return res.json({ recordings: [] });
+    const { data: classes } = await supabaseAdmin
+      .from('live_classes').select('id, title, course_id, scheduled_time, recording_url, recording_duration')
+      .in('course_id', courseIds)
+      .not('recording_url', 'is', null)
+      .order('scheduled_time', { ascending: false });
+    const courseTitle = Object.fromEntries((courses || []).map(c => [c.id, c.title]));
+    const recordings = (classes || []).map(c => ({
+      id: c.id,
+      class_title: c.title,
+      course_title: courseTitle[c.course_id] || '',
+      url: c.recording_url,
+      duration: c.recording_duration || null,
+      created_at: c.scheduled_time
+    }));
+    res.json({ recordings });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 module.exports = router;
