@@ -67,10 +67,12 @@ router.put('/users/:userId/toggle-status', authenticateToken, authorizeRole(['ad
       return res.status(400).json({ error: 'Cannot toggle status: is_active column not present in user schema' });
     }
 
+    const before = !!user.is_active;
+    const after = !before;
     const { data: updatedUser, error } = await supabaseAdmin
       .from('jeetmantra_users')
-      .update({ 
-        is_active: !user.is_active,
+      .update({
+        is_active: after,
         updated_at: new Date().toISOString()
       })
       .eq('id', userId)
@@ -80,6 +82,15 @@ router.put('/users/:userId/toggle-status', authenticateToken, authorizeRole(['ad
     if (error) {
       return res.status(400).json({ error: 'Failed to update user status' });
     }
+
+    // Security-relevant action: always audit, with before/after + actor IP/UA so
+    // block/unblock is reconstructable from the audit log alone.
+    await auditLog(req.user.id, after ? 'user.unblock' : 'user.block', userId, {
+      before: { is_active: before },
+      after: { is_active: after },
+      actor_ip: req.ip || req.headers['x-forwarded-for'] || null,
+      user_agent: req.headers['user-agent'] || null
+    });
 
     res.json({
       message: 'User status updated successfully',
@@ -145,6 +156,46 @@ router.get('/stats', authenticateToken, authorizeRole(['admin']), async (req, re
   } catch (error) {
     console.error('Stats fetch error:', error);
     res.status(500).json({ error: 'Failed to fetch statistics' });
+  }
+});
+
+// ── ADMIN PAYMENTS LIST: platform-wide payment ledger with filters. Replaces
+// the broken admin-frontend pattern of calling /payments/my (which returns the
+// admin's OWN payments only). Filter by status (pending/completed/failed/refunded),
+// payment method, date range, free-text q (matches id / transaction_id / user_id).
+router.get('/payments', authenticateToken, authorizeRole(['admin']), async (req, res) => {
+  try {
+    const { status, method, from, to, q, page = 1, limit = 25 } = req.query;
+    const lim = Math.min(100, Math.max(1, Number(limit) || 25));
+    const off = (Math.max(1, Number(page) || 1) - 1) * lim;
+
+    let query = supabaseAdmin.from('payments').select('*', { count: 'exact' });
+    if (status) query = query.eq('status', status);
+    if (method) query = query.eq('payment_method', method);
+    if (from) query = query.gte('created_at', new Date(from).toISOString());
+    if (to) query = query.lte('created_at', new Date(to).toISOString());
+    if (q) {
+      const term = String(q).replace(/[%,()]/g, ''); // strip PostgREST .or() metacharacters
+      query = query.or(`id.ilike.%${term}%,transaction_id.ilike.%${term}%,user_id.eq.${term}`);
+    }
+    const { data: rows, count, error } = await query.order('created_at', { ascending: false }).range(off, off + lim - 1);
+    if (error) return res.status(500).json({ error: error.message });
+
+    // Hydrate payer names (jeetmantra_users.id is VARCHAR — no FK embed possible)
+    const ids = [...new Set((rows || []).map(r => r.user_id).filter(Boolean))];
+    let payers = {};
+    if (ids.length) {
+      const { data: users } = await supabaseAdmin.from('jeetmantra_users').select('id, full_name, email').in('id', ids);
+      payers = Object.fromEntries((users || []).map(u => [u.id, u]));
+    }
+    const payments = (rows || []).map(p => ({
+      ...p,
+      payer_name: payers[p.user_id]?.full_name || null,
+      payer_email: payers[p.user_id]?.email || null
+    }));
+    res.json({ payments, page: Number(page), limit: lim, total: count || 0 });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
   }
 });
 

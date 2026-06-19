@@ -2,6 +2,7 @@ const express = require('express');
 const crypto = require('crypto');
 const { supabase, supabaseAdmin } = require('../config/supabase');
 const { authenticateToken } = require('../middleware/auth');
+const { verifyWebhookSecret } = require('../middleware/verifyWebhookSecret');
 const { v4: uuidv4 } = require('uuid');
 
 const router = express.Router();
@@ -360,8 +361,13 @@ router.get('/my', authenticateToken, async (req, res) => {
   }
 });
 
-// Update payment status (webhook from payment gateway)
-router.post('/webhook/payment', async (req, res) => {
+// Update payment status (legacy webhook from payment gateway). Previously
+// unauthenticated — anyone could mark any paymentId as 'completed'. Now requires
+// X-JM-Webhook-Secret (back-compat X-Webhook-Secret) matching env
+// PAYMENT_WEBHOOK_SECRET (or the generic WEBHOOK_SECRET fallback). The modern
+// path is POST /webhook (Razorpay HMAC) — this remains only for non-Razorpay
+// legacy callers.
+router.post('/webhook/payment', verifyWebhookSecret('PAYMENT_WEBHOOK_SECRET', 'payments-legacy'), async (req, res) => {
   try {
     const { paymentId, status, transactionId } = req.body;
 

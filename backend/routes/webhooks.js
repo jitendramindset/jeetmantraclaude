@@ -1,12 +1,15 @@
 const express = require('express');
 const crypto = require('crypto');
 const { supabaseAdmin } = require('../config/supabase');
+const { verifyWebhookSecret } = require('../middleware/verifyWebhookSecret');
 const { v4: uuidv4 } = require('uuid');
 
 const router = express.Router();
 
-// Unified webhook endpoint
-router.post('/', async (req, res) => {
+// Unified webhook endpoint — requires X-JM-Webhook-Secret (or back-compat
+// X-Webhook-Secret) matching env WEBHOOK_SECRET. This used to be unauthenticated
+// and could create accounts (email_verified:true, placeholder hash) — closed.
+router.post('/', verifyWebhookSecret('WEBHOOK_SECRET', 'webhooks'), async (req, res) => {
   try {
     const { action, data, source } = req.body;
 

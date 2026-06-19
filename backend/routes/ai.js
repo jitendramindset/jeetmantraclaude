@@ -18,11 +18,13 @@ const { get: ldbGet, put: ldbPut } = require('../config/leveldb');
 
 const router = express.Router();
 
-// Human-readable names for the 9 supported UI languages. Used both as the
-// localizer's target and to gate requests to known languages.
+// Human-readable names for the 12 supported UI languages — must match the
+// frontend picker (i18n-lite.js) and the seed dictionary (i18n-seed.js).
+// Used both as the localizer's target and to gate requests to known languages.
 const TR_LANGS = {
   en: 'English', hi: 'Hindi', bn: 'Bengali', mr: 'Marathi', ta: 'Tamil',
-  te: 'Telugu', gu: 'Gujarati', kn: 'Kannada', pa: 'Punjabi'
+  te: 'Telugu', gu: 'Gujarati', kn: 'Kannada', pa: 'Punjabi',
+  ml: 'Malayalam', or: 'Odia', ur: 'Urdu'
 };
 // Tolerant array-of-strings parser for the localizer's JSON reply.
 function parseTrArray(text) {

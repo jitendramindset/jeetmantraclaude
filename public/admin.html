@@ -912,31 +912,32 @@ function renderPartnersTable() {
 async function loadPayments() {
   try {
     const token = localStorage.getItem('jm_token');
-    const response = await fetch(`${BACKEND_API_URL}/payments/my`, {
+    // Platform-wide list (was wrongly calling /payments/my which returns the
+    // admin's own payments only). Backend gates on role=admin and supports
+    // ?status=&method=&from=&to=&q=&page=&limit=.
+    const response = await fetch(`${BACKEND_API_URL}/admin/payments`, {
       method: 'GET',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      }
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
     });
     const data = await response.json();
-    const payments = (data.payments || []).map(p => ({id: p.id, user: p.user_id, amount: p.amount, type: p.payment_method, status: p.status}));
+    const payments = data.payments || [];
     const tbody = document.getElementById('payments-list');
-    tbody.innerHTML = payments.map(p => `
+    const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    tbody.innerHTML = payments.length ? payments.map(p => `
       <tr>
-        <td>#${p.id}</td>
-        <td>${p.user}</td>
-        <td>₹${p.amount}</td>
-        <td>${p.type}</td>
-        <td><span class="badge ${p.status === 'completed' ? 'badge-active' : 'badge-pending'}">${p.status}</span></td>
+        <td>#${esc(String(p.id).slice(0, 8))}</td>
+        <td>${esc(p.payer_name || p.payer_email || p.user_id || '—')}</td>
+        <td>₹${esc(p.amount)}</td>
+        <td>${esc(p.payment_method || '—')}</td>
+        <td><span class="badge ${p.status === 'completed' ? 'badge-active' : 'badge-pending'}">${esc(p.status)}</span></td>
         <td>
           ${p.status === 'pending' ? `
-            <button class="btn btn-sm btn-success" onclick="approvePayment('${p.id}')">Approve</button>
-            <button class="btn btn-sm btn-danger" onclick="rejectPayment('${p.id}')">Reject</button>
+            <button class="btn btn-sm btn-success" onclick="approvePayment('${esc(p.id)}')">Approve</button>
+            <button class="btn btn-sm btn-danger" onclick="rejectPayment('${esc(p.id)}')">Reject</button>
           ` : '—'}
         </td>
       </tr>
-    `).join('');
+    `).join('') : '<tr><td colspan="6" style="text-align:center;color:#666;padding:24px">No payments yet</td></tr>';
   } catch (error) {
     showToast('Failed to load payments', 'error');
   }
