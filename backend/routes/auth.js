@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const { supabaseAdmin } = require('../config/supabase');
 const { validate } = require('../middleware/validation');
 const { authenticateToken } = require('../middleware/auth');
+const { mintToken, provisionPersonalInstitute, ensureRoleRow } = require('../services/identity');
 const { v4: uuidv4 } = require('uuid');
 
 const router = express.Router();
@@ -217,16 +218,14 @@ router.post('/signup', ipLimit(10), validate('signup'), async (req, res) => {
       console.warn('Profile creation warning:', profileErr.message);
     }
 
-    // Generate JWT token
-    const token = jwt.sign(
-      { 
-        id: newUser.id, 
-        email: newUser.email, 
-        role: newUser.user_type || role 
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: '24h' }
-    );
+    // Sprint 2 identity work: mirror the user_type into the new user_roles
+    // table, and for creator roles auto-provision a "personal institute" so
+    // every course they create can be institution-scoped from day one (no
+    // null-institution legacy path).
+    await ensureRoleRow(newUser.id, newUser.user_type || role, null);
+    await provisionPersonalInstitute(newUser.id, newUser.user_type || role);
+
+    const token = await mintToken(newUser);
 
     res.status(201).json({
       message: 'User created successfully',
@@ -299,16 +298,9 @@ router.post('/login', loginThrottle, validate('login'), async (req, res) => {
     }
     loginRecordSuccess(req);
 
-    // Generate JWT token
-    const token = jwt.sign(
-      { 
-        id: user.id, 
-        email: user.email, 
-        role: user.user_type || user.role 
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: '24h' }
-    );
+    // JWT now carries role + roles[] — older clients reading .role continue to
+    // work; multi-role gating reads the union via authorizeRole.
+    const token = await mintToken(user);
 
     // Update last login if supported by schema
     try {
@@ -345,22 +337,11 @@ router.get('/verify', authenticateToken, (req, res) => {
   });
 });
 
-// Refresh token
-router.post('/refresh', authenticateToken, (req, res) => {
-  const token = jwt.sign(
-    { 
-      id: req.user.id, 
-      email: req.user.email, 
-      role: req.user.role 
-    },
-    process.env.JWT_SECRET,
-    { expiresIn: '24h' }
-  );
-
-  res.json({
-    message: 'Token refreshed',
-    token
-  });
+// Refresh token — re-issues with the CURRENT role union (so a role granted
+// since the previous token was minted shows up after a refresh).
+router.post('/refresh', authenticateToken, async (req, res) => {
+  const token = await mintToken({ id: req.user.id, email: req.user.email, role: req.user.role });
+  res.json({ message: 'Token refreshed', token });
 });
 
 // Google OAuth Login
@@ -401,6 +382,10 @@ router.post('/google-login', async (req, res) => {
       }
 
       user = newUser;
+      // First Google signup → mirror role into user_roles + auto-provision
+      // personal institute if they're a creator role.
+      await ensureRoleRow(user.id, user.user_type || role, null);
+      await provisionPersonalInstitute(user.id, user.user_type || role);
     } else {
       // Existing user: keep verification status current
       if (!user.email_verified) {
@@ -411,16 +396,7 @@ router.post('/google-login', async (req, res) => {
       }
     }
 
-    // Generate JWT token
-    const token = jwt.sign(
-      { 
-        id: user.id, 
-        email: user.email, 
-        role: user.user_type || user.role 
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: '24h' }
-    );
+    const token = await mintToken(user);
 
     res.json({
       message: 'Google login successful',
@@ -526,18 +502,12 @@ router.post('/verify-otp', async (req, res) => {
       }
 
       user = newUser;
+      // First OTP signup → mirror role + auto-provision personal institute.
+      await ensureRoleRow(user.id, user.user_type || role, null);
+      await provisionPersonalInstitute(user.id, user.user_type || role);
     }
 
-    // Generate JWT token
-    const token = jwt.sign(
-      { 
-        id: user.id, 
-        email: user.email, 
-        role: user.user_type || user.role 
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: '24h' }
-    );
+    const token = await mintToken(user);
 
     res.json({
       message: 'OTP verified and login successful',

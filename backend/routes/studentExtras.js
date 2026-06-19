@@ -408,12 +408,26 @@ router.get('/calendar', authenticateToken, async (req, res) => {
         if (iso) addEvent(iso, { id: c.id, type: 'live', title: c.title, time: c.scheduled_time, status: c.status });
       });
 
-      // Tests due in range
-      const { data: tests } = await supabaseAdmin
+      // Tests in range — mirror the teacher /timetable semantics: prefer
+      // scheduled_for (live test session), fall back to due_date (take-anytime
+      // deadline) only when scheduled_for is null. Without this, teacher and
+      // student calendars disagree on the SAME test (one shows "exam at 10am
+      // Friday", the other shows "due Sunday").
+      const { data: scheduledTests } = await supabaseAdmin
+        .from('course_tests').select('id, title, course_id, scheduled_for')
+        .in('course_id', courseIds)
+        .gte('scheduled_for', start + 'T00:00:00')
+        .lte('scheduled_for', end + 'T23:59:59');
+      (scheduledTests || []).forEach(t => {
+        const iso = t.scheduled_for?.slice(0, 10);
+        if (iso) addEvent(iso, { id: t.id, type: 'test', title: t.title, time: t.scheduled_for });
+      });
+      const { data: dueOnlyTests } = await supabaseAdmin
         .from('course_tests').select('id, title, course_id, due_date')
         .in('course_id', courseIds)
+        .is('scheduled_for', null)
         .gte('due_date', start).lte('due_date', end);
-      (tests || []).forEach(t => {
+      (dueOnlyTests || []).forEach(t => {
         if (t.due_date) addEvent(t.due_date, { id: t.id, type: 'test', title: t.title, time: t.due_date + 'T00:00:00' });
       });
 
