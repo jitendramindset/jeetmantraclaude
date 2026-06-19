@@ -27,6 +27,7 @@ const teacherExtrasRoutes = require('./routes/teacherExtras');
 const parentExtrasRoutes  = require('./routes/parentExtras');
 const walletRoutes        = require('./routes/wallet');
 const eduosRoutes         = require('./routes/eduos');
+const calendarRoutes      = require('./routes/calendar');
 const ragRoutes           = require('./routes/rag');
 const { cacheMiddleware, syncMiddleware } = require('./middleware/datasync');
 
@@ -92,6 +93,7 @@ app.use('/api/teacher', teacherExtrasRoutes);
 app.use('/api/parent', parentExtrasRoutes);
 app.use('/api/wallet', walletRoutes);
 app.use('/api/eduos', eduosRoutes);
+app.use('/api/calendar', calendarRoutes);
 app.use('/api/rag', ragRoutes);
 
 // LevelDB sync queue endpoint

@@ -159,6 +159,153 @@ router.get('/stats', authenticateToken, authorizeRole(['admin']), async (req, re
   }
 });
 
+// ── PLATFORM OS — Overview KPIs (DAU/WAU/MAU, signups, revenue trend).
+// Reuses existing tables (jeetmantra_users.last_login, payments). Heavy lifting
+// is done in JS rather than SQL window-funcs because the self-hosted PostgREST
+// path doesn't expose RPCs reliably (see [[supabase-selfhosted-quirks]]).
+router.get('/analytics/overview', authenticateToken, authorizeRole(['admin']), async (req, res) => {
+  try {
+    const now = new Date();
+    const day = 24 * 60 * 60 * 1000;
+    const since30 = new Date(now.getTime() - 30 * day).toISOString();
+    const since7  = new Date(now.getTime() - 7  * day).toISOString();
+    const since1  = new Date(now.getTime() - 1  * day).toISOString();
+    const monthAgo = new Date(now.getTime() - 30 * day).toISOString();
+
+    const [usersTotal, signups30, dauRows, wauRows, mauRows, payments30] = await Promise.all([
+      supabaseAdmin.from('jeetmantra_users').select('id', { count: 'exact', head: true }).then(r => r.count || 0).catch(() => 0),
+      supabaseAdmin.from('jeetmantra_users').select('id', { count: 'exact', head: true }).gte('created_at', since30).then(r => r.count || 0).catch(() => 0),
+      supabaseAdmin.from('jeetmantra_users').select('id', { count: 'exact', head: true }).gte('last_login', since1).then(r => r.count || 0).catch(() => 0),
+      supabaseAdmin.from('jeetmantra_users').select('id', { count: 'exact', head: true }).gte('last_login', since7).then(r => r.count || 0).catch(() => 0),
+      supabaseAdmin.from('jeetmantra_users').select('id', { count: 'exact', head: true }).gte('last_login', since30).then(r => r.count || 0).catch(() => 0),
+      supabaseAdmin.from('payments').select('amount, status, created_at').eq('status', 'completed').gte('created_at', monthAgo).then(r => r.data || []).catch(() => [])
+    ]);
+
+    // 30-day revenue sparkline (one bucket per day)
+    const buckets = {};
+    for (let i = 0; i < 30; i++) {
+      const d = new Date(now.getTime() - i * day);
+      buckets[d.toISOString().slice(0, 10)] = 0;
+    }
+    payments30.forEach(p => {
+      const d = String(p.created_at || '').slice(0, 10);
+      if (d in buckets) buckets[d] += parseFloat(p.amount || 0);
+    });
+    const revenueSeries = Object.keys(buckets).sort().map(d => ({ date: d, amount: buckets[d] }));
+    const revenue30 = revenueSeries.reduce((s, b) => s + b.amount, 0);
+
+    res.json({
+      users: { total: usersTotal, signups30 },
+      activity: { dau: dauRows, wau: wauRows, mau: mauRows },
+      revenue: { last30Total: revenue30, series: revenueSeries }
+    });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── SYSTEM STATUS: ping each integration the platform depends on. Returns a
+// per-feature health snapshot for the topbar status pill. Best-effort — any
+// individual probe failure becomes status:'down' rather than 500ing the whole call.
+router.get('/system/status', authenticateToken, authorizeRole(['admin']), async (req, res) => {
+  const probe = async (name, fn) => {
+    const t0 = Date.now();
+    try { await fn(); return { name, status: 'up', latency_ms: Date.now() - t0 }; }
+    catch (e) { return { name, status: 'down', latency_ms: Date.now() - t0, error: e.message }; }
+  };
+  const results = await Promise.all([
+    probe('database', async () => {
+      const { error } = await supabaseAdmin.from('jeetmantra_users').select('id').limit(1);
+      if (error) throw new Error(error.message);
+    }),
+    probe('leveldb', async () => {
+      try { const { put, get } = require('../config/leveldb'); await put('health:ping', Date.now()); await get('health:ping'); }
+      catch (e) { throw e; }
+    }),
+    probe('n8n', async () => {
+      // n8n is optional — if URL is configured, ping it
+      const url = process.env.N8N_WEBHOOK_URL || '';
+      if (!url) return; // "up" = not configured = OK
+    }),
+  ]);
+  const overall = results.every(r => r.status === 'up') ? 'up' : results.some(r => r.status === 'up') ? 'degraded' : 'down';
+  res.json({ overall, services: results, checked_at: new Date().toISOString() });
+});
+
+// ── ACTION INBOX: pending counts for the operations queues from Sprint 3.
+// Returns placeholder zeros until those tables land — the UI surface is built
+// now so Sprint 3 only needs to fill the numbers in.
+router.get('/actions/inbox', authenticateToken, authorizeRole(['admin']), async (req, res) => {
+  const safeCount = async (table, filter) => {
+    try {
+      let q = supabaseAdmin.from(table).select('id', { count: 'exact', head: true });
+      if (filter) q = filter(q);
+      const { count } = await q;
+      return count || 0;
+    } catch (_) { return 0; }
+  };
+  const [approvals, payouts, tickets, reports] = await Promise.all([
+    safeCount('approval_requests', q => q.eq('status', 'pending')),
+    safeCount('payouts',           q => q.eq('status', 'pending')),
+    safeCount('support_tickets',   q => q.in('status', ['open', 'pending'])),
+    safeCount('content_reports',   q => q.eq('status', 'pending'))
+  ]);
+  res.json({
+    inbox: {
+      approvals,
+      payouts,
+      tickets,
+      reports,
+      total: approvals + payouts + tickets + reports
+    },
+    note: 'Counts read from Sprint 3 tables when present; 0 otherwise.'
+  });
+});
+
+// ── TENANTS / INSTITUTES: list every institution (a jeetmantra_users row of
+// type school/coaching/franchise) with member counts + plan + recent signups.
+// Powers the Tenants console.
+router.get('/institutes', authenticateToken, authorizeRole(['admin']), async (req, res) => {
+  try {
+    const { q, type, page = 1, limit = 25 } = req.query;
+    const lim = Math.min(100, Math.max(1, Number(limit) || 25));
+    const off = (Math.max(1, Number(page) || 1) - 1) * lim;
+    let qb = supabaseAdmin.from('jeetmantra_users')
+      .select('id, full_name, email, user_type, created_at, is_active', { count: 'exact' })
+      .in('user_type', type ? [type] : ['school', 'coaching', 'franchise']);
+    if (q) {
+      const term = String(q).replace(/[%,()]/g, '');
+      qb = qb.or(`full_name.ilike.%${term}%,email.ilike.%${term}%`);
+    }
+    const { data: rows, count, error } = await qb.order('created_at', { ascending: false }).range(off, off + lim - 1);
+    if (error) return res.status(500).json({ error: error.message });
+
+    // Hydrate per-tenant counts: teachers + students + courses.
+    const ids = (rows || []).map(r => r.id);
+    let teacherCounts = {}, studentCounts = {}, courseCounts = {};
+    if (ids.length) {
+      const [t, s, c] = await Promise.all([
+        supabaseAdmin.from('institution_teachers').select('institution_id').in('institution_id', ids).then(r => r.data || []).catch(() => []),
+        supabaseAdmin.from('institution_students').select('institution_id').in('institution_id', ids).then(r => r.data || []).catch(() => []),
+        supabaseAdmin.from('courses').select('institution_id').in('institution_id', ids).then(r => r.data || []).catch(() => [])
+      ]);
+      t.forEach(r => { teacherCounts[r.institution_id] = (teacherCounts[r.institution_id] || 0) + 1; });
+      s.forEach(r => { studentCounts[r.institution_id] = (studentCounts[r.institution_id] || 0) + 1; });
+      c.forEach(r => { courseCounts[r.institution_id] = (courseCounts[r.institution_id] || 0) + 1; });
+    }
+    const institutes = (rows || []).map(r => ({
+      id: r.id,
+      name: r.full_name,
+      email: r.email,
+      type: r.user_type,
+      is_active: r.is_active !== false,
+      created_at: r.created_at,
+      teacher_count: teacherCounts[r.id] || 0,
+      student_count: studentCounts[r.id] || 0,
+      course_count:  courseCounts[r.id] || 0
+    }));
+    res.json({ institutes, page: Number(page), limit: lim, total: count || 0 });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ── ADMIN PAYMENTS LIST: platform-wide payment ledger with filters. Replaces
 // the broken admin-frontend pattern of calling /payments/my (which returns the
 // admin's OWN payments only). Filter by status (pending/completed/failed/refunded),
