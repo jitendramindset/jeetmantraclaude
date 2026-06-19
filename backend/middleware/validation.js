@@ -60,6 +60,7 @@ const schemas = {
     ageGroup: Joi.string().allow('').optional(),
     timing: Joi.string().allow('').optional(),
     instituteName: Joi.string().allow('').optional(),
+    institutionId: Joi.string().allow('', null).optional(),
     freeListing: Joi.boolean().optional(),
     demoClass: Joi.boolean().optional()
   }),

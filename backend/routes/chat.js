@@ -13,6 +13,7 @@
 const express = require('express');
 const { supabaseAdmin } = require('../config/supabase');
 const { authenticateToken } = require('../middleware/auth');
+const { unreadByRoom, countUnread } = require('../services/chatUnread');
 const { v4: uuidv4 } = require('uuid');
 
 const router = express.Router();
@@ -101,12 +102,42 @@ router.get('/rooms/dm/:userId', authenticateToken, async (req, res) => {
   }
 });
 
+// GET /api/chat/unread — total unread + per-room map (for the badge/KPI)
+router.get('/unread', authenticateToken, async (req, res) => {
+  try {
+    const byRoom = await unreadByRoom(req.user.id);
+    const total = Object.values(byRoom).reduce((s, n) => s + n, 0);
+    res.json({ total, byRoom });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/chat/rooms/:id/read — mark the room read up to now for the caller
+router.post('/rooms/:id/read', authenticateToken, async (req, res) => {
+  try {
+    await supabaseAdmin.from('chat_room_members')
+      .update({ last_read_at: new Date().toISOString() })
+      .eq('room_id', req.params.id).eq('user_id', req.user.id);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // GET /api/chat/rooms/:id/messages
 router.get('/rooms/:id/messages', authenticateToken, async (req, res) => {
   try {
     // Authorize: must be a member
     const { data: member } = await supabaseAdmin.from('chat_room_members').select('id').eq('room_id', req.params.id).eq('user_id', req.user.id).maybeSingle();
     if (!member && req.user.role !== 'admin') return res.status(403).json({ error: 'Not a room member' });
+    // Opening the thread marks it read. Awaited so a follow-up /chat/unread
+    // (the frontend refreshes the badge right after) sees the updated timestamp
+    // instead of a stale count. Guarded so a write failure never breaks the fetch.
+    try {
+      await supabaseAdmin.from('chat_room_members').update({ last_read_at: new Date().toISOString() })
+        .eq('room_id', req.params.id).eq('user_id', req.user.id);
+    } catch (_) { /* non-fatal */ }
     const { data: msgs } = await supabaseAdmin.from('chat_messages').select('*').eq('room_id', req.params.id).order('created_at', { ascending: true }).limit(50);
     // Hydrate sender names
     const ids = [...new Set((msgs || []).map(m => m.sender_id))];

@@ -45,6 +45,32 @@ select,input[type=text]{width:100%;padding:8px;border-radius:6px;border:1px soli
 .wb-tool,.wb-bg-btn{padding:4px 8px;font-size:14px;min-width:32px}
 .wb-tool.on,.wb-bg-btn.on{background:#7c3aed;color:#fff;border-color:#7c3aed}
 
+/* ── S-Board icon toolbar (dropdown groups) ── */
+#wbToolbar{display:none;flex-direction:column;margin-top:8px;background:var(--panel);border-radius:12px;border:1px solid var(--bd);overflow:visible}
+/* top row of group icon buttons */
+.wbg-bar{display:flex;align-items:stretch;gap:0;border-bottom:1px solid var(--bd);flex-wrap:wrap;overflow:visible}
+/* each group button */
+.wbg-btn{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:7px 10px;border:none;border-right:1px solid var(--bd);background:var(--panel);color:var(--mut);cursor:pointer;font-size:11px;font-weight:700;min-width:52px;transition:color .12s,background .12s;position:relative;user-select:none}
+.wbg-btn .wbg-icon{font-size:17px;line-height:1}
+.wbg-btn:hover{background:var(--panel2);color:var(--txt)}
+.wbg-btn.open,.wbg-btn.active-group{background:var(--pri);color:#fff;border-color:var(--pri)}
+/* group dropdown panel */
+.wbg-drop{display:none;position:fixed;z-index:1600;min-width:200px;background:#1d2030;border:1.5px solid #3a3f55;border-radius:10px;padding:10px;box-shadow:0 8px 32px rgba(0,0,0,.65);flex-direction:column;gap:8px}
+.wbg-drop.open{display:flex}
+/* tool buttons inside dropdown */
+.wbd-row{display:flex;gap:5px;flex-wrap:wrap;align-items:center}
+.wbd-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);margin-bottom:3px}
+/* pages row */
+.wb-pages-row{display:flex;align-items:center;gap:5px;padding:5px 10px;border-top:1px solid var(--bd);flex-wrap:wrap}
+/* flat tool rows */
+.wb-row{display:flex;align-items:center;gap:3px;padding:5px 8px;background:var(--panel);border-radius:8px;flex-wrap:wrap;border-bottom:1px solid var(--bd)}
+.wb-sep{width:1px;height:22px;background:var(--bd);flex-shrink:0;margin:0 2px}
+/* active tool indicator dot */
+.wbg-btn .wbg-active-dot{position:absolute;bottom:4px;left:50%;transform:translateX(-50%);width:5px;height:5px;border-radius:50%;background:var(--pri);display:none}
+.wbg-btn.has-active .wbg-active-dot{display:block}
+/* RTE editor placeholder */
+#wbRteEditor:empty:before{content:attr(data-placeholder);color:#4a4f66;font-style:italic;pointer-events:none}
+
 /* ── Welcome Guide overlay ── */
 #studioGuide{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.82);display:flex;align-items:center;justify-content:center;padding:20px}
 #studioGuide .guide-card{background:var(--panel);border:1px solid rgba(255,255,255,.15);border-radius:16px;padding:32px;max-width:680px;width:100%;text-align:center}
@@ -111,18 +137,21 @@ select,input[type=text]{width:100%;padding:8px;border-radius:6px;border:1px soli
 <div class="topbar">
   <div class="logo">Jeet<span class="a">Mantra</span> Studio</div>
   <span class="badge">🎥 Smart Camera</span>
+  <!-- User profile chip — filled on load from jm_user -->
+  <span id="studioUserChip" style="display:none;background:rgba(124,58,237,.15);color:var(--pri);border-radius:8px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer" onclick="location.href='/dashboard.html'" title="Back to dashboard"></span>
   <button class="btn" id="btnAdjust" onclick="toggleAdjust()" title="Drag corners on the big preview to fix perspective">✂️ Crop</button>
   <button class="btn" id="btnLayout" onclick="toggleLayout()" title="Arrange multiple elements on the preview (drag to move, corner to resize)">🧩 Arrange layout</button>
   <button class="btn" id="btnTeach" onclick="openTeach()" title="Connect this Studio to a course's live class and go live">📡 Teach a course</button>
   <span id="boundClassBadge" class="badge" style="display:none;background:#7f1d1d;color:#fecaca"></span>
-  <select id="fmtSelect" onchange="setFormat(this.value)" title="Output video format" style="width:auto;margin:0;padding:7px 10px">
-    <option value="1280x720">16:9 · 720p</option>
-    <option value="1920x1080">16:9 · 1080p</option>
-    <option value="720x1280">9:16 · Portrait</option>
-    <option value="1080x1080">1:1 · Square</option>
-    <option value="960x720">4:3 · Classic</option>
+  <select id="fmtSelect" onchange="setFormat(this.value)" title="Output format — sets aspect ratio for recording" style="width:auto;margin:0;padding:7px 10px;border-color:#7c3aed">
+    <option value="1280x720">16:9 · 720p  (YouTube/Zoom)</option>
+    <option value="1920x1080">16:9 · 1080p (YouTube/Teams)</option>
+    <option value="1080x1920">9:16 · Portrait (Reels/Shorts)</option>
+    <option value="1080x1080">1:1 · Square  (Instagram)</option>
+    <option value="960x720">4:3 · Classic  (Projector)</option>
   </select>
-  <span id="fmtBadge" class="badge" style="background:rgba(124,58,237,.18);color:var(--pri)">16:9 · 720p</span>
+  <span id="fmtBadge" class="badge" style="background:rgba(124,58,237,.25);color:#c4b5fd;font-weight:700">16:9 · 720p</span>
+  <button id="btnRecrop" onclick="openArCropSelector(document.getElementById('fmtSelect').value)" title="Adjust crop region for current format" style="display:none;border:1px solid #7c3aed;border-radius:7px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;background:rgba(124,58,237,.15);color:#c4b5fd">✂ Recrop</button>
   <div style="flex:1"></div>
   <span id="recStatus" style="display:none;font-size:13px"><span class="rec-dot"></span> REC <span id="recTime">00:00</span></span>
   <select id="saveTarget" title="Where to save the recording" style="width:auto;margin:0;padding:7px 10px">
@@ -210,47 +239,264 @@ select,input[type=text]{width:100%;padding:8px;border-radius:6px;border:1px soli
       <canvas id="out" width="1280" height="720"></canvas>
       <svg id="cornerSvg" viewBox="0 0 1280 720" preserveAspectRatio="none"></svg>
       <div id="cropOverlay"></div>
+      <div id="wbSelBox" style="display:none;position:absolute;border:2px dashed #7c3aed;box-sizing:border-box;background:rgba(124,58,237,.06);cursor:move">
+        <div class="wb-rsz" data-dir="nw" style="position:absolute;left:-5px;top:-5px;width:10px;height:10px;background:#7c3aed;border-radius:2px;cursor:nw-resize"></div>
+        <div class="wb-rsz" data-dir="ne" style="position:absolute;right:-5px;top:-5px;width:10px;height:10px;background:#7c3aed;border-radius:2px;cursor:ne-resize"></div>
+        <div class="wb-rsz" data-dir="sw" style="position:absolute;left:-5px;bottom:-5px;width:10px;height:10px;background:#7c3aed;border-radius:2px;cursor:sw-resize"></div>
+        <div class="wb-rsz" data-dir="se" style="position:absolute;right:-5px;bottom:-5px;width:10px;height:10px;background:#7c3aed;border-radius:2px;cursor:se-resize"></div>
+      </div>
     </div>
-    <!-- Whiteboard floating toolbar — shown only when a whiteboard scene is active -->
-    <div id="wbToolbar" style="display:none;flex-wrap:wrap;gap:5px;align-items:center;margin-top:8px;padding:7px 10px;background:var(--panel);border-radius:10px;border:1px solid var(--bd)">
-      <!-- Tools -->
-      <button class="btn wb-tool on" data-tool="pen" onclick="wbSetTool('pen')" title="Pen">✏️</button>
-      <button class="btn wb-tool" data-tool="eraser" onclick="wbSetTool('eraser')" title="Eraser">🧹</button>
-      <button class="btn wb-tool" data-tool="line" onclick="wbSetTool('line')" title="Line">╱</button>
-      <button class="btn wb-tool" data-tool="rect" onclick="wbSetTool('rect')" title="Rectangle">▭</button>
-      <button class="btn wb-tool" data-tool="circle" onclick="wbSetTool('circle')" title="Circle/Ellipse">○</button>
-      <button class="btn wb-tool" data-tool="arrow" onclick="wbSetTool('arrow')" title="Arrow">→</button>
-      <div style="width:1px;height:24px;background:var(--bd);margin:0 3px"></div>
-      <!-- Color -->
-      <label title="Color" style="display:flex;align-items:center;gap:4px;cursor:pointer">
-        <span id="wbColorSwatch" style="width:22px;height:22px;border-radius:50%;background:#1a1a25;border:2px solid var(--bd);display:inline-block"></span>
-        <input type="color" value="#1a1a25" oninput="wbSetColor(this.value)" style="opacity:0;width:0;height:0;position:absolute">
-      </label>
-      <!-- Preset colors -->
-      <button onclick="wbSetColor('#1a1a25')" style="width:18px;height:18px;border-radius:50%;background:#1a1a25;border:2px solid var(--bd);padding:0" title="Black"></button>
-      <button onclick="wbSetColor('#e53e3e')" style="width:18px;height:18px;border-radius:50%;background:#e53e3e;border:none;padding:0" title="Red"></button>
-      <button onclick="wbSetColor('#3182ce')" style="width:18px;height:18px;border-radius:50%;background:#3182ce;border:none;padding:0" title="Blue"></button>
-      <button onclick="wbSetColor('#38a169')" style="width:18px;height:18px;border-radius:50%;background:#38a169;border:none;padding:0" title="Green"></button>
-      <button onclick="wbSetColor('#d69e2e')" style="width:18px;height:18px;border-radius:50%;background:#d69e2e;border:none;padding:0" title="Yellow"></button>
-      <button onclick="wbSetColor('#805ad5')" style="width:18px;height:18px;border-radius:50%;background:#805ad5;border:none;padding:0" title="Purple"></button>
-      <div style="width:1px;height:24px;background:var(--bd);margin:0 3px"></div>
-      <!-- Size -->
-      <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--mut)">Size
-        <input type="range" min="1" max="30" value="4" oninput="wbSetSize(this.value)" style="width:70px">
-      </label>
-      <div style="width:1px;height:24px;background:var(--bd);margin:0 3px"></div>
-      <!-- Background -->
-      <span style="font-size:11px;color:var(--mut)">BG:</span>
-      <button class="btn wb-bg-btn on" data-bg="white" onclick="wbSetBg('white')" title="White">⬜</button>
-      <button class="btn wb-bg-btn" data-bg="grid" onclick="wbSetBg('grid')" title="Grid">⊞</button>
-      <button class="btn wb-bg-btn" data-bg="dotgrid" onclick="wbSetBg('dotgrid')" title="Dot grid">⁘</button>
-      <button class="btn wb-bg-btn" data-bg="graph" onclick="wbSetBg('graph')" title="Graph paper">📊</button>
-      <button class="btn wb-bg-btn" data-bg="lines" onclick="wbSetBg('lines')" title="Ruled lines">≡</button>
-      <button class="btn wb-bg-btn" data-bg="black" onclick="wbSetBg('black')" title="Dark board">⬛</button>
-      <div style="width:1px;height:24px;background:var(--bd);margin:0 3px"></div>
-      <!-- Actions -->
-      <button class="btn" onclick="wbUndo()" title="Undo">↩</button>
-      <button class="btn" onclick="wbClear()" title="Clear board" style="color:#e53e3e">🗑</button>
+    <!-- ══ S-Board Toolbar: 3 flat rows ══ -->
+    <div id="wbToolbar" style="flex-direction:column;margin-top:8px;gap:2px">
+
+      <!-- ROW 1: Draw · Text · Shapes · Ink color · Size · Undo -->
+      <div class="wb-row" id="wbRow1">
+        <button class="btn wb-tool on" data-tool="pen"    onclick="wbSetTool('pen')"    title="Pen (P)"     style="padding:3px 9px;font-size:12px">✏️ Pen</button>
+        <button class="btn wb-tool"    data-tool="eraser" onclick="wbSetTool('eraser')" title="Eraser (E)"  style="padding:3px 9px;font-size:12px">🧹 Erase</button>
+        <button class="btn wb-tool"    data-tool="text"   onclick="wbSetTool('text')"   title="Rich text (T)" style="padding:3px 9px;font-size:12px">📝 T</button>
+        <div class="wb-sep"></div>
+        <button class="btn wb-tool" data-tool="line"   onclick="wbSetTool('line')"   title="Line"        style="padding:3px 8px;font-size:14px">╱</button>
+        <button class="btn wb-tool" data-tool="rect"   onclick="wbSetTool('rect')"   title="Rectangle"   style="padding:3px 8px;font-size:14px">▭</button>
+        <button class="btn wb-tool" data-tool="circle" onclick="wbSetTool('circle')" title="Circle"      style="padding:3px 8px;font-size:14px">○</button>
+        <button class="btn wb-tool" data-tool="arrow"  onclick="wbSetTool('arrow')"  title="Arrow"       style="padding:3px 8px;font-size:14px">→</button>
+        <button id="wbFillToggle" onclick="wbToggleFillMode()" title="Outline / Filled" style="border:1px solid var(--bd);border-radius:5px;padding:2px 7px;font-size:10px;cursor:pointer;background:var(--panel2);color:#9098ac">Outline</button>
+        <div class="wb-sep"></div>
+        <!-- Dual color swatch -->
+        <div style="position:relative;width:32px;height:32px;flex-shrink:0;cursor:pointer" title="Primary / Secondary ink color">
+          <div id="wbColor2Swatch" onclick="wbActivateSlot(2)" style="position:absolute;right:0;bottom:0;width:20px;height:20px;border-radius:4px;background:#ffffff;border:1.5px solid #666"></div>
+          <div id="wbColor1Swatch" onclick="wbActivateSlot(1)" style="position:absolute;left:0;top:0;width:20px;height:20px;border-radius:4px;background:#1a1a25;border:2px solid #e8eaf0;box-shadow:0 0 0 1.5px #7c3aed"></div>
+        </div>
+        <button onclick="wbSwapColors()" title="Swap colors" style="border:1px solid var(--bd);border-radius:5px;padding:2px 5px;font-size:12px;cursor:pointer;background:var(--panel2);color:#e8eaf0">⇄</button>
+        <!-- Quick 8-color palette -->
+        <button onclick="wbSetColorSlot('#1a1a25')" style="width:14px;height:14px;border-radius:3px;background:#1a1a25;border:1.5px solid #555;padding:0;cursor:pointer;flex-shrink:0" title="Black"></button>
+        <button onclick="wbSetColorSlot('#ffffff')" style="width:14px;height:14px;border-radius:3px;background:#fff;border:1.5px solid #999;padding:0;cursor:pointer;flex-shrink:0" title="White"></button>
+        <button onclick="wbSetColorSlot('#e53e3e')" style="width:14px;height:14px;border-radius:3px;background:#e53e3e;border:none;padding:0;cursor:pointer;flex-shrink:0" title="Red"></button>
+        <button onclick="wbSetColorSlot('#f97316')" style="width:14px;height:14px;border-radius:3px;background:#f97316;border:none;padding:0;cursor:pointer;flex-shrink:0" title="Orange"></button>
+        <button onclick="wbSetColorSlot('#d69e2e')" style="width:14px;height:14px;border-radius:3px;background:#d69e2e;border:none;padding:0;cursor:pointer;flex-shrink:0" title="Yellow"></button>
+        <button onclick="wbSetColorSlot('#38a169')" style="width:14px;height:14px;border-radius:3px;background:#38a169;border:none;padding:0;cursor:pointer;flex-shrink:0" title="Green"></button>
+        <button onclick="wbSetColorSlot('#3182ce')" style="width:14px;height:14px;border-radius:3px;background:#3182ce;border:none;padding:0;cursor:pointer;flex-shrink:0" title="Blue"></button>
+        <button onclick="wbSetColorSlot('#805ad5')" style="width:14px;height:14px;border-radius:3px;background:#805ad5;border:none;padding:0;cursor:pointer;flex-shrink:0" title="Purple"></button>
+        <!-- Custom ink color picker -->
+        <label title="Custom ink color" style="display:inline-flex;align-items:center;cursor:pointer;position:relative">
+          <span id="wbC1Mini" style="width:16px;height:16px;border-radius:3px;background:#1a1a25;border:1.5px solid #999;display:block"></span>
+          <span id="wbC2Mini" style="width:10px;height:10px;border-radius:2px;background:#fff;border:1px solid #666;display:block;margin-left:-3px;margin-top:5px;flex-shrink:0"></span>
+          <input type="color" id="wbColorPicker" value="#1a1a25" oninput="wbSetColorSlot(this.value)" style="position:absolute;opacity:0;width:100%;height:100%;cursor:pointer;border:none;padding:0;left:0;top:0">
+        </label>
+        <div class="wb-sep"></div>
+        <!-- Size -->
+        <span id="wbSizeVal" style="font-size:11px;font-weight:700;min-width:18px;color:#9098ac;text-align:right">4</span>
+        <input id="wbSizeRange" type="range" min="1" max="60" value="4" oninput="wbSetSize(this.value);document.getElementById('wbSizeVal').textContent=this.value" style="width:65px;accent-color:#7c3aed">
+        <div class="wb-sep"></div>
+        <button class="btn" onclick="wbUndo()"  title="Undo (Ctrl+Z)"  style="padding:3px 8px;font-size:12px">↩</button>
+        <button class="btn" onclick="wbRedo()"  title="Redo (Ctrl+Y)"  style="padding:3px 8px;font-size:12px">↪</button>
+        <button class="btn" onclick="wbClear()" title="Clear page"      style="padding:3px 8px;font-size:12px;color:#fc8181">🗑</button>
+      </div>
+
+      <!-- ROW 2: Select · Edit · Image · Doc ref · BG patterns -->
+      <div class="wb-row" id="wbRow2">
+        <button class="btn wb-tool" data-tool="select" onclick="wbSetTool('select')" title="Select &amp; move (S)" style="padding:3px 9px;font-size:12px">⬚ Select</button>
+        <button class="btn" onclick="wbCopy()"  title="Copy (Ctrl+C)"  style="padding:3px 8px;font-size:12px">⎘ Copy</button>
+        <button class="btn" onclick="wbCut()"   title="Cut (Ctrl+X)"   style="padding:3px 8px;font-size:12px">✂ Cut</button>
+        <button class="btn" onclick="wbPaste()" title="Paste (Ctrl+V)" style="padding:3px 8px;font-size:12px">📋 Paste</button>
+        <div class="wb-sep"></div>
+        <button class="btn" onclick="document.getElementById('wbImgInput').click()" title="Insert image onto board" style="padding:3px 8px;font-size:12px">🖼 Image</button>
+        <input type="file" id="wbImgInput" accept="image/*" style="display:none" onchange="wbInsertImageFile(this)">
+        <!-- Doc ref dropdown -->
+        <div style="position:relative">
+          <button class="wbg-btn" id="wbgBtn-doc" onclick="wbToggleGroup('doc')" style="padding:4px 9px;font-size:12px;min-width:0;height:auto;border-radius:6px">📄 Doc ▾</button>
+          <div class="wbg-drop" id="wbgDrop-doc" style="min-width:210px">
+            <div class="wbd-label">Reference panel (floats alongside board)</div>
+            <button class="btn" onclick="document.getElementById('wbDocInput').click();wbCloseGroups()" style="width:100%;margin-bottom:4px;justify-content:flex-start;font-size:12px">📄 PDF / Image</button>
+            <input type="file" id="wbDocInput" accept="image/*,application/pdf" style="display:none" onchange="wbOpenDocPanel(this)">
+            <button class="btn" onclick="document.getElementById('wbWordInput').click();wbCloseGroups()" style="width:100%;justify-content:flex-start;font-size:12px">📝 Word / text file</button>
+            <input type="file" id="wbWordInput" accept=".doc,.docx,.txt,.rtf,text/plain" style="display:none" onchange="wbOpenWordPanel(this)">
+            <div style="font-size:10px;color:#9098ac;margin-top:4px">PDF opens in viewer panel · Images show as reference</div>
+          </div>
+        </div>
+        <div class="wb-sep"></div>
+        <!-- BG patterns dropdown -->
+        <div style="position:relative">
+          <button class="wbg-btn" id="wbgBtn-bg" onclick="wbToggleGroup('bg')" style="padding:4px 9px;font-size:12px;min-width:0;height:auto;border-radius:6px">🎨 BG ▾</button>
+          <div class="wbg-drop" id="wbgDrop-bg" style="min-width:210px">
+            <div class="wbd-label">Board background</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
+              <button class="btn wb-bg-btn on" data-bg="white"   onclick="wbSetBg('white');wbCloseGroups()"   style="font-size:11px;padding:4px 6px;justify-content:flex-start">⬜ White</button>
+              <button class="btn wb-bg-btn"    data-bg="grid"    onclick="wbSetBg('grid');wbCloseGroups()"    style="font-size:11px;padding:4px 6px;justify-content:flex-start">⊞ Grid</button>
+              <button class="btn wb-bg-btn"    data-bg="dotgrid" onclick="wbSetBg('dotgrid');wbCloseGroups()" style="font-size:11px;padding:4px 6px;justify-content:flex-start">⁘ Dots</button>
+              <button class="btn wb-bg-btn"    data-bg="graph"   onclick="wbSetBg('graph');wbCloseGroups()"   style="font-size:11px;padding:4px 6px;justify-content:flex-start">📊 Graph</button>
+              <button class="btn wb-bg-btn"    data-bg="lines"   onclick="wbSetBg('lines');wbCloseGroups()"   style="font-size:11px;padding:4px 6px;justify-content:flex-start">≡ Lines</button>
+              <button class="btn wb-bg-btn"    data-bg="black"   onclick="wbSetBg('black');wbCloseGroups()"   style="font-size:11px;padding:4px 6px;justify-content:flex-start">⬛ Dark</button>
+            </div>
+            <div class="wbd-label" style="margin-top:6px">Custom BG color</div>
+            <div style="display:flex;align-items:center;gap:6px">
+              <span id="wbBgSwatch" style="width:20px;height:20px;border-radius:4px;background:#fffef0;border:1px solid #666;flex-shrink:0"></span>
+              <input type="color" id="wbBgColorPicker" value="#fffef0" oninput="wbSetBgColor(this.value)" style="width:36px;height:26px;border-radius:5px;border:1px solid var(--bd);padding:1px;cursor:pointer">
+            </div>
+          </div>
+        </div>
+        <!-- Full palette dropdown -->
+        <div style="position:relative">
+          <button class="wbg-btn" id="wbgBtn-palette" onclick="wbToggleGroup('palette')" style="padding:4px 9px;font-size:12px;min-width:0;height:auto;border-radius:6px">🎨 More colors</button>
+          <div class="wbg-drop" id="wbgDrop-palette" style="min-width:220px">
+            <div class="wbd-label">Ink colors · Active: <span id="wbActiveSlotLabel">Primary</span></div>
+            <div style="display:grid;grid-template-columns:repeat(8,22px);gap:4px;margin-bottom:6px">
+              <button onclick="wbSetColorSlot('#000000')" style="width:22px;height:22px;border-radius:4px;background:#000;border:1.5px solid #555;padding:0;cursor:pointer" title="Black"></button>
+              <button onclick="wbSetColorSlot('#ffffff')" style="width:22px;height:22px;border-radius:4px;background:#fff;border:1.5px solid #999;padding:0;cursor:pointer" title="White"></button>
+              <button onclick="wbSetColorSlot('#e53e3e')" style="width:22px;height:22px;border-radius:4px;background:#e53e3e;border:none;padding:0;cursor:pointer" title="Red"></button>
+              <button onclick="wbSetColorSlot('#f97316')" style="width:22px;height:22px;border-radius:4px;background:#f97316;border:none;padding:0;cursor:pointer" title="Orange"></button>
+              <button onclick="wbSetColorSlot('#d69e2e')" style="width:22px;height:22px;border-radius:4px;background:#d69e2e;border:none;padding:0;cursor:pointer" title="Yellow"></button>
+              <button onclick="wbSetColorSlot('#38a169')" style="width:22px;height:22px;border-radius:4px;background:#38a169;border:none;padding:0;cursor:pointer" title="Green"></button>
+              <button onclick="wbSetColorSlot('#3182ce')" style="width:22px;height:22px;border-radius:4px;background:#3182ce;border:none;padding:0;cursor:pointer" title="Blue"></button>
+              <button onclick="wbSetColorSlot('#805ad5')" style="width:22px;height:22px;border-radius:4px;background:#805ad5;border:none;padding:0;cursor:pointer" title="Purple"></button>
+              <button onclick="wbSetColorSlot('#b7791f')" style="width:22px;height:22px;border-radius:4px;background:#b7791f;border:none;padding:0;cursor:pointer" title="Brown"></button>
+              <button onclick="wbSetColorSlot('#718096')" style="width:22px;height:22px;border-radius:4px;background:#718096;border:none;padding:0;cursor:pointer" title="Gray"></button>
+              <button onclick="wbSetColorSlot('#fc8181')" style="width:22px;height:22px;border-radius:4px;background:#fc8181;border:none;padding:0;cursor:pointer" title="Pink"></button>
+              <button onclick="wbSetColorSlot('#68d391')" style="width:22px;height:22px;border-radius:4px;background:#68d391;border:none;padding:0;cursor:pointer" title="Mint"></button>
+              <button onclick="wbSetColorSlot('#63b3ed')" style="width:22px;height:22px;border-radius:4px;background:#63b3ed;border:none;padding:0;cursor:pointer" title="Sky"></button>
+              <button onclick="wbSetColorSlot('#faf089')" style="width:22px;height:22px;border-radius:4px;background:#faf089;border:none;padding:0;cursor:pointer" title="Lt.Yellow"></button>
+              <button onclick="wbSetColorSlot('#e9d8fd')" style="width:22px;height:22px;border-radius:4px;background:#e9d8fd;border:none;padding:0;cursor:pointer" title="Lavender"></button>
+              <button onclick="wbSetColorSlot('#feebc8')" style="width:22px;height:22px;border-radius:4px;background:#feebc8;border:none;padding:0;cursor:pointer" title="Peach"></button>
+            </div>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#e8eaf0;cursor:pointer">
+              Custom: <input type="color" value="#1a1a25" oninput="wbSetColorSlot(this.value)" style="width:36px;height:26px;border-radius:5px;border:1px solid var(--bd);padding:1px;cursor:pointer">
+            </label>
+            <button onclick="wbSwapColors();wbCloseGroups()" style="margin-top:6px;border:1px solid var(--bd);border-radius:5px;padding:3px 10px;font-size:11px;cursor:pointer;background:var(--panel2);color:#e8eaf0;width:100%">⇄ Swap primary ↔ secondary</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ROW 3: Pages + PDF + Save to course -->
+      <div class="wb-pages-row">
+        <span style="font-size:10px;font-weight:700;color:#9098ac;text-transform:uppercase;letter-spacing:.05em">Pages</span>
+        <button class="btn" onclick="wbGoPage(-1)" style="padding:2px 9px">◀</button>
+        <span id="wbPageNum" style="font-size:13px;font-weight:800;min-width:40px;text-align:center;color:#e8eaf0">1/1</span>
+        <button class="btn" onclick="wbGoPage(1)"  style="padding:2px 9px">▶</button>
+        <button class="btn" onclick="wbAddPage()"  style="padding:2px 9px" title="Add page">＋ Page</button>
+        <button class="btn" onclick="wbDelPage()"  style="padding:2px 9px;color:#fc8181" title="Delete page">− Page</button>
+        <div style="flex:1"></div>
+        <button class="btn" onclick="toggleTemplatePanel()" style="padding:2px 9px;font-size:12px" title="Save or load scene templates">🗂 Template</button>
+        <button class="btn" onclick="wbExportPdf()" style="padding:2px 9px;font-size:12px" title="Export all pages as PDF">📄 PDF</button>
+        <button class="btn pri" onclick="openWbSaveCourse()" style="padding:2px 9px;font-size:12px">💾 Save to course</button>
+      </div>
+
+    </div><!-- end wbToolbar -->
+
+    <!-- ── Rich Text Editor (Notion-style, draggable) ── -->
+    <div id="wbTextWindow" style="display:none;position:fixed;z-index:350;background:#1d202b;border:1.5px solid #7c3aed;border-radius:14px;box-shadow:0 16px 56px rgba(0,0,0,.7);width:480px;max-height:92vh;overflow:hidden;flex-direction:column">
+      <!-- Header / drag handle -->
+      <div id="wbTextWindowHeader" style="display:flex;align-items:center;justify-content:space-between;padding:9px 14px;background:#7c3aed;border-radius:12px 12px 0 0;cursor:move;user-select:none;flex-shrink:0;gap:8px">
+        <span style="color:#fff;font-size:13px;font-weight:700;flex-shrink:0">📝 Topic Rich Text</span>
+        <input id="wbChapterTitle" placeholder="Chapter / Topic title…" style="flex:1;background:rgba(255,255,255,.2);border:none;border-bottom:1.5px solid rgba(255,255,255,.5);color:#fff;font-size:12px;padding:3px 7px;border-radius:5px 5px 0 0;outline:none;font-weight:600;min-width:0">
+        <button id="wbTextWinClose" style="background:rgba(255,255,255,.25);border:none;color:#fff;font-size:15px;cursor:pointer;border-radius:6px;padding:2px 9px;line-height:1;font-weight:700;flex-shrink:0">✕</button>
+      </div>
+      <!-- Formatting toolbar -->
+      <div style="display:flex;align-items:center;gap:2px;padding:5px 8px;background:#15171f;border-bottom:1px solid #2a2e3c;flex-wrap:wrap;flex-shrink:0">
+        <!-- Block types -->
+        <button onclick="wbRteBlock('h1')" title="Heading 1" style="border:1px solid #2a2e3c;border-radius:5px;padding:2px 7px;font-size:11px;font-weight:900;cursor:pointer;background:#15171f;color:#e8eaf0">H1</button>
+        <button onclick="wbRteBlock('h2')" title="Heading 2" style="border:1px solid #2a2e3c;border-radius:5px;padding:2px 7px;font-size:11px;font-weight:900;cursor:pointer;background:#15171f;color:#e8eaf0">H2</button>
+        <button onclick="wbRteBlock('h3')" title="Heading 3" style="border:1px solid #2a2e3c;border-radius:5px;padding:2px 7px;font-size:11px;font-weight:700;cursor:pointer;background:#15171f;color:#e8eaf0">H3</button>
+        <button onclick="wbRteBlock('p')"  title="Paragraph" style="border:1px solid #2a2e3c;border-radius:5px;padding:2px 7px;font-size:12px;cursor:pointer;background:#15171f;color:#e8eaf0">¶</button>
+        <div style="width:1px;height:16px;background:#2a2e3c;margin:0 2px;flex-shrink:0"></div>
+        <!-- Text formats -->
+        <button id="rteB" onclick="wbRteFmt('bold')"          title="Bold (Ctrl+B)"      style="border:1px solid #2a2e3c;border-radius:5px;padding:2px 7px;font-size:13px;font-weight:900;cursor:pointer;background:#15171f;color:#e8eaf0">B</button>
+        <button id="rteI" onclick="wbRteFmt('italic')"        title="Italic (Ctrl+I)"    style="border:1px solid #2a2e3c;border-radius:5px;padding:2px 7px;font-style:italic;font-size:13px;cursor:pointer;background:#15171f;color:#e8eaf0">I</button>
+        <button id="rteU" onclick="wbRteFmt('underline')"     title="Underline (Ctrl+U)" style="border:1px solid #2a2e3c;border-radius:5px;padding:2px 7px;text-decoration:underline;font-size:13px;cursor:pointer;background:#15171f;color:#e8eaf0">U</button>
+        <button id="rteS" onclick="wbRteFmt('strikeThrough')" title="Strikethrough"      style="border:1px solid #2a2e3c;border-radius:5px;padding:2px 7px;text-decoration:line-through;font-size:12px;cursor:pointer;background:#15171f;color:#e8eaf0">S</button>
+        <div style="width:1px;height:16px;background:#2a2e3c;margin:0 2px;flex-shrink:0"></div>
+        <!-- Text color -->
+        <label title="Text color" style="position:relative;display:inline-flex;flex-direction:column;align-items:center;cursor:pointer;font-size:11px;font-weight:700;color:#e8eaf0;gap:1px;padding:2px 5px;border:1px solid #2a2e3c;border-radius:5px;background:#15171f">
+          A<span id="wbTextColorBar" style="display:block;width:14px;height:3px;border-radius:2px;background:#e8eaf0"></span>
+          <input type="color" id="wbTextColor" value="#e8eaf0" oninput="wbRteColor(this.value)" style="position:absolute;opacity:0;width:100%;height:100%;cursor:pointer;border:none;padding:0;left:0;top:0">
+        </label>
+        <!-- Highlight -->
+        <label title="Highlight" style="position:relative;display:inline-flex;align-items:center;cursor:pointer;padding:2px 5px;border:1px solid #2a2e3c;border-radius:5px;background:#15171f;color:#e8eaf0;font-size:13px">
+          🖍<input type="color" id="wbHighlightColor" value="#fef08a" oninput="wbRteHighlight(this.value)" style="position:absolute;opacity:0;width:100%;height:100%;cursor:pointer;border:none;padding:0;left:0;top:0">
+        </label>
+        <div style="width:1px;height:16px;background:#2a2e3c;margin:0 2px;flex-shrink:0"></div>
+        <!-- Lists + blocks -->
+        <button onclick="wbRteInsert('bullet')"   title="Bullet list"       style="border:1px solid #2a2e3c;border-radius:5px;padding:2px 6px;font-size:13px;cursor:pointer;background:#15171f;color:#e8eaf0">•</button>
+        <button onclick="wbRteInsert('numbered')" title="Numbered list"     style="border:1px solid #2a2e3c;border-radius:5px;padding:2px 6px;font-size:11px;cursor:pointer;background:#15171f;color:#e8eaf0">1.</button>
+        <button onclick="wbRteInsert('quote')"    title="Blockquote"        style="border:1px solid #2a2e3c;border-radius:5px;padding:2px 6px;font-size:13px;cursor:pointer;background:#15171f;color:#e8eaf0">❝</button>
+        <button onclick="wbRteInsert('link')"     title="Insert link"       style="border:1px solid #2a2e3c;border-radius:5px;padding:2px 6px;font-size:12px;cursor:pointer;background:#15171f;color:#e8eaf0">🔗</button>
+        <button onclick="wbRteInsert('code')"     title="Inline code"       style="border:1px solid #2a2e3c;border-radius:5px;padding:2px 5px;font-size:10px;cursor:pointer;background:#15171f;color:#e8eaf0">&lt;/&gt;</button>
+        <button onclick="wbRteInsert('table')"    title="Table"             style="border:1px solid #2a2e3c;border-radius:5px;padding:2px 6px;font-size:13px;cursor:pointer;background:#15171f;color:#e8eaf0">▦</button>
+        <button onclick="wbRteInsert('callout')"  title="Callout / key tip" style="border:1px solid #2a2e3c;border-radius:5px;padding:2px 6px;font-size:13px;cursor:pointer;background:#15171f;color:#e8eaf0">💡</button>
+        <button onclick="wbRteInsert('divider')"  title="Horizontal rule"   style="border:1px solid #2a2e3c;border-radius:5px;padding:2px 6px;font-size:13px;cursor:pointer;background:#15171f;color:#e8eaf0">—</button>
+        <button onclick="document.getElementById('wbRteImgInput').click()" title="Insert image" style="border:1px solid #2a2e3c;border-radius:5px;padding:2px 6px;font-size:13px;cursor:pointer;background:#15171f;color:#e8eaf0">🖼</button>
+        <input type="file" id="wbRteImgInput" accept="image/*" style="display:none" onchange="wbRteInsertImage(this)">
+        <button onclick="wbRteInsert('add')" title="Add block" style="border:1.5px solid #7c3aed;border-radius:5px;padding:2px 7px;font-size:13px;cursor:pointer;background:rgba(124,58,237,.2);color:#c4b5fd;font-weight:700">＋</button>
+        <div style="flex:1"></div>
+        <!-- Align -->
+        <button id="rteLeft"   onclick="wbRteAlign('left')"   title="Left"   style="border:1px solid #2a2e3c;border-radius:5px;padding:2px 5px;font-size:10px;cursor:pointer;background:#7c3aed;color:#fff">≡←</button>
+        <button id="rteCenter" onclick="wbRteAlign('center')" title="Center" style="border:1px solid #2a2e3c;border-radius:5px;padding:2px 5px;font-size:10px;cursor:pointer;background:#15171f;color:#e8eaf0">≡↔</button>
+        <button id="rteRight"  onclick="wbRteAlign('right')"  title="Right"  style="border:1px solid #2a2e3c;border-radius:5px;padding:2px 5px;font-size:10px;cursor:pointer;background:#15171f;color:#e8eaf0">≡→</button>
+      </div>
+      <!-- contenteditable editor -->
+      <div id="wbRteEditor" contenteditable="true" spellcheck="true"
+        data-placeholder="📌 Chapter 2 — Algebra Basics&#10;&#10;Variables, equations, solving…"
+        style="flex:1;min-height:160px;max-height:320px;overflow-y:auto;padding:14px 16px;font-size:16px;line-height:1.75;background:#0b0d14;color:#e8eaf0;outline:none;font-family:system-ui,sans-serif">
+      </div>
+      <!-- Footer actions -->
+      <div style="display:flex;gap:8px;padding:9px 14px;background:#15171f;border-top:1px solid #2a2e3c;flex-shrink:0;align-items:center">
+        <button class="btn pri" onclick="wbStampRte()" style="flex:1;padding:8px;font-size:13px">✅ Stamp to Board</button>
+        <button onclick="wbRteInsert('bullet')" style="border:1px solid #2a2e3c;border-radius:6px;padding:6px 10px;font-size:11px;cursor:pointer;background:#1d202b;color:#e8eaf0">• Bullets</button>
+        <button onclick="wbRteInsert('callout')" style="border:1px solid #2a2e3c;border-radius:6px;padding:6px 10px;font-size:11px;cursor:pointer;background:#1d202b;color:#e8eaf0">💡 Note</button>
+        <button id="wbTextCancelBtn" class="btn" style="padding:8px 13px">✕</button>
+      </div>
+    </div>
+    <!-- Document reference panel — fixed overlay so it's always visible while teaching -->
+    <div id="wbDocPanel" style="display:none;position:fixed;z-index:280;right:16px;top:70px;width:min(380px,45vw);background:var(--panel);border:1.5px solid var(--bd);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.35);overflow:hidden;resize:both">
+      <div id="wbDocPanelHeader" style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;background:var(--bd);font-size:12px;font-weight:700;cursor:move;user-select:none">
+        <span>📄 Document Reference</span>
+        <div style="display:flex;gap:5px;align-items:center">
+          <button class="btn" onclick="wbDocPage(-1)" style="padding:2px 7px">◀</button>
+          <span id="wbDocPageNum" style="font-size:11px;font-weight:700;min-width:30px;text-align:center">1/1</span>
+          <button class="btn" onclick="wbDocPage(1)"  style="padding:2px 7px">▶</button>
+          <button class="btn" onclick="document.getElementById('wbDocPanel').style.display='none'" style="padding:2px 7px;color:#e53e3e">✕</button>
+        </div>
+      </div>
+      <div style="overflow:auto;text-align:center;padding:6px;background:#1a1d2a;max-height:calc(80vh - 50px)">
+        <img id="wbDocImg" src="" alt="" style="max-width:100%;border-radius:6px;display:none">
+        <iframe id="wbDocPdf" src="" style="width:100%;height:500px;border:none;border-radius:6px;display:none"></iframe>
+        <div id="wbDocNoImg" style="padding:20px;color:#9098ac;font-size:13px">No document loaded yet.<br>Open an image or PDF from Insert → Doc ref.</div>
+        <button id="wbDocAddToBoard" onclick="wbDocAddToBoard()" style="display:none;margin-top:8px;border:1px solid #7c3aed;border-radius:8px;padding:5px 14px;font-size:12px;cursor:pointer;background:#1d202b;color:#e8eaf0">⬇ Add to board</button>
+      </div>
+    </div>
+
+    <!-- Save to course modal -->
+    <div id="wbSaveCourseModal" style="display:none;position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.6);align-items:center;justify-content:center">
+      <div style="background:var(--panel);border-radius:14px;padding:22px;max-width:460px;width:90%;max-height:90vh;overflow:auto">
+        <div style="display:flex;justify-content:space-between;margin-bottom:14px">
+          <strong style="font-size:16px">💾 Save whiteboard to course</strong>
+          <button class="btn" onclick="document.getElementById('wbSaveCourseModal').style.display='none'">×</button>
+        </div>
+        <div style="margin-bottom:12px">
+          <label style="font-size:13px;font-weight:600;display:block;margin-bottom:5px">Course</label>
+          <select id="wbCourseSelect" style="width:100%;padding:8px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--text)" onchange="wbLoadTopics(this.value)">
+            <option value="">— loading courses —</option>
+          </select>
+        </div>
+        <div style="margin-bottom:12px">
+          <label style="font-size:13px;font-weight:600;display:block;margin-bottom:5px">Topic / Section</label>
+          <select id="wbTopicSelect" style="width:100%;padding:8px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--text)">
+            <option value="">— pick a course first —</option>
+          </select>
+          <input type="text" id="wbNewTopic" placeholder="Or type a new topic name…" style="width:100%;margin-top:6px;padding:8px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--text)">
+        </div>
+        <div style="margin-bottom:14px">
+          <label style="font-size:13px;font-weight:600;display:block;margin-bottom:5px">Title</label>
+          <input type="text" id="wbSaveTitle" placeholder="Whiteboard notes — Lesson 1" style="width:100%;padding:8px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--text)">
+        </div>
+        <div style="margin-bottom:14px">
+          <label style="font-size:13px;font-weight:600;display:block;margin-bottom:5px">Save as</label>
+          <div style="display:flex;gap:8px">
+            <label style="display:flex;align-items:center;gap:5px"><input type="radio" name="wbSaveAs" value="image" checked> Image (PNG)</label>
+            <label style="display:flex;align-items:center;gap:5px"><input type="radio" name="wbSaveAs" value="pdf"> PDF (all pages)</label>
+          </div>
+        </div>
+        <button class="btn pri" style="width:100%;padding:10px" onclick="wbDoSaveCourse()">💾 Save to course</button>
+        <div id="wbSaveStatus" style="margin-top:10px;font-size:13px;text-align:center"></div>
+      </div>
     </div>
     <div style="display:flex;gap:8px;margin-top:10px">
       <span class="badge" id="srcLabel">No source</span><span class="badge">1280×720</span>
@@ -290,30 +536,60 @@ select,input[type=text]{width:100%;padding:8px;border-radius:6px;border:1px soli
   </div>
 </div>
 <!-- Course picker modal -->
-<!-- Aspect Ratio Crop Selector — shown when user changes format -->
-<div id="arCropModal" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.9);flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px">
-  <div style="font-size:15px;font-weight:700;color:#fff">🖼 Select which part of the frame to show</div>
-  <div style="font-size:12px;color:var(--mut)">Drag the purple box to reposition · drag corner handles to resize</div>
-  <div id="arCropWrap" style="position:relative;max-width:min(88vw,960px);width:min(88vw,960px);cursor:default;user-select:none;line-height:0">
-    <canvas id="arCropPreview" style="display:block;width:100%;height:auto;border-radius:8px;background:#111"></canvas>
-    <!-- dimming overlay outside selection — 4 divs for top/bottom/left/right -->
-    <div id="arcDimT" style="position:absolute;top:0;left:0;right:0;background:rgba(0,0,0,.55);pointer-events:none"></div>
-    <div id="arcDimB" style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.55);pointer-events:none"></div>
-    <div id="arcDimL" style="position:absolute;background:rgba(0,0,0,.55);pointer-events:none"></div>
-    <div id="arcDimR" style="position:absolute;background:rgba(0,0,0,.55);pointer-events:none"></div>
-    <!-- Selection box -->
-    <div id="arCropBox" style="position:absolute;border:2px solid #7c3aed;box-sizing:border-box;cursor:move;outline:1px solid rgba(255,255,255,.4)">
-      <div class="arc-h" id="arc-tl" style="top:-6px;left:-6px;cursor:nwse-resize"></div>
-      <div class="arc-h" id="arc-tr" style="top:-6px;right:-6px;cursor:nesw-resize"></div>
-      <div class="arc-h" id="arc-bl" style="bottom:-6px;left:-6px;cursor:nesw-resize"></div>
-      <div class="arc-h" id="arc-br" style="bottom:-6px;right:-6px;cursor:nwse-resize"></div>
+<!-- Aspect Ratio Crop Selector -->
+<div id="arCropModal" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.92);flex-direction:column;align-items:center;justify-content:flex-start;gap:10px;padding:16px;overflow-y:auto">
+  <!-- Header row -->
+  <div style="display:flex;align-items:center;justify-content:space-between;width:min(88vw,960px);gap:12px">
+    <div>
+      <div style="font-size:15px;font-weight:800;color:#fff">🎬 Crop to Aspect Ratio</div>
+      <div id="arCropLabel" style="font-size:12px;color:#7c3aed;font-weight:700;margin-top:2px">16:9 · YouTube / Zoom</div>
+    </div>
+    <!-- AR quick-select chips -->
+    <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+      <button onclick="arQuickSwitch('1920x1080')" data-arq="1920x1080" style="border:1.5px solid #7c3aed;border-radius:20px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;background:#7c3aed;color:#fff">16:9</button>
+      <button onclick="arQuickSwitch('1080x1920')" data-arq="1080x1920" style="border:1.5px solid #444;border-radius:20px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;background:transparent;color:#ccc">9:16</button>
+      <button onclick="arQuickSwitch('1280x720')"  data-arq="1280x720"  style="border:1.5px solid #444;border-radius:20px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;background:transparent;color:#ccc">HD</button>
+      <button onclick="arQuickSwitch('1080x1080')" data-arq="1080x1080" style="border:1.5px solid #444;border-radius:20px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;background:transparent;color:#ccc">1:1</button>
+      <button onclick="arQuickSwitch('960x720')"   data-arq="960x720"   style="border:1.5px solid #444;border-radius:20px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;background:transparent;color:#ccc">4:3</button>
     </div>
   </div>
-  <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
-    <button class="btn pri" onclick="applyArCrop()" style="padding:10px 22px">✓ Use this frame</button>
-    <button class="btn" onclick="applyArCropFull()" style="padding:10px 22px">⬜ Use full frame</button>
-    <button class="btn" onclick="cancelArCrop()" style="padding:10px 22px">✕ Cancel</button>
+  <div style="font-size:11px;color:#9098ac;width:min(88vw,960px)">Drag the box to reposition · drag corner handles to resize (aspect ratio is locked) · corner handles keep the crop ratio</div>
+  <!-- Preview + crop box -->
+  <div id="arCropWrap" style="position:relative;max-width:min(88vw,960px);width:min(88vw,960px);cursor:default;user-select:none;line-height:0;border-radius:8px;overflow:hidden">
+    <canvas id="arCropPreview" style="display:block;width:100%;height:auto;border-radius:8px;background:#111"></canvas>
+    <div id="arcDimT" style="position:absolute;top:0;left:0;right:0;background:rgba(0,0,0,.6);pointer-events:none"></div>
+    <div id="arcDimB" style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.6);pointer-events:none"></div>
+    <div id="arcDimL" style="position:absolute;background:rgba(0,0,0,.6);pointer-events:none"></div>
+    <div id="arcDimR" style="position:absolute;background:rgba(0,0,0,.6);pointer-events:none"></div>
+    <!-- Crop box -->
+    <div id="arCropBox" style="position:absolute;border:2px solid #7c3aed;box-sizing:border-box;cursor:move">
+      <!-- Rule-of-thirds grid lines -->
+      <div style="position:absolute;inset:0;pointer-events:none;border:none">
+        <div style="position:absolute;left:33.3%;top:0;bottom:0;width:1px;background:rgba(255,255,255,.2)"></div>
+        <div style="position:absolute;left:66.6%;top:0;bottom:0;width:1px;background:rgba(255,255,255,.2)"></div>
+        <div style="position:absolute;top:33.3%;left:0;right:0;height:1px;background:rgba(255,255,255,.2)"></div>
+        <div style="position:absolute;top:66.6%;left:0;right:0;height:1px;background:rgba(255,255,255,.2)"></div>
+      </div>
+      <!-- AR label inside box -->
+      <div id="arCropBoxLabel" style="position:absolute;top:6px;left:50%;transform:translateX(-50%);background:rgba(124,58,237,.8);color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;pointer-events:none;white-space:nowrap">16:9</div>
+      <!-- Corner handles -->
+      <div class="arc-h" id="arc-tl" style="top:-7px;left:-7px;cursor:nwse-resize"></div>
+      <div class="arc-h" id="arc-tr" style="top:-7px;right:-7px;cursor:nesw-resize"></div>
+      <div class="arc-h" id="arc-bl" style="bottom:-7px;left:-7px;cursor:nesw-resize"></div>
+      <div class="arc-h" id="arc-br" style="bottom:-7px;right:-7px;cursor:nwse-resize"></div>
+    </div>
   </div>
+  <!-- Platform hints -->
+  <div id="arPlatformHint" style="font-size:11px;color:#9098ac;width:min(88vw,960px);padding:6px 10px;background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.3);border-radius:8px">
+    📺 <strong style="color:#e8eaf0">16:9</strong> — Best for: YouTube, Zoom, Google Meet, Teams, projectors
+  </div>
+  <!-- Actions -->
+  <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;width:min(88vw,960px)">
+    <button class="btn pri" onclick="applyArCrop()" style="padding:10px 26px;font-size:13px">✓ Apply crop</button>
+    <button class="btn" onclick="applyArCropFull()" style="padding:10px 20px;font-size:13px">⬜ Full frame (no crop)</button>
+    <button class="btn" onclick="cancelArCrop()" style="padding:10px 18px;font-size:13px;color:#fc8181">✕ Cancel</button>
+  </div>
+  <div style="font-size:11px;color:#9098ac">After applying: use the <strong style="color:#e8eaf0">corner handles</strong> on the preview canvas to fine-tune perspective.</div>
 </div>
 <div id="coursePicker" style="display:none;position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.6);align-items:center;justify-content:center;padding:16px" onclick="if(event.target===this)this.style.display='none'">
   <div style="background:var(--panel);border-radius:12px;max-width:560px;width:100%;max-height:80vh;overflow:auto;padding:18px">
@@ -342,6 +618,35 @@ select,input[type=text]{width:100%;padding:8px;border-radius:6px;border:1px soli
 <script>
 const params=new URLSearchParams(location.search);
 const CLASS_ID=params.get('class'); const TOKEN=localStorage.getItem('jm_token'); const API='/api';
+
+// ── Dashboard connection: load user profile from localStorage ─────────────
+(function _initUserProfile(){
+  try{
+    const u=JSON.parse(localStorage.getItem('jm_user')||'null');
+    if(!u) return;
+    const chip=document.getElementById('studioUserChip');
+    if(chip){
+      const role=u.user_type||u.role||'teacher';
+      chip.textContent='👤 '+(u.full_name||u.name||u.email||'User')+' · '+role;
+      chip.style.display='inline-flex';
+      chip.title='Logged in as '+(u.full_name||u.email)+' — click to go to dashboard';
+    }
+  } catch(e){}
+})();
+
+// User courses cache (loaded lazily for "Save to course" + "Teach" flows)
+let _userCourses=null;
+async function _loadUserCourses(force){
+  if(_userCourses&&!force) return _userCourses;
+  try{
+    const tok=localStorage.getItem('jm_token')||'';
+    if(!tok) return [];
+    const res=await fetch(API+'/courses?mine=1',{headers:{Authorization:'Bearer '+tok}});
+    const data=await res.json();
+    _userCourses=(data.courses||data||[]);
+    return _userCourses;
+  } catch(e){ return []; }
+}
 // The live class this Studio session is bound to. Starts from ?class= but can
 // be (re)bound at runtime via the "Teach a course" flow, so recordings/streams
 // attach to the right class even when Studio is opened standalone.
@@ -571,23 +876,27 @@ function addWhiteboard(){
   const cv=document.createElement('canvas'); cv.width=out.width||1280; cv.height=out.height||720;
   const c=cv.getContext('2d');
   c.fillStyle='#fff'; c.fillRect(0,0,cv.width,cv.height);
-  sources[id]={el:cv,type:'whiteboard',ctx:c,label:'Whiteboard',undoStack:[]};
+  sources[id]={el:cv,type:'whiteboard',ctx:c,label:'Whiteboard',undoStack:[],pages:[],currentPage:0};
+  // save initial blank page
+  sources[id].pages[0]={imageData:c.getImageData(0,0,cv.width,cv.height),bg:'white'};
   addScene(id); enableWbDraw(id);
 }
 // Image/document source.
 function addImage(input){ const f=input.files?.[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ const im=new Image(); im.onload=()=>{ const id='img_'+Date.now(); sources[id]={el:im,type:'image',label:'Document'}; addScene(id); }; im.src=r.result; }; r.readAsDataURL(f); input.value=''; }
 function addImageUrl(url,label){ const im=new Image(); im.crossOrigin='anonymous'; im.onload=()=>{ const id='img_'+Date.now(); sources[id]={el:im,type:'image',label:label||'Content'}; addScene(id); }; im.onerror=()=>alert('Could not load that content as an image (PDFs/links may not embed).'); im.src=url; }
-function pickSource(id){ if(activeScene){ activeScene.sourceId=id; renderScenes(); } document.getElementById('srcLabel').textContent=(sources[id]?.label||'Source'); }
+function pickSource(id){ if(activeScene){ activeScene.sourceId=id; renderScenes(); } document.getElementById('srcLabel').textContent=(sources[id]?.label||'Source'); const isWb=sources[id]?.type==='whiteboard'; document.getElementById('wbToolbar').style.display=isWb?'flex':'none'; if(isWb&&sources[id]) _wbUpdatePageNav(sources[id]); }
 
 // Whiteboard drawing (on the main preview when its scene is active).
 function enableWbDraw(id){
   document.getElementById('wbToolbar').style.display='flex';
   wbSetTool('pen');
+  const s=sources[id]; if(s) _wbUpdatePageNav(s);
+  if(typeof _wbSyncSwatches==='function') _wbSyncSwatches();
 }
 
 // ── Course content picker ──────────────────────────────────────────────
 async function openCoursePicker(){ document.getElementById('coursePicker').style.display='flex';
-  try{ const r=await fetch(API+'/courses?mine=1',{headers:{Authorization:'Bearer '+TOKEN}}).then(x=>x.json()); const courses=r.courses||r.data||[];
+  try{ const courses=await _loadUserCourses(true);
     document.getElementById('cpCourse').innerHTML='<option value="">— pick a course —</option>'+courses.map(c=>`<option value="${c.id}">${(c.title||'Course')}</option>`).join('');
   }catch(e){}
 }
@@ -613,7 +922,7 @@ async function openTeach(){
   const t=new Date(Date.now()+5*60000); t.setSeconds(0,0);
   const tz=new Date(t.getTime()-t.getTimezoneOffset()*60000).toISOString().slice(0,16);
   const ti=document.getElementById('tNewTime'); if(ti && !ti.value) ti.value=tz;
-  try{ const r=await fetch(API+'/courses?mine=1',{headers:{Authorization:'Bearer '+TOKEN}}).then(x=>x.json()); const courses=r.courses||r.data||[];
+  try{ const courses=await _loadUserCourses(true);
     document.getElementById('tCourse').innerHTML='<option value="">— pick a course —</option>'+courses.map(c=>`<option value="${c.id}">${_esc(c.title||'Course')}</option>`).join('');
   }catch(e){}
 }
@@ -665,11 +974,11 @@ async function tGoLive(){
 // ── Scenes ─────────────────────────────────────────────────────────────
 function addScene(sourceId){ const sid=sourceId||activeScene?.sourceId||Object.keys(sources)[0]||''; const sc={id:'sc_'+Date.now(),name:(sources[sid]?.label||'Scene')+' '+(scenes.length+1),sourceId:sid,corners:defaultCorners(),zoom:1,rotation:0}; scenes.push(sc); activeScene=sc; renderScenes(); loadEditor(); }
 function defaultCorners(){ return [{x:0,y:0},{x:1,y:0},{x:1,y:1},{x:0,y:1}]; }
-function switchScene(id){ activeScene=scenes.find(s=>s.id===id); _selLayer=(activeScene&&activeScene.layers&&activeScene.layers[0])?activeScene.layers[0].id:null; renderScenes(); loadEditor(); document.getElementById('srcLabel').textContent=(sources[activeScene?.sourceId]?.label||'Source'); drawCorners(); renderLayerList(); drawLayout(); const isWb=activeScene&&sources[activeScene.sourceId]?.type==='whiteboard'; document.getElementById('wbToolbar').style.display=isWb?'flex':'none'; if(isWb) wbSetTool(wbTool); }
+function switchScene(id){ activeScene=scenes.find(s=>s.id===id); _selLayer=(activeScene&&activeScene.layers&&activeScene.layers[0])?activeScene.layers[0].id:null; renderScenes(); loadEditor(); document.getElementById('srcLabel').textContent=(sources[activeScene?.sourceId]?.label||'Source'); drawCorners(); renderLayerList(); drawLayout(); const isWb=activeScene&&sources[activeScene.sourceId]?.type==='whiteboard'; document.getElementById('wbToolbar').style.display=isWb?'flex':'none'; if(isWb){ wbSetTool(wbTool); _wbUpdatePageNav(sources[activeScene.sourceId]); } }
 function renderScenes(){ document.getElementById('sceneList').innerHTML=scenes.map(s=>{ const ic={video:'🎥',screen:'🖥',whiteboard:'🖍',image:'📄'}[sources[s.sourceId]?.type]||'🎬'; return `<div class="scene ${activeScene?.id===s.id?'active':''}" onclick="switchScene('${s.id}')"><div class="thumb">${ic}</div><div class="nm">${s.name||'Scene'}</div><button class="btn" style="padding:3px 8px" onclick="event.stopPropagation();delScene('${s.id}')">×</button></div>`; }).join('')||'<div class="hint">No scenes yet.</div>'; }
 function delScene(id){ scenes=scenes.filter(s=>s.id!==id); if(activeScene?.id===id) activeScene=scenes[0]||null; renderScenes(); loadEditor(); }
 function updatePreset(k,v){ if(activeScene){ activeScene[k]=v; if(k==='name') renderScenes(); } }
-function loadEditor(){ if(!activeScene) return; document.getElementById('presetName').value=activeScene.name||''; document.getElementById('zoom').value=activeScene.zoom||1; document.getElementById('rot').value=activeScene.rotation||0; drawCorners(); }
+function loadEditor(){ const tb=document.getElementById('wbToolbar'); if(!activeScene){ if(tb) tb.style.display='none'; return; } document.getElementById('presetName').value=activeScene.name||''; document.getElementById('zoom').value=activeScene.zoom||1; document.getElementById('rot').value=activeScene.rotation||0; drawCorners(); const srcType=sources[activeScene.sourceId]?.type; if(tb) tb.style.display=srcType==='whiteboard'?'flex':'none'; }
 function resetCorners(){ if(activeScene){ activeScene.corners=defaultCorners(); drawCorners(); } }
 
 // ── Multi-element LAYOUT (compositor) ───────────────────────────────────
@@ -814,7 +1123,7 @@ function drawCorners(){
 const FMT_LABELS={
   '1280x720':'16:9 · 720p',
   '1920x1080':'16:9 · 1080p',
-  '720x1280':'Portrait 9:16',
+  '1080x1920':'9:16 · Portrait',
   '1080x1080':'1:1 · Square',
   '960x720':'4:3 · Classic'
 };
@@ -833,13 +1142,54 @@ function _applyFormat(v){
   if(activeScene) drawCorners();
 }
 
+const AR_PLATFORM_HINTS={
+  '1920x1080':'📺 16:9 — YouTube, Zoom, Google Meet, Teams, projectors',
+  '1280x720' :'📺 16:9 HD — YouTube, streaming, webinar recording',
+  '1080x1920':'📱 9:16 Vertical — Instagram Reels, TikTok, YouTube Shorts',
+  '1080x1080':'⬜ 1:1 Square — Instagram feed, Facebook posts',
+  '960x720'  :'📚 4:3 Classic — older projectors, some LMS platforms'
+};
+const AR_RATIO_LABEL={
+  '1920x1080':'16:9','1280x720':'16:9 HD','1080x1920':'9:16 Portrait',
+  '720x1280':'9:16 Portrait','1080x1080':'1:1','960x720':'4:3'
+};
+
+function _arSetChips(fmt){
+  document.querySelectorAll('[data-arq]').forEach(b=>{
+    const active=b.dataset.arq===fmt;
+    b.style.background=active?'#7c3aed':'transparent';
+    b.style.color=active?'#fff':'#ccc';
+    b.style.borderColor=active?'#7c3aed':'#444';
+  });
+  const lbl=document.getElementById('arCropLabel');
+  if(lbl) lbl.textContent=(AR_PLATFORM_HINTS[fmt]||fmt);
+  const hint=document.getElementById('arPlatformHint');
+  if(hint) hint.innerHTML=AR_PLATFORM_HINTS[fmt]||fmt;
+  const boxLbl=document.getElementById('arCropBoxLabel');
+  if(boxLbl) boxLbl.textContent=AR_RATIO_LABEL[fmt]||fmt;
+}
+
+function arQuickSwitch(fmt){
+  // Stay in crop modal but re-init the crop box for the new format
+  _pendingFmt=fmt;
+  const [tw,th]=fmt.split('x').map(Number);
+  const targetAR=tw/th;
+  const preview=document.getElementById('arCropPreview');
+  const srcAR=preview.width/preview.height||1;
+  let bw,bh;
+  if(targetAR>=srcAR){bw=1;bh=srcAR/targetAR;}else{bh=1;bw=targetAR/srcAR;}
+  _arCropBox={x:(1-bw)/2,y:(1-bh)/2,w:bw,h:bh};
+  _arSetChips(fmt);
+  _arUpdateBox(targetAR);
+  _arBindDrag(targetAR);
+}
+
 function openArCropSelector(newFmt){
   _pendingFmt=newFmt;
   const [tw,th]=newFmt.split('x').map(Number);
   const targetAR=tw/th;
   const preview=document.getElementById('arCropPreview');
-  // Snapshot the RAW source (not the already-cropped output) so re-selecting
-  // layout always shows the full original frame, not a previously cropped view
+  // Snapshot the RAW source so re-selecting always shows the full original frame
   const s=activeScene&&sources[activeScene.sourceId];
   const srcEl=s?s.el:null;
   const rawW=(srcEl&&(srcEl.videoWidth||srcEl.width))||out.width;
@@ -850,12 +1200,12 @@ function openArCropSelector(newFmt){
     pc.fillStyle='#222'; pc.fillRect(0,0,rawW,rawH);
     if(srcEl) pc.drawImage(srcEl,0,0,rawW,rawH);
   }catch(e){}
-  // Init crop box centered, fitted to target AR within the source frame
+  const srcAR=rawW/rawH||1;
   let bw,bh;
   if(targetAR>=srcAR){bw=1;bh=srcAR/targetAR;}else{bh=1;bw=targetAR/srcAR;}
   _arCropBox={x:(1-bw)/2,y:(1-bh)/2,w:bw,h:bh};
+  _arSetChips(newFmt);
   document.getElementById('arCropModal').style.display='flex';
-  // Wait for layout before positioning — poll until offsetWidth is non-zero
   let _tries=0;
   function _waitLayout(){
     if(preview.offsetWidth>0||_tries++>30){_arUpdateBox(targetAR);_arBindDrag(targetAR);}
@@ -886,7 +1236,12 @@ function _arUpdateBox(ar){
 function _arBindDrag(targetAR){
   const wrap=document.getElementById('arCropWrap');
   const box=document.getElementById('arCropBox');
+  const preview=document.getElementById('arCropPreview');
   if(!wrap||!box) return;
+  // targetAR is output W/H ratio; _arCropBox is in normalized SOURCE coords.
+  // In source-normalized space the crop box ratio nw/nh = outputAR/sourceAR.
+  const srcAR=(preview&&preview.height)?preview.width/preview.height:1;
+  const normAR=targetAR/srcAR;  // crop box nw/nh constraint in source coords
   let drag=null;
   box.onpointerdown=e=>{
     if(e.target!==box) return;
@@ -916,10 +1271,11 @@ function _arBindDrag(targetAR){
       const dx=(e.clientX-rd.sx)/pw, dy=(e.clientY-rd.sy)/ph;
       let {x,y,w,h:bh2}=rd.box;
       let nw,nh;
-      if(rd.id==='arc-tl'){nw=Math.max(0.05,w-dx);nh=nw/targetAR;_arCropBox={x:x+w-nw,y:y+bh2-nh,w:nw,h:nh};}
-      else if(rd.id==='arc-tr'){nw=Math.max(0.05,w+dx);nh=nw/targetAR;_arCropBox={x,y:y+bh2-nh,w:nw,h:nh};}
-      else if(rd.id==='arc-bl'){nw=Math.max(0.05,w-dx);nh=nw/targetAR;_arCropBox={x:x+w-nw,y,w:nw,h:nh};}
-      else{nw=Math.max(0.05,w+dx);nh=nw/targetAR;_arCropBox={x,y,w:nw,h:nh};}
+      // normAR = nw/nh ratio for the crop box in source-normalized coords
+      if(rd.id==='arc-tl'){nw=Math.min(normAR,Math.max(0.05,w-dx));nh=nw/normAR;_arCropBox={x:x+w-nw,y:y+bh2-nh,w:nw,h:nh};}
+      else if(rd.id==='arc-tr'){nw=Math.min(normAR,Math.max(0.05,w+dx));nh=nw/normAR;_arCropBox={x,y:y+bh2-nh,w:nw,h:nh};}
+      else if(rd.id==='arc-bl'){nw=Math.min(normAR,Math.max(0.05,w-dx));nh=nw/normAR;_arCropBox={x:x+w-nw,y,w:nw,h:nh};}
+      else{nw=Math.min(normAR,Math.max(0.05,w+dx));nh=nw/normAR;_arCropBox={x,y,w:nw,h:nh};}
       _arCropBox.x=Math.max(0,Math.min(1-_arCropBox.w,_arCropBox.x));
       _arCropBox.y=Math.max(0,Math.min(1-_arCropBox.h,_arCropBox.y));
       _arUpdateBox(targetAR);
@@ -929,17 +1285,19 @@ function _arBindDrag(targetAR){
 }
 
 function applyArCrop(){
-  // Store as source-region crop: the renderLoop scales this region to fill the output
   _srcCrop={x:_arCropBox.x,y:_arCropBox.y,w:_arCropBox.w,h:_arCropBox.h};
   _srcCropMode=true;
   _applyFormat(_pendingFmt);
   document.getElementById('arCropModal').style.display='none';
+  const rb=document.getElementById('btnRecrop'); if(rb) rb.style.display='inline-flex';
+  showToast('Crop applied — use corner handles to refine perspective');
 }
 
 function applyArCropFull(){
   _srcCropMode=false;
   _applyFormat(_pendingFmt);
   document.getElementById('arCropModal').style.display='none';
+  const rb=document.getElementById('btnRecrop'); if(rb) rb.style.display='none';
 }
 
 function cancelArCrop(){
@@ -969,6 +1327,7 @@ function wbPt(e){ const r=outRect(); const s=_wbS(); const cw=s?s.el.width:out.w
 function wbDrawBg(s, bg){
   const ctx=s.ctx, W=s.el.width, H=s.el.height;
   if(bg==='white'){ ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,W,H); }
+  else if(bg==='custom'){ ctx.fillStyle=_wbCustomBgColor||'#ffffff'; ctx.fillRect(0,0,W,H); }
   else if(bg==='black'){ ctx.fillStyle='#1a1a2e'; ctx.fillRect(0,0,W,H); }
   else if(bg==='grid'){
     ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,W,H);
@@ -1012,8 +1371,16 @@ function wbClear(){
 
 function wbUndo(){
   const s=_wbS(); if(!s||!s.undoStack||!s.undoStack.length) return;
-  const img=s.undoStack.pop();
-  s.ctx.putImageData(img,0,0);
+  if(!s.redoStack) s.redoStack=[];
+  s.redoStack.push(s.ctx.getImageData(0,0,s.el.width,s.el.height));
+  s.ctx.putImageData(s.undoStack.pop(),0,0);
+}
+
+function wbRedo(){
+  const s=_wbS(); if(!s||!s.redoStack||!s.redoStack.length) return;
+  if(!s.undoStack) s.undoStack=[];
+  s.undoStack.push(s.ctx.getImageData(0,0,s.el.width,s.el.height));
+  s.ctx.putImageData(s.redoStack.pop(),0,0);
 }
 
 function _wbPushUndo(){
@@ -1021,26 +1388,98 @@ function _wbPushUndo(){
   if(!s.undoStack) s.undoStack=[];
   if(s.undoStack.length>30) s.undoStack.shift();
   s.undoStack.push(s.ctx.getImageData(0,0,s.el.width,s.el.height));
+  s.redoStack=[];  // any new draw clears redo history
 }
 
 function wbSetTool(t){
   wbTool=t;
   document.querySelectorAll('.wb-tool').forEach(b=>b.classList.toggle('on',b.dataset.tool===t));
-  out.style.cursor=t==='eraser'?'cell':t==='pen'?'crosshair':'default';
+  out.style.cursor=t==='eraser'?'cell':t==='text'?'text':'crosshair';
+  if(t!=='text') document.getElementById('wbTextWindow').style.display='none';
+}
+function wbToggleFillMode(){
+  wbFillMode=!wbFillMode;
+  const btn=document.getElementById('wbFillToggle');
+  if(btn){ btn.textContent=wbFillMode?'Filled':'Outline'; btn.style.color=wbFillMode?'#c4b5fd':'#9098ac'; btn.style.borderColor=wbFillMode?'#7c3aed':''; }
 }
 
-function wbSetColor(c){ wbColor=c; document.getElementById('wbColorSwatch').style.background=c; }
+// ── Color slot system (slot 1=primary/fg, slot 2=secondary/bg-of-text) ───
+let _wbActiveSlot=1, _wbSlot1='#000000', _wbSlot2='#ffffff';
+let wbFillMode=false;
+
+function _wbSyncSwatches(){
+  const s1=document.getElementById('wbColor1Swatch'), s2=document.getElementById('wbColor2Swatch');
+  const m1=document.getElementById('wbC1Mini'),       m2=document.getElementById('wbC2Mini');
+  const lbl=document.getElementById('wbActiveSlotLabel');
+  const pk=document.getElementById('wbColorPicker');
+  if(s1){ s1.style.background=_wbSlot1; s1.style.boxShadow=_wbActiveSlot===1?'0 0 0 2px #7c3aed':'none'; }
+  if(s2){ s2.style.background=_wbSlot2; s2.style.boxShadow=_wbActiveSlot===2?'0 0 0 2px #7c3aed':'none'; }
+  if(m1) m1.style.background=_wbSlot1;
+  if(m2) m2.style.background=_wbSlot2;
+  if(lbl) lbl.textContent=_wbActiveSlot===1?'Primary':'Secondary';
+  if(pk)  pk.value=(_wbActiveSlot===1?_wbSlot1:_wbSlot2);
+  wbColor=_wbSlot1;
+}
+function wbSetColor(c){ _wbSlot1=c; wbColor=c; _wbSyncSwatches(); }
+function wbActivateSlot(n){ _wbActiveSlot=n; _wbSyncSwatches(); }
+function wbSetColorSlot(c){
+  if(_wbActiveSlot===1) _wbSlot1=c; else _wbSlot2=c;
+  _wbSyncSwatches();
+}
+function wbSwapColors(){
+  const t=_wbSlot1; _wbSlot1=_wbSlot2; _wbSlot2=t;
+  _wbSyncSwatches();
+}
+
 function wbSetSize(v){ wbSize=+v; }
+function wbSetSizePreset(v){
+  wbSize=v;
+  const r=document.getElementById('wbSizeRange'); if(r) r.value=v;
+  const lbl=document.getElementById('wbSizeVal'); if(lbl) lbl.textContent=v;
+}
+
+// ── Toolbar group toggle / close ─────────────────────────────────────────
+function wbToggleGroup(name){
+  const drop=document.getElementById('wbgDrop-'+name);
+  const btn=document.getElementById('wbgBtn-'+name);
+  if(!drop) return;
+  const opening=!drop.classList.contains('open');
+  wbCloseGroups();
+  if(opening){
+    drop.classList.add('open');
+    if(btn) btn.classList.add('open');
+    // Position fixed relative to button so it escapes overflow:hidden containers
+    const r=btn ? btn.getBoundingClientRect() : drop.getBoundingClientRect();
+    drop.style.left = r.left+'px';
+    const spaceBelow = window.innerHeight - r.bottom;
+    if(spaceBelow >= 240){
+      drop.style.top = r.bottom+2+'px';
+      drop.style.bottom = '';
+    } else {
+      drop.style.bottom = window.innerHeight - r.top + 2 + 'px';
+      drop.style.top = '';
+    }
+  }
+}
+function wbCloseGroups(){
+  document.querySelectorAll('.wbg-drop.open').forEach(d=>d.classList.remove('open'));
+  document.querySelectorAll('.wbg-btn.open').forEach(b=>b.classList.remove('open'));
+}
+document.addEventListener('click',function(e){
+  if(!e.target.closest('#wbToolbar')) wbCloseGroups();
+});
 
 // Shape drawing helpers
-function _wbDrawShape(ctx,tool,x0,y0,x1,y1,color,size){
-  ctx.strokeStyle=color; ctx.lineWidth=size; ctx.lineCap='round'; ctx.lineJoin='round';
+function _wbDrawShape(ctx,tool,x0,y0,x1,y1,color,size,fill){
+  ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=size; ctx.lineCap='round'; ctx.lineJoin='round';
   ctx.beginPath();
   if(tool==='line'){ ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke(); }
-  else if(tool==='rect'){ ctx.strokeRect(x0,y0,x1-x0,y1-y0); }
-  else if(tool==='circle'){
+  else if(tool==='rect'){
+    if(fill){ ctx.fillRect(x0,y0,x1-x0,y1-y0); } else { ctx.strokeRect(x0,y0,x1-x0,y1-y0); }
+  } else if(tool==='circle'){
     const rx=(x1-x0)/2, ry=(y1-y0)/2;
-    ctx.ellipse(x0+rx,y0+ry,Math.abs(rx),Math.abs(ry),0,0,Math.PI*2); ctx.stroke();
+    ctx.ellipse(x0+rx,y0+ry,Math.abs(rx),Math.abs(ry),0,0,Math.PI*2);
+    if(fill){ ctx.fill(); } else { ctx.stroke(); }
   } else if(tool==='arrow'){
     ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke();
     const angle=Math.atan2(y1-y0,x1-x0);
@@ -1049,15 +1488,150 @@ function _wbDrawShape(ctx,tool,x0,y0,x1,y1,color,size){
     ctx.moveTo(x1,y1);
     ctx.lineTo(x1-hs*Math.cos(angle-0.4),y1-hs*Math.sin(angle-0.4));
     ctx.lineTo(x1-hs*Math.cos(angle+0.4),y1-hs*Math.sin(angle+0.4));
-    ctx.closePath(); ctx.fillStyle=color; ctx.fill();
+    ctx.closePath(); ctx.fill();
   }
 }
 
+// ── Selection + Move + Resize state ─────────────────────────────────────
+let wbSelecting=false, wbSelection=null;  // rubber-band / current selection {x,y,w,h}
+let wbClipboard=null;                     // ImageData for copy/paste
+let wbMoving=false, wbMoveOff=null, wbMoveData=null, wbMoveBg=null;
+let wbResizing=false, wbResizeDir=null, wbResizeData=null, wbResizeBg=null, wbResizeOrig=null;
+
+function _wbBgColor(){ return wbBg==='black'?'#1a1a2e': wbBg==='custom'?_wbCustomBgColor:'#ffffff'; }
+let _wbCustomBgColor='#ffffff';
+
+function _wbUpdateSelBox(){
+  const box=document.getElementById('wbSelBox');
+  if(!wbSelection||wbSelection.w<2||wbSelection.h<2){ box.style.display='none'; return; }
+  const s=_wbS(); if(!s) return;
+  const outEl=document.getElementById('out');
+  const r=outEl.getBoundingClientRect();
+  const parent=outEl.parentElement;
+  const pr=parent.getBoundingClientRect();
+  const scaleX=r.width/s.el.width;
+  const scaleY=r.height/s.el.height;
+  box.style.display='block';
+  box.style.left=(r.left-pr.left+wbSelection.x*scaleX)+'px';
+  box.style.top=(r.top-pr.top+wbSelection.y*scaleY)+'px';
+  box.style.width=(wbSelection.w*scaleX)+'px';
+  box.style.height=(wbSelection.h*scaleY)+'px';
+}
+
+function wbCopy(){
+  const s=_wbS(); if(!s||!wbSelection) return;
+  const {x,y,w,h}=wbSelection; if(w<1||h<1) return;
+  wbClipboard=s.ctx.getImageData(Math.round(x),Math.round(y),Math.round(w),Math.round(h));
+}
+function wbCut(){
+  const s=_wbS(); if(!s||!wbSelection) return;
+  wbCopy(); _wbPushUndo();
+  const {x,y,w,h}=wbSelection;
+  s.ctx.fillStyle=_wbBgColor(); s.ctx.fillRect(x,y,w,h);
+  wbSelection=null; _wbUpdateSelBox();
+}
+function wbPaste(){
+  const s=_wbS(); if(!s||!wbClipboard) return;
+  _wbPushUndo();
+  const ox=Math.min(s.el.width-wbClipboard.width, 40);
+  const oy=Math.min(s.el.height-wbClipboard.height, 40);
+  s.ctx.putImageData(wbClipboard, ox, oy);
+  wbSelection={x:ox,y:oy,w:wbClipboard.width,h:wbClipboard.height};
+  _wbUpdateSelBox();
+}
+
+function _ptInSel(p){
+  if(!wbSelection) return false;
+  return p.x>=wbSelection.x && p.x<=wbSelection.x+wbSelection.w &&
+         p.y>=wbSelection.y && p.y<=wbSelection.y+wbSelection.h;
+}
+
+// ── Resize handle wiring ─────────────────────────────────────────────────
+(function _bindResizeHandles(){
+  document.querySelectorAll('.wb-rsz').forEach(h=>{
+    h.addEventListener('pointerdown',e=>{
+      e.stopPropagation(); e.preventDefault();
+      const s=_wbS(); if(!s||!wbSelection) return;
+      wbResizeDir=h.dataset.dir;
+      wbResizeOrig={...wbSelection};
+      // extract just the selected pixels
+      wbResizeData=s.ctx.getImageData(Math.round(wbSelection.x),Math.round(wbSelection.y),
+                                       Math.round(wbSelection.w),Math.round(wbSelection.h));
+      // background snapshot WITHOUT the selection (erase it first)
+      _wbPushUndo();
+      s.ctx.fillStyle=_wbBgColor();
+      s.ctx.fillRect(wbResizeOrig.x,wbResizeOrig.y,wbResizeOrig.w,wbResizeOrig.h);
+      wbResizeBg=s.ctx.getImageData(0,0,s.el.width,s.el.height);
+      wbResizing=true;
+      h.setPointerCapture(e.pointerId);
+    });
+    h.addEventListener('pointermove',e=>{
+      if(!wbResizing) return;
+      const s=_wbS(); if(!s) return;
+      const p=wbPt(e);
+      const o=wbResizeOrig;
+      let nx=o.x,ny=o.y,nw=o.w,nh=o.h;
+      if(wbResizeDir.includes('e')) nw=Math.max(10,p.x-o.x);
+      if(wbResizeDir.includes('s')) nh=Math.max(10,p.y-o.y);
+      if(wbResizeDir.includes('w')){ nx=Math.min(p.x,o.x+o.w-10); nw=o.x+o.w-nx; }
+      if(wbResizeDir.includes('n')){ ny=Math.min(p.y,o.y+o.h-10); nh=o.y+o.h-ny; }
+      nw=Math.round(Math.max(10,nw)); nh=Math.round(Math.max(10,nh));
+      nx=Math.round(nx); ny=Math.round(ny);
+      // restore bg, draw scaled content
+      s.ctx.putImageData(wbResizeBg,0,0);
+      const tmp=document.createElement('canvas');
+      tmp.width=wbResizeOrig.w; tmp.height=wbResizeOrig.h;
+      tmp.getContext('2d').putImageData(wbResizeData,0,0);
+      s.ctx.drawImage(tmp,nx,ny,nw,nh);
+      wbSelection={x:nx,y:ny,w:nw,h:nh};
+      _wbUpdateSelBox();
+    });
+    h.addEventListener('pointerup',()=>{ wbResizing=false; });
+  });
+})();
+
+// ── Canvas pointer events ─────────────────────────────────────────────────
 out.addEventListener('pointerdown',e=>{
   const s=_wbS(); if(_adjustMode||!s) return;
   e.preventDefault();
-  _wbPushUndo();
   const p=wbPt(e);
+
+  if(wbTool==='text'){
+    // Open text input window near the click point
+    const win=document.getElementById('wbTextWindow');
+    const r=outRect();
+    const screenX=r.left + p.x/((activeScene&&sources[activeScene.sourceId]?.el?.width)||out.width)*r.width;
+    const screenY=r.top  + p.y/((activeScene&&sources[activeScene.sourceId]?.el?.height)||out.height)*r.height;
+    win.style.left=Math.min(screenX, window.innerWidth-300)+'px';
+    win.style.top=Math.min(screenY+8, window.innerHeight-260)+'px';
+    win.style.display='block';
+    win._canvasX=p.x; win._canvasY=p.y;
+    setTimeout(()=>document.getElementById('wbTextInput').focus(),60);
+    return;
+  }
+
+  if(wbTool==='select'){
+    // If inside existing selection → start move
+    if(wbSelection && _ptInSel(p)){
+      _wbPushUndo();
+      wbMoveData=s.ctx.getImageData(Math.round(wbSelection.x),Math.round(wbSelection.y),
+                                     Math.round(wbSelection.w),Math.round(wbSelection.h));
+      // erase selection area, snapshot the result as bg
+      s.ctx.fillStyle=_wbBgColor();
+      s.ctx.fillRect(wbSelection.x,wbSelection.y,wbSelection.w,wbSelection.h);
+      wbMoveBg=s.ctx.getImageData(0,0,s.el.width,s.el.height);
+      wbMoveOff={x:p.x-wbSelection.x, y:p.y-wbSelection.y};
+      wbMoving=true;
+    } else {
+      // Start new rubber-band selection
+      wbSelection=null; _wbUpdateSelBox();
+      wbSelecting=true; wbStart=p;
+    }
+    out.setPointerCapture(e.pointerId);
+    return;
+  }
+
+  _wbPushUndo();
   wbDraw=true; wbLast=p; wbStart=p;
   if(wbTool==='pen'||wbTool==='eraser'){
     s.ctx.beginPath(); s.ctx.moveTo(p.x,p.y);
@@ -1068,8 +1642,35 @@ out.addEventListener('pointerdown',e=>{
 });
 
 out.addEventListener('pointermove',e=>{
-  if(!wbDraw){ const s=_wbS(); if(s) out.style.cursor=wbTool==='eraser'?'cell':'crosshair'; return; }
   const s=_wbS(); if(!s) return;
+
+  // Move drag
+  if(wbMoving){
+    const p=wbPt(e);
+    const nx=Math.round(p.x-wbMoveOff.x), ny=Math.round(p.y-wbMoveOff.y);
+    s.ctx.putImageData(wbMoveBg,0,0);
+    s.ctx.putImageData(wbMoveData,nx,ny);
+    wbSelection={x:nx,y:ny,w:wbSelection.w,h:wbSelection.h};
+    _wbUpdateSelBox(); return;
+  }
+
+  // Rubber-band selection
+  if(wbSelecting){
+    const p=wbPt(e);
+    wbSelection={x:Math.min(wbStart.x,p.x),y:Math.min(wbStart.y,p.y),
+                 w:Math.abs(p.x-wbStart.x),h:Math.abs(p.y-wbStart.y)};
+    _wbUpdateSelBox(); return;
+  }
+
+  if(!wbDraw){
+    if(wbTool==='select'){
+      const hp=wbPt(e);
+      out.style.cursor=(_ptInSel(hp))?'move':'crosshair';
+    } else {
+      out.style.cursor=wbTool==='eraser'?'cell':'crosshair';
+    }
+    return;
+  }
   const p=wbPt(e);
   if(wbTool==='pen'){
     s.ctx.strokeStyle=wbColor; s.ctx.lineWidth=wbSize; s.ctx.lineCap='round'; s.ctx.lineJoin='round';
@@ -1077,26 +1678,528 @@ out.addEventListener('pointermove',e=>{
   } else if(wbTool==='eraser'){
     s.ctx.globalCompositeOperation='destination-out';
     s.ctx.beginPath(); s.ctx.arc(p.x,p.y,wbSize*3,0,Math.PI*2); s.ctx.fill();
-    s.ctx.globalCompositeOperation='source-over';
-    // Redraw bg under erased area by drawing bg to a temp then compositing — simple: just fill with bg color
-    const bgCol=wbBg==='black'?'#1a1a2e':'#ffffff';
     s.ctx.globalCompositeOperation='destination-over';
-    s.ctx.fillStyle=bgCol; s.ctx.beginPath(); s.ctx.arc(p.x,p.y,wbSize*3,0,Math.PI*2); s.ctx.fill();
+    s.ctx.fillStyle=_wbBgColor();
+    s.ctx.beginPath(); s.ctx.arc(p.x,p.y,wbSize*3,0,Math.PI*2); s.ctx.fill();
     s.ctx.globalCompositeOperation='source-over';
   } else {
-    // Shape preview: restore snapshot then draw current shape
     if(wbSnap) s.ctx.putImageData(wbSnap,0,0);
-    _wbDrawShape(s.ctx,wbTool,wbStart.x,wbStart.y,p.x,p.y,wbColor,wbSize);
+    _wbDrawShape(s.ctx,wbTool,wbStart.x,wbStart.y,p.x,p.y,wbColor,wbSize,wbFillMode);
   }
   wbLast=p;
 });
 
 window.addEventListener('pointerup',e=>{
+  if(wbMoving){ wbMoving=false; wbMoveBg=null; wbMoveData=null; _wbUpdateSelBox(); return; }
+  if(wbSelecting){ wbSelecting=false; _wbUpdateSelBox(); return; }
   if(!wbDraw) return;
   wbDraw=false; wbSnap=null;
   const s=_wbS(); if(!s) return;
-  if(wbTool==='pen'||wbTool==='eraser'){ s.ctx.beginPath(); }
+  if(wbTool==='pen'||wbTool==='eraser') s.ctx.beginPath();
 });
+
+// Keyboard shortcuts: Ctrl+C/X/V/Z, S=select, P=pen, E=eraser
+document.addEventListener('keydown',e=>{
+  if(!_wbS()||e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA') return;
+  if(e.ctrlKey||e.metaKey){
+    if(e.key==='c'){ e.preventDefault(); wbCopy(); }
+    else if(e.key==='x'){ e.preventDefault(); wbCut(); }
+    else if(e.key==='v'){ e.preventDefault(); wbPaste(); }
+    else if(e.key==='z'){ e.preventDefault(); wbUndo(); }
+    else if(e.key==='y'){ e.preventDefault(); wbRedo(); }
+  } else {
+    if(e.key==='s'||e.key==='S') wbSetTool('select');
+    else if(e.key==='p'||e.key==='P') wbSetTool('pen');
+    else if(e.key==='e'||e.key==='E') wbSetTool('eraser');
+    else if(e.key==='Delete'||e.key==='Backspace'){ if(wbSelection) wbCut(); }
+  }
+});
+
+// ── Insert image onto board ──────────────────────────────────────────────
+function wbInsertImageFile(inp){
+  const f=inp.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    const img=new Image();
+    img.onload=()=>{
+      const s=_wbS(); if(!s) return;
+      _wbPushUndo();
+      const maxW=s.el.width*0.45, maxH=s.el.height*0.45;
+      const scale=Math.min(1, maxW/img.width, maxH/img.height);
+      const dw=Math.round(img.width*scale), dh=Math.round(img.height*scale);
+      const dx=Math.round((s.el.width-dw)/2), dy=Math.round((s.el.height-dh)/2);
+      s.ctx.drawImage(img,dx,dy,dw,dh);
+      wbSelection={x:dx,y:dy,w:dw,h:dh};
+      wbSetTool('select');
+      _wbUpdateSelBox();
+    };
+    img.src=ev.target.result;
+  };
+  r.readAsDataURL(f);
+  inp.value='';
+}
+
+// ── Document reference panel (fixed overlay, draggable) ──────────────────
+let _wbDocPages=[], _wbDocPageIdx=0;
+function wbOpenDocPanel(inp){
+  const f=inp.files[0]; if(!f) return;
+  const panel=document.getElementById('wbDocPanel');
+  const imgEl=document.getElementById('wbDocImg');
+  const pdfEl=document.getElementById('wbDocPdf');
+  const noImg=document.getElementById('wbDocNoImg');
+  const addBtn=document.getElementById('wbDocAddToBoard');
+  function _show(){
+    panel.style.display='block';
+    if(!panel._dragged){ panel.style.right='16px'; panel.style.top='70px'; panel.style.left=''; }
+    if(noImg) noImg.style.display='none';
+    if(addBtn) addBtn.style.display='inline-block';
+  }
+  if(f.type==='application/pdf'||f.name.toLowerCase().endsWith('.pdf')){
+    // Use object URL for PDF in iframe
+    const url=URL.createObjectURL(f);
+    if(imgEl){ imgEl.style.display='none'; imgEl.src=''; }
+    if(pdfEl){ pdfEl.src=url; pdfEl.style.display='block'; }
+    _wbDocPages=[]; _wbDocPageIdx=0;
+    document.getElementById('wbDocPageNum').textContent='PDF';
+    _show();
+  } else {
+    // Image
+    const r=new FileReader();
+    r.onload=ev=>{
+      const dataUrl=ev.target.result;
+      _wbDocPages=[dataUrl]; _wbDocPageIdx=0;
+      if(pdfEl){ pdfEl.style.display='none'; pdfEl.src=''; }
+      if(imgEl){ imgEl.src=dataUrl; imgEl.style.display='block'; }
+      document.getElementById('wbDocPageNum').textContent='1/1';
+      _show();
+    };
+    r.readAsDataURL(f);
+  }
+  inp.value='';
+}
+
+function wbOpenWordPanel(inp){
+  const f=inp.files[0]; if(!f) return;
+  const panel=document.getElementById('wbDocPanel');
+  const imgEl=document.getElementById('wbDocImg');
+  const pdfEl=document.getElementById('wbDocPdf');
+  const noImg=document.getElementById('wbDocNoImg');
+  const addBtn=document.getElementById('wbDocAddToBoard');
+  if(pdfEl){ pdfEl.style.display='none'; pdfEl.src=''; }
+  if(imgEl){ imgEl.style.display='none'; imgEl.src=''; }
+  // For text files, read and show as text; for .doc/.docx, show download link
+  const r=new FileReader();
+  r.onload=ev=>{
+    const txt=ev.target.result;
+    if(noImg){ noImg.innerHTML='<pre style="text-align:left;white-space:pre-wrap;font-size:12px;color:#e8eaf0;max-height:460px;overflow:auto;padding:6px">'+txt.replace(/</g,'&lt;')+'</pre>'; noImg.style.display='block'; }
+    panel.style.display='block';
+    if(!panel._dragged){ panel.style.right='16px'; panel.style.top='70px'; panel.style.left=''; }
+    if(addBtn) addBtn.style.display='none';
+    document.getElementById('wbDocPageNum').textContent='TXT';
+  };
+  r.readAsText(f);
+  inp.value='';
+}
+
+function wbDocAddToBoard(){
+  const imgEl=document.getElementById('wbDocImg');
+  if(!imgEl||!imgEl.src||imgEl.style.display==='none') return;
+  const s=_wbS(); if(!s) return;
+  const img=new Image(); img.src=imgEl.src;
+  img.onload=()=>{
+    _wbPushUndo();
+    const ctx=s.ctx;
+    const scale=Math.min(s.el.width/img.width, s.el.height/img.height, 1)*0.6;
+    const w=img.width*scale, h=img.height*scale;
+    const x=(s.el.width-w)/2, y=(s.el.height-h)/2;
+    ctx.drawImage(img,x,y,w,h);
+    wbSelection={x:Math.round(x),y:Math.round(y),w:Math.round(w),h:Math.round(h)};
+    wbSetTool('select'); _wbUpdateSelBox();
+  };
+}
+function wbDocPage(dir){
+  _wbDocPageIdx=Math.max(0,Math.min(_wbDocPages.length-1,_wbDocPageIdx+dir));
+  document.getElementById('wbDocImg').src=_wbDocPages[_wbDocPageIdx];
+  document.getElementById('wbDocPageNum').textContent=(_wbDocPageIdx+1)+'/'+_wbDocPages.length;
+}
+// Make doc panel draggable by its header
+(function _makeDocPanelDraggable(){
+  const panel=document.getElementById('wbDocPanel');
+  const hdr=document.getElementById('wbDocPanelHeader');
+  if(!panel||!hdr) return;
+  let ox=0,oy=0,mx=0,my=0;
+  hdr.addEventListener('pointerdown',e=>{
+    e.preventDefault();
+    mx=e.clientX; my=e.clientY;
+    const r=panel.getBoundingClientRect();
+    panel.style.left=r.left+'px'; panel.style.top=r.top+'px';
+    panel.style.right='auto';
+    panel._dragged=true;
+    hdr.setPointerCapture(e.pointerId);
+    hdr.addEventListener('pointermove',onMove);
+    hdr.addEventListener('pointerup',()=>hdr.removeEventListener('pointermove',onMove),{once:true});
+  });
+  function onMove(e){
+    const dx=e.clientX-mx, dy=e.clientY-my;
+    mx=e.clientX; my=e.clientY;
+    panel.style.left=(panel.offsetLeft+dx)+'px';
+    panel.style.top=(panel.offsetTop+dy)+'px';
+  }
+})();
+
+// ── BG custom color ──────────────────────────────────────────────────────
+function wbSetBgColor(hex){
+  _wbCustomBgColor=hex;
+  document.getElementById('wbBgSwatch').style.background=hex;
+  wbSetBg('custom');
+}
+
+// Override wbSetBg to handle 'custom' bg
+const _wbSetBgOrig=wbSetBg;
+wbSetBg=function(bg){
+  wbBg=bg;
+  const s=_wbS(); if(s) wbDrawBg(s,bg);
+  document.querySelectorAll('.wb-bg-btn').forEach(b=>b.classList.toggle('on',b.dataset.bg===bg));
+};
+
+// ── Text tool ─────────────────────────────────────────────────────────────
+// Make text window draggable
+(function _makeTextWinDraggable(){
+  const win=document.getElementById('wbTextWindow');
+  const hdr=document.getElementById('wbTextWindowHeader');
+  if(!win||!hdr) return;
+  let mx=0,my=0;
+  hdr.addEventListener('pointerdown',e=>{
+    if(e.target.tagName==='BUTTON') return;
+    e.preventDefault();
+    mx=e.clientX; my=e.clientY;
+    if(!win.style.left){ const r=win.getBoundingClientRect(); win.style.left=r.left+'px'; win.style.top=r.top+'px'; }
+    hdr.setPointerCapture(e.pointerId);
+    hdr.addEventListener('pointermove',onM); hdr.addEventListener('pointerup',()=>hdr.removeEventListener('pointermove',onM),{once:true});
+  });
+  function onM(e){
+    const dx=e.clientX-mx, dy=e.clientY-my; mx=e.clientX; my=e.clientY;
+    win.style.left=(win.offsetLeft+dx)+'px'; win.style.top=(win.offsetTop+dy)+'px';
+  }
+})();
+
+// ── Rich Text Editor (RTE) for whiteboard text tool ─────────────────────
+function _rteEl(){ return document.getElementById('wbRteEditor'); }
+
+function wbRteBlock(tag){
+  const ed=_rteEl(); if(!ed) return;
+  ed.focus();
+  document.execCommand('formatBlock',false,'<'+tag+'>');
+}
+function wbRteFmt(cmd){
+  const ed=_rteEl(); if(!ed) return;
+  ed.focus();
+  document.execCommand(cmd,false,null);
+  _rteUpdateBar();
+}
+function wbRteAlign(a){
+  const ed=_rteEl(); if(!ed) return;
+  ed.focus();
+  const map={left:'justifyLeft',center:'justifyCenter',right:'justifyRight'};
+  document.execCommand(map[a],false,null);
+  ['Left','Center','Right'].forEach(v=>{
+    const el=document.getElementById('rte'+v);
+    if(el) el.style.background=v.toLowerCase()===a?'#7c3aed':'#15171f';
+  });
+}
+function wbRteColor(c){
+  const ed=_rteEl(); if(!ed) return;
+  ed.focus();
+  document.execCommand('foreColor',false,c);
+  const bar=document.getElementById('wbTextColorBar'); if(bar) bar.style.background=c;
+}
+function wbRteHighlight(c){
+  const ed=_rteEl(); if(!ed) return;
+  ed.focus();
+  document.execCommand('hiliteColor',false,c);
+}
+function wbRteInsert(type){
+  const ed=_rteEl(); if(!ed) return;
+  ed.focus();
+  if(type==='bullet'){ document.execCommand('insertUnorderedList',false,null); return; }
+  if(type==='numbered'){ document.execCommand('insertOrderedList',false,null); return; }
+  if(type==='quote'){ document.execCommand('formatBlock',false,'<blockquote>'); return; }
+  if(type==='link'){
+    const url=prompt('Enter URL:','https://');
+    if(url) document.execCommand('createLink',false,url);
+    return;
+  }
+  if(type==='code'){
+    const sel=window.getSelection();
+    if(sel&&sel.rangeCount){
+      const r=sel.getRangeAt(0);
+      const code=document.createElement('code');
+      code.style.cssText='background:#2a2e3c;color:#f9a8d4;padding:1px 5px;border-radius:4px;font-family:monospace;font-size:.9em';
+      try{ if(!r.collapsed){ r.surroundContents(code); } else { code.textContent='code'; r.insertNode(code); } }catch(e){}
+    }
+    return;
+  }
+  if(type==='table'){
+    document.execCommand('insertHTML',false,'<table style="border-collapse:collapse;width:100%;margin:6px 0"><tr><td style="border:1px solid #3a3f55;padding:5px 9px">Cell</td><td style="border:1px solid #3a3f55;padding:5px 9px">Cell</td></tr><tr><td style="border:1px solid #3a3f55;padding:5px 9px">Cell</td><td style="border:1px solid #3a3f55;padding:5px 9px">Cell</td></tr></table><p></p>');
+    return;
+  }
+  if(type==='callout'){
+    document.execCommand('insertHTML',false,'<div style="background:rgba(124,58,237,.15);border-left:4px solid #7c3aed;border-radius:6px;padding:9px 13px;margin:6px 0;color:#e8eaf0">💡 Key insight: write here</div><p></p>');
+    return;
+  }
+  if(type==='divider'){
+    document.execCommand('insertHTML',false,'<hr style="border:none;border-top:2px solid #3a3f55;margin:10px 0"><p></p>');
+    return;
+  }
+  if(type==='add'){
+    document.execCommand('insertHTML',false,'<p><br></p>');
+    ed.focus();
+    return;
+  }
+}
+function wbRteInsertImage(inp){
+  const f=inp.files&&inp.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=()=>{
+    const ed=_rteEl(); if(!ed) return;
+    ed.focus();
+    document.execCommand('insertHTML',false,'<img src="'+rd.result+'" style="max-width:100%;border-radius:6px;display:block;margin:5px 0"><p></p>');
+  };
+  rd.readAsDataURL(f);
+  inp.value='';
+}
+function _rteUpdateBar(){
+  [['bold','rteB'],['italic','rteI'],['underline','rteU'],['strikeThrough','rteS']].forEach(([cmd,id])=>{
+    try{
+      const active=document.queryCommandState(cmd);
+      const el=document.getElementById(id);
+      if(el) el.style.background=active?'#7c3aed':'#15171f';
+    }catch(e){}
+  });
+}
+
+// Wire close buttons and RTE init after DOM is ready
+(function(){
+  function _initRte(){
+    ['wbTextWinClose','wbTextCancelBtn'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el) el.addEventListener('click',()=>{ document.getElementById('wbTextWindow').style.display='none'; });
+    });
+    const ed=document.getElementById('wbRteEditor');
+    if(ed){
+      ed.addEventListener('keyup',_rteUpdateBar);
+      ed.addEventListener('mouseup',_rteUpdateBar);
+    }
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',_initRte); else _initRte();
+})();
+
+// Stamp the rich editor content onto the whiteboard canvas via SVG foreignObject
+function wbStampRte(){
+  const s=_wbS(); if(!s) return;
+  const ed=document.getElementById('wbRteEditor');
+  const html=(ed?ed.innerHTML:'').trim();
+  if(!html||html==='<br>') return;
+  const chapterTitle=(document.getElementById('wbChapterTitle')?.value||'').trim();
+  const win=document.getElementById('wbTextWindow');
+  const cx=Math.max(0,win._canvasX||Math.floor(s.el.width*0.04));
+  const cy=Math.max(0,win._canvasY||Math.floor(s.el.height*0.04));
+  const maxW=Math.min(Math.floor(s.el.width*0.65), 900);
+  const titleHtml=chapterTitle?'<h2 style="margin:0 0 10px 0;font-size:26px;font-weight:900;color:#111827;border-bottom:3px solid #7c3aed;padding-bottom:6px;font-family:system-ui,sans-serif">'+chapterTitle+'</h2>':'';
+  const bodyStyle='font-size:17px;line-height:1.7;font-family:system-ui,sans-serif;color:#111827';
+  const pad=18;
+  const estimH=Math.min(Math.floor(s.el.height*0.85),1000);
+  const svgStr='<svg xmlns="http://www.w3.org/2000/svg" width="'+maxW+'" height="'+estimH+'">'
+    +'<foreignObject width="'+maxW+'" height="'+estimH+'">'
+    +'<div xmlns="http://www.w3.org/1999/xhtml" style="padding:'+pad+'px;background:rgba(255,255,252,0.97);border-radius:10px;box-sizing:border-box;width:'+maxW+'px">'
+    +titleHtml+'<div style="'+bodyStyle+'">'+html+'</div>'
+    +'</div></foreignObject></svg>';
+  _wbPushUndo();
+  const img=new Image();
+  img.onload=()=>{
+    s.ctx.drawImage(img,cx,cy);
+    wbSelection={x:cx,y:cy,w:maxW,h:estimH};
+    _wbUpdateSelBox();
+    wbSetTool('select');
+  };
+  img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svgStr);
+  win.style.display='none';
+}
+
+// Legacy stub — old textarea-based stamp, kept for backwards compat with any saved references
+function wbStampText(){
+  wbStampRte();
+}
+
+// ── old text formatting state (no longer used but kept so nothing errors) ─
+const _wbTxtFmt={bold:false,italic:false,underline:false,align:'left'};
+function wbToggleFmt(k){ wbRteFmt(k==='bold'?'bold':k==='italic'?'italic':'underline'); }
+function wbSetAlign(a){ wbRteAlign(a); }
+function wbTextColorChange(c){ wbRteColor(c); }
+function wbTextPreset(t){
+  const ed=_rteEl(); if(!ed) return;
+  ed.focus();
+  if(t==='heading'){ wbRteBlock('h2'); }
+  else if(t==='bullet'){ wbRteInsert('bullet'); }
+  else if(t==='note'){ wbRteInsert('callout'); }
+  else if(t==='formula'){ document.execCommand('insertHTML',false,'<p>∑ f(x) = …</p>'); }
+}
+
+
+// ── Multi-page system ────────────────────────────────────────────────────
+function _wbSavePage(s){
+  if(!s.pages) s.pages=[]; if(s.currentPage===undefined) s.currentPage=0;
+  s.pages[s.currentPage]={imageData:s.ctx.getImageData(0,0,s.el.width,s.el.height), bg:wbBg};
+}
+
+function _wbLoadPage(s, idx){
+  const pg=s.pages&&s.pages[idx];
+  if(pg){ s.ctx.putImageData(pg.imageData,0,0); wbBg=pg.bg; }
+  else { wbDrawBg(s,wbBg); }
+  document.querySelectorAll('.wb-bg-btn').forEach(b=>b.classList.toggle('on',b.dataset.bg===wbBg));
+  _wbUpdatePageNav(s);
+  wbSelection=null; _wbUpdateSelBox();
+}
+
+function _wbUpdatePageNav(s){
+  const total=s.pages?s.pages.length:1;
+  const cur=(s.currentPage||0)+1;
+  const el=document.getElementById('wbPageNum'); if(el) el.textContent=cur+'/'+total;
+}
+
+function wbAddPage(){
+  const s=_wbS(); if(!s) return;
+  if(!s.pages) s.pages=[]; if(s.currentPage===undefined) s.currentPage=0;
+  _wbSavePage(s);
+  const newIdx=s.pages.length;
+  s.currentPage=newIdx;
+  wbDrawBg(s,wbBg);
+  s.pages[newIdx]={imageData:s.ctx.getImageData(0,0,s.el.width,s.el.height),bg:wbBg};
+  _wbUpdatePageNav(s);
+}
+
+function wbGoPage(dir){
+  const s=_wbS(); if(!s) return;
+  if(!s.pages) s.pages=[]; if(s.currentPage===undefined) s.currentPage=0;
+  _wbSavePage(s);
+  const next=Math.max(0,Math.min(s.pages.length-1,s.currentPage+dir));
+  if(next===s.currentPage) return;
+  s.currentPage=next;
+  _wbLoadPage(s,next);
+}
+
+function wbDelPage(){
+  const s=_wbS(); if(!s) return;
+  if(!s.pages||s.pages.length<=1){ wbClear(); return; }
+  _wbSavePage(s);
+  s.pages.splice(s.currentPage,1);
+  s.currentPage=Math.max(0,s.currentPage-1);
+  _wbLoadPage(s,s.currentPage);
+}
+
+// ── PDF export ───────────────────────────────────────────────────────────
+function wbExportPdf(){
+  const s=_wbS(); if(!s) return;
+  _wbSavePage(s);
+  const pages=s.pages||[{imageData:s.ctx.getImageData(0,0,s.el.width,s.el.height),bg:wbBg}];
+  // Build data URLs for each page
+  const tmp=document.createElement('canvas');
+  tmp.width=s.el.width; tmp.height=s.el.height;
+  const tc=tmp.getContext('2d');
+  const imgs=pages.map(pg=>{ tc.putImageData(pg.imageData,0,0); return tmp.toDataURL('image/png'); });
+  const w=window.open('','_blank');
+  if(!w) return;
+  const pw=s.el.width, ph=s.el.height;
+  const ratio=pw/ph;
+  w.document.write(`<!DOCTYPE html><html><head><title>Whiteboard</title>
+<style>*{margin:0;padding:0;box-sizing:border-box}
+body{background:#eee}
+.page{width:100%;max-width:${pw}px;margin:12px auto;display:block;border:1px solid #ccc;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+@media print{body{background:#fff}.page{margin:0;border:none;box-shadow:none;page-break-after:always}}
+</style></head><body>`);
+  imgs.forEach(src=>{ w.document.write(`<img class="page" src="${src}">`); });
+  w.document.write(`<script>window.onload=function(){window.print();}<\/script></body></html>`);
+  w.document.close();
+}
+
+// ── Save to course ────────────────────────────────────────────────────────
+let _wbCourseTopicsCache={};
+
+async function openWbSaveCourse(){
+  const s=_wbS(); if(!s) return;
+  document.getElementById('wbSaveCourseModal').style.display='flex';
+  document.getElementById('wbSaveStatus').textContent='';
+  document.getElementById('wbSaveTitle').value='Whiteboard — page '+(( s.currentPage||0)+1);
+  const sel=document.getElementById('wbCourseSelect');
+  sel.innerHTML='<option value="">Loading your courses…</option>';
+  try{
+    const tok=localStorage.getItem('jm_token')||'';
+    if(!tok){ sel.innerHTML='<option value="">⚠ Not logged in — open Dashboard first, then return here</option>'; return; }
+    const courses=await _loadUserCourses(true); // force=true clears cache each open
+    if(!courses.length){
+      sel.innerHTML='<option value="">⚠ No courses found — create one in Dashboard first</option>';
+      return;
+    }
+    sel.innerHTML='<option value="">— pick a course —</option>';
+    courses.forEach(c=>{ const o=document.createElement('option'); o.value=c.id; o.textContent=(c.title||c.name||c.id); sel.appendChild(o); });
+    _wbCourseTopicsCache={};
+  } catch(e){ sel.innerHTML='<option value="">Error: '+e.message+'</option>'; console.error('[wbSaveCourse]',e); }
+}
+
+async function wbLoadTopics(courseId){
+  const sel=document.getElementById('wbTopicSelect');
+  if(!courseId){ sel.innerHTML='<option value="">— pick a course first —</option>'; return; }
+  sel.innerHTML='<option value="">Loading…</option>';
+  try{
+    const tok=localStorage.getItem('jm_token')||'';
+    const res=await fetch(`/api/course-content?courseId=${courseId}`,{headers:{Authorization:'Bearer '+tok}});
+    const data=await res.json();
+    const topics=[...new Set((data.content||data||[]).map(c=>c.topic||c.section||'').filter(Boolean))];
+    _wbCourseTopicsCache[courseId]=topics;
+    sel.innerHTML='<option value="">— general / no topic —</option>';
+    topics.forEach(t=>{ const o=document.createElement('option'); o.value=t; o.textContent=t; sel.appendChild(o); });
+  } catch(e){ sel.innerHTML='<option value="">Error loading topics</option>'; }
+}
+
+async function wbDoSaveCourse(){
+  const s=_wbS(); if(!s) return;
+  const courseId=document.getElementById('wbCourseSelect').value;
+  if(!courseId){ document.getElementById('wbSaveStatus').textContent='Please pick a course.'; return; }
+  const topic=document.getElementById('wbNewTopic').value.trim()||document.getElementById('wbTopicSelect').value||'Whiteboard';
+  const title=document.getElementById('wbSaveTitle').value.trim()||'Whiteboard';
+  const saveAs=document.querySelector('input[name="wbSaveAs"]:checked').value;
+  const statusEl=document.getElementById('wbSaveStatus');
+  statusEl.textContent='Saving…';
+
+  _wbSavePage(s);
+  const pages=s.pages||[{imageData:s.ctx.getImageData(0,0,s.el.width,s.el.height),bg:wbBg}];
+  const tmp=document.createElement('canvas'); tmp.width=s.el.width; tmp.height=s.el.height;
+  const tc=tmp.getContext('2d');
+
+  let fileData, fileType, fileName;
+  if(saveAs==='pdf'){
+    // Save all pages as separate images bundled as JSON manifest (real PDF needs jsPDF; send images)
+    tc.putImageData(pages[0].imageData,0,0);
+    fileData=tmp.toDataURL('image/png');
+    fileType='image/png'; fileName=title.replace(/\s+/g,'_')+'.png';
+  } else {
+    tc.putImageData(pages[(s.currentPage||0)].imageData,0,0);
+    fileData=tmp.toDataURL('image/png');
+    fileType='image/png'; fileName=title.replace(/\s+/g,'_')+'.png';
+  }
+
+  try{
+    const tok=localStorage.getItem('jm_token')||'';
+    const res=await fetch('/api/course-content',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},
+      body:JSON.stringify({courseId,topic,title,type:'whiteboard',content:fileData,fileName,mimeType:fileType,pageCount:pages.length})
+    });
+    const data=await res.json();
+    if(res.ok){ statusEl.textContent='✅ Saved to course!'; setTimeout(()=>document.getElementById('wbSaveCourseModal').style.display='none',1500); }
+    else { statusEl.textContent='Error: '+(data.error||'Save failed'); }
+  } catch(e){ statusEl.textContent='Network error: '+e.message; }
+}
 
 // ── Homography + WebGL ─────────────────────────────────────────────────
 function solveHomography(src,dst){ const A=[],b=[]; for(let i=0;i<4;i++){ const {x,y}=src[i],{x:u,y:v}=dst[i]; A.push([x,y,1,0,0,0,-u*x,-u*y]); b.push(u); A.push([0,0,0,x,y,1,-v*x,-v*y]); b.push(v);} const h=gauss(A,b); h.push(1); return h; }
@@ -1182,8 +2285,14 @@ function renderLoop(){ requestAnimationFrame(renderLoop);
       gl.bindTexture(gl.TEXTURE_2D,tex);
       try{ gl.texImage2D(gl.TEXTURE_2D,0,gl.RGB,gl.RGB,gl.UNSIGNED_BYTE,s.el);
         // Reuse the solved homography unless the corners changed this frame.
-        const ck=activeScene.corners.map(c=>c.x.toFixed(4)+','+c.y.toFixed(4)).join(';');
-        let H; if(ck===_HcacheKey && _Hcache){ H=_Hcache; } else { H=solveHomography(_dst4,activeScene.corners); _Hcache=H; _HcacheKey=ck; }
+        // When AR crop is active, use the crop region as GL source so homography
+        // maps that region (not the full frame) to the output corners.
+        const src4=_srcCropMode
+          ? [{x:_srcCrop.x,y:_srcCrop.y},{x:_srcCrop.x+_srcCrop.w,y:_srcCrop.y},
+             {x:_srcCrop.x+_srcCrop.w,y:_srcCrop.y+_srcCrop.h},{x:_srcCrop.x,y:_srcCrop.y+_srcCrop.h}]
+          : _dst4;
+        const ck=src4.map(p=>p.x.toFixed(4)+','+p.y.toFixed(4)).join(';')+';'+activeScene.corners.map(c=>c.x.toFixed(4)+','+c.y.toFixed(4)).join(';');
+        let H; if(ck===_HcacheKey && _Hcache){ H=_Hcache; } else { H=solveHomography(src4,activeScene.corners); _Hcache=H; _HcacheKey=ck; }
         gl.uniform1f(prog.uPersp,document.getElementById('perspOn').checked?1:0);
         gl.uniformMatrix3fv(prog.uH,false,new Float32Array(H)); gl.uniform1i(prog.uTex,0);
         gl.viewport(0,0,glCanvas.width,glCanvas.height); gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
@@ -1193,12 +2302,8 @@ function renderLoop(){ requestAnimationFrame(renderLoop);
           const cw2=out.width*fw, ch2=out.height*fw;
           const cx2=(out.width-cw2)/2, cy2=(out.height-ch2)/2;
           octx.save(); octx.translate(out.width/2,out.height/2); octx.rotate((activeScene.rotation||0)*Math.PI/180); const z=activeScene.zoom||1; octx.scale(z,z); octx.drawImage(glCanvas,cx2-out.width/2,cy2-out.height/2,cw2,ch2); octx.restore();
-        } else if(_srcCropMode){
-          // AR crop: draw only the selected region of glCanvas, scaled to fill output
-          const sx=_srcCrop.x*glCanvas.width, sy=_srcCrop.y*glCanvas.height;
-          const sw=_srcCrop.w*glCanvas.width, sh=_srcCrop.h*glCanvas.height;
-          octx.save(); octx.translate(out.width/2,out.height/2); octx.rotate((activeScene.rotation||0)*Math.PI/180); const z=activeScene.zoom||1; octx.scale(z,z); octx.drawImage(glCanvas,sx,sy,sw,sh,-out.width/2,-out.height/2,out.width,out.height); octx.restore();
         } else {
+          // GL already baked the crop into the texture mapping — draw full glCanvas
           octx.save(); octx.translate(out.width/2,out.height/2); octx.rotate((activeScene.rotation||0)*Math.PI/180); const z=activeScene.zoom||1; octx.scale(z,z); octx.drawImage(glCanvas,-out.width/2,-out.height/2,out.width,out.height); octx.restore();
         }
       }catch(e){}

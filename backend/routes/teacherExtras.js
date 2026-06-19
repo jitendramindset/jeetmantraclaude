@@ -14,6 +14,7 @@ const express = require('express');
 const { supabaseAdmin } = require('../config/supabase');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
 const { CREATOR_ROLES } = require('../config/roles');
+const { resolveInstitution } = require('../middleware/resolveInstitution');
 const { v4: uuidv4 } = require('uuid');
 
 const router = express.Router();
@@ -23,7 +24,12 @@ router.get('/timetable', authenticateToken, authorizeRole(CREATOR_ROLES), async 
   try {
     const from = req.query.from ? new Date(req.query.from) : new Date();
     const to = req.query.to ? new Date(req.query.to) : new Date(from.getTime() + 7 * 24 * 60 * 60 * 1000);
-    const { data: courses } = await supabaseAdmin.from('courses').select('id, title').eq('teacher_id', req.user.id);
+    // Scope to the active institution when a specific one is selected; 'all' or
+    // none → every course the teacher owns.
+    const instId = await resolveInstitution(req);
+    let coursesQ = supabaseAdmin.from('courses').select('id, title').eq('teacher_id', req.user.id);
+    if (instId && instId !== 'all') coursesQ = coursesQ.eq('institution_id', instId);
+    const { data: courses } = await coursesQ;
     const courseIds = (courses || []).map(c => c.id);
     if (!courseIds.length) return res.json({ events: [] });
     const courseTitleById = Object.fromEntries((courses || []).map(c => [c.id, c.title]));

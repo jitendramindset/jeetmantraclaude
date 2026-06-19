@@ -625,10 +625,19 @@ router.get('/:courseId/full', authenticateToken, async (req, res) => {
     supabaseAdmin.from('course_tests').select('*').eq('course_id', courseId).order('created_at', { ascending: false }).then(r => r.data || [])
   ]);
   if (!course) return res.status(404).json({ error: 'Course not found' });
+  // Group flat content under its topic so the workspace Topics tab and the grid
+  // "Explore" tree can show per-chapter rollups. Flat arrays are ALSO returned
+  // unchanged so the book reader (which reads full.lectures/materials) still works.
+  const nestTopics = (tps) => tps.map(t => ({
+    ...t,
+    lectures: lectures.filter(l => l.topic_id === t.id),
+    materials: materials.filter(m => m.topic_id === t.id),
+    tests: tests.filter(x => x.topic_id === t.id)
+  }));
   // Gate paid content: non-owner/non-enrolled callers get only preview items
   // (so the course preview still works without leaking the full curriculum).
   const full = await canViewFull(courseId, req.user);
-  if (full) return res.json({ course, topics, lectures, materials, tests });
+  if (full) return res.json({ course, topics: nestTopics(topics), lectures, materials, tests });
   res.json({
     course,
     topics: topics.filter(t => t.is_preview),
