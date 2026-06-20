@@ -615,6 +615,18 @@ router.post('/fees/invoices', authenticateToken, authorizeRole(INSTITUTION_ROLES
 
 router.put('/fees/invoices/:id/pay', authenticateToken, async (req, res) => {
   try {
+    // Ownership gate (was authenticateToken-only → any user could mark ANY
+    // invoice paid by id). Allowed: the institution that issued it, the student
+    // it belongs to, or admin.
+    const { data: inv } = await supabaseAdmin.from('fee_invoices')
+      .select('institution_id, student_id').eq('id', req.params.id).maybeSingle();
+    if (!inv) return res.status(404).json({ error: 'Invoice not found' });
+    const isAdmin = req.user.role === 'admin';
+    const isInstitution = INSTITUTION_ROLES.includes(req.user.role) && inv.institution_id === resolveInstitutionForAdmin(req);
+    const isStudent = inv.student_id === req.user.id;
+    if (!isAdmin && !isInstitution && !isStudent) {
+      return res.status(403).json({ error: 'Not authorized to settle this invoice' });
+    }
     await supabaseAdmin.from('fee_invoices').update({
       status: 'paid', paid_at: new Date().toISOString()
     }).eq('id', req.params.id);

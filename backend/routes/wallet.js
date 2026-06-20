@@ -69,7 +69,7 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // Top-up step 1: create a Razorpay order (or demo).
-router.post('/topup/order', authenticateToken, async (req, res) => {
+router.post('/topup/order', authenticateToken, validate('walletTopupOrder'), async (req, res) => {
   try {
     const amount = Number(req.body?.amount);
     if (!amount || amount < 50) return res.status(400).json({ error: 'min ₹50' });
@@ -89,7 +89,7 @@ router.post('/topup/order', authenticateToken, async (req, res) => {
 });
 
 // Top-up step 2: verify + credit. Demo orders auto-pass.
-router.post('/topup/verify', authenticateToken, async (req, res) => {
+router.post('/topup/verify', authenticateToken, validate('walletTopupVerify'), async (req, res) => {
   try {
     const { razorpayOrderId, razorpayPaymentId, razorpaySignature, amount } = req.body || {};
     let verified = false;

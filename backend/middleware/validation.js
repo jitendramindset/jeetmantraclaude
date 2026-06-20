@@ -273,6 +273,17 @@ const schemas = {
     notes: Joi.string().max(500).allow('', null).optional()
   }),
 
+  walletTopupOrder: Joi.object({
+    amount: Joi.number().min(1).required()
+  }).unknown(true),
+
+  walletTopupVerify: Joi.object({
+    razorpayOrderId: Joi.string().allow('', null).optional(),
+    razorpayPaymentId: Joi.string().allow('', null).optional(),
+    razorpaySignature: Joi.string().allow('', null).optional(),
+    amount: Joi.number().min(0).optional()
+  }).unknown(true),
+
   walletSubscribe: Joi.object({
     planCode: Joi.string().required(),
     billingPeriod: Joi.string().valid('monthly', 'yearly', 'annual').optional()
