@@ -225,6 +225,59 @@ const schemas = {
     is_active: Joi.boolean().optional()
   }).min(1),
 
+  // ── P0 money flows ─────────────────────────────────────────────────────
+  // Hardening from EDUOS_API_INVENTORY.md §2 (validation gap list). Every
+  // /api/payments + /api/wallet write endpoint reading user input gets a Joi
+  // schema. Permissive on optional fields, strict on type + bounds.
+  couponApply: Joi.object({
+    code: Joi.string().min(1).max(64).required(),
+    amount: Joi.number().min(0).required(),
+    courseId: Joi.string().allow(null, '').optional()
+  }),
+
+  couponCreate: Joi.object({
+    code: Joi.string().min(1).max(64).required(),
+    discountPercent: Joi.number().min(0).max(100).optional(),
+    discountFlat: Joi.number().min(0).optional(),
+    courseId: Joi.string().allow(null, '').optional(),
+    maxUses: Joi.number().integer().min(1).optional(),
+    expiresAt: Joi.date().iso().optional()
+    // discount enforcement (must specify at least one) is handled in-handler
+    // since both can be legitimately absent for a "no discount" promo code.
+  }),
+
+  paymentOrder: Joi.object({
+    courseId: Joi.string().allow(null, '').optional(),
+    amount: Joi.number().min(0).required(),
+    currency: Joi.string().length(3).optional(),
+    couponCode: Joi.string().max(64).allow('', null).optional()
+  }),
+
+  paymentVerify: Joi.object({
+    paymentRowId: Joi.string().required(),
+    razorpayOrderId: Joi.string().allow('', null).optional(),
+    razorpayPaymentId: Joi.string().allow('', null).optional(),
+    razorpaySignature: Joi.string().allow('', null).optional(),
+    courseId: Joi.string().allow(null, '').optional()
+  }),
+
+  paymentCreate: Joi.object({
+    courseId: Joi.string().allow(null, '').optional(),
+    amount: Joi.number().min(0).required(),
+    paymentMethod: Joi.string().max(40).optional()
+  }),
+
+  walletSpend: Joi.object({
+    amount: Joi.number().min(0).required(),
+    reference: Joi.string().max(120).allow('', null).optional(),
+    notes: Joi.string().max(500).allow('', null).optional()
+  }),
+
+  walletSubscribe: Joi.object({
+    planCode: Joi.string().required(),
+    billingPeriod: Joi.string().valid('monthly', 'yearly', 'annual').optional()
+  }),
+
   bookingCreate: Joi.object({
     resourceId: Joi.string().required(),
     startAt: Joi.date().iso().required(),
