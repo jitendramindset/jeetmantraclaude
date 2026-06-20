@@ -25,6 +25,7 @@ const fs = require('fs');
 const { supabaseAdmin } = require('../config/supabase');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
 const { CREATOR_ROLES } = require('../config/roles');
+const { validate } = require('../middleware/validation');
 const { v4: uuidv4 } = require('uuid');
 const { awardForEvent } = require('../services/award');
 
@@ -83,7 +84,7 @@ async function announceSubmission({ template, student, kind }) {
 }
 
 // POST /api/assignments — teacher creates an assignment template
-router.post('/', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
+router.post('/', authenticateToken, authorizeRole(CREATOR_ROLES), validate('assignmentCreate'), async (req, res) => {
   try {
     const { courseId, title, description, dueDate, topicId } = req.body;
     if (!courseId || !title || !dueDate) {
@@ -215,7 +216,7 @@ router.post('/:id/submit', authenticateToken, upload.single('file'), async (req,
 });
 
 // PUT /api/assignments/:id — teacher edits the assignment TEMPLATE (title/desc/due)
-router.put('/:id', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
+router.put('/:id', authenticateToken, authorizeRole(CREATOR_ROLES), validate('assignmentEdit'), async (req, res) => {
   try {
     const { data: row } = await supabaseAdmin.from('assignments').select('teacher_id, student_id').eq('id', req.params.id).single();
     if (!row) return res.status(404).json({ error: 'Assignment not found' });
@@ -236,7 +237,7 @@ router.put('/:id', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, 
 });
 
 // PUT /api/assignments/:id/grade — teacher grades a per-student submission
-router.put('/:id/grade', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
+router.put('/:id/grade', authenticateToken, authorizeRole(CREATOR_ROLES), validate('assignmentGrade'), async (req, res) => {
   try {
     const { grade, feedback } = req.body;
     if (grade == null) return res.status(400).json({ error: 'grade required' });

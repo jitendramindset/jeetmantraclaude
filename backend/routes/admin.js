@@ -364,7 +364,7 @@ router.get('/users/:userId', authenticateToken, authorizeRole(['admin']), async 
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.put('/users/:userId', authenticateToken, authorizeRole(['admin']), async (req, res) => {
+router.put('/users/:userId', authenticateToken, authorizeRole(['admin']), validate('adminUserUpdate'), async (req, res) => {
   try {
     const { fullName, role, status } = req.body || {};
     const updates = { updated_at: new Date().toISOString() };

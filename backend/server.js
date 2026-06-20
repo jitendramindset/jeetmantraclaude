@@ -43,6 +43,8 @@ const gamificationRoutes  = require('./routes/gamification');
 const notificationsRoutes = require('./routes/notifications');
 // Sprint 6 — certificates + impersonation
 const certificatesRoutes  = require('./routes/certificates');
+// Sprint 7 — role-org unification foundation
+const orgsRoutes          = require('./routes/orgs');
 const ragRoutes           = require('./routes/rag');
 const { cacheMiddleware, syncMiddleware } = require('./middleware/datasync');
 
@@ -123,6 +125,10 @@ app.use('/api/bookings', bookingsRoutes);
 app.use('/api/gamification', gamificationRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/certificates', certificatesRoutes);
+// Sprint 7 mounts
+app.use('/api/orgs', orgsRoutes);
+app.use('/api/capabilities', orgsRoutes.capRouter);
+app.use('/api/categories', orgsRoutes.catRouter);
 app.use('/api/rag', ragRoutes);
 
 // LevelDB sync queue endpoint

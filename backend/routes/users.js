@@ -1,6 +1,7 @@
 const express = require('express');
 const { supabase, supabaseAdmin } = require('../config/supabase');
 const { authenticateToken } = require('../middleware/auth');
+const { validate } = require('../middleware/validation');
 
 const router = express.Router();
 
@@ -36,7 +37,7 @@ router.get('/profile', authenticateToken, async (req, res) => {
 // extra fields from the dashboard form (institution, academicLevel, skills,
 // qualifications, profileImage) are silently ignored rather than 400-ing the
 // whole update.
-router.put('/profile', authenticateToken, async (req, res) => {
+router.put('/profile', authenticateToken, validate('profileUpdate'), async (req, res) => {
   try {
     const { fullName, phone, email, bio, dateOfBirth, profileImage,
             street, city, state, postalCode, country,

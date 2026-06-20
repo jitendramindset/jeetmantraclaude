@@ -6,6 +6,7 @@ const { supabase, supabaseAdmin } = require('../config/supabase');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
 const { CREATOR_ROLES } = require('../config/roles');
 const { awardForEvent } = require('../services/award');
+const { validate } = require('../middleware/validation');
 const { v4: uuidv4 } = require('uuid');
 
 const uploadDir = path.join(__dirname, '..', 'uploads');
@@ -22,7 +23,7 @@ const upload = multer({ storage });
 const router = express.Router();
 
 // Schedule a live class (teacher only)
-router.post('/', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
+router.post('/', authenticateToken, authorizeRole(CREATOR_ROLES), validate('liveClassCreate'), async (req, res) => {
   try {
     const { courseId, title, description, scheduledTime, duration, meetingLink, capacity, topicId } = req.body;
     const classId = uuidv4();
@@ -304,7 +305,7 @@ router.post('/:classId/documents', authenticateToken, upload.single('file'), asy
 });
 
 // Update live class (teacher only)
-router.put('/:classId', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
+router.put('/:classId', authenticateToken, authorizeRole(CREATOR_ROLES), validate('liveClassUpdate'), async (req, res) => {
   try {
     // Verify teacher owns this class
     const { data: liveClass } = await supabase
@@ -479,7 +480,7 @@ const recStorage = multer.diskStorage({
   filename: (req, file, cb) => cb(null, 'rec-' + req.params.classId + '-' + Date.now() + '.webm')
 });
 const recUpload = multer({ storage: recStorage, limits: { fileSize: 500 * 1024 * 1024 } });
-router.post('/:classId/recording', authenticateToken, authorizeRole(CREATOR_ROLES), recUpload.single('recording'), async (req, res) => {
+router.post('/:classId/recording', authenticateToken, authorizeRole(CREATOR_ROLES), recUpload.single('recording'), validate('liveRecording'), async (req, res) => {
   try {
     const { data: cls } = await supabaseAdmin.from('live_classes').select('teacher_id').eq('id', req.params.classId).single();
     if (!cls) return res.status(404).json({ error: 'Class not found' });

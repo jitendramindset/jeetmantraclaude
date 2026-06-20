@@ -363,6 +363,139 @@ const schemas = {
     brandName: Joi.string().max(160).allow('', null).optional()
   }).min(1),
 
+  // ── P1 hardening (rest): CREATOR writes in teacherExtras / assignments /
+  // liveClasses + profile + admin user-update. These are EXISTING endpoints
+  // whose frontends may send extra fields, so each schema is .unknown(true) —
+  // we validate the KNOWN fields' types (closing type-confusion) without
+  // breaking callers that include extra keys the handler already ignores.
+  recurringClass: Joi.object({
+    courseId: Joi.string().required(),
+    title: Joi.string().max(200).allow('', null).optional(),
+    description: Joi.string().allow('', null).optional(),
+    startTime: Joi.date().iso().required(),
+    duration: Joi.number().integer().min(1).optional(),
+    meetingLink: Joi.string().allow('', null).optional(),
+    daysOfWeek: Joi.array().items(Joi.number().integer().min(0).max(6)).min(1).required(),
+    weeks: Joi.number().integer().min(1).max(52).required(),
+    isOnline: Joi.boolean().optional(),
+    venue: Joi.string().allow('', null).optional()
+  }).unknown(true),
+
+  attendanceBulkMixed: Joi.object({
+    courseId: Joi.string().required(),
+    classDate: Joi.date().iso().required(),
+    marks: Joi.array().items(Joi.object().unknown(true)).min(1).required()
+  }).unknown(true),
+
+  attendanceBulk: Joi.object({
+    courseId: Joi.string().required(),
+    classDate: Joi.date().iso().required(),
+    enrollmentIds: Joi.array().items(Joi.string()).optional(),
+    status: Joi.string().valid('present', 'absent', 'late').optional()
+  }).unknown(true),
+
+  invoiceCreate: Joi.object({
+    clientName: Joi.string().min(1).max(200).required(),
+    clientEmail: Joi.string().email().allow('', null).optional(),
+    clientId: Joi.string().allow('', null).optional(),
+    items: Joi.array().items(Joi.object().unknown(true)).min(1).required(),
+    taxPercent: Joi.number().min(0).max(100).optional(),
+    dueDate: Joi.date().iso().allow('', null).optional(),
+    notes: Joi.string().allow('', null).max(2000).optional()
+  }).unknown(true),
+
+  invoiceUpdate: Joi.object({
+    status: Joi.string().max(40).optional(),
+    paidAt: Joi.date().iso().allow('', null).optional(),
+    notes: Joi.string().allow('', null).max(2000).optional()
+  }).unknown(true),
+
+  essayGrade: Joi.object({
+    sessionId: Joi.string().required(),
+    questionId: Joi.string().required(),
+    score: Joi.number().required(),
+    feedback: Joi.string().allow('', null).max(4000).optional()
+  }).unknown(true),
+
+  courseAnnouncement: Joi.object({
+    courseId: Joi.string().required(),
+    message: Joi.string().min(1).max(4000).required()
+  }).unknown(true),
+
+  assignmentCreate: Joi.object({
+    courseId: Joi.string().required(),
+    title: Joi.string().min(1).max(300).required(),
+    description: Joi.string().allow('', null).optional(),
+    dueDate: Joi.date().iso().required(),
+    topicId: Joi.string().allow('', null).optional()
+  }).unknown(true),
+
+  assignmentEdit: Joi.object({
+    title: Joi.string().min(1).max(300).optional(),
+    description: Joi.string().allow('', null).optional(),
+    dueDate: Joi.date().iso().optional(),
+    topicId: Joi.string().allow('', null).optional()
+  }).unknown(true),
+
+  assignmentGrade: Joi.object({
+    grade: Joi.alternatives(Joi.number(), Joi.string().max(20)).required(),
+    feedback: Joi.string().allow('', null).max(4000).optional()
+  }).unknown(true),
+
+  liveClassCreate: Joi.object({
+    courseId: Joi.string().required(),
+    title: Joi.string().max(300).allow('', null).optional(),
+    description: Joi.string().allow('', null).optional(),
+    scheduledTime: Joi.date().iso().required(),
+    duration: Joi.number().integer().min(1).optional(),
+    meetingLink: Joi.string().allow('', null).optional(),
+    capacity: Joi.number().integer().min(1).optional(),
+    topicId: Joi.string().allow('', null).optional()
+  }).unknown(true),
+
+  liveClassUpdate: Joi.object({
+    title: Joi.string().max(300).optional(),
+    description: Joi.string().allow('', null).optional(),
+    meetingLink: Joi.string().allow('', null).optional(),
+    status: Joi.string().valid('scheduled', 'live', 'completed', 'cancelled').optional(),
+    scheduledTime: Joi.date().iso().optional(),
+    duration: Joi.number().integer().min(1).optional(),
+    venue: Joi.string().allow('', null).optional(),
+    isOnline: Joi.boolean().optional()
+  }).unknown(true),
+
+  liveRecording: Joi.object({
+    recordingUrl: Joi.string().allow('', null).optional()
+  }).unknown(true), // multipart: text fields are strings, file is in req.file
+
+  profileUpdate: Joi.object({
+    fullName: Joi.string().max(200).optional(),
+    phone: Joi.string().max(40).optional(),
+    email: Joi.string().email().optional(),
+    bio: Joi.string().allow('', null).max(2000).optional(),
+    dateOfBirth: Joi.date().iso().allow('', null).optional(),
+    profileImage: Joi.string().allow('', null).optional(),
+    street: Joi.string().allow('', null).optional(),
+    city: Joi.string().allow('', null).optional(),
+    state: Joi.string().allow('', null).optional(),
+    postalCode: Joi.string().allow('', null).max(20).optional(),
+    country: Joi.string().allow('', null).optional(),
+    education: Joi.string().allow('', null).optional(),
+    experience: Joi.string().allow('', null).optional(),
+    altPhone: Joi.string().allow('', null).max(40).optional(),
+    linkedinUrl: Joi.string().allow('', null).optional(),
+    youtubeUrl: Joi.string().allow('', null).optional(),
+    twitterUrl: Joi.string().allow('', null).optional(),
+    instagramUrl: Joi.string().allow('', null).optional(),
+    websiteUrl: Joi.string().allow('', null).optional()
+  }).unknown(true),
+
+  adminUserUpdate: Joi.object({
+    fullName: Joi.string().max(200).optional(),
+    role: Joi.string().valid('student','teacher','partner','admin','school','coaching','parent','corporate_trainer','content_creator','franchise').optional(),
+    status: Joi.string().max(40).optional()
+  }).unknown(true),
+
   bookingCreate: Joi.object({
     resourceId: Joi.string().required(),
     startAt: Joi.date().iso().required(),
