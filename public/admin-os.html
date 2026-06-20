@@ -242,10 +242,10 @@ function sparkline(series, accentVar = '--jm-primary') {
 const SECTIONS = {
   overview: renderOverview,
   tenants:  renderTenants,
-  people:   () => renderComingSoon('People', '👥', 'Users + Teachers (with approval queue) + Students + Partners + Staff. Wires to /api/admin/users + Sprint 3 approvals.'),
+  people:   renderPeople,
   catalog:  () => renderComingSoon('Catalog', '📚', 'Courses + Approval queue + Categories + Content reports. Reuses /api/courses + Sprint 3 content_reports.'),
   live:     () => renderComingSoon('Live & Recordings', '📡', 'Active live classes, scheduled, recording library, transcripts. Reuses /api/live-classes.'),
-  revenue:  () => renderComingSoon('Revenue', '💳', 'Payments / Refunds / Payouts / Coupons / MRR. Wires to /api/admin/payments and Sprint 3 payouts.'),
+  revenue:  renderRevenue,
   bookings: renderBookings,
   growth:   () => renderComingSoon('Growth & CRM', '📈', 'Leads · Admissions · Campaigns. Reuses /api/eduos/admissions.'),
   support:  () => renderComingSoon('Support', '🎧', 'Tickets · Abuse reports · Feedback · SLA. Sprint 3 (support_tickets, content_reports).'),
@@ -440,6 +440,87 @@ async function renderBookings() {
     `).join('');
   } catch (e) {
     el('bookingsTable').querySelector('tbody').innerHTML = `<tr><td colspan="7" style="padding:24px;text-align:center;color:#b91c1c">Error: ${esc(e.message)}</td></tr>`;
+  }
+}
+
+// ───── People (Sprint 8) ─────
+async function renderPeople() {
+  el('content').innerHTML = `
+    <h1 class="page-title">People</h1>
+    <p class="page-sub">Every account on the platform — students, teachers, partners, institutions, staff. Powered by GET /api/admin/users.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+      <select id="pp-role" onchange="renderPeople()" style="padding:5px 10px;border:1px solid var(--jm-border);border-radius:6px;background:var(--jm-surface);color:inherit"><option value="">All roles</option><option>student</option><option>teacher</option><option>partner</option><option>school</option><option>coaching</option><option>franchise</option><option>corporate_trainer</option><option>content_creator</option><option>parent</option><option>admin</option></select>
+      <select id="pp-status" onchange="renderPeople()" style="padding:5px 10px;border:1px solid var(--jm-border);border-radius:6px;background:var(--jm-surface);color:inherit"><option value="">All statuses</option><option value="active">Active</option><option value="blocked">Blocked</option></select>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <table class="list" id="peopleTable">
+        <thead><tr><th>Name</th><th>Role</th><th>Joined</th><th>Status</th></tr></thead>
+        <tbody><tr><td colspan="4" style="padding:24px;text-align:center;color:var(--jm-text-muted)">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  `;
+  try {
+    const role = el('pp-role')?.value || '';
+    const status = el('pp-status')?.value || '';
+    const qs = ['limit=50'];
+    if (role) qs.push('role=' + encodeURIComponent(role));
+    if (status) qs.push('status=' + encodeURIComponent(status));
+    const r = await api('/admin/users?' + qs.join('&'));
+    const rows = r.users || [];
+    const tbody = el('peopleTable').querySelector('tbody');
+    if (!rows.length) { tbody.innerHTML = '<tr><td colspan="4" style="padding:24px;text-align:center;color:var(--jm-text-muted)">No users match</td></tr>'; return; }
+    tbody.innerHTML = rows.map(u => `
+      <tr>
+        <td><strong>${esc(u.full_name || '—')}</strong><div style="font-size:11px;color:var(--jm-text-muted)">${esc(u.email || '')}</div></td>
+        <td><span style="text-transform:capitalize">${esc(u.user_type || '—')}</span></td>
+        <td>${fmtDate(u.created_at)}</td>
+        <td><span style="color:${u.is_active === false ? '#b91c1c' : '#047857'};font-weight:700">${u.is_active === false ? 'Blocked' : 'Active'}</span></td>
+      </tr>
+    `).join('');
+  } catch (e) {
+    el('peopleTable').querySelector('tbody').innerHTML = `<tr><td colspan="4" style="padding:24px;text-align:center;color:#b91c1c">Error: ${esc(e.message)}</td></tr>`;
+  }
+}
+
+// ───── Revenue (Sprint 8) ─────
+async function renderRevenue() {
+  el('content').innerHTML = `
+    <h1 class="page-title">Revenue</h1>
+    <p class="page-sub">Every payment across the platform — orders, completions, refunds. Powered by GET /api/admin/payments.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+      <select id="rv-status" onchange="renderRevenue()" style="padding:5px 10px;border:1px solid var(--jm-border);border-radius:6px;background:var(--jm-surface);color:inherit"><option value="">All statuses</option><option>created</option><option>completed</option><option>failed</option><option>refunded</option></select>
+      <input id="rv-q" placeholder="Search id / txn / user" onkeydown="if(event.key==='Enter')renderRevenue()" style="padding:5px 10px;border:1px solid var(--jm-border);border-radius:6px;background:var(--jm-surface);color:inherit">
+    </div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <table class="list" id="revenueTable">
+        <thead><tr><th>Payment</th><th>Payer</th><th>Method</th><th>Amount</th><th>When</th><th>Status</th></tr></thead>
+        <tbody><tr><td colspan="6" style="padding:24px;text-align:center;color:var(--jm-text-muted)">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  `;
+  try {
+    const status = el('rv-status')?.value || '';
+    const q = el('rv-q')?.value?.trim() || '';
+    const qs = ['limit=50'];
+    if (status) qs.push('status=' + encodeURIComponent(status));
+    if (q) qs.push('q=' + encodeURIComponent(q));
+    const r = await api('/admin/payments?' + qs.join('&'));
+    const rows = r.payments || [];
+    const tbody = el('revenueTable').querySelector('tbody');
+    if (!rows.length) { tbody.innerHTML = '<tr><td colspan="6" style="padding:24px;text-align:center;color:var(--jm-text-muted)">No payments match</td></tr>'; return; }
+    const statusColor = s => ({created:'#b45309',completed:'#047857',failed:'#b91c1c',refunded:'#6b7280'})[s] || '#6b7280';
+    tbody.innerHTML = rows.map(p => `
+      <tr>
+        <td><strong style="font-size:12px">${esc(p.transaction_id || p.id || '—')}</strong></td>
+        <td>${esc(p.payer_name || p.user_id || '—')}<div style="font-size:11px;color:var(--jm-text-muted)">${esc(p.payer_email || '')}</div></td>
+        <td><span style="text-transform:capitalize">${esc(p.payment_method || '—')}</span></td>
+        <td>${p.amount != null ? fmtMoney(p.amount) : '—'}</td>
+        <td>${fmtDate(p.created_at)}</td>
+        <td><span style="color:${statusColor(p.status)};font-weight:700;text-transform:uppercase;font-size:11px">${esc(p.status || '—')}</span></td>
+      </tr>
+    `).join('');
+  } catch (e) {
+    el('revenueTable').querySelector('tbody').innerHTML = `<tr><td colspan="6" style="padding:24px;text-align:center;color:#b91c1c">Error: ${esc(e.message)}</td></tr>`;
   }
 }
 

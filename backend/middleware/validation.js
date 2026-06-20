@@ -359,6 +359,36 @@ const schemas = {
     logoUrl: Joi.string().uri().allow('', null).optional()
   }),
 
+  // ── Sprint 8: organization write endpoints
+  orgCreate: Joi.object({
+    name: Joi.string().min(1).max(200).required(),
+    type: Joi.string().valid('school','coaching','sports_academy','yoga_center','dance_academy',
+      'music_academy','reading_club','training_institute','home_tuition','language_center',
+      'corporate_training','skill_center','ngo','community','custom').required(),
+    category: Joi.string().allow('', null).optional(),
+    isPersonal: Joi.boolean().optional()
+  }),
+
+  orgUpdate: Joi.object({
+    name: Joi.string().min(1).max(200).optional(),
+    category: Joi.string().allow('', null).optional(),
+    branding: Joi.object().optional()
+  }).min(1),
+
+  orgMemberInvite: Joi.object({
+    personId: Joi.string().optional(),
+    email: Joi.string().email().optional(),
+    role: Joi.string().valid('teacher','assistant_teacher','coach','trainer','org_admin','viewer','student').required()
+  }).or('personId', 'email'),
+
+  orgMemberUpdate: Joi.object({
+    role: Joi.string().valid('teacher','assistant_teacher','coach','trainer','org_admin','viewer','student').required()
+  }),
+
+  orgTransfer: Joi.object({
+    newOwnerId: Joi.string().required()
+  }),
+
   // ── Sprint 6: impersonation
   impersonationStart: Joi.object({
     targetUserId: Joi.string().required(),

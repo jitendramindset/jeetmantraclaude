@@ -4,6 +4,7 @@ const { authenticateToken, authorizeRole } = require('../middleware/auth');
 const { validate } = require('../middleware/validation');
 const { CREATOR_ROLES } = require('../config/roles');
 const { resolveInstitution } = require('../middleware/resolveInstitution');
+const { requireCapability } = require('../middleware/requireCapability');
 const { v4: uuidv4 } = require('uuid');
 
 const router = express.Router();
@@ -155,7 +156,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create course (teacher only)
-router.post('/', authenticateToken, authorizeRole(CREATOR_ROLES), validate('courseCreate'), async (req, res) => {
+router.post('/', authenticateToken, requireCapability('course.create'), validate('courseCreate'), async (req, res) => {
   try {
     const courseId = uuidv4();
     const { title, description, category, level, price, startDate, endDate, maxStudents, batchTiming,
@@ -234,7 +235,7 @@ router.post('/', authenticateToken, authorizeRole(CREATOR_ROLES), validate('cour
 });
 
 // Update course (teacher only)
-router.put('/:id', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
+router.put('/:id', authenticateToken, requireCapability('course.edit'), async (req, res) => {
   try {
     // Verify ownership
     const { data: course } = await supabaseAdmin
@@ -300,7 +301,7 @@ router.put('/:id', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, 
 });
 
 // Delete course (teacher only)
-router.delete('/:id', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
+router.delete('/:id', authenticateToken, requireCapability('course.delete'), async (req, res) => {
   try {
     // Verify ownership
     const { data: course } = await supabaseAdmin

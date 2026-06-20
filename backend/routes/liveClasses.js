@@ -7,6 +7,7 @@ const { authenticateToken, authorizeRole } = require('../middleware/auth');
 const { CREATOR_ROLES } = require('../config/roles');
 const { awardForEvent } = require('../services/award');
 const { validate } = require('../middleware/validation');
+const { requireCapability } = require('../middleware/requireCapability');
 const { v4: uuidv4 } = require('uuid');
 
 const uploadDir = path.join(__dirname, '..', 'uploads');
@@ -23,7 +24,7 @@ const upload = multer({ storage });
 const router = express.Router();
 
 // Schedule a live class (teacher only)
-router.post('/', authenticateToken, authorizeRole(CREATOR_ROLES), validate('liveClassCreate'), async (req, res) => {
+router.post('/', authenticateToken, requireCapability('live.schedule'), validate('liveClassCreate'), async (req, res) => {
   try {
     const { courseId, title, description, scheduledTime, duration, meetingLink, capacity, topicId } = req.body;
     const classId = uuidv4();
@@ -355,7 +356,7 @@ router.put('/:classId', authenticateToken, authorizeRole(CREATOR_ROLES), validat
 });
 
 // Start live class (teacher only)
-router.post('/:classId/start', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
+router.post('/:classId/start', authenticateToken, requireCapability('live.start'), async (req, res) => {
   try {
     // Verify teacher owns this class
     const { data: liveClass } = await supabase
@@ -400,7 +401,7 @@ router.post('/:classId/start', authenticateToken, authorizeRole(CREATOR_ROLES), 
 });
 
 // End live class (teacher only)
-router.post('/:classId/end', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
+router.post('/:classId/end', authenticateToken, requireCapability('live.start'), async (req, res) => {
   try {
     // Verify teacher owns this class
     const { data: liveClass } = await supabase

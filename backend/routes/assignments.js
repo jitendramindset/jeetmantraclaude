@@ -26,6 +26,7 @@ const { supabaseAdmin } = require('../config/supabase');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
 const { CREATOR_ROLES } = require('../config/roles');
 const { validate } = require('../middleware/validation');
+const { requireCapability } = require('../middleware/requireCapability');
 const { v4: uuidv4 } = require('uuid');
 const { awardForEvent } = require('../services/award');
 
@@ -237,7 +238,7 @@ router.put('/:id', authenticateToken, authorizeRole(CREATOR_ROLES), validate('as
 });
 
 // PUT /api/assignments/:id/grade — teacher grades a per-student submission
-router.put('/:id/grade', authenticateToken, authorizeRole(CREATOR_ROLES), validate('assignmentGrade'), async (req, res) => {
+router.put('/:id/grade', authenticateToken, requireCapability('assignment.grade'), validate('assignmentGrade'), async (req, res) => {
   try {
     const { grade, feedback } = req.body;
     if (grade == null) return res.status(400).json({ error: 'grade required' });

@@ -29,15 +29,26 @@ const CREATOR_CAPS = new Set([
   'attendance.mark', 'assignment.grade', 'test.create', 'certificate.issue',
   'student.manage', 'booking.manage', 'payment.read', 'payout.request', 'analytics.read'
 ]);
-const INSTITUTION_EXTRA = new Set(['org.member.invite', 'org.member.manage', 'org.branding', 'analytics.read']);
-const CREATOR_ROLES = new Set(['teacher', 'partner', 'coaching', 'school', 'corporate_trainer', 'content_creator']);
+const INSTITUTION_EXTRA = new Set(['org.member.invite', 'org.member.manage', 'org.branding', 'analytics.read', 'org.transfer']);
+// franchise is a course-owning umbrella too — give it the creator caps in the
+// fallback so a franchise owner isn't denied (consistent with it owning an org).
+const CREATOR_ROLES = new Set(['teacher', 'partner', 'coaching', 'school', 'corporate_trainer', 'content_creator', 'franchise']);
 const INSTITUTION_ROLES = new Set(['school', 'coaching', 'franchise']);
+
+// The 3 distinct permission tiers from Sprint 8 (org-scoped roles), mirrored
+// so requireCapability works before migration-s8 is applied.
+const TIER_CAPS = {
+  org_admin: new Set(['org.member.invite', 'org.member.manage', 'org.branding', 'analytics.read', 'student.manage', 'payment.read', 'certificate.issue']),
+  assistant_teacher: new Set(['attendance.mark', 'assignment.grade', 'student.manage', 'live.start']),
+  viewer: new Set(['analytics.read'])
+};
 
 function fallbackHasCapability(roles, cap) {
   for (const r of roles) {
     if (r === 'admin') return true;
     if (CREATOR_ROLES.has(r) && CREATOR_CAPS.has(cap)) return true;
     if (INSTITUTION_ROLES.has(r) && INSTITUTION_EXTRA.has(cap)) return true;
+    if (TIER_CAPS[r] && TIER_CAPS[r].has(cap)) return true;
   }
   return false;
 }
