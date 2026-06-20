@@ -116,6 +116,80 @@ const schemas = {
     contactEmail: Joi.string().email().optional(),
     contactPhone: Joi.string().optional(),
     address: Joi.string().optional()
+  }),
+
+  // ── Sprint 3: operations queues.
+  approvalCreate: Joi.object({
+    type: Joi.string().valid('teacher','course','payout','kyc').required(),
+    target_id: Joi.string().allow('', null).optional(),
+    metadata: Joi.object().optional(),
+    reason: Joi.string().allow('').optional()
+  }),
+
+  payoutCreate: Joi.object({
+    amount: Joi.number().positive().required(),
+    notes: Joi.string().allow('').optional(),
+    currency: Joi.string().optional()
+  }),
+
+  payoutDecide: Joi.object({
+    decision: Joi.string().valid('approve','reject','paid').required(),
+    gateway_ref: Joi.string().allow('').optional(),
+    notes: Joi.string().allow('').optional()
+  }),
+
+  supportTicketCreate: Joi.object({
+    subject: Joi.string().required(),
+    body: Joi.string().allow('').required(),
+    priority: Joi.string().valid('low','normal','high','urgent').optional(),
+    tenant_id: Joi.string().allow('', null).optional()
+  }),
+
+  supportMessage: Joi.object({
+    body: Joi.string().required(),
+    is_internal: Joi.boolean().optional()
+  }),
+
+  supportTicketUpdate: Joi.object({
+    status: Joi.string().valid('open','pending','resolved','closed').optional(),
+    priority: Joi.string().valid('low','normal','high','urgent').optional(),
+    assignee_id: Joi.string().allow('', null).optional(),
+    sla_due_at: Joi.date().optional()
+  }).min(1),
+
+  contentReportCreate: Joi.object({
+    target_type: Joi.string().valid('course','message','review','user','recording','listing').required(),
+    target_id: Joi.string().required(),
+    reason: Joi.string().allow('').required()
+  }),
+
+  contentReportDecide: Joi.object({
+    decision: Joi.string().valid('dismiss','action').required(),
+    notes: Joi.string().allow('').optional()
+  }),
+
+  notificationTemplateCreate: Joi.object({
+    key: Joi.string().required(),
+    channel: Joi.string().valid('in_app','email','sms','push').required(),
+    locale: Joi.string().required(),
+    subject: Joi.string().allow('').optional(),
+    body: Joi.string().allow('').required()
+  }),
+
+  notificationTemplateUpdate: Joi.object({
+    subject: Joi.string().allow('').optional(),
+    body: Joi.string().allow('').optional()
+  }).min(1),
+
+  notificationBroadcast: Joi.object({
+    template_key: Joi.string().required(),
+    channel: Joi.string().valid('in_app','email','sms','push').optional(),
+    audience: Joi.object({
+      role: Joi.string().optional(),
+      user_ids: Joi.array().items(Joi.string()).optional(),
+      institution_id: Joi.string().optional()
+    }).min(1).required(),
+    payload: Joi.object().optional()
   })
 };
 

@@ -28,6 +28,13 @@ const parentExtrasRoutes  = require('./routes/parentExtras');
 const walletRoutes        = require('./routes/wallet');
 const eduosRoutes         = require('./routes/eduos');
 const calendarRoutes      = require('./routes/calendar');
+// Sprint 3 — operations queues + localization depth
+const approvalsRoutes     = require('./routes/approvals');
+const payoutsRoutes       = require('./routes/payouts');
+const supportRoutes       = require('./routes/support');
+const reportsRoutes       = require('./routes/reports');
+const notifAdminRoutes    = require('./routes/notificationsAdmin');
+const translationsRoutes  = require('./routes/translations');
 const ragRoutes           = require('./routes/rag');
 const { cacheMiddleware, syncMiddleware } = require('./middleware/datasync');
 
@@ -94,6 +101,13 @@ app.use('/api/parent', parentExtrasRoutes);
 app.use('/api/wallet', walletRoutes);
 app.use('/api/eduos', eduosRoutes);
 app.use('/api/calendar', calendarRoutes);
+// Sprint 3 mounts
+app.use('/api/approvals', approvalsRoutes);
+app.use('/api/payouts', payoutsRoutes);
+app.use('/api/support', supportRoutes);
+app.use('/api/reports', reportsRoutes);
+app.use('/api/notifications-admin', notifAdminRoutes);
+app.use('/api/translations', translationsRoutes);
 app.use('/api/rag', ragRoutes);
 
 // LevelDB sync queue endpoint

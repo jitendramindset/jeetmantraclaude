@@ -29,6 +29,16 @@ const { authenticateToken, authorizeRole } = require('../middleware/auth');
 const { CREATOR_ROLES, INSTITUTION_ROLES, STUDENT_ROLES, PARENT_ROLES } = require('../config/roles');
 const { v4: uuidv4 } = require('uuid');
 
+// S1-3 fix: institution-scoped routes below used .eq('institution_id', resolveInstitutionForAdmin(req)),
+// which works when the caller IS the institution but causes admin queries to
+// return zero rows. This helper lets admin override the scope via
+// ?institution_id=X (so platform staff can manage any tenant's ops), while
+// non-admin callers stay locked to their own institution_id (== req.user.id).
+function resolveInstitutionForAdmin(req) {
+  if (req.user.role === 'admin' && req.query.institution_id) return req.query.institution_id;
+  return req.user.id;
+}
+
 const router = express.Router();
 
 // ── Ownership helper used by batches/qr/forums/etc.
@@ -516,7 +526,7 @@ router.get('/report-card/:studentId', authenticateToken, async (req, res) => {
 // Admissions (school/coaching/admin only).
 router.get('/admissions', authenticateToken, authorizeRole(INSTITUTION_ROLES), async (req, res) => {
   try {
-    const { data } = await supabaseAdmin.from('admissions').select('*').eq('institution_id', req.user.id).order('applied_at', { ascending: false });
+    const { data } = await supabaseAdmin.from('admissions').select('*').eq('institution_id', resolveInstitutionForAdmin(req)).order('applied_at', { ascending: false });
     const counts = { applied: 0, interview: 0, admitted: 0, rejected: 0 };
     (data || []).forEach(a => { counts[a.stage] = (counts[a.stage] || 0) + 1; });
     res.json({ admissions: data || [], counts });
@@ -545,7 +555,7 @@ router.put('/admissions/:id', authenticateToken, authorizeRole(INSTITUTION_ROLES
     if (stage) updates.stage = stage;
     if (notes !== undefined) updates.notes = notes;
     const { data, error } = await supabaseAdmin.from('admissions').update(updates)
-      .eq('id', req.params.id).eq('institution_id', req.user.id).select().single();
+      .eq('id', req.params.id).eq('institution_id', resolveInstitutionForAdmin(req)).select().single();
     if (error) return res.status(400).json({ error: error.message });
     res.json({ admission: data });
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -554,7 +564,7 @@ router.put('/admissions/:id', authenticateToken, authorizeRole(INSTITUTION_ROLES
 // Fee plans.
 router.get('/fees/plans', authenticateToken, authorizeRole(INSTITUTION_ROLES), async (req, res) => {
   try {
-    const { data } = await supabaseAdmin.from('fee_plans').select('*').eq('institution_id', req.user.id);
+    const { data } = await supabaseAdmin.from('fee_plans').select('*').eq('institution_id', resolveInstitutionForAdmin(req));
     res.json({ plans: data || [] });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -577,7 +587,7 @@ router.post('/fees/plans', authenticateToken, authorizeRole(INSTITUTION_ROLES), 
 router.get('/fees/invoices', authenticateToken, authorizeRole([...INSTITUTION_ROLES, 'parent', 'student']), async (req, res) => {
   try {
     let q = supabaseAdmin.from('fee_invoices').select('*');
-    if (INSTITUTION_ROLES.includes(req.user.role)) q = q.eq('institution_id', req.user.id);
+    if (INSTITUTION_ROLES.includes(req.user.role)) q = q.eq('institution_id', resolveInstitutionForAdmin(req));
     else q = q.eq('student_id', req.user.id);
     const { data } = await q.order('due_date', { ascending: false });
     res.json({ invoices: data || [] });
@@ -619,7 +629,7 @@ router.post('/fees/send-reminders', authenticateToken, authorizeRole(INSTITUTION
   try {
     const sevenDaysOut = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
     const { data: due } = await supabaseAdmin.from('fee_invoices').select('*')
-      .eq('institution_id', req.user.id).eq('status', 'pending')
+      .eq('institution_id', resolveInstitutionForAdmin(req)).eq('status', 'pending')
       .lte('due_date', sevenDaysOut);
     let sent = 0;
     for (const inv of (due || [])) {
@@ -637,7 +647,7 @@ router.post('/fees/send-reminders', authenticateToken, authorizeRole(INSTITUTION
 // Payroll.
 router.get('/payroll', authenticateToken, authorizeRole(INSTITUTION_ROLES), async (req, res) => {
   try {
-    const { data } = await supabaseAdmin.from('staff_payroll').select('*').eq('institution_id', req.user.id).order('created_at', { ascending: false });
+    const { data } = await supabaseAdmin.from('staff_payroll').select('*').eq('institution_id', resolveInstitutionForAdmin(req)).order('created_at', { ascending: false });
     res.json({ payroll: data || [] });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -662,7 +672,7 @@ router.put('/payroll/:id/pay', authenticateToken, authorizeRole(INSTITUTION_ROLE
   try {
     await supabaseAdmin.from('staff_payroll').update({
       status: 'paid', paid_at: new Date().toISOString()
-    }).eq('id', req.params.id).eq('institution_id', req.user.id);
+    }).eq('id', req.params.id).eq('institution_id', resolveInstitutionForAdmin(req));
     res.json({ message: 'Marked paid' });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -671,7 +681,7 @@ router.put('/payroll/:id/pay', authenticateToken, authorizeRole(INSTITUTION_ROLE
 router.get('/leave', authenticateToken, async (req, res) => {
   try {
     let q = supabaseAdmin.from('staff_leave').select('*');
-    if (INSTITUTION_ROLES.includes(req.user.role)) q = q.eq('institution_id', req.user.id);
+    if (INSTITUTION_ROLES.includes(req.user.role)) q = q.eq('institution_id', resolveInstitutionForAdmin(req));
     else q = q.eq('staff_id', req.user.id);
     const { data } = await q.order('created_at', { ascending: false });
     res.json({ requests: data || [] });
@@ -698,7 +708,7 @@ router.put('/leave/:id/decide', authenticateToken, authorizeRole(INSTITUTION_ROL
     await supabaseAdmin.from('staff_leave').update({
       status: decision === 'approved' ? 'approved' : 'rejected',
       approved_by: req.user.id, decided_at: new Date().toISOString()
-    }).eq('id', req.params.id).eq('institution_id', req.user.id);
+    }).eq('id', req.params.id).eq('institution_id', resolveInstitutionForAdmin(req));
     res.json({ message: 'Decision recorded' });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
