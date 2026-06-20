@@ -568,4 +568,36 @@ router.get('/bookings', authenticateToken, authorizeRole(['admin']), async (req,
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// GET /admin/live-classes — platform-wide live classes (admin Live & Recordings
+// section). Optional status filter; hydrates course title + host name.
+router.get('/live-classes', authenticateToken, authorizeRole(['admin']), async (req, res) => {
+  try {
+    const { status, page = 1, limit = 50 } = req.query;
+    const lim = Math.min(100, Math.max(1, Number(limit) || 50));
+    const off = (Math.max(1, Number(page) || 1) - 1) * lim;
+    let qb = supabaseAdmin.from('live_classes').select('*', { count: 'exact' });
+    if (status) qb = qb.eq('status', status);
+    const { data: rows, count, error } = await qb.order('scheduled_time', { ascending: false }).range(off, off + lim - 1);
+    if (error) return res.status(500).json({ error: error.message });
+
+    const courseIds = [...new Set((rows || []).map(r => r.course_id).filter(Boolean))];
+    const hostIds   = [...new Set((rows || []).map(r => r.teacher_id || r.host_id).filter(Boolean))];
+    let courses = {}, hosts = {};
+    if (courseIds.length) {
+      const { data } = await supabaseAdmin.from('courses').select('id, title').in('id', courseIds);
+      courses = Object.fromEntries((data || []).map(x => [x.id, x]));
+    }
+    if (hostIds.length) {
+      const { data } = await supabaseAdmin.from('jeetmantra_users').select('id, full_name').in('id', hostIds);
+      hosts = Object.fromEntries((data || []).map(x => [x.id, x]));
+    }
+    const classes = (rows || []).map(c => ({
+      ...c,
+      course_title: courses[c.course_id]?.title || null,
+      host_name: hosts[c.teacher_id || c.host_id]?.full_name || null
+    }));
+    res.json({ classes, page: Number(page), limit: lim, total: count || 0 });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 module.exports = router;

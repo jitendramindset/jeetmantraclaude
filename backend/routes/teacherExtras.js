@@ -13,6 +13,7 @@
 const express = require('express');
 const { supabaseAdmin } = require('../config/supabase');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
+const { requireCapability } = require('../middleware/requireCapability');
 const { CREATOR_ROLES } = require('../config/roles');
 const { resolveInstitution } = require('../middleware/resolveInstitution');
 const { validate } = require('../middleware/validation');
@@ -77,7 +78,7 @@ router.get('/timetable', authenticateToken, authorizeRole(CREATOR_ROLES), async 
 // ── RECURRING LIVE CLASS: expand pattern into rows
 // Body: { courseId, title, description, startTime, duration, meetingLink,
 //         daysOfWeek: [0..6], weeks: integer }
-router.post('/live-classes/recurring', authenticateToken, authorizeRole(CREATOR_ROLES), validate('recurringClass'), async (req, res) => {
+router.post('/live-classes/recurring', authenticateToken, requireCapability('live.schedule'), validate('recurringClass'), async (req, res) => {
   try {
     const { courseId, title, description, startTime, duration, meetingLink, daysOfWeek, weeks, isOnline, venue } = req.body;
     if (!courseId || !startTime || !Array.isArray(daysOfWeek) || !daysOfWeek.length || !weeks)
@@ -158,7 +159,7 @@ router.get('/attendance/roster/:courseId', authenticateToken, authorizeRole(CREA
 // ── BULK ATTENDANCE (mixed status): mark each student with their own status.
 // Body: { courseId, classDate, marks: [{ enrollmentId, status }] }
 // Existing rows for the same (enrollment, date) are UPDATED, not duplicated.
-router.post('/attendance/bulk-mixed', authenticateToken, authorizeRole(CREATOR_ROLES), validate('attendanceBulkMixed'), async (req, res) => {
+router.post('/attendance/bulk-mixed', authenticateToken, requireCapability('attendance.mark'), validate('attendanceBulkMixed'), async (req, res) => {
   try {
     const { courseId, classDate, marks } = req.body;
     if (!courseId || !classDate || !Array.isArray(marks) || !marks.length)
@@ -250,7 +251,7 @@ router.get('/payments', authenticateToken, authorizeRole(CREATOR_ROLES), async (
 
 // ── BULK ATTENDANCE: mark every enrollment present (or with override list)
 // Body: { courseId, classDate, status?, enrollmentIds? }
-router.post('/attendance/bulk', authenticateToken, authorizeRole(CREATOR_ROLES), validate('attendanceBulk'), async (req, res) => {
+router.post('/attendance/bulk', authenticateToken, requireCapability('attendance.mark'), validate('attendanceBulk'), async (req, res) => {
   try {
     const { courseId, classDate, enrollmentIds, status } = req.body;
     if (!courseId || !classDate) return res.status(400).json({ error: 'courseId and classDate required' });
@@ -375,7 +376,7 @@ router.get('/invoices', authenticateToken, authorizeRole(CREATOR_ROLES), async (
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.post('/invoices', authenticateToken, authorizeRole(CREATOR_ROLES), validate('invoiceCreate'), async (req, res) => {
+router.post('/invoices', authenticateToken, requireCapability('invoice.manage'), validate('invoiceCreate'), async (req, res) => {
   try {
     const { clientName, clientEmail, clientId, items, taxPercent, dueDate, notes } = req.body || {};
     if (!clientName) return res.status(400).json({ error: 'clientName required' });
@@ -407,7 +408,7 @@ router.post('/invoices', authenticateToken, authorizeRole(CREATOR_ROLES), valida
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.put('/invoices/:id', authenticateToken, authorizeRole(CREATOR_ROLES), validate('invoiceUpdate'), async (req, res) => {
+router.put('/invoices/:id', authenticateToken, requireCapability('invoice.manage'), validate('invoiceUpdate'), async (req, res) => {
   try {
     const { data: row } = await supabaseAdmin.from('invoices').select('owner_id').eq('id', req.params.id).maybeSingle();
     if (!row) return res.status(404).json({ error: 'Invoice not found' });
@@ -536,7 +537,7 @@ router.get('/bookings/:id', authenticateToken, authorizeRole(CREATOR_ROLES), asy
 });
 
 // PUT /api/teacher/bookings/:id — reschedule or change status.
-router.put('/bookings/:id', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
+router.put('/bookings/:id', authenticateToken, requireCapability('booking.manage'), async (req, res) => {
   try {
     const { data: b } = await supabaseAdmin.from('bookings').select('course_id').eq('id', req.params.id).single();
     if (!b) return res.status(404).json({ error: 'Booking not found' });
@@ -554,7 +555,7 @@ router.put('/bookings/:id', authenticateToken, authorizeRole(CREATOR_ROLES), asy
 });
 
 // POST /api/teacher/bookings/:id/cancel — cancel + auto-refund tied payment.
-router.post('/bookings/:id/cancel', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
+router.post('/bookings/:id/cancel', authenticateToken, requireCapability('booking.manage'), async (req, res) => {
   try {
     const { data: b } = await supabaseAdmin.from('bookings').select('*').eq('id', req.params.id).single();
     if (!b) return res.status(404).json({ error: 'Booking not found' });
@@ -605,7 +606,7 @@ router.get('/essays/pending', authenticateToken, authorizeRole(CREATOR_ROLES), a
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.post('/essays/grade', authenticateToken, authorizeRole(CREATOR_ROLES), validate('essayGrade'), async (req, res) => {
+router.post('/essays/grade', authenticateToken, requireCapability('assignment.grade'), validate('essayGrade'), async (req, res) => {
   try {
     const { sessionId, questionId, score, feedback } = req.body || {};
     if (!sessionId || !questionId || score == null) return res.status(400).json({ error: 'sessionId, questionId, score required' });
@@ -692,7 +693,7 @@ router.get('/export', authenticateToken, authorizeRole(CREATOR_ROLES), async (re
 
 // ── ANNOUNCEMENT: broadcast a message to the course's chat room
 // Body: { courseId, message }
-router.post('/announcement', authenticateToken, authorizeRole(CREATOR_ROLES), validate('courseAnnouncement'), async (req, res) => {
+router.post('/announcement', authenticateToken, requireCapability('student.manage'), validate('courseAnnouncement'), async (req, res) => {
   try {
     const { courseId, message } = req.body;
     if (!courseId || !message) return res.status(400).json({ error: 'courseId and message required' });

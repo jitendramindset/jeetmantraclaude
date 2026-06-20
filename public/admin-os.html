@@ -243,15 +243,15 @@ const SECTIONS = {
   overview: renderOverview,
   tenants:  renderTenants,
   people:   renderPeople,
-  catalog:  () => renderComingSoon('Catalog', '📚', 'Courses + Approval queue + Categories + Content reports. Reuses /api/courses + Sprint 3 content_reports.'),
-  live:     () => renderComingSoon('Live & Recordings', '📡', 'Active live classes, scheduled, recording library, transcripts. Reuses /api/live-classes.'),
+  catalog:  renderCatalog,
+  live:     renderLive,
   revenue:  renderRevenue,
   bookings: renderBookings,
   growth:   () => renderComingSoon('Growth & CRM', '📈', 'Leads · Admissions · Campaigns. Reuses /api/eduos/admissions.'),
   support:  renderSupport,
   automations: () => renderComingSoon('Automations', '🤖', 'n8n webhooks · Delivery health · Scheduled jobs · Templates. Reuses /api/n8n.'),
   aitrans:  () => renderComingSoon('AI & Translations', '🧠', 'Provider keys · Usage/spend by tenant · Quotas · Translation queue. Sprint 5.'),
-  analytics:() => renderComingSoon('Analytics', '📉', 'Trends · Cohorts · Funnel · Retention. Sprint 5.'),
+  analytics: renderAnalytics,
   franchise:() => renderComingSoon('Franchise', '🌐', 'Branches · Network revenue · Per-branch KPIs. Reuses /api/eduos/franchise.'),
   system:   renderSystem
 };
@@ -616,6 +616,101 @@ async function renderSystem() {
       </tr>`).join('');
   } catch (e) {
     el('auditTable').querySelector('tbody').innerHTML = `<tr><td colspan="4" style="padding:24px;text-align:center;color:#b91c1c">Error: ${esc(e.message)}</td></tr>`;
+  }
+}
+
+// ───── Catalog (Sprint 8) ─────
+async function renderCatalog() {
+  el('content').innerHTML = `
+    <h1 class="page-title">Catalog</h1>
+    <p class="page-sub">Every published course / program across the platform. Powered by GET /api/marketplace.</p>
+    <div class="card" style="padding:0;overflow:hidden">
+      <table class="list" id="catalogTable">
+        <thead><tr><th>Course</th><th>Category</th><th>Creator</th><th>Price</th><th>Students</th></tr></thead>
+        <tbody><tr><td colspan="5" style="padding:24px;text-align:center;color:var(--jm-text-muted)">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  `;
+  try {
+    const r = await api('/marketplace?limit=50');
+    const rows = r.courses || r.items || r.data || [];
+    const tbody = el('catalogTable').querySelector('tbody');
+    if (!rows.length) { tbody.innerHTML = '<tr><td colspan="5" style="padding:24px;text-align:center;color:var(--jm-text-muted)">No published courses</td></tr>'; return; }
+    tbody.innerHTML = rows.map(c => `
+      <tr>
+        <td><strong>${esc(c.title || '—')}</strong></td>
+        <td><span style="text-transform:capitalize">${esc(c.category || c.category_id || '—')}</span></td>
+        <td>${esc(c.creator_name || c.instructor_name || c.teacher_id || '—')}</td>
+        <td>${c.price ? fmtMoney(c.price) : 'Free'}</td>
+        <td>${c.enrolled_count ?? c.students_count ?? '—'}</td>
+      </tr>`).join('');
+  } catch (e) {
+    el('catalogTable').querySelector('tbody').innerHTML = `<tr><td colspan="5" style="padding:24px;text-align:center;color:#b91c1c">Error: ${esc(e.message)}</td></tr>`;
+  }
+}
+
+// ───── Live & Recordings (Sprint 8) ─────
+async function renderLive() {
+  el('content').innerHTML = `
+    <h1 class="page-title">Live &amp; Recordings</h1>
+    <p class="page-sub">Every live class across the platform — scheduled, running, completed. Powered by GET /api/admin/live-classes.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+      <select id="lv-status" onchange="renderLive()" style="padding:5px 10px;border:1px solid var(--jm-border);border-radius:6px;background:var(--jm-surface);color:inherit"><option value="">All statuses</option><option>scheduled</option><option>live</option><option>completed</option><option>cancelled</option></select>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <table class="list" id="liveTable">
+        <thead><tr><th>Title</th><th>Course</th><th>Host</th><th>When</th><th>Status</th></tr></thead>
+        <tbody><tr><td colspan="5" style="padding:24px;text-align:center;color:var(--jm-text-muted)">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  `;
+  try {
+    const status = el('lv-status')?.value || '';
+    const r = await api('/admin/live-classes?limit=50' + (status ? '&status=' + encodeURIComponent(status) : ''));
+    const rows = r.classes || [];
+    const tbody = el('liveTable').querySelector('tbody');
+    if (!rows.length) { tbody.innerHTML = '<tr><td colspan="5" style="padding:24px;text-align:center;color:var(--jm-text-muted)">No live classes</td></tr>'; return; }
+    const sc = s => ({scheduled:'#b45309',live:'#b91c1c',completed:'#047857',cancelled:'#6b7280'})[s] || '#6b7280';
+    tbody.innerHTML = rows.map(c => `
+      <tr>
+        <td><strong>${esc(c.title || '—')}</strong></td>
+        <td>${esc(c.course_title || '—')}</td>
+        <td>${esc(c.host_name || '—')}</td>
+        <td>${c.scheduled_time ? fmtDate(c.scheduled_time) : '—'}</td>
+        <td><span style="color:${sc(c.status)};font-weight:700;text-transform:uppercase;font-size:11px">${esc(c.status || '—')}</span></td>
+      </tr>`).join('');
+  } catch (e) {
+    el('liveTable').querySelector('tbody').innerHTML = `<tr><td colspan="5" style="padding:24px;text-align:center;color:#b91c1c">Error: ${esc(e.message)}</td></tr>`;
+  }
+}
+
+// ───── Analytics (Sprint 8) ─────
+async function renderAnalytics() {
+  el('content').innerHTML = `
+    <h1 class="page-title">Analytics</h1>
+    <p class="page-sub">Platform trends — 30-day revenue and active-user breakdown. Powered by GET /api/admin/analytics/overview.</p>
+    <div id="anaBody"><div class="card coming"><div class="em">📉</div><div>Loading…</div></div></div>
+  `;
+  try {
+    const d = await api('/admin/analytics/overview');
+    const series = d.revenue?.series || [];
+    const max = Math.max(1, ...series.map(s => s.amount));
+    const bars = series.map(s => {
+      const h = Math.round((s.amount / max) * 100);
+      return `<div title="${esc(s.date)}: ${fmtMoney(s.amount)}" style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:140px"><div style="height:${h}%;min-height:2px;background:var(--jm-primary,#6366f1);border-radius:3px 3px 0 0"></div></div>`;
+    }).join('');
+    el('anaBody').innerHTML = `
+      <div class="card" style="margin-bottom:16px">
+        <h3 style="margin:0 0 4px">💸 Revenue · last 30 days <span class="accent" style="float:right">${fmtMoney(d.revenue?.last30Total || 0)}</span></h3>
+        <div style="display:flex;gap:2px;align-items:flex-end;margin-top:12px">${bars || '<div style="color:var(--jm-text-muted)">No data</div>'}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px">
+        ${[['DAU', d.activity?.dau],['WAU', d.activity?.wau],['MAU', d.activity?.mau],['Total users', d.users?.total],['Signups 30d', d.users?.signups30]].map(([l,v]) =>
+          `<div class="card" style="text-align:center"><div style="font-size:26px;font-weight:800">${v ?? 0}</div><div style="color:var(--jm-text-muted);font-size:12px">${l}</div></div>`).join('')}
+      </div>
+    `;
+  } catch (e) {
+    el('anaBody').innerHTML = `<div class="card" style="color:#b91c1c">Error: ${esc(e.message)}</div>`;
   }
 }
 

@@ -26,10 +26,11 @@ const { rolesOf } = require('./auth');
 // Mirror of the SQL seed — used when role_capabilities isn't present yet.
 const CREATOR_CAPS = new Set([
   'course.create', 'course.edit', 'course.delete', 'live.schedule', 'live.start',
-  'attendance.mark', 'assignment.grade', 'test.create', 'certificate.issue',
-  'student.manage', 'booking.manage', 'payment.read', 'payout.request', 'analytics.read'
+  'attendance.mark', 'assignment.grade', 'assignment.manage', 'test.create', 'certificate.issue',
+  'student.manage', 'booking.manage', 'invoice.manage', 'payment.read', 'payout.request', 'analytics.read'
 ]);
-const INSTITUTION_EXTRA = new Set(['org.member.invite', 'org.member.manage', 'org.branding', 'analytics.read', 'org.transfer']);
+const INSTITUTION_EXTRA = new Set(['org.member.invite', 'org.member.manage', 'org.branding', 'analytics.read', 'org.transfer',
+  'admissions.manage', 'billing.manage', 'payroll.manage', 'hr.manage']);
 // franchise is a course-owning umbrella too — give it the creator caps in the
 // fallback so a franchise owner isn't denied (consistent with it owning an org).
 const CREATOR_ROLES = new Set(['teacher', 'partner', 'coaching', 'school', 'corporate_trainer', 'content_creator', 'franchise']);
@@ -38,7 +39,8 @@ const INSTITUTION_ROLES = new Set(['school', 'coaching', 'franchise']);
 // The 3 distinct permission tiers from Sprint 8 (org-scoped roles), mirrored
 // so requireCapability works before migration-s8 is applied.
 const TIER_CAPS = {
-  org_admin: new Set(['org.member.invite', 'org.member.manage', 'org.branding', 'analytics.read', 'student.manage', 'payment.read', 'certificate.issue']),
+  org_admin: new Set(['org.member.invite', 'org.member.manage', 'org.branding', 'analytics.read', 'student.manage', 'payment.read', 'certificate.issue',
+    'admissions.manage', 'billing.manage', 'payroll.manage', 'hr.manage']),
   assistant_teacher: new Set(['attendance.mark', 'assignment.grade', 'student.manage', 'live.start']),
   viewer: new Set(['analytics.read'])
 };

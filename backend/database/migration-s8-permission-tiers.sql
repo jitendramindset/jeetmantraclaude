@@ -39,4 +39,32 @@ INSERT INTO role_capabilities (role, capability_key) VALUES
   ('viewer','analytics.read')
 ON CONFLICT DO NOTHING;
 
+-- ── New capabilities for the cutover batch 3 (eduos + creator authoring).
+-- These give the remaining authorizeRole() routes a semantically-correct
+-- capability to gate on, at parity with today's role-sets.
+INSERT INTO capabilities (key, description, category) VALUES
+  ('admissions.manage', 'Manage admissions / enrollment intake', 'org'),
+  ('billing.manage',    'Manage fee plans / invoices / reminders', 'commerce'),
+  ('payroll.manage',    'Manage staff payroll',                'commerce'),
+  ('hr.manage',         'Approve leave / HR decisions',         'org'),
+  ('assignment.manage', 'Create / edit assignments',           'teaching'),
+  ('invoice.manage',    'Issue / edit invoices to students',    'commerce')
+ON CONFLICT (key) DO NOTHING;
+
+-- Institution-tier (school/coaching/franchise) + org_admin get the org ops.
+INSERT INTO role_capabilities (role, capability_key)
+SELECT r, c FROM (VALUES ('school'),('coaching'),('franchise'),('org_admin')) AS roles(r)
+CROSS JOIN (VALUES
+  ('admissions.manage'),('billing.manage'),('payroll.manage'),('hr.manage')
+) AS caps(c)
+ON CONFLICT DO NOTHING;
+
+-- Creator-tier get the authoring + invoicing caps.
+INSERT INTO role_capabilities (role, capability_key)
+SELECT r, c FROM (VALUES
+  ('teacher'),('partner'),('coaching'),('school'),('corporate_trainer'),('content_creator'),('franchise')
+) AS roles(r)
+CROSS JOIN (VALUES ('assignment.manage'),('invoice.manage')) AS caps(c)
+ON CONFLICT DO NOTHING;
+
 NOTIFY pgrst, 'reload schema';

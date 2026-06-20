@@ -26,6 +26,7 @@ const path = require('path');
 const multer = require('multer');
 const { supabaseAdmin } = require('../config/supabase');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
+const { requireCapability } = require('../middleware/requireCapability');
 const { CREATOR_ROLES, INSTITUTION_ROLES, STUDENT_ROLES, PARENT_ROLES } = require('../config/roles');
 const { validate } = require('../middleware/validation');
 const { v4: uuidv4 } = require('uuid');
@@ -534,7 +535,7 @@ router.get('/admissions', authenticateToken, authorizeRole(INSTITUTION_ROLES), a
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.post('/admissions', authenticateToken, authorizeRole(INSTITUTION_ROLES), validate('admissionCreate'), async (req, res) => {
+router.post('/admissions', authenticateToken, requireCapability('admissions.manage'), validate('admissionCreate'), async (req, res) => {
   try {
     const { studentName, studentEmail, studentPhone, courseId, notes } = req.validatedData;
     const { data, error } = await supabaseAdmin.from('admissions').insert({
@@ -548,7 +549,7 @@ router.post('/admissions', authenticateToken, authorizeRole(INSTITUTION_ROLES), 
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.put('/admissions/:id', authenticateToken, authorizeRole(INSTITUTION_ROLES), validate('admissionUpdate'), async (req, res) => {
+router.put('/admissions/:id', authenticateToken, requireCapability('admissions.manage'), validate('admissionUpdate'), async (req, res) => {
   try {
     const { stage, notes } = req.validatedData;
     const updates = { updated_at: new Date().toISOString() };
@@ -569,7 +570,7 @@ router.get('/fees/plans', authenticateToken, authorizeRole(INSTITUTION_ROLES), a
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.post('/fees/plans', authenticateToken, authorizeRole(INSTITUTION_ROLES), validate('feePlanCreate'), async (req, res) => {
+router.post('/fees/plans', authenticateToken, requireCapability('billing.manage'), validate('feePlanCreate'), async (req, res) => {
   try {
     const { name, amount, frequency, courseId } = req.validatedData;
     const { data, error } = await supabaseAdmin.from('fee_plans').insert({
@@ -593,7 +594,7 @@ router.get('/fees/invoices', authenticateToken, authorizeRole([...INSTITUTION_RO
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.post('/fees/invoices', authenticateToken, authorizeRole(INSTITUTION_ROLES), validate('feeInvoiceCreate'), async (req, res) => {
+router.post('/fees/invoices', authenticateToken, requireCapability('billing.manage'), validate('feeInvoiceCreate'), async (req, res) => {
   try {
     const { studentId, feePlanId, amount, dueDate } = req.validatedData;
     const { data, error } = await supabaseAdmin.from('fee_invoices').insert({
@@ -635,7 +636,7 @@ router.put('/fees/invoices/:id/pay', authenticateToken, async (req, res) => {
 });
 
 // Send fee reminders for invoices due in next 7 days.
-router.post('/fees/send-reminders', authenticateToken, authorizeRole(INSTITUTION_ROLES), async (req, res) => {
+router.post('/fees/send-reminders', authenticateToken, requireCapability('billing.manage'), async (req, res) => {
   try {
     const sevenDaysOut = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
     const { data: due } = await supabaseAdmin.from('fee_invoices').select('*')
@@ -662,7 +663,7 @@ router.get('/payroll', authenticateToken, authorizeRole(INSTITUTION_ROLES), asyn
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.post('/payroll', authenticateToken, authorizeRole(INSTITUTION_ROLES), validate('payrollCreate'), async (req, res) => {
+router.post('/payroll', authenticateToken, requireCapability('payroll.manage'), validate('payrollCreate'), async (req, res) => {
   try {
     const { staffId, periodMonth, baseSalary, bonuses, deductions } = req.validatedData;
     const net = Number(baseSalary) + (Number(bonuses) || 0) - (Number(deductions) || 0);
@@ -677,7 +678,7 @@ router.post('/payroll', authenticateToken, authorizeRole(INSTITUTION_ROLES), val
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.put('/payroll/:id/pay', authenticateToken, authorizeRole(INSTITUTION_ROLES), async (req, res) => {
+router.put('/payroll/:id/pay', authenticateToken, requireCapability('payroll.manage'), async (req, res) => {
   try {
     await supabaseAdmin.from('staff_payroll').update({
       status: 'paid', paid_at: new Date().toISOString()
@@ -710,7 +711,7 @@ router.post('/leave', authenticateToken, validate('leaveCreate'), async (req, re
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.put('/leave/:id/decide', authenticateToken, authorizeRole(INSTITUTION_ROLES), validate('leaveDecide'), async (req, res) => {
+router.put('/leave/:id/decide', authenticateToken, requireCapability('hr.manage'), validate('leaveDecide'), async (req, res) => {
   try {
     const { decision } = req.validatedData; // 'approved' | 'rejected'
     await supabaseAdmin.from('staff_leave').update({
@@ -738,7 +739,7 @@ router.get('/tenant/branding', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.put('/tenant/branding', authenticateToken, authorizeRole(INSTITUTION_ROLES), validate('tenantBranding'), async (req, res) => {
+router.put('/tenant/branding', authenticateToken, requireCapability('org.branding'), validate('tenantBranding'), async (req, res) => {
   try {
     const { subdomain, brandLogo, brandColor, brandName } = req.validatedData;
     const updates = {};
