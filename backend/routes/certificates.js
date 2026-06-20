@@ -25,6 +25,7 @@ const { supabaseAdmin } = require('../config/supabase');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
 const { validate } = require('../middleware/validation');
 const { CREATOR_ROLES, INSTITUTION_ROLES } = require('../config/roles');
+const { requireCapability } = require('../middleware/requireCapability');
 const { awardForEvent } = require('../services/award');
 
 const router = express.Router();
@@ -46,7 +47,7 @@ function generateVerifyToken() {
 //   - course_completion: caller is the course teacher OR admin; student must
 //     have a >=80% progress enrollment on the course.
 //   - other types: caller is admin OR the owner of the referenced course/resource.
-router.post('/issue', authenticateToken, validate('certificateIssue'), async (req, res) => {
+router.post('/issue', authenticateToken, requireCapability('certificate.issue'), validate('certificateIssue'), async (req, res) => {
   try {
     const b = req.validatedData;
     const studentId = b.studentId;

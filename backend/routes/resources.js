@@ -24,6 +24,7 @@ const { supabaseAdmin } = require('../config/supabase');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
 const { validate } = require('../middleware/validation');
 const { resolveInstitution } = require('../middleware/resolveInstitution');
+const { requireCapability } = require('../middleware/requireCapability');
 const { CREATOR_ROLES } = require('../config/roles');
 
 const router = express.Router();
@@ -98,7 +99,7 @@ router.get('/:id/availability', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.post('/', authenticateToken, authorizeRole(CREATOR_ROLES), validate('resourceCreate'), async (req, res) => {
+router.post('/', authenticateToken, requireCapability('booking.manage'), validate('resourceCreate'), async (req, res) => {
   try {
     const b = req.validatedData;
     // Auto-tag tenant scope when X-Active-Institution is set (Sprint 0a pattern).
