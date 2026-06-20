@@ -8,27 +8,32 @@ const mountList = [];
 for (const m of server.matchAll(/app\.use\(\s*['"](\/api\/[\w-]+)['"]\s*,\s*(\w+)(?:\.(\w+))?\s*\)/g))
   mountList.push({ prefix: m[1], file: reqMap[m[2]] || m[2], sub: m[3] });
 
+// Capture the router VARIABLE each route is defined on (router / capRouter /
+// catRouter / …) so multi-router files map to the right mount.
 function parseFile(file) {
   let src; try { src = fs.readFileSync(path.join(ROOT,'routes', file + '.js'),'utf8'); } catch { return []; }
   const out = [];
-  const re = /router\.(get|post|put|delete|patch)\(\s*(['"`])([^'"`]*)\2([^\n]*)/g;
+  const re = /(\w*[Rr]outer)\.(get|post|put|delete|patch)\(\s*(['"`])([^'"`]*)\3([^\n]*)/g;
   let m;
   while ((m = re.exec(src))) {
-    const rest = m[4], mw = [];
+    const rest = m[5], mw = [];
     if (/authenticateToken/.test(rest)) mw.push('auth');
     const rc = rest.match(/requireCapability\(['"]([\w.]+)['"]\)/); if (rc) mw.push('cap:'+rc[1]);
     const ar = rest.match(/authorizeRole\(([^)]*)\)/); if (ar) mw.push('role:'+ar[1].replace(/\s+/g,'').replace(/[\[\]']/g,''));
     const v = rest.match(/validate\(['"](\w+)['"]\)/); if (v) mw.push('val:'+v[1]);
     if (/resolveInstitution/.test(rest)) mw.push('inst');
     const isPub = !/authenticateToken/.test(rest) && !/requireCapability/.test(rest);
-    out.push({ method: m[1].toUpperCase(), rpath: m[3], mw, isPub });
+    out.push({ varName: m[1], method: m[2].toUpperCase(), rpath: m[4], mw, isPub });
   }
   return out;
 }
 let total=0,gated=0,validated=0,pub=0,pubWrites=[];
 let body='';
 for (const mt of mountList.sort((a,b)=>a.prefix.localeCompare(b.prefix))) {
-  const routes = parseFile(mt.file); if (!routes.length) continue;
+  // A mount with a `.sub` (e.g. orgsRoutes.capRouter) only exposes routes
+  // defined on THAT variable; the bare mount exposes the default `router`.
+  const targetVar = mt.sub || 'router';
+  const routes = parseFile(mt.file).filter(r => r.varName === targetVar); if (!routes.length) continue;
   body += `\n### \`${mt.prefix}\` — routes/${mt.file}.js${mt.sub?' ('+mt.sub+')':''}\n\n`;
   for (const r of routes) {
     total++;
