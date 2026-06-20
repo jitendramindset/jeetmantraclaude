@@ -26,6 +26,7 @@ const { supabaseAdmin } = require('../config/supabase');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
 const { CREATOR_ROLES } = require('../config/roles');
 const { v4: uuidv4 } = require('uuid');
+const { awardForEvent } = require('../services/award');
 
 const router = express.Router();
 
@@ -198,6 +199,15 @@ router.post('/:id/submit', authenticateToken, upload.single('file'), async (req,
     }).select().single();
     if (error) return res.status(400).json({ error: error.message });
     announceSubmission({ template, student: req.user, kind: 'assignment' }).catch(() => {});
+
+    // Sprint 5 award pipeline (assignment_submitted is unique per template, so
+    // repeat re-submissions of the same assignment don't double-award).
+    awardForEvent({
+      userId: req.user.id, eventType: 'assignment_submitted',
+      refTable: 'assignments', refId: template.id,
+      metadata: { course_id: template.course_id, title: template.title }
+    }).catch(() => {});
+
     res.status(201).json({ message: 'Submitted', assignment: data });
   } catch (e) {
     res.status(500).json({ error: e.message });

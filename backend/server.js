@@ -38,6 +38,9 @@ const translationsRoutes  = require('./routes/translations');
 // Sprint 4 — unified booking engine
 const resourcesRoutes     = require('./routes/resources');
 const bookingsRoutes      = require('./routes/bookings');
+// Sprint 5 — student success: streak / XP / badges + dedicated notifications
+const gamificationRoutes  = require('./routes/gamification');
+const notificationsRoutes = require('./routes/notifications');
 const ragRoutes           = require('./routes/rag');
 const { cacheMiddleware, syncMiddleware } = require('./middleware/datasync');
 
@@ -114,6 +117,9 @@ app.use('/api/translations', translationsRoutes);
 // Sprint 4 mounts
 app.use('/api/resources', resourcesRoutes);
 app.use('/api/bookings', bookingsRoutes);
+// Sprint 5 mounts
+app.use('/api/gamification', gamificationRoutes);
+app.use('/api/notifications', notificationsRoutes);
 app.use('/api/rag', ragRoutes);
 
 // LevelDB sync queue endpoint

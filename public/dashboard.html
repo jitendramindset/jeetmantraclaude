@@ -484,6 +484,10 @@ html[data-theme="dark"]{
     </div>
     <div class="topbar-actions">
       <button id="instSwitcherBtn" onclick="openMyInstitutions()" title="Switch institution" style="display:none;align-items:center;gap:5px;padding:4px 10px;border:1px solid var(--jm-border);border-radius:8px;background:var(--jm-surface-2,#f8fafc);color:var(--jm-text);font-size:12px;font-weight:600;cursor:pointer;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">🏫 <span id="instSwitcherName">Institution</span> ▾</button>
+      <!-- Sprint 5: student streak + XP chips. Hidden until /api/gamification/summary
+           returns a positive number — keeps the topbar clean for new accounts. -->
+      <button id="streakChip" onclick="openGamificationPanel()" title="Learning streak" style="display:none;align-items:center;gap:4px;padding:4px 9px;border-radius:99px;background:linear-gradient(135deg,#f97316,#ef4444);color:#fff;border:none;font-size:12px;font-weight:700;cursor:pointer">🔥 <span id="streakCount">0</span></button>
+      <button id="xpChip" onclick="openGamificationPanel()" title="XP & level" style="display:none;align-items:center;gap:4px;padding:4px 9px;border-radius:99px;background:linear-gradient(135deg,#7c3aed,#ec4899);color:#fff;border:none;font-size:12px;font-weight:700;cursor:pointer">⭐ Lv<span id="xpLevel">1</span> · <span id="xpTotal">0</span></button>
       <button class="lang-curr-btn no-i18n" id="langCurrBtn" onclick="openLangPicker()" title="Language / भाषा" style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border:1px solid var(--jm-border);border-radius:8px;background:transparent;color:var(--jm-text);font-weight:700;font-size:12px;cursor:pointer"><span id="langCurrNative">English</span> 🌐</button>
       <span style="position:relative;display:inline-flex"><button class="icon-btn" onclick="openMessenger()" title="Messages" aria-label="Messages" style="border:none">💬</button><span id="msgBadge" style="display:none;position:absolute;top:-2px;right:-2px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#ef4444;color:#fff;font-size:10px;font-weight:700;line-height:16px;text-align:center;pointer-events:none"></span></span>
       <button class="icon-btn" onclick="toggleNotifs(event)" title="Notifications" aria-label="Notifications" style="position:relative;cursor:pointer;border:none;background:transparent">🔔<span id="notifDot" style="display:none;position:absolute;top:6px;right:6px;width:8px;height:8px;border-radius:50%;background:#ef4444"></span>
@@ -2064,7 +2068,7 @@ async function loadDashboard(){
     else if(role==='content_creator')renderContentCreatorDash(d);
     else if(role==='franchise')renderFranchiseDash(d);
     // EduOS UI polish — applies after the role section renders.
-    try{ renderGreeting(); injectQuickActions(); renderNextClassHeader(); renderTodaySchedule(); buildBottomNav(role); _initInstSwitcher(); refreshUnreadBadge(); }catch(_){}
+    try{ renderGreeting(); injectQuickActions(); renderNextClassHeader(); renderTodaySchedule(); buildBottomNav(role); _initInstSwitcher(); refreshUnreadBadge(); refreshStudentSummary(); }catch(_){}
   }catch(e){
     document.getElementById('loadingState').innerHTML='<div class="empty-state"><div class="icon">⚠️</div><div>We couldn\'t load your dashboard.</div><div style="font-size:13px;margin-top:6px;color:var(--jm-text-muted,#888)">Check your connection and try again.</div><button class="btn btn-sm" style="margin-top:14px" onclick="location.reload()">🔄 Retry</button></div>';
   }
@@ -2839,6 +2843,55 @@ async function aiExplain(type, id){
     const txt=typeof r==='string'?r:(r.text||r.result||JSON.stringify(r));
     showModal('Simple Explanation','<div style="white-space:pre-wrap;font-size:14px;line-height:1.7">'+escHtml(txt)+'</div>');
   }catch(e){ toast('AI: '+e.message,true); }
+}
+// ── Sprint 5 / SS-7: Translate the current reader topic to the chosen language.
+// First production consumer of Sprint 3 /api/translations/content. Pulls the
+// topic's description from the cached reader data, calls the persist-and-cache
+// endpoint, and swaps the rendered body in place. Falls back gracefully if the
+// content_translations table hasn't been migrated yet.
+const READER_LANG_NAMES = {
+  en:'English', hi:'हिन्दी', bn:'বাংলা', ta:'தமிழ்', te:'తెలుగు',
+  mr:'मराठी', gu:'ગુજરાતી', kn:'ಕನ್ನಡ', pa:'ਪੰਜਾਬੀ',
+  ml:'മലയാളം', or:'ଓଡ଼ିଆ', ur:'اردو'
+};
+async function readerTranslateTopic(topicId){
+  const r=window._reader; if(!r){ toast('Open the reader first',true); return; }
+  const topic=(r.full?.topics||[]).find(t=>t.id===topicId);
+  if(!topic){ toast('Topic not loaded',true); return; }
+  // Build language picker (12 supported langs)
+  const current=localStorage.getItem('jm_lang')||'en';
+  const opts=Object.entries(READER_LANG_NAMES).map(([k,v])=>`<option value="${k}" ${k===current?'selected':''}>${escHtml(v)}</option>`).join('');
+  showModal('🌐 Translate topic', `
+    <div class="form-row"><label>Target language</label><select id="trtarget" style="width:100%">${opts}</select></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+      <button class="btn-sm btn-outline" onclick="closeAnyModal()">Cancel</button>
+      <button class="btn-sm btn-primary" id="trgo" onclick="_doReaderTranslate('${topicId}')">Translate</button>
+    </div>
+    <div id="tr-result" style="margin-top:14px"></div>`);
+}
+async function _doReaderTranslate(topicId){
+  const target=document.getElementById('trtarget')?.value||'en';
+  const out=document.getElementById('tr-result'); if(out) out.innerHTML='<div style="color:var(--jm-text-muted);font-size:13px">Translating…</div>';
+  document.getElementById('trgo')?.setAttribute('disabled','true');
+  try{
+    const r=window._reader;
+    const topic=(r.full?.topics||[]).find(t=>t.id===topicId);
+    const source=(topic.description||topic.notes||'').replace(/<[^>]+>/g,' ').trim();
+    if(!source){ if(out) out.innerHTML='<div style="color:var(--jm-text-muted)">Nothing to translate.</div>'; return; }
+    const resp=await api('/translations/content','POST',{
+      entity_type:'topic', entity_id:topicId, field:'description',
+      target_lang:target, source_text:source
+    });
+    if(out){
+      out.innerHTML=`<div style="border-top:1px solid var(--jm-border);padding-top:10px;font-size:14px;line-height:1.7;white-space:pre-wrap">${escHtml(resp.text||'')}</div>
+        <div style="font-size:11px;color:var(--jm-text-muted);margin-top:6px">${resp.cached?'⚡ Served from cache':'✨ Newly generated'} · ${escHtml(resp.generated_by||'')}</div>`;
+    }
+    // Light gamification: award once per language switch.
+    try{ api('/gamification/streak/checkin','POST'); }catch(_){}
+  }catch(e){
+    if(out) out.innerHTML='<div style="color:#b91c1c">'+escHtml(e.message||'Translation failed')+'</div>';
+  }
+  document.getElementById('trgo')?.removeAttribute('disabled');
 }
 // Generic modal for AI output / detail views
 function showModal(title, bodyHtml){
@@ -5096,6 +5149,56 @@ async function refreshUnreadBadge(){
     const k=document.getElementById('t-unread'); if(k) k.textContent=t;
   }catch(e){}
 }
+// Sprint 5: pull streak + XP from /api/gamification/summary and surface in the
+// topbar chips. Silent on failure — endpoint may not exist yet for older deploys.
+async function refreshStudentSummary(){
+  try{
+    const role=(JSON.parse(localStorage.getItem('jm_user')||'{}').user_type)||'';
+    if(role!=='student') return;
+    const r=await api('/gamification/summary','GET');
+    const streak=r.streak?.current||0;
+    const xp=r.xp?.total||0;
+    const lvl=r.xp?.level||1;
+    const sc=document.getElementById('streakChip');
+    const xc=document.getElementById('xpChip');
+    if(sc){
+      document.getElementById('streakCount').textContent=String(streak);
+      sc.style.display=streak>0?'inline-flex':'inline-flex'; // always show for students; 0 streak nudges check-in
+    }
+    if(xc){
+      document.getElementById('xpLevel').textContent=String(lvl);
+      document.getElementById('xpTotal').textContent=xp>=1000?(xp/1000).toFixed(1)+'k':String(xp);
+      xc.style.display='inline-flex';
+    }
+  }catch(_){ /* gamification tables not migrated yet → silent */ }
+}
+// Sprint 5: minimal panel showing streak / XP / badges. Reuses showModal()
+// rather than building a dedicated page — Sprint 6 can promote to a section.
+async function openGamificationPanel(){
+  showModal('🏆 Your progress', '<div id="gam-body" style="min-height:240px"><div style="color:var(--jm-text-muted);padding:20px;text-align:center">Loading…</div></div>');
+  try{
+    const [s, xp, b]=await Promise.all([
+      api('/gamification/streak','GET').catch(()=>({streak:{current_streak:0,longest_streak:0}})),
+      api('/gamification/xp','GET').catch(()=>({total:0,level:1,recent:[]})),
+      api('/gamification/badges','GET').catch(()=>({badges:[],earnedCount:0,totalCount:0}))
+    ]);
+    const body=document.getElementById('gam-body'); if(!body) return;
+    const st=s.streak||{};
+    const earned=(b.badges||[]).filter(x=>x.earned);
+    const locked=(b.badges||[]).filter(x=>!x.earned);
+    body.innerHTML=`
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+        <div style="background:linear-gradient(135deg,#f97316,#ef4444);color:#fff;border-radius:12px;padding:14px"><div style="font-size:11px;opacity:.85;text-transform:uppercase">Streak</div><div style="font-size:26px;font-weight:800;line-height:1">🔥 ${st.current_streak||0}</div><div style="font-size:11px;opacity:.85;margin-top:2px">Longest: ${st.longest_streak||0} days</div></div>
+        <div style="background:linear-gradient(135deg,#7c3aed,#ec4899);color:#fff;border-radius:12px;padding:14px"><div style="font-size:11px;opacity:.85;text-transform:uppercase">XP · Level ${xp.level||1}</div><div style="font-size:26px;font-weight:800;line-height:1">⭐ ${(xp.total||0).toLocaleString()}</div><div style="font-size:11px;opacity:.85;margin-top:2px">Next level: ${(xp.nextLevelAt||100).toLocaleString()}</div></div>
+      </div>
+      <div style="font-weight:700;margin-bottom:6px">🏅 Badges (${b.earnedCount}/${b.totalCount})</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:8px">
+        ${earned.map(x=>`<div title="${escHtml(x.description||'')}" style="text-align:center;padding:8px;background:var(--jm-surface-2);border-radius:10px;border:1.5px solid #f59e0b"><div style="font-size:26px">${escHtml(x.icon||'🏆')}</div><div style="font-size:10px;font-weight:700;margin-top:2px">${escHtml(x.title)}</div></div>`).join('')}
+        ${locked.slice(0,12).map(x=>`<div title="Locked: ${escHtml(x.description||'')}" style="text-align:center;padding:8px;background:var(--jm-surface-2);border-radius:10px;opacity:.4;filter:grayscale(1)"><div style="font-size:26px">${escHtml(x.icon||'🔒')}</div><div style="font-size:10px;margin-top:2px">${escHtml(x.title)}</div></div>`).join('')}
+      </div>
+      ${earned.length===0?'<div style="text-align:center;color:var(--jm-text-muted);font-size:12px;margin-top:14px">Submit an assignment or join a class to earn your first badge.</div>':''}`;
+  }catch(e){ const b=document.getElementById('gam-body'); if(b) b.innerHTML='<div style="color:#b91c1c;padding:16px">'+escHtml(e.message||'Could not load progress')+'</div>'; }
+}
 async function msgrLoadConvos(){
   const list=document.getElementById('msgr-convos'); if(!list) return;
   let rooms=[];
@@ -6797,7 +6900,7 @@ function readerRenderPage(idx){
       <div class="book-kicker">Chapter</div>
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap">
         <h2 class="book-title" style="flex:1;min-width:0">${escHtml(t.title||'Topic')}</h2>
-        <div class="row-actions"><button class="btn-sm btn-outline" onclick="readerSpeakAll()" title="Read aloud in your language">🔊 Listen</button><button class="btn-sm btn-outline" onclick="aiSummarize('topic','${t.id}')">🤖 Summarize</button><button class="btn-sm btn-outline" onclick="aiExplain('topic','${t.id}')">💡 Explain</button><button class="btn-sm btn-primary" onclick="openAiTutor()">🤖 Ask Tutor</button></div>
+        <div class="row-actions"><button class="btn-sm btn-outline" onclick="readerSpeakAll()" title="Read aloud in your language">🔊 Listen</button><button class="btn-sm btn-outline" onclick="readerTranslateTopic('${t.id}')" title="Translate this topic to your chosen language">🌐 Translate</button><button class="btn-sm btn-outline" onclick="aiSummarize('topic','${t.id}')">🤖 Summarize</button><button class="btn-sm btn-outline" onclick="aiExplain('topic','${t.id}')">💡 Explain</button><button class="btn-sm btn-primary" onclick="openAiTutor()">🤖 Ask Tutor</button></div>
       </div>
       <div style="margin-bottom:8px"></div>
       ${(function(){ const rich=t.description||t.notes||''; if(!rich) return ''; return /<[a-z][\s\S]*>/i.test(rich)?`<div class="rich-content">${sanitizeRich(rich)}</div>`:`<div class="book-body">${escHtml(rich).replace(/\n/g,'<br>')}</div>`; })()}
@@ -8170,23 +8273,43 @@ function renderGreeting(){
 function injectQuickActions(){
   const role=(JSON.parse(localStorage.getItem('jm_user')||'{}').user_type)||(JSON.parse(localStorage.getItem('jm_user')||'{}').role)||'student';
   const isCreator=['teacher','partner','school','coaching','admin','content_creator','corporate_trainer'].includes(role);
-  if(!isCreator) return;
+  // Sprint 5: students also get a quick-action bar (Resume / Ask AI / Translate /
+  // Practice / Calendar). The student-flavored version is below.
+  if(!isCreator && role!=='student') return;
   const sec=document.getElementById('section-'+role);
   if(!sec || sec.querySelector('.quick-actions')) return;
   const bar=document.createElement('div');
   bar.className='quick-actions';
-  bar.innerHTML=`
-    <button class="qa" style="--qc:#7c3aed" data-i18n="new_course" onclick="openWizard()">➕ New course</button>
-    <button class="qa" style="--qc:#ec4899" data-i18n="schedule_live" onclick="openModal('scheduleLive')">📡 Schedule live</button>
-    <button class="qa" style="--qc:#0ea5e9" data-i18n="take_attendance" onclick="openAttGrid()">📝 Attendance</button>
-    <button class="qa" style="--qc:#10b981" data-i18n="calendar_qa" onclick="openCalendar()">📅 Calendar</button>
-    <button class="qa" style="--qc:#f59e0b" data-i18n="ai_lesson_plan" onclick="openLessonPlanner()">🤖 AI lesson plan</button>
-    <button class="qa" style="--qc:#8b5cf6" data-i18n="question_bank" onclick="openQuestionBank()">❓ Question bank</button>`;
+  if(role==='student'){
+    bar.innerHTML=`
+      <button class="qa" style="--qc:#7c3aed" onclick="resumeLastCourse()">▶️ Resume</button>
+      <button class="qa" style="--qc:#ec4899" onclick="openMessenger('ai')">🤖 Ask AI</button>
+      <button class="qa" style="--qc:#0ea5e9" onclick="openCalendar()">📅 Calendar</button>
+      <button class="qa" style="--qc:#10b981" onclick="navScroll(null,'sec-student-tests')">🧪 Tests</button>
+      <button class="qa" style="--qc:#f59e0b" onclick="navScroll(null,'sec-student-hw')">📝 Homework</button>
+      <button class="qa" style="--qc:#8b5cf6" onclick="document.getElementById('marketplaceFab')?.click()">🛒 Marketplace</button>`;
+  } else {
+    bar.innerHTML=`
+      <button class="qa" style="--qc:#7c3aed" data-i18n="new_course" onclick="openWizard()">➕ New course</button>
+      <button class="qa" style="--qc:#ec4899" data-i18n="schedule_live" onclick="openModal('scheduleLive')">📡 Schedule live</button>
+      <button class="qa" style="--qc:#0ea5e9" data-i18n="take_attendance" onclick="openAttGrid()">📝 Attendance</button>
+      <button class="qa" style="--qc:#10b981" data-i18n="calendar_qa" onclick="openCalendar()">📅 Calendar</button>
+      <button class="qa" style="--qc:#f59e0b" data-i18n="ai_lesson_plan" onclick="openLessonPlanner()">🤖 AI lesson plan</button>
+      <button class="qa" style="--qc:#8b5cf6" data-i18n="question_bank" onclick="openQuestionBank()">❓ Question bank</button>`;
+  }
   const statsGrid=sec.querySelector('.stats-grid');
   if(statsGrid) statsGrid.insertAdjacentElement('afterend', bar);
   else sec.prepend(bar);
   // Re-apply the chosen language to the freshly-inserted buttons.
   if(typeof setLang==='function') setLang(localStorage.getItem('jm_lang')||'en');
+}
+// Sprint 5 helper: deep-link the "Resume" button to the most-recent enrolled course.
+async function resumeLastCourse(){
+  try{
+    const r=await api('/student/today','GET');
+    if(r.continueLearning && r.continueLearning.course_id) openReader(r.continueLearning.course_id, r.continueLearning.title);
+    else navScroll(null,'sec-student-courses');
+  }catch(_){ navScroll(null,'sec-student-courses'); }
 }
 
 // ============================================================
@@ -8230,7 +8353,9 @@ async function renderTodaySchedule(){
 // ============================================================
 async function renderNextClassHeader(){
   const role=(JSON.parse(localStorage.getItem('jm_user')||'{}').user_type)||(JSON.parse(localStorage.getItem('jm_user')||'{}').role)||'student';
-  if(!['teacher','partner','school','coaching','content_creator','corporate_trainer'].includes(role)) return;
+  // Sprint 5: students see the next-class header too (their version pulls from
+  // /api/calendar instead of /teacher/timetable). The render below auto-adapts.
+  if(!['teacher','partner','school','coaching','content_creator','corporate_trainer','student'].includes(role)) return;
   const sec=document.getElementById('section-'+role); if(!sec) return;
   // Run token: if a later invocation (e.g. an institution switch firing while
   // this one is still awaiting the timetable) starts, this one bails before
@@ -8241,7 +8366,12 @@ async function renderNextClassHeader(){
     const now=Date.now();
     const from=new Date(now).toISOString();
     const to=new Date(now+7*24*3600*1000).toISOString();
-    const r=await api('/teacher/timetable?from='+from+'&to='+to,'GET').catch(()=>({events:[]}));
+    // Sprint 5: students use the unified /api/calendar (Sprint 2) — closes S2A-2.
+    // Creator roles keep the existing /teacher/timetable for now.
+    const url = role==='student'
+      ? '/calendar?view=week&from='+from+'&to='+to+'&types=live'
+      : '/teacher/timetable?from='+from+'&to='+to;
+    const r=await api(url,'GET').catch(()=>({events:[]}));
     const live=(r.events||[]).filter(e=>e.type==='live'&&new Date(e.start).getTime()>now).sort((a,b)=>new Date(a.start)-new Date(b.start));
     next=live[0]||null;
   }catch(_){}
@@ -8257,13 +8387,17 @@ async function renderNextClassHeader(){
         <div style="font-weight:800;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(next.title||'Live class')}</div>
         <div style="font-size:12px;opacity:.85">${escHtml(next.course_title||'')} · ${start.toLocaleString('en-IN',{weekday:'short',hour:'2-digit',minute:'2-digit'})}</div>
       </div>
-      <button class="btn-sm" style="background:#fff;color:var(--jm-primary);font-weight:700;border:none" onclick="startLive('${next.id}')">▶ Start</button>
+      ${role==='student'
+        ? `<button class="btn-sm" style="background:#fff;color:var(--jm-primary);font-weight:700;border:none" onclick="joinLive('${next.id}')">▶ Join</button>`
+        : `<button class="btn-sm" style="background:#fff;color:var(--jm-primary);font-weight:700;border:none" onclick="startLive('${next.id}')">▶ Start</button>`}
       <button class="btn-sm" style="background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.4)" onclick="openMessenger('ai')">✨ AI Assistant</button>`;
   } else {
     bar.innerHTML=`
       <div style="font-size:24px">✨</div>
-      <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:15px">No upcoming classes scheduled</div><div style="font-size:12px;opacity:.85">Schedule one, or ask your AI assistant to help plan.</div></div>
-      <button class="btn-sm" style="background:#fff;color:var(--jm-primary);font-weight:700;border:none" onclick="openModal('scheduleLive')">📡 Schedule</button>
+      <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:15px">${role==='student'?'No upcoming classes':'No upcoming classes scheduled'}</div><div style="font-size:12px;opacity:.85">${role==='student'?'Browse courses to find a live class, or ask the AI for help.':'Schedule one, or ask your AI assistant to help plan.'}</div></div>
+      ${role==='student'
+        ? `<button class="btn-sm" style="background:#fff;color:var(--jm-primary);font-weight:700;border:none" onclick="navScroll(null,'sec-student-courses')">📚 My courses</button>`
+        : `<button class="btn-sm" style="background:#fff;color:var(--jm-primary);font-weight:700;border:none" onclick="openModal('scheduleLive')">📡 Schedule</button>`}
       <button class="btn-sm" style="background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.4)" onclick="openMessenger('ai')">✨ AI Assistant</button>`;
   }
   if(myRun!==window._ncRun) return; // superseded by a newer render

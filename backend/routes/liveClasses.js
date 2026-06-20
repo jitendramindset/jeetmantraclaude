@@ -5,6 +5,7 @@ const multer = require('multer');
 const { supabase, supabaseAdmin } = require('../config/supabase');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
 const { CREATOR_ROLES } = require('../config/roles');
+const { awardForEvent } = require('../services/award');
 const { v4: uuidv4 } = require('uuid');
 
 const uploadDir = path.join(__dirname, '..', 'uploads');
@@ -250,6 +251,15 @@ router.post('/:classId/join', authenticateToken, async (req, res) => {
           joined_at: new Date().toISOString()
         });
       if (error) return res.status(400).json({ error: 'Failed to join class: ' + error.message });
+    }
+
+    // Sprint 5 award pipeline (first-join only — subsequent rejoins are idempotent).
+    if (!existing) {
+      awardForEvent({
+        userId: studentId, eventType: 'live_joined',
+        refTable: 'live_classes', refId: liveClass.id,
+        metadata: { course_id: liveClass.course_id, title: liveClass.title }
+      }).catch(() => {});
     }
 
     res.json({
