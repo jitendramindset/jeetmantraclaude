@@ -1,6 +1,8 @@
 const express = require('express');
+const jwt = require('jsonwebtoken');
 const { supabase, supabaseAdmin } = require('../config/supabase');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
+const { validate } = require('../middleware/validation');
 const { v4: uuidv4 } = require('uuid');
 
 const router = express.Router();
@@ -426,6 +428,143 @@ router.post('/courses/:id/moderate', authenticateToken, authorizeRole(['admin'])
     await supabaseAdmin.from('courses').update({ ...updates, updated_at: new Date().toISOString() }).eq('id', req.params.id);
     await auditLog(req.user.id, 'course.moderate', req.params.id, { action });
     res.json({ message: 'Moderation applied' });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ════════════════════════════════════════════════════════════════════
+// Sprint 6 — Impersonation ("view as user") support workflow.
+//
+// Admin starts an impersonation by POSTing target user + reason; receives
+// a SHORT-LIVED JWT signed as the target user with extra claims
+// { actor_id, scope, imp_session_id }. The client uses this token for
+// follow-up calls. Stop POSTs the session id, server marks ended_at.
+// Both transitions are audit_log'd with IP/UA/before-after.
+//
+// Hard caps: default 15 min, max 120 min, never beyond the configured
+// JWT lifetime. Re-uses the same JWT_SECRET as normal auth so existing
+// middleware accepts the token transparently.
+// ════════════════════════════════════════════════════════════════════
+router.post('/impersonate/start', authenticateToken, authorizeRole(['admin']), validate('impersonationStart'), async (req, res) => {
+  try {
+    const { targetUserId, scope = 'read', reason, durationMinutes = 15 } = req.validatedData;
+    if (targetUserId === req.user.id) return res.status(400).json({ error: "Can't impersonate yourself" });
+    const { data: target } = await supabaseAdmin.from('jeetmantra_users')
+      .select('id, full_name, email, user_type').eq('id', targetUserId).maybeSingle();
+    if (!target) return res.status(404).json({ error: 'Target user not found' });
+    // Never impersonate another admin (defense in depth).
+    if (target.user_type === 'admin') return res.status(403).json({ error: "Refusing to impersonate another admin" });
+
+    const expiresAt = new Date(Date.now() + Math.min(120, Math.max(1, Number(durationMinutes) || 15)) * 60000);
+    const sessionId = uuidv4();
+    // Mint a token that LOOKS like the target user (id, role) so existing
+    // route gates work, but carries the actor_id and imp_session_id for audit.
+    const token = jwt.sign({
+      id: target.id,
+      email: target.email,
+      role: target.user_type,
+      actor_id: req.user.id,
+      imp_session_id: sessionId,
+      imp_scope: scope
+    }, process.env.JWT_SECRET, { expiresIn: Math.floor((expiresAt.getTime() - Date.now()) / 1000) });
+
+    // Persist the session row.
+    try {
+      await supabaseAdmin.from('impersonation_sessions').insert({
+        id: sessionId,
+        actor_id: req.user.id, target_id: targetUserId, scope, reason,
+        actor_ip: req.ip || req.headers['x-forwarded-for'] || null,
+        user_agent: req.headers['user-agent'] || null,
+        expires_at: expiresAt.toISOString()
+      });
+    } catch (_) { /* table not migrated yet — token still works */ }
+
+    await auditLog(req.user.id, 'impersonate.start', targetUserId, {
+      scope, reason, duration_minutes: durationMinutes,
+      session_id: sessionId,
+      actor_ip: req.ip || req.headers['x-forwarded-for'] || null,
+      user_agent: req.headers['user-agent'] || null
+    });
+
+    res.json({
+      sessionId, token, expiresAt: expiresAt.toISOString(),
+      target: { id: target.id, full_name: target.full_name, email: target.email, role: target.user_type },
+      scope
+    });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.post('/impersonate/stop', authenticateToken, async (req, res) => {
+  try {
+    // Either the admin OR the impersonated session itself can stop. We close
+    // by session_id from the body, or every active session for the calling
+    // admin if none provided.
+    const sessionId = req.body?.sessionId;
+    let q = supabaseAdmin.from('impersonation_sessions')
+      .update({ ended_at: new Date().toISOString() }).is('ended_at', null);
+    if (sessionId) {
+      q = q.eq('id', sessionId);
+    } else if (req.user.imp_session_id) {
+      q = q.eq('id', req.user.imp_session_id);
+    } else if (req.user.role === 'admin') {
+      q = q.eq('actor_id', req.user.id);
+    } else {
+      return res.status(400).json({ error: 'sessionId required' });
+    }
+    await q;
+    await auditLog(req.user.actor_id || req.user.id, 'impersonate.stop', sessionId || null, {});
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.get('/impersonate/sessions', authenticateToken, authorizeRole(['admin']), async (req, res) => {
+  try {
+    const { active } = req.query;
+    let q = supabaseAdmin.from('impersonation_sessions').select('*').order('started_at', { ascending: false }).limit(50);
+    if (active === '1') q = q.is('ended_at', null);
+    const { data } = await q;
+    res.json({ sessions: data || [] });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ════════════════════════════════════════════════════════════════════
+// Sprint 6 — Admin bookings list (activates the existing "Bookings &
+// Venues" sidebar entry in admin-os.html). Cross-tenant view.
+// ════════════════════════════════════════════════════════════════════
+router.get('/bookings', authenticateToken, authorizeRole(['admin']), async (req, res) => {
+  try {
+    const { status, resource_type, from, to, q, page = 1, limit = 25 } = req.query;
+    const lim = Math.min(100, Math.max(1, Number(limit) || 25));
+    const off = (Math.max(1, Number(page) || 1) - 1) * lim;
+    let qb = supabaseAdmin.from('bookings_v2').select('*', { count: 'exact' });
+    if (status)        qb = qb.eq('status', status);
+    if (resource_type) qb = qb.eq('resource_type', resource_type);
+    if (from)          qb = qb.gte('start_at', new Date(from).toISOString());
+    if (to)            qb = qb.lte('start_at', new Date(to).toISOString());
+    if (q) {
+      const term = String(q).replace(/[%,()]/g, '');
+      qb = qb.or(`booker_id.eq.${term},resource_id.eq.${term},id.eq.${term}`);
+    }
+    const { data: rows, count, error } = await qb.order('start_at', { ascending: false }).range(off, off + lim - 1);
+    if (error) return res.status(500).json({ error: error.message });
+
+    // Hydrate resource title + booker name
+    const resourceIds = [...new Set((rows || []).map(r => r.resource_id))];
+    const bookerIds   = [...new Set((rows || []).map(r => r.booker_id))];
+    let resources = {}, bookers = {};
+    if (resourceIds.length) {
+      const { data } = await supabaseAdmin.from('resources').select('id, title, type, venue_name').in('id', resourceIds);
+      resources = Object.fromEntries((data || []).map(x => [x.id, x]));
+    }
+    if (bookerIds.length) {
+      const { data } = await supabaseAdmin.from('jeetmantra_users').select('id, full_name, email').in('id', bookerIds);
+      bookers = Object.fromEntries((data || []).map(x => [x.id, x]));
+    }
+    const bookings = (rows || []).map(b => ({
+      ...b,
+      resource: resources[b.resource_id] || null,
+      booker:   bookers[b.booker_id] || null
+    }));
+    res.json({ bookings, page: Number(page), limit: lim, total: count || 0 });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

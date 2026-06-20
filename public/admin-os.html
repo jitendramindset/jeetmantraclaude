@@ -246,7 +246,7 @@ const SECTIONS = {
   catalog:  () => renderComingSoon('Catalog', '📚', 'Courses + Approval queue + Categories + Content reports. Reuses /api/courses + Sprint 3 content_reports.'),
   live:     () => renderComingSoon('Live & Recordings', '📡', 'Active live classes, scheduled, recording library, transcripts. Reuses /api/live-classes.'),
   revenue:  () => renderComingSoon('Revenue', '💳', 'Payments / Refunds / Payouts / Coupons / MRR. Wires to /api/admin/payments and Sprint 3 payouts.'),
-  bookings: () => renderComingSoon('Bookings & Venues', '🎟️', 'Lands in Sprint 4 once the unified booking engine ships.'),
+  bookings: renderBookings,
   growth:   () => renderComingSoon('Growth & CRM', '📈', 'Leads · Admissions · Campaigns. Reuses /api/eduos/admissions.'),
   support:  () => renderComingSoon('Support', '🎧', 'Tickets · Abuse reports · Feedback · SLA. Sprint 3 (support_tickets, content_reports).'),
   automations: () => renderComingSoon('Automations', '🤖', 'n8n webhooks · Delivery health · Scheduled jobs · Templates. Reuses /api/n8n.'),
@@ -396,6 +396,50 @@ async function renderTenants() {
     ).join('');
   } catch (e) {
     el('tenantsTable').querySelector('tbody').innerHTML = `<tr><td colspan="7" style="padding:24px;text-align:center;color:#b91c1c">Error: ${esc(e.message)}</td></tr>`;
+  }
+}
+
+// ───── Bookings (Sprint 6) ─────
+async function renderBookings() {
+  el('content').innerHTML = `
+    <h1 class="page-title">Bookings &amp; Venues</h1>
+    <p class="page-sub">Every booking across the unified booking engine — sports / mentor / room / workshop / event. Powered by GET /api/admin/bookings.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+      <select id="bk-status" onchange="renderBookings()" style="padding:5px 10px;border:1px solid var(--jm-border);border-radius:6px;background:var(--jm-surface);color:inherit"><option value="">All statuses</option><option value="pending">Pending</option><option value="confirmed">Confirmed</option><option value="cancelled">Cancelled</option><option value="completed">Completed</option><option value="no_show">No-show</option></select>
+      <select id="bk-type" onchange="renderBookings()" style="padding:5px 10px;border:1px solid var(--jm-border);border-radius:6px;background:var(--jm-surface);color:inherit"><option value="">All resources</option><option>course</option><option>ground</option><option>court</option><option>room</option><option>teacher</option><option>mentor</option><option>workshop</option><option>event</option><option>equipment</option></select>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <table class="list" id="bookingsTable">
+        <thead><tr><th>Resource</th><th>Type</th><th>Booker</th><th>Start</th><th>Party</th><th>Amount</th><th>Status</th></tr></thead>
+        <tbody><tr><td colspan="7" style="padding:24px;text-align:center;color:var(--jm-text-muted)">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  `;
+  try {
+    const status = el('bk-status')?.value || '';
+    const type   = el('bk-type')?.value || '';
+    const qs = [];
+    if (status) qs.push('status=' + encodeURIComponent(status));
+    if (type)   qs.push('resource_type=' + encodeURIComponent(type));
+    qs.push('limit=50');
+    const r = await api('/admin/bookings?' + qs.join('&'));
+    const rows = r.bookings || [];
+    const tbody = el('bookingsTable').querySelector('tbody');
+    if (!rows.length) { tbody.innerHTML = '<tr><td colspan="7" style="padding:24px;text-align:center;color:var(--jm-text-muted)">No bookings yet</td></tr>'; return; }
+    const statusColor = s => ({pending:'#b45309',confirmed:'#047857',cancelled:'#6b7280',completed:'#1d4ed8',no_show:'#b91c1c'})[s] || '#6b7280';
+    tbody.innerHTML = rows.map(b => `
+      <tr>
+        <td><strong>${esc(b.resource?.title || b.resource_id || '—')}</strong>${b.resource?.venue_name ? `<div style="font-size:11px;color:var(--jm-text-muted)">${esc(b.resource.venue_name)}</div>` : ''}</td>
+        <td><span style="text-transform:capitalize">${esc(b.resource_type)}</span></td>
+        <td>${esc(b.booker?.full_name || b.booker_id || '—')}<div style="font-size:11px;color:var(--jm-text-muted)">${esc(b.booker?.email || '')}</div></td>
+        <td>${new Date(b.start_at).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</td>
+        <td>${b.party_size || 1}</td>
+        <td>${b.amount ? fmtMoney(b.amount) : '—'}</td>
+        <td><span style="color:${statusColor(b.status)};font-weight:700;text-transform:uppercase;font-size:11px">${esc(b.status)}</span></td>
+      </tr>
+    `).join('');
+  } catch (e) {
+    el('bookingsTable').querySelector('tbody').innerHTML = `<tr><td colspan="7" style="padding:24px;text-align:center;color:#b91c1c">Error: ${esc(e.message)}</td></tr>`;
   }
 }
 

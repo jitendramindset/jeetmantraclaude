@@ -41,6 +41,8 @@ const bookingsRoutes      = require('./routes/bookings');
 // Sprint 5 — student success: streak / XP / badges + dedicated notifications
 const gamificationRoutes  = require('./routes/gamification');
 const notificationsRoutes = require('./routes/notifications');
+// Sprint 6 — certificates + impersonation
+const certificatesRoutes  = require('./routes/certificates');
 const ragRoutes           = require('./routes/rag');
 const { cacheMiddleware, syncMiddleware } = require('./middleware/datasync');
 
@@ -120,6 +122,7 @@ app.use('/api/bookings', bookingsRoutes);
 // Sprint 5 mounts
 app.use('/api/gamification', gamificationRoutes);
 app.use('/api/notifications', notificationsRoutes);
+app.use('/api/certificates', certificatesRoutes);
 app.use('/api/rag', ragRoutes);
 
 // LevelDB sync queue endpoint

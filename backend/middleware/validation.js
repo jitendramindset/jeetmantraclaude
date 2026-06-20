@@ -278,6 +278,91 @@ const schemas = {
     billingPeriod: Joi.string().valid('monthly', 'yearly', 'annual').optional()
   }),
 
+  // ── P1 hardening: eduos.js INSTITUTION_ROLES writes (admissions / fees /
+  // payroll / leave / branding). HR + tenant money — all need Joi gates.
+  admissionCreate: Joi.object({
+    studentName: Joi.string().min(1).max(200).required(),
+    studentEmail: Joi.string().email().allow('', null).optional(),
+    studentPhone: Joi.string().max(40).allow('', null).optional(),
+    courseId: Joi.string().allow('', null).optional(),
+    notes: Joi.string().allow('', null).max(2000).optional()
+  }),
+
+  admissionUpdate: Joi.object({
+    stage: Joi.string().valid('applied', 'shortlisted', 'interview', 'offered', 'enrolled', 'rejected').optional(),
+    notes: Joi.string().allow('', null).max(2000).optional()
+  }).min(1),
+
+  feePlanCreate: Joi.object({
+    name: Joi.string().min(1).max(160).required(),
+    amount: Joi.number().min(0).required(),
+    frequency: Joi.string().valid('once', 'monthly', 'quarterly', 'yearly').optional(),
+    courseId: Joi.string().allow('', null).optional()
+  }),
+
+  feeInvoiceCreate: Joi.object({
+    studentId: Joi.string().required(),
+    feePlanId: Joi.string().allow('', null).optional(),
+    amount: Joi.number().min(0).required(),
+    dueDate: Joi.date().iso().allow('', null).optional()
+  }),
+
+  payrollCreate: Joi.object({
+    staffId: Joi.string().required(),
+    periodMonth: Joi.string().pattern(/^\d{4}-\d{2}$/).optional(),
+    baseSalary: Joi.number().min(0).required(),
+    bonuses: Joi.number().min(0).optional(),
+    deductions: Joi.number().min(0).optional()
+  }),
+
+  leaveCreate: Joi.object({
+    institutionId: Joi.string().required(),
+    leaveType: Joi.string().valid('casual', 'sick', 'earned', 'unpaid', 'maternity', 'paternity').optional(),
+    fromDate: Joi.date().iso().required(),
+    toDate: Joi.date().iso().min(Joi.ref('fromDate')).required(),
+    reason: Joi.string().allow('', null).max(1000).optional()
+  }),
+
+  leaveDecide: Joi.object({
+    decision: Joi.string().valid('approved', 'rejected').required()
+  }),
+
+  // ── Sprint 6: certificate issuance + templates
+  certificateIssue: Joi.object({
+    type: Joi.string().valid('course_completion','workshop','attendance','skill','sports','participation').required(),
+    studentId: Joi.string().required(),
+    courseId: Joi.string().allow('', null).optional(),
+    resourceId: Joi.string().allow('', null).optional(),
+    templateId: Joi.string().allow('', null).optional(),
+    title: Joi.string().max(200).optional(),
+    metadata: Joi.object().optional()
+  }),
+
+  certificateTemplateCreate: Joi.object({
+    type: Joi.string().valid('course_completion','workshop','attendance','skill','sports','participation').required(),
+    title: Joi.string().min(1).max(200).required(),
+    tenantId: Joi.string().allow('', null).optional(),
+    htmlTemplate: Joi.string().allow('', null).optional(),
+    cssTemplate: Joi.string().allow('', null).optional(),
+    signatureUrl: Joi.string().uri().allow('', null).optional(),
+    logoUrl: Joi.string().uri().allow('', null).optional()
+  }),
+
+  // ── Sprint 6: impersonation
+  impersonationStart: Joi.object({
+    targetUserId: Joi.string().required(),
+    scope: Joi.string().valid('read','full').optional(),
+    reason: Joi.string().min(3).max(500).required(),
+    durationMinutes: Joi.number().integer().min(1).max(120).optional()
+  }),
+
+  tenantBranding: Joi.object({
+    subdomain: Joi.string().pattern(/^[a-z][a-z0-9-]{2,30}$/i).allow('', null).optional(),
+    brandLogo: Joi.string().allow('', null).optional(),
+    brandColor: Joi.string().max(40).allow('', null).optional(),
+    brandName: Joi.string().max(160).allow('', null).optional()
+  }).min(1),
+
   bookingCreate: Joi.object({
     resourceId: Joi.string().required(),
     startAt: Joi.date().iso().required(),
