@@ -190,6 +190,47 @@ const schemas = {
       institution_id: Joi.string().optional()
     }).min(1).required(),
     payload: Joi.object().optional()
+  }),
+
+  // ── Sprint 4 booking engine ────────────────────────────────────────────
+  resourceCreate: Joi.object({
+    type: Joi.string().valid('ground','court','room','teacher','mentor','workshop','event','course','equipment').required(),
+    title: Joi.string().min(1).max(200).required(),
+    description: Joi.string().allow('').optional(),
+    capacity: Joi.number().integer().min(1).optional(),
+    price: Joi.number().min(0).optional(),
+    currency: Joi.string().length(3).optional(),
+    venueName: Joi.string().allow('').optional(),
+    venueAddress: Joi.string().allow('').optional(),
+    city: Joi.string().allow('').optional(),
+    latitude: Joi.number().min(-90).max(90).optional(),
+    longitude: Joi.number().min(-180).max(180).optional(),
+    availability: Joi.object().optional(),
+    coverImage: Joi.string().uri().allow('').optional()
+  }),
+
+  resourceUpdate: Joi.object({
+    title: Joi.string().min(1).max(200).optional(),
+    description: Joi.string().allow('').optional(),
+    capacity: Joi.number().integer().min(1).optional(),
+    price: Joi.number().min(0).optional(),
+    currency: Joi.string().length(3).optional(),
+    venueName: Joi.string().allow('').optional(),
+    venueAddress: Joi.string().allow('').optional(),
+    city: Joi.string().allow('').optional(),
+    latitude: Joi.number().min(-90).max(90).optional(),
+    longitude: Joi.number().min(-180).max(180).optional(),
+    availability: Joi.object().optional(),
+    coverImage: Joi.string().uri().allow('').optional(),
+    is_active: Joi.boolean().optional()
+  }).min(1),
+
+  bookingCreate: Joi.object({
+    resourceId: Joi.string().required(),
+    startAt: Joi.date().iso().required(),
+    endAt: Joi.date().iso().greater(Joi.ref('startAt')).required(),
+    partySize: Joi.number().integer().min(1).optional(),
+    notes: Joi.string().allow('').optional()
   })
 };
 

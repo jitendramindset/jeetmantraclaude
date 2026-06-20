@@ -35,6 +35,9 @@ const supportRoutes       = require('./routes/support');
 const reportsRoutes       = require('./routes/reports');
 const notifAdminRoutes    = require('./routes/notificationsAdmin');
 const translationsRoutes  = require('./routes/translations');
+// Sprint 4 — unified booking engine
+const resourcesRoutes     = require('./routes/resources');
+const bookingsRoutes      = require('./routes/bookings');
 const ragRoutes           = require('./routes/rag');
 const { cacheMiddleware, syncMiddleware } = require('./middleware/datasync');
 
@@ -108,6 +111,9 @@ app.use('/api/support', supportRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/notifications-admin', notifAdminRoutes);
 app.use('/api/translations', translationsRoutes);
+// Sprint 4 mounts
+app.use('/api/resources', resourcesRoutes);
+app.use('/api/bookings', bookingsRoutes);
 app.use('/api/rag', ragRoutes);
 
 // LevelDB sync queue endpoint
