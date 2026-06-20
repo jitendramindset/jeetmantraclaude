@@ -90,7 +90,7 @@ SELECT
   'Personal Workspace',
   TRUE
 FROM jeetmantra_users u
-WHERE u.user_type IN ('teacher', 'partner', 'school', 'coaching', 'corporate_trainer', 'content_creator')
+WHERE u.user_type IN ('teacher', 'partner', 'school', 'coaching', 'corporate_trainer', 'content_creator', 'franchise')
   AND NOT EXISTS (
     SELECT 1 FROM institution_teachers it
     WHERE it.institution_id = u.id AND it.teacher_id = u.id

@@ -18,9 +18,14 @@ const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const { supabaseAdmin } = require('../config/supabase');
 
+// Roles that get a "personal workspace" institution row on signup.
+// franchise added in follow-up — the role-org audit (EDUOS_ROLE_ORG_UNIFICATION.md
+// §1.1) flagged that franchise is an INSTITUTION role yet was excluded here,
+// leaving newly-signed-up franchise owners without a self-scope.
+// admin is intentionally NOT included — admin is a platform role, not an org owner.
 const CREATOR_ROLES_FOR_PROVISION = new Set([
   'teacher', 'partner', 'school', 'coaching',
-  'corporate_trainer', 'content_creator'
+  'corporate_trainer', 'content_creator', 'franchise'
 ]);
 
 // Read every role this user holds. Always at least includes user_type so the
