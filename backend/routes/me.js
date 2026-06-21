@@ -80,6 +80,14 @@ router.get('/contexts', authenticateToken, async (req, res) => {
     const activeOrg = orgs.find(o => o.id === activeOrgId) || null;
     const { roles, capabilities } = await resolveCaps(req, activeOrgId);
 
+    // Widget engine inputs (W3): admin per-role widget config from the active
+    // org's settings, and the caller's personal widget prefs.
+    const orgWidgets = activeOrg?.settings?.widgets || null; // { role: { widgetId: false } }
+    let adminWidgets = null;
+    if (orgWidgets) { adminWidgets = {}; for (const r of roles) Object.assign(adminWidgets, orgWidgets[r] || {}); }
+    const { data: meRow } = await supabaseAdmin.from('jeetmantra_users')
+      .select('widget_prefs').eq('id', req.user.id).maybeSingle();
+
     res.json({
       person: { id: req.user.id, role: req.user.role },
       contexts: orgs.map(o => ({
@@ -92,7 +100,9 @@ router.get('/contexts', authenticateToken, async (req, res) => {
       locale: activeOrg?.locale_default || 'en',
       allowedLocales: activeOrg?.allowed_locales || null,
       roles,
-      capabilities
+      capabilities,
+      adminWidgets,
+      userPrefs: meRow?.widget_prefs || null
     });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -121,6 +131,28 @@ router.post('/active-context', authenticateToken, validate('activeContext'), asy
       allowedLocales: org.allowed_locales || null,
       roles, capabilities
     });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// GET /api/me/widget-prefs — the caller's widget personalization.
+router.get('/widget-prefs', authenticateToken, async (req, res) => {
+  try {
+    const { data } = await supabaseAdmin.from('jeetmantra_users').select('widget_prefs').eq('id', req.user.id).maybeSingle();
+    res.json({ prefs: data?.widget_prefs || { removed: [], pinned: [], order: [] } });
+  } catch (e) { res.json({ prefs: { removed: [], pinned: [], order: [] } }); }
+});
+
+// PUT /api/me/widget-prefs — replace the caller's widget prefs (whole object).
+router.put('/widget-prefs', authenticateToken, validate('widgetPrefs'), async (req, res) => {
+  try {
+    const prefs = {
+      removed: req.validatedData.removed || [],
+      pinned: req.validatedData.pinned || [],
+      order: req.validatedData.order || []
+    };
+    await supabaseAdmin.from('jeetmantra_users').update({ widget_prefs: prefs }).eq('id', req.user.id)
+      .then(() => {}).catch(() => {});
+    res.json({ prefs });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

@@ -424,6 +424,13 @@ const schemas = {
     coachId: Joi.string().allow('','null').optional()
   }).unknown(true),
 
+  // ── Sprint 12 (W3): widget personalization
+  widgetPrefs: Joi.object({
+    removed: Joi.array().items(Joi.string().max(60)).optional(),
+    pinned: Joi.array().items(Joi.string().max(60)).optional(),
+    order: Joi.array().items(Joi.string().max(60)).optional()
+  }).unknown(true),
+
   // ── Sprint 9 (Phase A): active-context + org settings
   activeContext: Joi.object({
     orgId: Joi.string().required()

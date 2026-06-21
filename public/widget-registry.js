@@ -33,6 +33,8 @@
   // Each manifest: id, title, roles[], capability?, category, size, priority,
   // dataSource(ctx)→data, render(data,ctx)→html, actions?, aiTriggers?.
   const CREATOR = ['teacher', 'coaching', 'school', 'partner', 'corporate_trainer', 'content_creator', 'franchise', 'coach', 'trainer'];
+  const ORG_ADMIN = ['school', 'coaching', 'institute_owner', 'org_admin', 'franchise'];
+  const SPORTS = ['coach', 'trainer', 'sports_academy', 'yoga_center', 'dance_academy', 'music_academy', 'institute_owner'];
 
   const WIDGETS = [
     {
@@ -98,31 +100,107 @@
       render: d => { const n = listOf(d, 'notifications'); const total = d?.total ?? n.length; if (!total) return empty('No new notifications.'); return `<div class="wg-big">${total}</div><div class="wg-sub">unread</div>` + n.slice(0, 3).map(x => `<div class="wg-row"><span class="wg-row-t">${esc(x.title || x.message || 'Notification')}</span></div>`).join(''); }
     },
     {
-      id: 'ai-tutor', title: 'AI Copilot', roles: null, category: 'ai', size: 'small', priority: 50,
+      id: 'leaderboard', title: 'Leaderboard', roles: ['student'], category: 'learning', size: 'small', priority: 35,
+      aiTriggers: ['leaderboard', 'rank', 'my rank'],
+      dataSource: () => api('/gamification/summary'),
+      render: d => { const s = d?.summary || d || {}; const xp = s.xp ?? s.total_xp ?? 0; const lvl = s.level ?? 1; return `<div class="wg-big">Lv ${pct(lvl)}</div><div class="wg-sub">${pct(xp)} XP${s.rank ? ' · rank #' + pct(s.rank) : ''}</div>`; }
+    },
+    {
+      id: 'certificates', title: 'My Certificates', roles: ['student'], category: 'learning', size: 'small', priority: 55,
+      aiTriggers: ['certificates', 'my certificates'],
+      dataSource: () => api('/certificates/my'),
+      render: d => { const c = listOf(d, 'certificates'); if (!c.length) return empty('Earn your first certificate by completing a course.'); return `<div class="wg-big">${c.length}</div><div class="wg-sub">earned</div>` + c.slice(0, 3).map(x => `<div class="wg-row"><span class="wg-row-t">${esc(x.course_title || x.title || 'Certificate')}</span></div>`).join(''); }
+    },
+    {
+      id: 'messages', title: 'Messages', roles: null, category: 'social', size: 'small', priority: 46,
+      aiTriggers: ['messages', 'unread messages', 'chat'],
+      dataSource: () => api('/chat/unread'),
+      render: d => { const total = d?.total ?? d?.unread ?? (listOf(d, 'rooms', 'threads').length); if (!total) return empty('No unread messages.'); return `<div class="wg-big">${pct(total)}</div><div class="wg-sub">unread · <a class="wg-link" href="dashboard.html#messages">Open inbox →</a></div>`; }
+    },
+    {
+      id: 'attendance-pending', title: 'Attendance', roles: CREATOR, capability: 'attendance.mark', category: 'teaching', size: 'small', priority: 24,
+      aiTriggers: ['attendance', 'take attendance', 'mark attendance'],
+      render: () => `<div class="wg-sub">Mark today's roster across your batches.</div><a class="wg-action" style="margin-top:10px" href="dashboard.html#attendance">✓ Take attendance</a>`
+    },
+    {
+      id: 'weak-students', title: 'Students Needing Help', roles: CREATOR, capability: 'analytics.read', category: 'teaching', size: 'small', priority: 28,
+      aiTriggers: ['weak students', 'at risk', 'students needing help'],
+      render: () => `<div class="wg-sub">Spot low-progress / low-attendance students from course analytics.</div><a class="wg-action" style="margin-top:10px" href="dashboard.html#analytics">📉 Open analytics</a>`
+    },
+    {
+      id: 'timetable', title: 'Timetable', roles: ORG_ADMIN, capability: 'live.schedule', category: 'ops', size: 'medium', priority: 26,
+      aiTriggers: ['timetable', 'class schedule', 'weekly schedule'],
+      dataSource: () => api('/timetable/templates'),
+      render: d => { const t = listOf(d, 'templates'); if (!t.length) return empty('No timetable templates yet.') + `<a class="wg-link" href="dashboard.html#timetable">Create one →</a>`; return t.slice(0, 4).map(x => `<div class="wg-row"><span class="wg-row-t">${esc(x.name || 'Timetable')}</span></div>`).join('') + `<a class="wg-link" href="dashboard.html#timetable">Manage →</a>`; }
+    },
+    {
+      id: 'admissions', title: 'Admissions', roles: ORG_ADMIN, capability: 'admissions.manage', category: 'ops', size: 'small', priority: 32,
+      aiTriggers: ['admissions', 'new admissions', 'enrollment intake'],
+      dataSource: () => api('/eduos/admissions'),
+      render: d => { const a = listOf(d, 'admissions', 'items'); return `<div class="wg-big">${a.length}</div><div class="wg-sub">recent admissions · <a class="wg-link" href="dashboard.html#admissions">Manage →</a></div>`; }
+    },
+    {
+      id: 'fees', title: 'Fees', roles: ORG_ADMIN, capability: 'billing.manage', category: 'finance', size: 'small', priority: 34,
+      aiTriggers: ['fees', 'fee invoices', 'pending fees'],
+      dataSource: () => api('/eduos/fees/invoices'),
+      render: d => { const inv = listOf(d, 'invoices', 'items'); const due = inv.filter(x => x.status !== 'paid'); return `<div class="wg-big">${due.length}</div><div class="wg-sub">unpaid invoices · <a class="wg-link" href="dashboard.html#fees">Collect →</a></div>`; }
+    },
+    {
+      id: 'bookings', title: 'Bookings', roles: SPORTS, capability: 'booking.manage', category: 'ops', size: 'medium', priority: 30,
+      aiTriggers: ['bookings', 'court bookings', 'slot bookings'],
+      dataSource: () => api('/bookings/received'),
+      render: d => { const b = listOf(d, 'bookings', 'items'); if (!b.length) return empty('No bookings yet.'); return b.slice(0, 5).map(x => `<div class="wg-row"><span class="wg-row-t">${esc(x.resource?.title || x.resource_type || 'Booking')}</span><span class="wg-row-x">${when(x.start_at)}</span></div>`).join(''); }
+    },
+    {
+      id: 'children', title: 'My Children', roles: ['parent'], category: 'learning', size: 'medium', priority: 12,
+      aiTriggers: ['my children', 'my child', 'kids'],
+      dataSource: () => api('/parent/children'),
+      render: d => { const ch = listOf(d, 'children', 'students', 'items'); if (!ch.length) return empty('Link a child to see their progress.') + `<a class="wg-link" href="dashboard.html#link-child">Link child →</a>`; return ch.slice(0, 4).map(c => `<a class="wg-row" href="dashboard.html#child"><span class="wg-row-t">${esc(c.full_name || c.name || 'Child')}</span><span class="wg-row-x">${c.class || c.grade || ''}</span></a>`).join(''); }
+    },
+    {
+      id: 'network', title: 'Network', roles: ['partner', 'franchise'], category: 'finance', size: 'small', priority: 36,
+      aiTriggers: ['network', 'branches', 'franchise'],
+      render: () => `<div class="wg-sub">Track branches, network revenue and per-branch KPIs.</div><a class="wg-action" style="margin-top:10px" href="dashboard.html#network">🌐 Open network</a>`
+    },
+    {
+      id: 'ai-tutor', title: 'AI Copilot', roles: null, category: 'ai', size: 'small', priority: 60,
       render: () => `<div class="wg-sub">Ask anything — "show revenue", "today's classes", "create course".</div><a class="wg-action" style="margin-top:10px" href="dashboard.html#ai">🤖 Open Copilot</a>`
     }
   ];
 
   // ── RESOLVER (audit §1) ─────────────────────────────────────────────────────
-  function resolveWidgets(ctx) {
+  // passesGates: role ∩ + capability + admin-config. `ignoreRemoved` lets the
+  // "add widget" tray list widgets the user qualifies for but has hidden.
+  function passesGates(w, ctx, ignoreRemoved) {
     const roles = new Set(ctx.roles || []);
     const caps = new Set(ctx.capabilities || []);
     const isAdmin = roles.has('admin');
-    const adminCfg = ctx.adminWidgets || null;     // org.settings.widgets (W3 hook)
-    const prefs = ctx.userPrefs || {};             // add/remove/pin/order (W3 hook)
-    const removed = new Set(prefs.removed || []);
-    const pinned = new Set(prefs.pinned || []);
+    const adminCfg = ctx.adminWidgets || null;
+    if (w.roles && !isAdmin && !w.roles.some(r => roles.has(r))) return false;
+    if (w.capability && !isAdmin && !caps.has(w.capability)) return false;
+    if (adminCfg && adminCfg[w.id] === false) return false;
+    if (!ignoreRemoved && (ctx.userPrefs?.removed || []).includes(w.id)) return false;
+    return true;
+  }
 
-    let list = WIDGETS.filter(w => {
-      if (w.roles && !isAdmin && !w.roles.some(r => roles.has(r))) return false;        // role gate (null = all)
-      if (w.capability && !isAdmin && !caps.has(w.capability)) return false;             // capability gate
-      if (adminCfg && adminCfg[w.id] === false) return false;                            // admin disabled
-      if (removed.has(w.id)) return false;                                               // user removed
-      return true;
-    });
+  function resolveWidgets(ctx) {
+    const pinned = new Set(ctx.userPrefs?.pinned || []);
+    const order = ctx.userPrefs?.order || [];
+    let list = WIDGETS.filter(w => passesGates(w, ctx, false));
     list.forEach(w => { w._pinned = pinned.has(w.id); });
-    list.sort((a, b) => (b._pinned ? 1 : 0) - (a._pinned ? 1 : 0) || (a.priority || 50) - (b.priority || 50));
+    list.sort((a, b) => {
+      if ((b._pinned ? 1 : 0) !== (a._pinned ? 1 : 0)) return (b._pinned ? 1 : 0) - (a._pinned ? 1 : 0);
+      const oa = order.indexOf(a.id), ob = order.indexOf(b.id);            // explicit user order wins
+      if (oa !== -1 || ob !== -1) return (oa === -1 ? 999 : oa) - (ob === -1 ? 999 : ob);
+      return (a.priority || 50) - (b.priority || 50);
+    });
     return list;
+  }
+
+  // Widgets the caller qualifies for but has hidden — feeds the "Add widget" tray.
+  function hiddenWidgets(ctx) {
+    const removed = new Set(ctx.userPrefs?.removed || []);
+    return WIDGETS.filter(w => removed.has(w.id) && passesGates(w, ctx, true));
   }
 
   // ── RENDERER ────────────────────────────────────────────────────────────────
@@ -132,7 +210,8 @@
     const card = document.createElement('section');
     card.className = 'wg-card wg-' + (w.size || 'medium') + (w._pinned ? ' wg-pinned' : '');
     card.dataset.widget = w.id;
-    card.innerHTML = `<header class="wg-head"><span class="wg-title">${esc(w.title)}</span>${w._pinned ? '<span class="wg-pin">📌</span>' : ''}</header><div class="wg-body">${skeleton()}</div>`;
+    const ctrls = `<span class="wg-ctrls"><button class="wg-ctrl" title="${w._pinned ? 'Unpin' : 'Pin'}" aria-label="Pin widget" onclick="EduOSWidgets.togglePin('${w.id}')">${w._pinned ? '📌' : '📍'}</button><button class="wg-ctrl" title="Hide widget" aria-label="Hide widget" onclick="EduOSWidgets.removeWidget('${w.id}')">✕</button></span>`;
+    card.innerHTML = `<header class="wg-head"><span class="wg-title">${esc(w.title)}</span>${ctrls}</header><div class="wg-body">${skeleton()}</div>`;
     const body = card.querySelector('.wg-body');
     try {
       const data = w.dataSource ? await w.dataSource(ctx) : null;
@@ -143,14 +222,42 @@
     return card;
   }
 
+  let _mount = null, _ctx = null;
+
   async function renderDashboard(mountEl, ctx) {
+    _mount = mountEl; _ctx = ctx;
     const widgets = resolveWidgets(ctx);
     mountEl.innerHTML = '';
-    // Render concurrently, keep manifest order.
     const cards = await Promise.all(widgets.map(w => renderWidget(w, ctx)));
     cards.forEach(c => mountEl.appendChild(c));
+    // "Add widget" tray for anything the user hid.
+    const hidden = hiddenWidgets(ctx);
+    const tray = document.getElementById('wgAddTray');
+    if (tray) tray.innerHTML = hidden.length
+      ? '<span class="wg-add-label">Add back:</span>' + hidden.map(w => `<button class="wg-add" onclick="EduOSWidgets.addWidget('${w.id}')">＋ ${esc(w.title)}</button>`).join('')
+      : '';
     return widgets.map(w => w.id);
   }
+
+  // ── PERSONALIZATION (W3) — mutate prefs, persist, re-render ──────────────────
+  function ensurePrefs() {
+    if (!_ctx.userPrefs) _ctx.userPrefs = {};
+    _ctx.userPrefs.removed = _ctx.userPrefs.removed || [];
+    _ctx.userPrefs.pinned = _ctx.userPrefs.pinned || [];
+    _ctx.userPrefs.order = _ctx.userPrefs.order || [];
+    return _ctx.userPrefs;
+  }
+  async function persistPrefs() {
+    try {
+      await fetch(API + '/me/widget-prefs', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token() },
+        body: JSON.stringify(_ctx.userPrefs)
+      });
+    } catch (_) {/* best-effort; UI already updated */}
+  }
+  async function togglePin(id) { const p = ensurePrefs(); const i = p.pinned.indexOf(id); i >= 0 ? p.pinned.splice(i, 1) : p.pinned.push(id); await persistPrefs(); renderDashboard(_mount, _ctx); }
+  async function removeWidget(id) { const p = ensurePrefs(); if (!p.removed.includes(id)) p.removed.push(id); await persistPrefs(); renderDashboard(_mount, _ctx); }
+  async function addWidget(id) { const p = ensurePrefs(); const i = p.removed.indexOf(id); if (i >= 0) p.removed.splice(i, 1); await persistPrefs(); renderDashboard(_mount, _ctx); }
 
   // ── BOOT — resolve context, then compose ────────────────────────────────────
   async function getContext() {
@@ -180,5 +287,5 @@
     return null;
   }
 
-  global.EduOSWidgets = { WIDGETS, resolveWidgets, renderDashboard, boot, getContext, widgetForIntent, api, esc };
+  global.EduOSWidgets = { WIDGETS, resolveWidgets, hiddenWidgets, renderDashboard, boot, getContext, widgetForIntent, togglePin, removeWidget, addWidget, api, esc };
 })(window);

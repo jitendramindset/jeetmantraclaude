@@ -25,7 +25,14 @@ nav a.lk:hover{color:var(--jm-primary)}
 .wg-small{grid-column:span 1}.wg-medium{grid-column:span 2}.wg-large{grid-column:span 3}.wg-full{grid-column:1/-1}
 .wg-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
 .wg-title{font-size:13px;font-weight:800;letter-spacing:-.01em}
-.wg-pin{font-size:12px}
+.wg-ctrls{display:flex;gap:2px;opacity:0;transition:opacity .15s}
+.wg-card:hover .wg-ctrls,.wg-card:focus-within .wg-ctrls{opacity:1}
+.wg-ctrl{background:none;border:none;cursor:pointer;font-size:12px;padding:2px 4px;border-radius:6px;color:var(--jm-text-muted);line-height:1}
+.wg-ctrl:hover{background:var(--jm-surface-2,#eef);color:var(--jm-text)}
+.wg-add-tray{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:18px;padding-top:14px;border-top:1px dashed var(--jm-border)}
+.wg-add-label{font-size:12px;color:var(--jm-text-muted);font-weight:700}
+.wg-add{background:var(--jm-surface);border:1.5px dashed var(--jm-border);color:var(--jm-text-strong);font-size:12px;font-weight:600;padding:6px 11px;border-radius:999px;cursor:pointer}
+.wg-add:hover{border-color:var(--jm-primary);color:var(--jm-primary)}
 .wg-body{font-size:13px;color:var(--jm-text-strong)}
 .wg-big{font-size:30px;font-weight:800;color:var(--jm-primary);line-height:1.1}
 .wg-sub{font-size:12px;color:var(--jm-text-muted);margin-top:2px}
@@ -70,6 +77,7 @@ nav a.lk:hover{color:var(--jm-primary)}
   <div class="wg-grid" id="wgGrid">
     <div class="wg-card wg-full"><div class="wg-body"><div class="wg-skel"></div><div class="wg-skel w60"></div></div></div>
   </div>
+  <div class="wg-add-tray" id="wgAddTray"></div>
 </div>
 
 <script src="/widget-registry.js"></script>
