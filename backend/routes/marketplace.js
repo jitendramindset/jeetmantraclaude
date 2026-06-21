@@ -30,7 +30,7 @@ async function attachSellers(listings) {
 // GET /api/marketplace — browse all active listings
 router.get('/', async (req, res) => {
   try {
-    const { category, priceMin, priceMax, q, page = 1, limit = 12 } = req.query;
+    const { category, priceMin, priceMax, q, level, mode, city, sort, page = 1, limit = 12 } = req.query;
     const offset = (parseInt(page) - 1) * parseInt(limit);
 
     // NB: jeetmantra_users.id is VARCHAR while seller_id is UUID, so there's no
@@ -45,8 +45,17 @@ router.get('/', async (req, res) => {
 
     if (priceMin) query = query.gte('price', parseFloat(priceMin));
     if (priceMax) query = query.lte('price', parseFloat(priceMax));
-    // Category filter uses inner join so PostgREST filters on the FK side.
+    // Category + facet filters use the inner join so PostgREST filters on the
+    // FK (course) side. mode maps to courses.class_mode (online/offline/hybrid).
     if (category) query = query.eq('courses.category', category);
+    if (level)    query = query.eq('courses.level', level);
+    if (mode)     query = query.eq('courses.class_mode', mode);
+    if (city)     query = query.ilike('courses.city', `%${String(city).replace(/[,()*%\\]/g, ' ').trim()}%`);
+
+    // Sort: newest (default) | price_low | price_high.
+    if (sort === 'price_low')  query = query.order('price', { ascending: true });
+    else if (sort === 'price_high') query = query.order('price', { ascending: false });
+    else query = query.order('created_at', { ascending: false });
 
     // Pagination applied AFTER all filters
     query = query.range(offset, offset + parseInt(limit) - 1);
@@ -93,6 +102,56 @@ router.get('/', async (req, res) => {
     console.error('Marketplace list error:', error);
     res.status(500).json({ error: 'Failed to fetch marketplace listings' });
   }
+});
+
+// GET /api/marketplace/facets — distinct filter values for the discovery rail
+// (categories, levels, modes, cities). Public. Derived from active-listing
+// courses so facets reflect what's actually buyable.
+router.get('/facets', async (req, res) => {
+  try {
+    const { data: listings } = await supabaseAdmin
+      .from('marketplace_listings')
+      .select('price, courses(category,level,class_mode,city)')
+      .eq('status', 'active');
+    const rows = (listings || []).map(l => l.courses).filter(Boolean);
+    const uniq = key => [...new Set(rows.map(r => r[key]).filter(Boolean))].sort();
+    const prices = (listings || []).map(l => parseFloat(l.price)).filter(p => !isNaN(p));
+    res.json({
+      categories: uniq('category'),
+      levels: uniq('level'),
+      modes: uniq('class_mode'),
+      cities: uniq('city'),
+      priceRange: prices.length ? { min: Math.min(...prices), max: Math.max(...prices) } : { min: 0, max: 0 }
+    });
+  } catch (e) { res.json({ categories: [], levels: [], modes: [], cities: [], priceRange: { min: 0, max: 0 } }); }
+});
+
+// GET /api/marketplace/trending — most-purchased active listings (last 30d
+// fallback: all-time). Public.
+router.get('/trending', async (req, res) => {
+  try {
+    const limit = Math.min(24, Math.max(1, Number(req.query.limit) || 8));
+    const { data: purchases } = await supabaseAdmin.from('marketplace_purchases').select('listing_id');
+    const counts = {};
+    (purchases || []).forEach(p => { if (p.listing_id) counts[p.listing_id] = (counts[p.listing_id] || 0) + 1; });
+    const topIds = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, limit).map(([id]) => id);
+    let listings = [];
+    if (topIds.length) {
+      const { data } = await supabaseAdmin.from('marketplace_listings')
+        .select('*, courses(id,title,category,level,cover_image,city,class_mode)')
+        .in('id', topIds).eq('status', 'active');
+      const order = Object.fromEntries(topIds.map((id, i) => [id, i]));
+      listings = (data || []).sort((a, b) => order[a.id] - order[b.id]).map(l => ({ ...l, purchases: counts[l.id] }));
+    } else {
+      // Cold start: newest active listings.
+      const { data } = await supabaseAdmin.from('marketplace_listings')
+        .select('*, courses(id,title,category,level,cover_image,city,class_mode)')
+        .eq('status', 'active').order('created_at', { ascending: false }).limit(limit);
+      listings = data || [];
+    }
+    listings = await attachSellers(listings);
+    res.json({ listings });
+  } catch (e) { res.json({ listings: [] }); }
 });
 
 // GET /api/marketplace/my/listings — seller's own listings
