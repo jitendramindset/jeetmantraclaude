@@ -41,7 +41,7 @@
         { icon: '🛡️', label: 'Platform OS', href: '/admin-os.html', show: isAdmin }
       ] },
       { group: 'Account', show: !!u, items: [
-        { icon: '⚙️', label: 'Settings', href: '/dashboard.html#settings' },
+        { icon: '⚙️', label: 'Settings', href: '/settings.html' },
         { icon: '👤', label: 'Profile', href: '/dashboard.html#profile' },
         { icon: '🚪', label: 'Log out', action: 'logout' }
       ] },
