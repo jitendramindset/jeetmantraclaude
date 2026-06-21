@@ -9,8 +9,8 @@ services:
       - "5678:5678"
     environment:
       - N8N_BASIC_AUTH_ACTIVE=true
-      - N8N_BASIC_AUTH_USER=admin
-      - N8N_BASIC_AUTH_PASSWORD=jeetmantra123
+      - N8N_BASIC_AUTH_USER=${N8N_USER:-admin}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD:?set N8N_PASSWORD in your .env}
       - N8N_HOST=localhost
       - N8N_PORT=5678
       - N8N_PROTOCOL=http
@@ -35,7 +35,7 @@ services:
     container_name: jeetmantra_db
     environment:
       POSTGRES_USER: jeetmantra_user
-      POSTGRES_PASSWORD: jeetmantra_secure_pwd_123
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in your .env}
       POSTGRES_DB: jeetmantra_db
     ports:
       - "5432:5432"

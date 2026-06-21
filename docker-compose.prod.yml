@@ -1,0 +1,122 @@
+# EduOS / JeetMantra — production stack for a single Ubuntu VPS.
+#
+#   cp .env.example .env.production   # fill in real values
+#   docker compose -f docker-compose.prod.yml --env-file .env.production up -d
+#
+# Auto-update flow: GitHub Actions builds + pushes ghcr.io/<owner>/<repo>:latest
+# on every push to main; Watchtower (below) polls GHCR and recreates the `api`
+# container with the new image — no manual deploy step.
+#
+# NOTE: Supabase is self-hosted separately (its own compose / host) — this stack
+# talks to it over HTTPS via SUPABASE_URL.
+
+services:
+  # ── Reverse proxy + automatic TLS (Let's Encrypt) ──────────────────────────
+  proxy:
+    image: traefik:v3.1
+    container_name: eduos_proxy
+    restart: always
+    command:
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --certificatesresolvers.le.acme.email=${ACME_EMAIL}
+      - --certificatesresolvers.le.acme.storage=/letsencrypt/acme.json
+      - --certificatesresolvers.le.acme.httpchallenge.entrypoint=web
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - letsencrypt:/letsencrypt
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks: [edge]
+
+  # ── Application (Node API + static frontend) ───────────────────────────────
+  api:
+    image: ${API_IMAGE:-ghcr.io/jitendramindset/jeetmantraclaude:latest}
+    container_name: eduos_api
+    restart: always
+    env_file: [.env.production]
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      - REDIS_URL=redis://redis:6379
+    depends_on: [redis]
+    networks: [edge, internal]
+    deploy:
+      resources:
+        limits: { cpus: "2.0", memory: 1500M }
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:5000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.api.rule=Host(`${APP_DOMAIN}`)
+      - traefik.http.routers.api.entrypoints=websecure
+      - traefik.http.routers.api.tls.certresolver=le
+      - traefik.http.services.api.loadbalancer.server.port=5000
+      - com.centurylinklabs.watchtower.enable=true   # Watchtower watches this one
+
+  # ── Cache ──────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: eduos_redis
+    restart: always
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    volumes: [redis_data:/data]
+    networks: [internal]
+    deploy:
+      resources:
+        limits: { memory: 320M }
+
+  # ── n8n automation (creds via env — NOT hardcoded) ─────────────────────────
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: eduos_n8n
+    restart: always
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=${N8N_USER}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD}
+      - N8N_HOST=${N8N_DOMAIN}
+      - N8N_PROTOCOL=https
+      - WEBHOOK_URL=https://${N8N_DOMAIN}/
+      - GENERIC_TIMEZONE=Asia/Kolkata
+    volumes: [n8n_data:/home/node/.n8n]
+    networks: [edge, internal]
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.n8n.rule=Host(`${N8N_DOMAIN}`)
+      - traefik.http.routers.n8n.entrypoints=websecure
+      - traefik.http.routers.n8n.tls.certresolver=le
+      - traefik.http.services.n8n.loadbalancer.server.port=5678
+
+  # ── Auto-updater: pulls new images for labeled containers ──────────────────
+  watchtower:
+    image: containrrr/watchtower
+    container_name: eduos_watchtower
+    restart: always
+    environment:
+      - WATCHTOWER_LABEL_ENABLE=true          # only update containers we opted in
+      - WATCHTOWER_CLEANUP=true               # remove old images
+      - WATCHTOWER_POLL_INTERVAL=120          # check GHCR every 2 min
+      - WATCHTOWER_INCLUDE_RESTARTING=true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${HOME}/.docker/config.json:/config.json:ro   # GHCR auth for private images
+    networks: [internal]
+
+volumes:
+  letsencrypt:
+  redis_data:
+  n8n_data:
+
+networks:
+  edge:
+  internal:

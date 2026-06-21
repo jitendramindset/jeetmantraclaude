@@ -55,7 +55,15 @@ const { cacheMiddleware, syncMiddleware } = require('./middleware/datasync');
 
 const app = express();
 
-app.use(cors({ origin: process.env.FRONTEND_URL || '*', credentials: true }));
+// Production hardening: trust proxy + helmet + compression + rate limiting.
+require('./middleware/security').applySecurity(app);
+
+// CORS: lock to FRONTEND_URL in production (comma-separated list allowed); only
+// the dev convenience falls back to permissive '*'.
+const _cors = process.env.FRONTEND_URL
+  ? process.env.FRONTEND_URL.split(',').map(s => s.trim())
+  : (process.env.NODE_ENV === 'production' ? false : '*');
+app.use(cors({ origin: _cors, credentials: true }));
 // The Razorpay webhook signature is computed over the RAW request bytes, so it
 // must be parsed as a Buffer BEFORE the global JSON parser consumes the stream.
 // Path-specific raw parser first; everything else gets JSON.

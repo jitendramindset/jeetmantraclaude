@@ -1,0 +1,73 @@
+name: build-and-publish
+
+# Build the production image on every push to main and publish it to GHCR.
+# The VPS runs Watchtower, which polls GHCR and recreates the `api` container
+# with the new image automatically — so "update the container time by time"
+# requires nothing beyond merging to main.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - 'public/**'
+      - 'backend/Dockerfile'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch: {}   # allow manual rebuild from the Actions tab
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write          # push to GHCR
+
+env:
+  IMAGE: ghcr.io/${{ github.repository }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Image metadata (tags)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            type=raw,value=latest
+            type=sha,prefix=,format=short
+
+      - name: Build & push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: backend/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Best-effort vulnerability scan (non-blocking — surfaces issues in the
+      # Actions log without failing the publish).
+      - name: Trivy image scan
+        uses: aquasecurity/trivy-action@0.24.0
+        continue-on-error: true
+        with:
+          image-ref: ${{ env.IMAGE }}:latest
+          format: table
+          severity: HIGH,CRITICAL
