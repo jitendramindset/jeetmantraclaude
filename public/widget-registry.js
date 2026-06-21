@@ -210,6 +210,9 @@
     const card = document.createElement('section');
     card.className = 'wg-card wg-' + (w.size || 'medium') + (w._pinned ? ' wg-pinned' : '');
     card.dataset.widget = w.id;
+    card.setAttribute('role', 'region');
+    card.setAttribute('aria-label', w.title);
+    card.tabIndex = 0;
     const ctrls = `<span class="wg-ctrls"><button class="wg-ctrl" title="${w._pinned ? 'Unpin' : 'Pin'}" aria-label="Pin widget" onclick="EduOSWidgets.togglePin('${w.id}')">${w._pinned ? '📌' : '📍'}</button><button class="wg-ctrl" title="Hide widget" aria-label="Hide widget" onclick="EduOSWidgets.removeWidget('${w.id}')">✕</button></span>`;
     card.innerHTML = `<header class="wg-head"><span class="wg-title">${esc(w.title)}</span>${ctrls}</header><div class="wg-body">${skeleton()}</div>`;
     const body = card.querySelector('.wg-body');
@@ -255,9 +258,9 @@
       });
     } catch (_) {/* best-effort; UI already updated */}
   }
-  async function togglePin(id) { const p = ensurePrefs(); const i = p.pinned.indexOf(id); i >= 0 ? p.pinned.splice(i, 1) : p.pinned.push(id); await persistPrefs(); renderDashboard(_mount, _ctx); }
-  async function removeWidget(id) { const p = ensurePrefs(); if (!p.removed.includes(id)) p.removed.push(id); await persistPrefs(); renderDashboard(_mount, _ctx); }
-  async function addWidget(id) { const p = ensurePrefs(); const i = p.removed.indexOf(id); if (i >= 0) p.removed.splice(i, 1); await persistPrefs(); renderDashboard(_mount, _ctx); }
+  async function togglePin(id) { const p = ensurePrefs(); const i = p.pinned.indexOf(id); i >= 0 ? p.pinned.splice(i, 1) : p.pinned.push(id); await persistPrefs(); await renderDashboard(_mount, _ctx); }
+  async function removeWidget(id) { const p = ensurePrefs(); if (!p.removed.includes(id)) p.removed.push(id); await persistPrefs(); await renderDashboard(_mount, _ctx); }
+  async function addWidget(id) { const p = ensurePrefs(); const i = p.removed.indexOf(id); if (i >= 0) p.removed.splice(i, 1); await persistPrefs(); await renderDashboard(_mount, _ctx); }
 
   // ── BOOT — resolve context, then compose ────────────────────────────────────
   async function getContext() {
@@ -287,5 +290,47 @@
     return null;
   }
 
-  global.EduOSWidgets = { WIDGETS, resolveWidgets, hiddenWidgets, renderDashboard, boot, getContext, widgetForIntent, togglePin, removeWidget, addWidget, api, esc };
+  // Action verbs that navigate/execute rather than surface a widget.
+  const ACTION_VERBS = [
+    { kw: ['create course', 'new course'], href: 'dashboard.html#create' },
+    { kw: ['schedule class', 'new class', 'schedule a class'], href: 'dashboard.html#live' },
+    { kw: ['take attendance', 'mark attendance'], href: 'dashboard.html#attendance' },
+    { kw: ['generate test', 'create test', 'make a test'], href: 'dashboard.html#tests' },
+    { kw: ['open marketplace', 'browse courses', 'marketplace'], href: 'marketplace.html' },
+    { kw: ['open calendar', 'my calendar'], href: 'dashboard.html#calendar' }
+  ];
+
+  // W4 — handle a natural-language command from the palette or voice:
+  // 1) surface the matching widget (add it back if hidden, scroll + flash), or
+  // 2) run a matching action verb (navigate). Returns what it did.
+  async function handleCommand(phrase) {
+    const p = String(phrase || '').toLowerCase().trim();
+    if (!p) return { action: 'none' };
+    const id = widgetForIntent(p);
+    if (id && _mount) {
+      if ((_ctx?.userPrefs?.removed || []).includes(id)) await addWidget(id);
+      const el = _mount.querySelector(`[data-widget="${id}"]`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        try { el.animate([{ boxShadow: '0 0 0 3px var(--jm-primary,#7c3aed)' }, { boxShadow: '0 0 0 0 transparent' }], { duration: 1400 }); } catch (_) {}
+        el.focus?.();
+      }
+      return { action: 'widget', id };
+    }
+    for (const v of ACTION_VERBS) if (v.kw.some(k => p.includes(k))) { location.href = v.href; return { action: 'navigate', href: v.href }; }
+    return { action: 'none' };
+  }
+
+  // Optional voice entry — Web Speech API, falls back silently if unsupported.
+  function listen(onResult) {
+    const SR = global.SpeechRecognition || global.webkitSpeechRecognition;
+    if (!SR) { return false; }
+    const r = new SR();
+    r.lang = (_ctx && _ctx.locale === 'hi') ? 'hi-IN' : 'en-IN';
+    r.interimResults = false; r.maxAlternatives = 1;
+    r.onresult = e => { const t = e.results[0][0].transcript; (onResult || handleCommand)(t); };
+    try { r.start(); return true; } catch (_) { return false; }
+  }
+
+  global.EduOSWidgets = { WIDGETS, resolveWidgets, hiddenWidgets, renderDashboard, boot, getContext, widgetForIntent, handleCommand, listen, togglePin, removeWidget, addWidget, api, esc };
 })(window);

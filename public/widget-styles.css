@@ -41,3 +41,23 @@
 @media(max-width:1024px){.wg-grid{grid-template-columns:repeat(2,1fr)}.wg-medium,.wg-large,.wg-full{grid-column:1/-1}}
 @media(max-width:560px){.wg-grid{grid-template-columns:1fr}.wg-small{grid-column:1/-1}}
 @media(prefers-reduced-motion:reduce){.wg-card,.wg-skel{animation:none!important}}
+/* W5 — wide tiers: re-flow into MORE columns rather than widening cards. */
+@media(min-width:1700px){.wg-grid{grid-template-columns:repeat(6,1fr)}.wg-large{grid-column:span 3}.wg-medium{grid-column:span 2}}
+/* Smartboard / large touch — bigger targets + type; controls always shown
+   (no hover on touch). */
+@media(min-width:1280px) and (pointer:coarse){
+  .wg-card{padding:22px}.wg-title{font-size:15px}.wg-big{font-size:34px}
+  .wg-action,.wg-add{padding:12px 18px;font-size:15px}
+  .wg-ctrl{font-size:17px;padding:7px 9px}.wg-ctrls{opacity:1}
+  .wg-row{padding:10px 0}
+}
+/* TV / 10-foot UI — oversized type, generous spacing, controls visible. */
+@media(min-width:2200px){
+  .wg-grid{grid-template-columns:repeat(6,1fr);gap:24px}
+  .wg-card{padding:28px}.wg-big{font-size:44px}.wg-title{font-size:18px}.wg-body{font-size:16px}
+  .wg-ctrls{opacity:1}
+}
+/* A11y — visible focus rings + reveal controls on keyboard focus. */
+.wg-card:focus-within .wg-ctrls{opacity:1}
+.wg-card:focus-within{outline:2px solid var(--jm-primary,#7c3aed);outline-offset:2px}
+.wg-ctrl:focus-visible,.wg-action:focus-visible,.wg-add:focus-visible,.wg-link:focus-visible,.wg-row:focus-visible,.wg-mini:focus-visible{outline:2px solid var(--jm-primary,#7c3aed);outline-offset:2px;border-radius:6px}

@@ -506,7 +506,14 @@ html[data-theme="dark"]{
     </div>
 
     <!-- WIDGET DASHBOARD (W1 engine) — default for student/teacher; toggle to classic -->
-    <div id="wgModeBar" style="display:none;justify-content:flex-end;margin-bottom:10px">
+    <div id="wgModeBar" style="display:none;align-items:center;gap:8px;margin-bottom:10px">
+      <input id="wgCmd" type="text" placeholder="Ask or command… e.g. show revenue" aria-label="Command palette"
+        onkeydown="if(event.key==='Enter'){EduOSWidgets.handleCommand(this.value);this.value='';}"
+        style="flex:1;max-width:420px;font-size:13px;background:var(--jm-surface,#fff);border:1px solid var(--jm-border,#ddd);border-radius:8px;padding:7px 12px;color:var(--jm-text-strong,#333);outline:none">
+      <button id="wgMic" type="button" title="Voice command" aria-label="Voice command"
+        onclick="if(!EduOSWidgets.listen())alert('Voice not supported in this browser')"
+        style="font-size:14px;background:var(--jm-surface,#fff);border:1px solid var(--jm-border,#ddd);border-radius:8px;padding:6px 11px;cursor:pointer">🎤</button>
+      <div style="flex:1"></div>
       <button id="wgToggle" type="button" onclick="toggleWidgetMode()" style="font-size:12px;font-weight:700;background:var(--jm-surface,#fff);border:1px solid var(--jm-border,#ddd);border-radius:8px;padding:6px 12px;cursor:pointer;color:var(--jm-text-strong,#333)">🗂️ Classic view</button>
     </div>
     <div id="wgPanel" style="display:none">
