@@ -124,11 +124,33 @@ function generateOTP() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-// Send OTP (mock - in production use Twilio or AWS SNS)
-function sendOTP(phone, otp) {
-  console.log(`📱 OTP for ${phone}: ${otp}`);
-  // In production: await twilioClient.messages.create({...});
-  return true;
+// Send OTP via SMS. Real delivery when a provider is configured, else logs to
+// console (dev). Two providers, checked in order:
+//   1. SMS_WEBHOOK_URL  — POST {phone, otp, message} (works great with n8n).
+//   2. Twilio           — TWILIO_SID / TWILIO_TOKEN / TWILIO_FROM (REST, no SDK).
+async function sendOTP(phone, otp) {
+  const msg = `Your JeetMantra OTP is ${otp}. Valid 10 minutes. Do not share it.`;
+  const to = phone.startsWith('+') ? phone : '+91' + phone.replace(/\D/g, '').slice(-10);
+  try {
+    if (process.env.SMS_WEBHOOK_URL) {
+      const axios = require('axios');
+      await axios.post(process.env.SMS_WEBHOOK_URL, { phone: to, otp, message: msg },
+        { headers: process.env.SMS_WEBHOOK_SECRET ? { 'x-sms-secret': process.env.SMS_WEBHOOK_SECRET } : {}, timeout: 8000 });
+      console.log(`📱 OTP sent to ${to} via SMS webhook`);
+      return { sent: true, mode: 'webhook' };
+    }
+    if (process.env.TWILIO_SID && process.env.TWILIO_TOKEN && process.env.TWILIO_FROM) {
+      const axios = require('axios');
+      const sid = process.env.TWILIO_SID;
+      await axios.post(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`,
+        new URLSearchParams({ To: to, From: process.env.TWILIO_FROM, Body: msg }).toString(),
+        { auth: { username: sid, password: process.env.TWILIO_TOKEN }, headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, timeout: 10000 });
+      console.log(`📱 OTP sent to ${to} via Twilio`);
+      return { sent: true, mode: 'twilio' };
+    }
+  } catch (e) { console.error('[sms] send failed:', e.response?.data || e.message); return { sent: false, mode: 'error', error: e.message }; }
+  console.log(`📱 [console-only — no SMS provider configured] OTP for ${to}: ${otp}`);
+  return { sent: false, mode: 'console' };
 }
 
 // Sign up
@@ -432,15 +454,16 @@ router.post('/send-otp', ipLimit(8), async (req, res) => {
     // Store OTP (DB-backed with hash, falls back to in-memory)
     await storeOtp(phone, otp);
 
-    // Send OTP (mock - in production use Twilio)
-    sendOTP(phone, otp);
-
-    console.log(`✅ OTP sent to ${phone}: ${otp}`);
+    // Deliver via configured SMS provider (webhook/Twilio), else console (dev).
+    const smsResult = await sendOTP(phone, otp);
 
     res.json({
       message: 'OTP sent successfully',
       phone: phone.slice(-4), // Return last 4 digits for security
-      expiresIn: 600 // 10 minutes
+      expiresIn: 600, // 10 minutes
+      // In non-production with no SMS provider, surface the delivery mode so the
+      // tester knows to read the OTP from the server console.
+      ...(process.env.NODE_ENV !== 'production' ? { _delivery: smsResult.mode } : {})
     });
   } catch (error) {
     console.error('OTP send error:', error);
@@ -537,12 +560,38 @@ async function issueToken(userId, purpose, ttlMinutes) {
   return token;
 }
 
-// Pretend-mailer. In prod, replace with SendGrid/SES/Resend etc.
+// Mailer — real SMTP (Gmail/SES/etc.) when configured, else logs to console so
+// dev works without credentials. Configure via SMTP_* env (see .env.example):
+//   SMTP_HOST=smtp.gmail.com SMTP_PORT=587 SMTP_USER=you@gmail.com
+//   SMTP_PASS=<gmail app password> SMTP_FROM="JeetMantra <you@gmail.com>"
+let _mailTransport = null;
+function _getTransport() {
+  if (_mailTransport !== null) return _mailTransport;
+  const user = process.env.SMTP_USER, pass = process.env.SMTP_PASS;
+  if (!user || !pass) { _mailTransport = false; return false; } // not configured
+  try {
+    const nodemailer = require('nodemailer');
+    _mailTransport = nodemailer.createTransport({
+      host: process.env.SMTP_HOST || 'smtp.gmail.com',
+      port: Number(process.env.SMTP_PORT || 587),
+      secure: Number(process.env.SMTP_PORT) === 465,
+      auth: { user, pass }
+    });
+    return _mailTransport;
+  } catch (e) { console.warn('[mail] nodemailer unavailable:', e.message); _mailTransport = false; return false; }
+}
 async function sendMail(to, subject, body) {
-  console.log(`📧 to=${to} subject="${subject}"\n${body}\n`);
-  // Hook for production mail provider — left as a noop so dev works without
-  // SMTP credentials.
-  return true;
+  const t = _getTransport();
+  if (!t) { console.log(`📧 [console-only — SMTP not configured] to=${to} subject="${subject}"\n${body}\n`); return { sent: false, mode: 'console' }; }
+  try {
+    const isHtml = /<[a-z][\s\S]*>/i.test(body);
+    await t.sendMail({
+      from: process.env.SMTP_FROM || process.env.SMTP_USER,
+      to, subject, [isHtml ? 'html' : 'text']: body
+    });
+    console.log(`📧 sent to ${to} ("${subject}") via SMTP`);
+    return { sent: true, mode: 'smtp' };
+  } catch (e) { console.error('[mail] send failed:', e.message); return { sent: false, mode: 'error', error: e.message }; }
 }
 
 // ── PASSWORD RESET ─────────────────────────────────────────────────────
