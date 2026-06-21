@@ -106,6 +106,27 @@ select.filter-select{background:var(--jm-surface);border:1.5px solid var(--jm-bo
 .sk-line.w60{width:60%}.sk-line.w40{width:40%}.sk-line.w80{width:80%}
 .sk-img{background:linear-gradient(90deg,rgba(150,150,150,.12) 25%,rgba(150,150,150,.22) 37%,rgba(150,150,150,.12) 63%);background-size:400% 100%;animation:skShimmer 1.4s ease infinite}
 @keyframes skShimmer{0%{background-position:100% 0}100%{background-position:-100% 0}}
+/* FACET RAIL — left sidebar of server-driven filters */
+.mp-shell{display:grid;grid-template-columns:230px 1fr;gap:24px;align-items:start}
+.facet-rail{position:sticky;top:80px;background:var(--jm-surface);border:1px solid var(--jm-border);border-radius:var(--jm-radius);padding:16px;box-shadow:var(--jm-shadow-sm)}
+.facet-rail h3{font-size:14px;font-weight:800;margin-bottom:14px;letter-spacing:-0.01em}
+.facet-group{margin-bottom:18px}
+.facet-group h4{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--jm-text-muted);margin-bottom:8px;font-weight:700}
+.facet-chip{display:inline-block;padding:6px 11px;margin:0 6px 6px 0;border-radius:var(--jm-radius-pill);border:1.5px solid var(--jm-border);font-size:12px;cursor:pointer;font-weight:600;color:var(--jm-text-strong);transition:all .15s;user-select:none}
+.facet-chip:hover{border-color:var(--jm-primary);color:var(--jm-primary)}
+.facet-chip.active{background:var(--jm-primary);color:#fff;border-color:var(--jm-primary)}
+.facet-price{display:flex;gap:6px}
+.facet-price input{flex:1;min-width:0;background:var(--jm-surface);border:1.5px solid var(--jm-border);border-radius:var(--jm-radius-sm);padding:7px 9px;font-size:12px;color:var(--jm-text);font-family:inherit;outline:none}
+/* TRENDING ROW */
+.trending-row{margin-bottom:28px}
+.trending-scroll{display:flex;gap:16px;overflow-x:auto;padding:4px 2px 10px;scroll-snap-type:x mandatory}
+.trending-scroll .course-card{min-width:230px;max-width:230px;scroll-snap-align:start}
+.trending-scroll .course-card .course-thumb{height:120px}
+@media(max-width:900px){
+  .mp-shell{grid-template-columns:1fr}
+  .facet-rail{position:static}
+  .facet-rail .facet-body{display:flex;flex-wrap:wrap;gap:0 18px}
+}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 </style>
 <script src="/jm-theme.js"></script>
@@ -138,13 +159,7 @@ select.filter-select{background:var(--jm-surface);border:1.5px solid var(--jm-bo
   <div class="cat-pill" onclick="filterCategory('Physics',this)">⚛️ Physics</div>
   <div class="cat-pill" onclick="filterCategory('Chemistry',this)">🧪 Chemistry</div>
   <div class="filter-right">
-    <select class="filter-select" onchange="filterLevel(this.value)">
-      <option value="">All Levels</option>
-      <option value="beginner">Beginner</option>
-      <option value="intermediate">Intermediate</option>
-      <option value="advanced">Advanced</option>
-    </select>
-    <select class="filter-select" onchange="sortListings(this.value)">
+    <select class="filter-select" onchange="sortListings(this.value)" aria-label="Sort courses">
       <option value="newest">Newest</option>
       <option value="price-low">Price: Low to High</option>
       <option value="price-high">Price: High to Low</option>
@@ -170,19 +185,57 @@ select.filter-select{background:var(--jm-surface);border:1.5px solid var(--jm-bo
     <div class="courses-grid" id="myPurchasesGrid"></div>
   </div>
 
-  <!-- ALL LISTINGS -->
-  <div>
-    <div class="section-head">
-      <h2 id="resultsTitle">All Courses</h2>
-      <span id="resultsCount" style="color:#888;font-size:13px"></span>
-    </div>
-    <div id="loadingState" class="loading">⏳ Loading courses...</div>
-    <div class="courses-grid" id="coursesGrid"></div>
-    <div id="emptyState" class="empty-state" style="display:none">
-      <div class="icon">🔍</div>
-      <div>No courses found</div>
-      <div style="font-size:13px;margin-top:8px">Try a different search or category</div>
-      <button class="btn btn-primary" style="margin-top:14px" onclick="filterCategory('all',document.querySelector('.cat-pill'));document.getElementById('navSearch').value='';">↺ Show all courses</button>
+  <!-- TRENDING -->
+  <div class="trending-row" id="trendingRow" style="display:none">
+    <div class="section-head"><h2>🔥 Trending Now</h2></div>
+    <div class="trending-scroll" id="trendingScroll"></div>
+  </div>
+
+  <!-- FACET RAIL + RESULTS -->
+  <div class="mp-shell">
+    <aside class="facet-rail" id="facetRail" aria-label="Filter courses">
+      <h3>Filters</h3>
+      <div class="facet-body">
+        <div class="facet-group">
+          <h4>Mode</h4>
+          <div id="facetModes"><span style="font-size:12px;color:var(--jm-text-muted)">—</span></div>
+        </div>
+        <div class="facet-group">
+          <h4>Level</h4>
+          <div id="facetLevels"><span style="font-size:12px;color:var(--jm-text-muted)">—</span></div>
+        </div>
+        <div class="facet-group">
+          <h4>City</h4>
+          <select class="filter-select" id="facetCity" style="width:100%" onchange="setFacet('city',this.value)" aria-label="Filter by city">
+            <option value="">All cities</option>
+          </select>
+        </div>
+        <div class="facet-group">
+          <h4>Price (₹)</h4>
+          <div class="facet-price">
+            <input type="number" id="facetMin" placeholder="Min" min="0" aria-label="Minimum price">
+            <input type="number" id="facetMax" placeholder="Max" min="0" aria-label="Maximum price">
+          </div>
+          <button class="btn btn-outline btn-sm" style="width:100%;margin-top:8px" onclick="applyPrice()">Apply price</button>
+        </div>
+      </div>
+      <button class="btn btn-outline btn-sm" style="width:100%" onclick="clearFacets()">↺ Clear all</button>
+    </aside>
+
+    <!-- ALL LISTINGS -->
+    <div>
+      <div class="section-head">
+        <h2 id="resultsTitle">All Courses</h2>
+        <span id="resultsCount" style="color:#888;font-size:13px"></span>
+      </div>
+      <div id="loadingState" class="loading">⏳ Loading courses...</div>
+      <div class="courses-grid" id="coursesGrid"></div>
+      <div id="emptyState" class="empty-state" style="display:none">
+        <div class="icon">🔍</div>
+        <div>No courses found</div>
+        <div style="font-size:13px;margin-top:8px">Try a different search or filter</div>
+        <button class="btn btn-primary" style="margin-top:14px" onclick="clearFacets();filterCategory('all',document.querySelector('.cat-pill'));document.getElementById('navSearch').value='';">↺ Show all courses</button>
+      </div>
     </div>
   </div>
 </div>
@@ -236,7 +289,9 @@ select.filter-select{background:var(--jm-surface);border:1.5px solid var(--jm-bo
 
 <script>
 const API=window.location.origin+'/api';
-let allListings=[],filteredListings=[],currentCategory='all',currentLevel='',currentSort='newest';
+let allListings=[],filteredListings=[];
+// Server-driven filter state — every change rebuilds the /api/marketplace query.
+const state={category:'all',level:'',mode:'',city:'',priceMin:'',priceMax:'',sort:'newest',q:''};
 let selectedListingId=null,purchasedIds=new Set();
 const token=localStorage.getItem('jm_token');
 const user=()=>{try{return JSON.parse(localStorage.getItem('jm_user'));}catch{return null;}};
@@ -334,52 +389,97 @@ function renderGrid(listings){
   grid.innerHTML=listings.map(l=>renderCard(l,purchasedIds.has(l.id))).join('');
 }
 
-function applyFilters(){
-  let list=[...allListings];
-  if(currentCategory!=='all') list=list.filter(l=>l.courses?.category===currentCategory);
-  if(currentLevel) list=list.filter(l=>l.courses?.level===currentLevel);
-  if(currentSort==='price-low') list.sort((a,b)=>a.price-b.price);
-  else if(currentSort==='price-high') list.sort((a,b)=>b.price-a.price);
-  filteredListings=list;
-  renderGrid(list);
+// Build the /api/marketplace query string from the current filter state.
+function buildQS(){
+  const p=new URLSearchParams();
+  if(state.category&&state.category!=='all') p.set('category',state.category);
+  if(state.level)    p.set('level',state.level);
+  if(state.mode)     p.set('mode',state.mode);
+  if(state.city)     p.set('city',state.city);
+  if(state.priceMin) p.set('priceMin',state.priceMin);
+  if(state.priceMax) p.set('priceMax',state.priceMax);
+  if(state.q)        p.set('q',state.q);
+  p.set('sort',{'price-low':'price_low','price-high':'price_high','newest':'newest'}[state.sort]||'newest');
+  p.set('limit','24');
+  return p.toString();
 }
 
+// applyFilters is the single refresh path — re-queries the server with state.
+function applyFilters(){ loadListings(); }
+
 function applySearch(q){
-  document.getElementById('resultsTitle').textContent=q?`Results for "${q}"`:'All Courses';
-  if(!q){applyFilters();return;}
-  showSkeletons(4);
-  fetch(API+'/search?q='+encodeURIComponent(q))
-    .then(r=>r.json())
-    .then(data=>{
-      const ids=new Set((data.results||[]).map(c=>c.id));
-      const matched=allListings.filter(l=>ids.has(l.course_id)||
-        (l.courses?.title||'').toLowerCase().includes(q.toLowerCase())||
-        (l.courses?.category||'').toLowerCase().includes(q.toLowerCase()));
-      renderGrid(matched);
-    }).catch(()=>{
-      // Network failed — fall back to a local filter so the user still sees
-      // results, and surface that search couldn't reach the server.
-      const local=allListings.filter(l=>
-        (l.courses?.title||'').toLowerCase().includes(q.toLowerCase())||
-        (l.courses?.category||'').toLowerCase().includes(q.toLowerCase()));
-      renderGrid(local);
-      const empty=document.getElementById('emptyState');
-      if(!local.length){empty.style.display='block';empty.innerHTML='<div class="icon">⚠️</div><div>Search is temporarily unavailable</div><div style="font-size:13px;margin-top:8px;opacity:.8">Please check your connection and try again.</div>';}
-    });
+  state.q=q||'';
+  document.getElementById('resultsTitle').textContent=q?`Results for "${q}"`:(state.category==='all'?'All Courses':state.category+' Courses');
+  loadListings();
 }
 
 function filterCategory(cat,el){
   document.querySelectorAll('.cat-pill').forEach(p=>{p.classList.remove('active');p.setAttribute('aria-selected','false');});
-  el.classList.add('active');
-  el.setAttribute('aria-selected','true');
-  currentCategory=cat;
+  if(el){el.classList.add('active');el.setAttribute('aria-selected','true');}
+  state.category=cat;
+  state.q='';
   document.getElementById('navSearch').value='';
   document.getElementById('resultsTitle').textContent=cat==='all'?'All Courses':cat+' Courses';
-  applyFilters();
+  loadListings();
 }
 
-function filterLevel(level){currentLevel=level;applyFilters();}
-function sortListings(sort){currentSort=sort;applyFilters();}
+function sortListings(sort){ state.sort=sort; loadListings(); }
+function setFacet(key,val){ state[key]=val; loadListings(); }
+
+// Toggle a single-select facet chip (mode/level). Re-click clears it.
+function toggleChip(key,val,el){
+  const wasActive=el.classList.contains('active');
+  document.querySelectorAll(`.facet-chip[data-facet="${key}"]`).forEach(c=>{c.classList.remove('active');c.setAttribute('aria-pressed','false');});
+  state[key]=wasActive?'':val;
+  if(!wasActive){el.classList.add('active');el.setAttribute('aria-pressed','true');}
+  loadListings();
+}
+
+function applyPrice(){
+  state.priceMin=document.getElementById('facetMin').value||'';
+  state.priceMax=document.getElementById('facetMax').value||'';
+  loadListings();
+}
+
+function clearFacets(){
+  state.level='';state.mode='';state.city='';state.priceMin='';state.priceMax='';
+  document.querySelectorAll('.facet-chip').forEach(c=>{c.classList.remove('active');c.setAttribute('aria-pressed','false');});
+  const city=document.getElementById('facetCity'); if(city) city.value='';
+  const mn=document.getElementById('facetMin'); if(mn) mn.value='';
+  const mx=document.getElementById('facetMax'); if(mx) mx.value='';
+  loadListings();
+}
+
+// Populate the facet rail from the live distinct values in the catalog.
+async function loadFacets(){
+  try{
+    const f=await (await fetch(API+'/marketplace/facets')).json();
+    const modeLabels={online:'💻 Online',offline:'🏫 Offline',hybrid:'🔀 Hybrid'};
+    const chip=(key,val,label)=>`<span class="facet-chip" data-facet="${key}" data-val="${val}" role="button" tabindex="0" aria-pressed="false" onclick="toggleChip('${key}','${val}',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">${label}</span>`;
+    const modes=(f.modes||[]).map(m=>chip('mode',m,modeLabels[m]||m)).join('');
+    document.getElementById('facetModes').innerHTML=modes||'<span style="font-size:12px;color:var(--jm-text-muted)">—</span>';
+    const levels=(f.levels||[]).map(l=>chip('level',l,l.charAt(0).toUpperCase()+l.slice(1))).join('');
+    document.getElementById('facetLevels').innerHTML=levels||'<span style="font-size:12px;color:var(--jm-text-muted)">—</span>';
+    const citySel=document.getElementById('facetCity');
+    if(citySel) citySel.innerHTML='<option value="">All cities</option>'+(f.cities||[]).map(c=>`<option value="${c}">${c}</option>`).join('');
+    if(f.priceRange){
+      const mn=document.getElementById('facetMin'),mx=document.getElementById('facetMax');
+      if(mn) mn.placeholder='₹'+(f.priceRange.min||0);
+      if(mx) mx.placeholder='₹'+(f.priceRange.max||0);
+    }
+  }catch(e){/* rail stays with placeholders */}
+}
+
+// Trending row — most-purchased active listings (cold-start: newest).
+async function loadTrending(){
+  try{
+    const data=await (await fetch(API+'/marketplace/trending?limit=8')).json();
+    const list=data.listings||[];
+    if(!list.length) return;
+    document.getElementById('trendingRow').style.display='block';
+    document.getElementById('trendingScroll').innerHTML=list.map(l=>renderCard(l,purchasedIds.has(l.id))).join('');
+  }catch(e){/* no trending row */}
+}
 
 function openPurchase(listingId){
   if(!token){window.location.href='/login.html';return;}
@@ -533,10 +633,11 @@ function showSkeletons(n){
 async function loadListings(){
   showSkeletons(8);
   try{
-    const res=await fetch(API+'/marketplace');
+    const res=await fetch(API+'/marketplace?'+buildQS());
     const data=await res.json();
     allListings=data.listings||[];
-    applyFilters();
+    filteredListings=allListings;
+    renderGrid(allListings);
   }catch{
     document.getElementById('loadingState').style.display='none';
     document.getElementById('emptyState').style.display='block';
@@ -587,10 +688,12 @@ function initUI(){
   });
 })();
 initUI();
-loadListings().then(()=>{
-  const q=new URLSearchParams(location.search).get('q');
-  if(q)applySearch(q);
-});
+loadFacets();
+// Seed q from the URL into state BEFORE the first query so deep links work.
+const urlQ=new URLSearchParams(location.search).get('q');
+if(urlQ) state.q=urlQ;
+loadListings();
+loadTrending();
 loadMyPurchases();
 </script>
 <script src="/i18n-seed.js?v=4"></script>
