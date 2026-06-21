@@ -50,7 +50,8 @@ CREATE TABLE IF NOT EXISTS resource_slots (
 CREATE INDEX IF NOT EXISTS idx_resource_slots_resource ON resource_slots(resource_id);
 
 -- ── Batch lifecycle (Coaching / Sports cohorts): status + capacity.
-ALTER TABLE batches ADD COLUMN IF NOT EXISTS status   varchar DEFAULT 'upcoming'; -- upcoming|running|completed|cancelled
-ALTER TABLE batches ADD COLUMN IF NOT EXISTS capacity int;
+-- The batches table is named course_batches in this schema.
+ALTER TABLE course_batches ADD COLUMN IF NOT EXISTS status   varchar DEFAULT 'upcoming'; -- upcoming|running|completed|cancelled
+ALTER TABLE course_batches ADD COLUMN IF NOT EXISTS capacity int;
 
 NOTIFY pgrst, 'reload schema';
