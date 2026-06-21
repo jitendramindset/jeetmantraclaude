@@ -389,6 +389,21 @@ const schemas = {
     newOwnerId: Joi.string().required()
   }),
 
+  // ── Sprint 9 (Phase A): active-context + org settings
+  activeContext: Joi.object({
+    orgId: Joi.string().required()
+  }),
+  orgSettings: Joi.object({
+    plan: Joi.string().max(40).optional(),
+    slug: Joi.string().lowercase().pattern(/^[a-z0-9-]+$/).max(120).allow('','null').optional(),
+    domain: Joi.string().max(200).allow('','null').optional(),
+    locale_default: Joi.string().max(10).optional(),
+    allowed_locales: Joi.array().items(Joi.string().max(10)).optional(),
+    seo: Joi.object().unknown(true).optional(),
+    branding: Joi.object().unknown(true).optional(),
+    settings: Joi.object().unknown(true).optional()
+  }).unknown(true),
+
   // ── Sprint 6: impersonation
   impersonationStart: Joi.object({
     targetUserId: Joi.string().required(),

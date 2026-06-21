@@ -208,6 +208,41 @@ router.post('/:id/transfer', authenticateToken, requireCapability('org.transfer'
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// GET /api/orgs/:id/settings — full settings blob (member-gated).
+router.get('/:id/settings', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin' && !(await isOrgMember(req.user.id, req.params.id))) {
+      return res.status(403).json({ error: 'Not a member of this organization' });
+    }
+    const { data } = await supabaseAdmin.from('organizations')
+      .select('id, name, type, category, plan, status, slug, domain, locale_default, allowed_locales, seo, branding, settings')
+      .eq('id', req.params.id).maybeSingle();
+    if (!data) return res.status(404).json({ error: 'Organization not found' });
+    res.json({ settings: data });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// PUT /api/orgs/:id/settings — update settings (org.branding capability + member).
+router.put('/:id/settings', authenticateToken, requireCapability('org.branding'), validate('orgSettings'), async (req, res) => {
+  try {
+    if (req.user.role !== 'admin' && !(await isOrgMember(req.user.id, req.params.id))) {
+      return res.status(403).json({ error: 'Not a member of this organization' });
+    }
+    const b = req.validatedData;
+    const updates = { updated_at: new Date().toISOString() };
+    ['slug', 'domain', 'locale_default', 'allowed_locales', 'seo', 'branding', 'settings', 'plan'].forEach(k => {
+      if (b[k] !== undefined) updates[k] = b[k];
+    });
+    const { data, error } = await supabaseAdmin.from('organizations').update(updates).eq('id', req.params.id).select().single();
+    if (error) {
+      if (/duplicate|unique/i.test(error.message)) return res.status(409).json({ error: 'That slug is already taken' });
+      return res.status(400).json({ error: error.message });
+    }
+    if (!data) return res.status(404).json({ error: 'Organization not found' });
+    res.json({ settings: data });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 module.exports = router;
 
 // ── Standalone helpers (mounted separately in server.js) ──────────────────

@@ -45,6 +45,7 @@ const notificationsRoutes = require('./routes/notifications');
 const certificatesRoutes  = require('./routes/certificates');
 // Sprint 7 — role-org unification foundation
 const orgsRoutes          = require('./routes/orgs');
+const meRoutes            = require('./routes/me');
 const ragRoutes           = require('./routes/rag');
 const { cacheMiddleware, syncMiddleware } = require('./middleware/datasync');
 
@@ -129,6 +130,7 @@ app.use('/api/certificates', certificatesRoutes);
 app.use('/api/orgs', orgsRoutes);
 app.use('/api/capabilities', orgsRoutes.capRouter);
 app.use('/api/categories', orgsRoutes.catRouter);
+app.use('/api/me', meRoutes);
 app.use('/api/rag', ragRoutes);
 
 // LevelDB sync queue endpoint
