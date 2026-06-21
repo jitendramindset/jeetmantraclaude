@@ -389,6 +389,30 @@ const schemas = {
     newOwnerId: Joi.string().required()
   }),
 
+  // ── Sprint 10 (Phase C): timetable + recurring booking slots
+  timetableTemplate: Joi.object({
+    orgId: Joi.string().required(),
+    name: Joi.string().min(1).max(200).required(),
+    courseId: Joi.string().allow('','null').optional(),
+    batchId: Joi.string().allow('','null').optional()
+  }).unknown(true),
+  timetableSlot: Joi.object({
+    dayOfWeek: Joi.number().integer().min(0).max(6).required(),
+    startTime: Joi.string().pattern(/^\d{2}:\d{2}$/).required(),
+    endTime: Joi.string().pattern(/^\d{2}:\d{2}$/).required(),
+    subject: Joi.string().max(200).allow('','null').optional(),
+    teacherId: Joi.string().allow('','null').optional(),
+    room: Joi.string().max(80).allow('','null').optional()
+  }).unknown(true),
+  resourceSlot: Joi.object({
+    dayOfWeek: Joi.number().integer().min(0).max(6).required(),
+    startTime: Joi.string().pattern(/^\d{2}:\d{2}$/).required(),
+    endTime: Joi.string().pattern(/^\d{2}:\d{2}$/).required(),
+    capacity: Joi.number().integer().min(1).max(1000).optional(),
+    price: Joi.number().min(0).optional(),
+    coachId: Joi.string().allow('','null').optional()
+  }).unknown(true),
+
   // ── Sprint 9 (Phase A): active-context + org settings
   activeContext: Joi.object({
     orgId: Joi.string().required()

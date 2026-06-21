@@ -169,4 +169,50 @@ router.delete('/:id', authenticateToken, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ── Recurring slots (Phase C §17) — a resource's weekly availability windows
+// for Sports/Yoga/Dance/Music booking. Concrete bookings still go through
+// /api/bookings; these define the repeatable schedule + per-slot capacity/price.
+
+// GET /api/resources/:id/slots — public (drives the slot picker).
+router.get('/:id/slots', async (req, res) => {
+  try {
+    const { data, error } = await supabaseAdmin.from('resource_slots')
+      .select('*').eq('resource_id', req.params.id).eq('is_active', true)
+      .order('day_of_week').order('start_time');
+    if (error) return res.json({ slots: [] });
+    res.json({ slots: data || [] });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/resources/:id/slots — add a recurring slot (booking.manage + owner).
+router.post('/:id/slots', authenticateToken, requireCapability('booking.manage'), validate('resourceSlot'), async (req, res) => {
+  try {
+    const { data: r } = await supabaseAdmin.from('resources').select('owner_id').eq('id', req.params.id).maybeSingle();
+    if (!r) return res.status(404).json({ error: 'Resource not found' });
+    if (req.user.role !== 'admin' && r.owner_id !== req.user.id) {
+      return res.status(403).json({ error: 'Not your resource' });
+    }
+    const b = req.validatedData;
+    const { data, error } = await supabaseAdmin.from('resource_slots').insert({
+      id: uuidv4(), resource_id: req.params.id, day_of_week: b.dayOfWeek,
+      start_time: b.startTime, end_time: b.endTime, capacity: b.capacity ?? 1,
+      price: b.price ?? null, coach_id: b.coachId || null
+    }).select().single();
+    if (error) return res.status(400).json({ error: error.message });
+    res.status(201).json({ slot: data });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// DELETE /api/resources/:id/slots/:slotId — soft-remove a slot.
+router.delete('/:id/slots/:slotId', authenticateToken, requireCapability('booking.manage'), async (req, res) => {
+  try {
+    const { data: r } = await supabaseAdmin.from('resources').select('owner_id').eq('id', req.params.id).maybeSingle();
+    if (r && req.user.role !== 'admin' && r.owner_id !== req.user.id) {
+      return res.status(403).json({ error: 'Not your resource' });
+    }
+    await supabaseAdmin.from('resource_slots').update({ is_active: false }).eq('id', req.params.slotId);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 module.exports = router;
