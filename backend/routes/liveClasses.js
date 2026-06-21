@@ -19,7 +19,14 @@ const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadDir),
   filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`)
 });
-const upload = multer({ storage });
+const ALLOWED_LIVE_MIME = /^(image\/(jpeg|png|gif|webp)|video\/(mp4|webm)|audio\/(mpeg|ogg|webm|wav)|application\/pdf)$/i;
+const upload = multer({
+  storage,
+  fileFilter: (req, file, cb) => {
+    if (ALLOWED_LIVE_MIME.test(file.mimetype)) return cb(null, true);
+    cb(Object.assign(new Error('File type not allowed'), { status: 415 }));
+  }
+});
 
 const router = express.Router();
 
