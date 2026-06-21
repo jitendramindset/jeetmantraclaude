@@ -112,6 +112,29 @@ services:
       - ${HOME}/.docker/config.json:/config.json:ro   # GHCR auth for private images
     networks: [internal]
 
+  # ── Nightly backup (opt-in: `--profile backup`) ────────────────────────────
+  # Runs api-backup.js on startup then every 24 h. Stores encrypted files in
+  # backup_data volume. Set BACKUP_S3_BUCKET to also push offsite.
+  backup:
+    image: ${API_IMAGE:-ghcr.io/jitendramindset/jeetmantraclaude:latest}
+    container_name: eduos_backup
+    profiles: [backup]
+    restart: always
+    working_dir: /app
+    entrypoint: ["/bin/sh", "-c",
+      "node scripts/api-backup.js && while true; do sleep 86400 && node scripts/api-backup.js; done"]
+    environment:
+      - SUPABASE_URL
+      - SUPABASE_SERVICE_ROLE_KEY
+      - BACKUP_ENCRYPT_KEY
+      - BACKUP_S3_BUCKET
+      - BACKUP_S3_REGION=ap-south-1
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY
+    volumes:
+      - backup_data:/app/backups
+    networks: [internal]
+
   # ── MONITORING STACK (opt-in: `--profile monitoring`) ──────────────────────
   # Uptime, metrics, logs. Start with: ... up -d --profile monitoring
   uptime-kuma:
@@ -193,6 +216,7 @@ volumes:
   letsencrypt:
   redis_data:
   n8n_data:
+  backup_data:
   uptime_data:
   prometheus_data:
   loki_data:

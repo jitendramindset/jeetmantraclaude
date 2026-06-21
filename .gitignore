@@ -39,6 +39,7 @@ Thumbs.db
 # Local runtime data
 backend/data/
 backend/uploads/
+backups/
 
 # Backups / scratch
 *.bak

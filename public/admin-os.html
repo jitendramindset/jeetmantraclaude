@@ -833,6 +833,16 @@ async function renderIntegrations() {
       <button id="intSave" onclick="saveIntegrations()" style="padding:9px 18px;border:none;border-radius:6px;background:var(--jm-primary,#6366f1);color:#fff;font-weight:700;cursor:pointer">Save integrations</button>
       <button onclick="testIntegrationEmail()" style="padding:9px 16px;border:1px solid var(--jm-border);border-radius:6px;background:var(--jm-surface);color:inherit;font-weight:700;cursor:pointer">Send test email to me</button>
       <span id="intMsg" style="font-size:13px;font-weight:700"></span>
+    </div>
+    <div class="card" style="padding:16px;margin-top:20px">
+      <h3 style="margin:0 0 6px;font-size:14px">💾 Database backup</h3>
+      <div style="font-size:11px;color:var(--jm-text-muted);margin-bottom:12px">Exports all tables via the Supabase REST API, compresses and AES-encrypts, saves to <code>backups/</code>. Configure <code>BACKUP_ENCRYPT_KEY</code> and optionally <code>BACKUP_S3_BUCKET</code> in .env or the server environment.</div>
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px">
+        <button onclick="triggerBackup()" id="backupBtn" style="padding:8px 16px;border:none;border-radius:6px;background:#0f766e;color:#fff;font-weight:700;cursor:pointer">Run backup now</button>
+        <button onclick="loadBackupList()" style="padding:8px 14px;border:1px solid var(--jm-border);border-radius:6px;background:var(--jm-surface);color:inherit;font-weight:700;cursor:pointer">Refresh list</button>
+        <span id="backupMsg" style="font-size:13px;font-weight:700"></span>
+      </div>
+      <div id="backupList" style="font-size:12px;color:var(--jm-text-muted)">Click "Refresh list" to see saved backups.</div>
     </div>`;
 }
 
@@ -861,6 +871,42 @@ async function testIntegrationEmail() {
     el('intMsg').textContent = r.sent ? '✓ Sent — check your inbox' : '⚠ ' + (r.note || 'Not sent (configure SMTP first)');
     el('intMsg').style.color = r.sent ? '#16a34a' : '#b45309';
   } catch (e) { el('intMsg').textContent = 'Error: ' + e.message; el('intMsg').style.color = '#b91c1c'; }
+}
+
+async function triggerBackup() {
+  const btn = el('backupBtn'); btn.disabled = true; btn.textContent = 'Starting…';
+  el('backupMsg').textContent = ''; el('backupMsg').style.color = 'var(--jm-text-muted)';
+  try {
+    const r = await api('/admin/backup/trigger', { method: 'POST', body: '{}' });
+    el('backupMsg').textContent = `✓ Backup running (pid ${r.pid}) — refresh list in ~30s`;
+    el('backupMsg').style.color = '#16a34a';
+    setTimeout(() => loadBackupList(), 35000);
+  } catch (e) {
+    el('backupMsg').textContent = 'Error: ' + e.message;
+    el('backupMsg').style.color = '#b91c1c';
+  }
+  btn.disabled = false; btn.textContent = 'Run backup now';
+}
+
+async function loadBackupList() {
+  const div = el('backupList');
+  div.textContent = 'Loading…';
+  try {
+    const r = await api('/admin/backup/list');
+    if (!r.backups || r.backups.length === 0) {
+      div.textContent = 'No backups found. Run one above or enable the --profile backup service.';
+      return;
+    }
+    div.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="text-align:left;border-bottom:1px solid var(--jm-border)">
+        <th style="padding:4px 8px">File</th><th style="padding:4px 8px">Size</th><th style="padding:4px 8px">Created</th>
+      </tr></thead><tbody>${r.backups.map(b => `<tr style="border-bottom:1px solid var(--jm-border)">
+        <td style="padding:4px 8px;font-family:monospace">${esc(b.name)}</td>
+        <td style="padding:4px 8px">${b.sizeMB} MB</td>
+        <td style="padding:4px 8px">${new Date(b.createdAt).toLocaleString()}</td>
+      </tr>`).join('')}</tbody></table>
+      <div style="margin-top:6px;color:var(--jm-text-muted)">Stored in: <code>${esc(r.dir)}</code></div>`;
+  } catch (e) { div.textContent = 'Error: ' + e.message; }
 }
 
 // ───── Coming-soon placeholder ─────

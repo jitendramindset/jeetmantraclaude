@@ -619,4 +619,36 @@ router.get('/live-classes', authenticateToken, authorizeRole(['admin']), async (
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// POST /admin/backup/trigger — run api-backup.js as a child process (non-blocking)
+router.post('/backup/trigger', authenticateToken, authorizeRole(['admin']), async (req, res) => {
+  try {
+    const { spawn } = require('child_process');
+    const scriptPath = require('path').join(__dirname, '..', '..', 'scripts', 'api-backup.js');
+    const child = spawn(process.execPath, [scriptPath], {
+      detached: true, stdio: 'ignore',
+      env: { ...process.env }
+    });
+    child.unref();
+    await auditLog(req.user.id, 'backup_triggered', null, { pid: child.pid });
+    res.json({ ok: true, message: 'Backup started in background', pid: child.pid });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// GET /admin/backup/list — list local backup files
+router.get('/backup/list', authenticateToken, authorizeRole(['admin']), (req, res) => {
+  try {
+    const fs = require('fs');
+    const backupDir = require('path').join(__dirname, '..', '..', 'backups');
+    if (!fs.existsSync(backupDir)) return res.json({ backups: [] });
+    const files = fs.readdirSync(backupDir)
+      .filter(f => f.startsWith('backup-'))
+      .map(f => {
+        const stat = fs.statSync(require('path').join(backupDir, f));
+        return { name: f, sizeMB: +(stat.size / 1024 / 1024).toFixed(2), createdAt: stat.mtime };
+      })
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    res.json({ backups: files, dir: backupDir });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 module.exports = router;
