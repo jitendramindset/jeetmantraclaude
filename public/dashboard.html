@@ -520,6 +520,11 @@ html[data-theme="dark"]{
       <div class="wg-grid" id="wgMount"></div>
       <div class="wg-add-tray" id="wgAddTray"></div>
     </div>
+    <!-- For roles still on the classic dashboard: a link to their validated
+         widget dashboard (composed from /api/me/contexts). -->
+    <div id="wgTryBar" style="display:none;justify-content:flex-end;margin-bottom:10px">
+      <a href="/widgets.html" style="font-size:12px;font-weight:700;background:var(--jm-surface,#fff);border:1px solid var(--jm-border,#ddd);border-radius:8px;padding:6px 12px;color:var(--jm-text-strong,#333);text-decoration:none">🧩 Try the widget dashboard →</a>
+    </div>
 
     <!-- STUDENT -->
     <div class="role-section" id="section-student">
@@ -2081,6 +2086,9 @@ async function loadDashboard(){
     if(WIDGET_ROLES.includes(role)){
       const bar=document.getElementById('wgModeBar'); if(bar)bar.style.display='flex';
       const btn=document.getElementById('wgToggle'); if(btn)btn.textContent=useWidgets?'🗂️ Classic view':'🧩 Widget view';
+    } else if(window.EduOSWidgets){
+      // Other roles stay on classic, but can reach their validated widget set.
+      const tb=document.getElementById('wgTryBar'); if(tb)tb.style.display='flex';
     }
     if(useWidgets){
       document.getElementById('wgPanel').style.display='block';
