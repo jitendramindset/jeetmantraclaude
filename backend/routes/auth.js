@@ -131,20 +131,25 @@ function generateOTP() {
 async function sendOTP(phone, otp) {
   const msg = `Your JeetMantra OTP is ${otp}. Valid 10 minutes. Do not share it.`;
   const to = phone.startsWith('+') ? phone : '+91' + phone.replace(/\D/g, '').slice(-10);
+  // Config from admin settings (platform_settings) first, then .env.
+  const smsWebhook = await getSetting('sms_webhook_url', 'SMS_WEBHOOK_URL');
+  const twSid = await getSetting('twilio_sid', 'TWILIO_SID');
   try {
-    if (process.env.SMS_WEBHOOK_URL) {
+    if (smsWebhook) {
       const axios = require('axios');
-      await axios.post(process.env.SMS_WEBHOOK_URL, { phone: to, otp, message: msg },
-        { headers: process.env.SMS_WEBHOOK_SECRET ? { 'x-sms-secret': process.env.SMS_WEBHOOK_SECRET } : {}, timeout: 8000 });
+      const secret = await getSetting('sms_webhook_secret', 'SMS_WEBHOOK_SECRET');
+      await axios.post(smsWebhook, { phone: to, otp, message: msg },
+        { headers: secret ? { 'x-sms-secret': secret } : {}, timeout: 8000 });
       console.log(`📱 OTP sent to ${to} via SMS webhook`);
       return { sent: true, mode: 'webhook' };
     }
-    if (process.env.TWILIO_SID && process.env.TWILIO_TOKEN && process.env.TWILIO_FROM) {
+    const twToken = await getSetting('twilio_token', 'TWILIO_TOKEN');
+    const twFrom = await getSetting('twilio_from', 'TWILIO_FROM');
+    if (twSid && twToken && twFrom) {
       const axios = require('axios');
-      const sid = process.env.TWILIO_SID;
-      await axios.post(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`,
-        new URLSearchParams({ To: to, From: process.env.TWILIO_FROM, Body: msg }).toString(),
-        { auth: { username: sid, password: process.env.TWILIO_TOKEN }, headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, timeout: 10000 });
+      await axios.post(`https://api.twilio.com/2010-04-01/Accounts/${twSid}/Messages.json`,
+        new URLSearchParams({ To: to, From: twFrom, Body: msg }).toString(),
+        { auth: { username: twSid, password: twToken }, headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, timeout: 10000 });
       console.log(`📱 OTP sent to ${to} via Twilio`);
       return { sent: true, mode: 'twilio' };
     }
@@ -564,35 +569,8 @@ async function issueToken(userId, purpose, ttlMinutes) {
 // dev works without credentials. Configure via SMTP_* env (see .env.example):
 //   SMTP_HOST=smtp.gmail.com SMTP_PORT=587 SMTP_USER=you@gmail.com
 //   SMTP_PASS=<gmail app password> SMTP_FROM="JeetMantra <you@gmail.com>"
-let _mailTransport = null;
-function _getTransport() {
-  if (_mailTransport !== null) return _mailTransport;
-  const user = process.env.SMTP_USER, pass = process.env.SMTP_PASS;
-  if (!user || !pass) { _mailTransport = false; return false; } // not configured
-  try {
-    const nodemailer = require('nodemailer');
-    _mailTransport = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || 'smtp.gmail.com',
-      port: Number(process.env.SMTP_PORT || 587),
-      secure: Number(process.env.SMTP_PORT) === 465,
-      auth: { user, pass }
-    });
-    return _mailTransport;
-  } catch (e) { console.warn('[mail] nodemailer unavailable:', e.message); _mailTransport = false; return false; }
-}
-async function sendMail(to, subject, body) {
-  const t = _getTransport();
-  if (!t) { console.log(`📧 [console-only — SMTP not configured] to=${to} subject="${subject}"\n${body}\n`); return { sent: false, mode: 'console' }; }
-  try {
-    const isHtml = /<[a-z][\s\S]*>/i.test(body);
-    await t.sendMail({
-      from: process.env.SMTP_FROM || process.env.SMTP_USER,
-      to, subject, [isHtml ? 'html' : 'text']: body
-    });
-    console.log(`📧 sent to ${to} ("${subject}") via SMTP`);
-    return { sent: true, mode: 'smtp' };
-  } catch (e) { console.error('[mail] send failed:', e.message); return { sent: false, mode: 'error', error: e.message }; }
-}
+const { getSetting } = require('../services/settings');
+const { sendMail } = require('../services/mailer');
 
 // ── PASSWORD RESET ─────────────────────────────────────────────────────
 // POST /api/auth/forgot-password { email } — always returns 200 even when the

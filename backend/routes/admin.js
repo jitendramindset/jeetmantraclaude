@@ -413,8 +413,27 @@ router.put('/settings', authenticateToken, authorizeRole(['admin']), async (req,
       if (existing) await supabaseAdmin.from('platform_settings').update({ value: String(value) }).eq('key', key);
       else await supabaseAdmin.from('platform_settings').insert({ key, value: String(value) });
     }
-    await auditLog(req.user.id, 'settings.update', null, updates);
+    try { require('../services/settings').invalidate(); } catch (_) {} // apply immediately
+    // Don't echo secret values back into the audit log.
+    const SECRET = /pass|secret|token|key/i;
+    const safe = Object.fromEntries(Object.keys(updates).map(k => [k, SECRET.test(k) ? '***' : updates[k]]));
+    await auditLog(req.user.id, 'settings.update', null, safe);
     res.json({ message: 'Settings saved' });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /admin/test-email — send a test email to the signed-in admin using the
+// currently-configured SMTP (admin settings → .env). Lets the admin verify the
+// mapping from the Integrations page.
+router.post('/test-email', authenticateToken, authorizeRole(['admin']), async (req, res) => {
+  try {
+    const { data: me } = await supabaseAdmin.from('jeetmantra_users').select('email, full_name').eq('id', req.user.id).maybeSingle();
+    const to = (me && me.email) || req.user.email;
+    if (!to) return res.json({ sent: false, note: 'Your admin account has no email on file.' });
+    const { sendMail } = require('../services/mailer');
+    const r = await sendMail(to, 'JeetMantra — test email ✓',
+      `<p>Hi ${me?.full_name || 'Admin'},</p><p>This confirms your <b>SMTP integration is working</b>. Sent ${new Date().toLocaleString('en-IN')}.</p>`);
+    res.json({ sent: !!r.sent, to: r.sent ? to : undefined, note: r.sent ? undefined : (r.mode === 'console' ? 'SMTP not configured — set it in Integrations.' : (r.error || 'Send failed.')) });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

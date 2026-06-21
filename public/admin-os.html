@@ -132,6 +132,7 @@
     <div class="nav-group-title">Org</div>
     <div class="nav-item" data-section="franchise"><span class="ic">🌐</span>Franchise</div>
     <div class="nav-item" data-section="widgets"><span class="ic">🧩</span>Widgets</div>
+    <div class="nav-item" data-section="integrations"><span class="ic">🔌</span>Integrations</div>
     <div class="nav-item" data-section="system"><span class="ic">⚙️</span>System</div>
   </div>
 
@@ -256,6 +257,7 @@ const SECTIONS = {
   analytics: renderAnalytics,
   franchise:() => renderComingSoon('Franchise', '🌐', 'Branches · Network revenue · Per-branch KPIs. Reuses /api/eduos/franchise.'),
   widgets:  renderWidgetsConfig,
+  integrations: renderIntegrations,
   system:   renderSystem
 };
 
@@ -780,6 +782,83 @@ async function saveWidgetConfig() {
     btn.textContent='Saved ✓';
     setTimeout(()=>{ btn.textContent='Save'; btn.disabled=false; }, 1500);
   } catch(e){ btn.textContent='Save'; btn.disabled=false; alert('Save failed: '+e.message); }
+}
+
+// ───── Integrations (admin-mapped config — overrides .env) ─────
+const WG_INT_FIELDS = [
+  { group: '📧 Email (SMTP)', hint: 'Gmail: enable 2FA → create an App Password → use it as the password.', rows: [
+    ['smtp_host', 'SMTP host', 'smtp.gmail.com', 'text'],
+    ['smtp_port', 'SMTP port', '587', 'text'],
+    ['smtp_user', 'SMTP user / from email', 'you@gmail.com', 'text'],
+    ['smtp_pass', 'SMTP password (App Password)', '••••••••', 'password'],
+    ['smtp_from', 'From display', 'JeetMantra <you@gmail.com>', 'text'] ] },
+  { group: '📱 SMS / OTP', hint: 'Use a webhook (n8n → SMS gateway) OR Twilio. Webhook wins if both set.', rows: [
+    ['sms_webhook_url', 'SMS webhook URL', 'https://n8n.../webhook/sms', 'text'],
+    ['sms_webhook_secret', 'SMS webhook secret', '••••••••', 'password'],
+    ['twilio_sid', 'Twilio SID', 'ACxxxx…', 'text'],
+    ['twilio_token', 'Twilio token', '••••••••', 'password'],
+    ['twilio_from', 'Twilio from number', '+1xxxxxxxxxx', 'text'] ] },
+  { group: '🤖 AI generation', hint: 'Used by Exam Platform + AI tutor.', rows: [
+    ['ai_webhook_url', 'AI endpoint URL', 'https://n8n.../webhook/ai', 'text'],
+    ['ai_webhook_key', 'AI key', '••••••••', 'password'] ] },
+  { group: '🔗 Automation', hint: '', rows: [
+    ['n8n_secret', 'n8n sync secret', '••••••••', 'password'] ] }
+];
+
+async function renderIntegrations() {
+  el('content').innerHTML = `
+    <h1 class="page-title">Integrations</h1>
+    <p class="page-sub">Map email, SMS and AI providers here — stored in platform settings and used by the backend immediately (overrides server .env). Powered by /api/admin/settings.</p>
+    <div id="intForm"><div class="card" style="padding:16px;color:var(--jm-text-muted)">Loading…</div></div>
+  `;
+  let cur = {};
+  try { const r = await api('/admin/settings'); cur = r.settings || {}; } catch (e) {}
+  const fieldHtml = (key, label, ph, type) => {
+    const v = cur[key] || '';
+    const masked = type === 'password' && v ? '' : v;  // don't pre-fill secrets
+    const note = type === 'password' && v ? '<span style="font-size:11px;color:#16a34a">● set — leave blank to keep</span>' : '';
+    return `<div style="margin-bottom:12px"><label style="display:block;font-size:12px;font-weight:700;margin-bottom:4px">${esc(label)} ${note}</label>
+      <input id="int_${key}" type="${type}" value="${esc(masked)}" placeholder="${esc(ph)}" autocomplete="off"
+        style="width:100%;padding:8px 11px;border:1px solid var(--jm-border);border-radius:6px;background:var(--jm-surface);color:inherit;font-size:13px"></div>`;
+  };
+  el('intForm').innerHTML = WG_INT_FIELDS.map(g => `
+    <div class="card" style="padding:16px;margin-bottom:14px">
+      <h3 style="margin:0 0 2px;font-size:14px">${g.group}</h3>
+      ${g.hint ? `<div style="font-size:11px;color:var(--jm-text-muted);margin-bottom:12px">${esc(g.hint)}</div>` : '<div style="height:8px"></div>'}
+      ${g.rows.map(r => fieldHtml(...r)).join('')}
+    </div>`).join('') + `
+    <div style="display:flex;gap:10px;align-items:center">
+      <button id="intSave" onclick="saveIntegrations()" style="padding:9px 18px;border:none;border-radius:6px;background:var(--jm-primary,#6366f1);color:#fff;font-weight:700;cursor:pointer">Save integrations</button>
+      <button onclick="testIntegrationEmail()" style="padding:9px 16px;border:1px solid var(--jm-border);border-radius:6px;background:var(--jm-surface);color:inherit;font-weight:700;cursor:pointer">Send test email to me</button>
+      <span id="intMsg" style="font-size:13px;font-weight:700"></span>
+    </div>`;
+}
+
+async function saveIntegrations() {
+  const payload = {};
+  WG_INT_FIELDS.flatMap(g => g.rows).forEach(([key]) => {
+    const v = el('int_' + key)?.value ?? '';
+    // For password fields left blank, skip (keep existing); send everything else.
+    const isSecret = /pass|secret|token|key/i.test(key);
+    if (isSecret && v === '') return;
+    payload[key] = v;
+  });
+  const btn = el('intSave'); btn.disabled = true; btn.textContent = 'Saving…';
+  try {
+    await api('/admin/settings', { method: 'PUT', body: JSON.stringify(payload) });
+    el('intMsg').textContent = '✓ Saved & applied'; el('intMsg').style.color = '#16a34a';
+  } catch (e) { el('intMsg').textContent = 'Error: ' + e.message; el('intMsg').style.color = '#b91c1c'; }
+  btn.disabled = false; btn.textContent = 'Save integrations';
+  setTimeout(() => { el('intMsg').textContent = ''; }, 3000);
+}
+
+async function testIntegrationEmail() {
+  el('intMsg').textContent = 'Sending…'; el('intMsg').style.color = 'var(--jm-text-muted)';
+  try {
+    const r = await api('/admin/test-email', { method: 'POST', body: '{}' });
+    el('intMsg').textContent = r.sent ? '✓ Sent — check your inbox' : '⚠ ' + (r.note || 'Not sent (configure SMTP first)');
+    el('intMsg').style.color = r.sent ? '#16a34a' : '#b45309';
+  } catch (e) { el('intMsg').textContent = 'Error: ' + e.message; el('intMsg').style.color = '#b91c1c'; }
 }
 
 // ───── Coming-soon placeholder ─────
