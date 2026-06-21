@@ -325,7 +325,11 @@ html[data-theme="dark"]{
 /* Full-viewport overlay. Fixed positioning so the still-present .main
    (flex:1, margin-left:250px) can't push these pages to the right. Covers
    the sidebar too, so it reads as a proper full-screen page on every size. */
-.configure-page.active{display:flex;flex-direction:column;position:fixed;inset:0;z-index:200;overflow-y:auto;background:var(--jm-bg)}
+/* Takeover pages (Calendar/Bookings/Recordings/Payments) sit BESIDE the sidebar
+   so the nav stays visible — they open the same way as the inline section pages
+   (Courses/Teachers) instead of full-screen-hiding the menu. */
+.configure-page.active{display:flex;flex-direction:column;position:fixed;inset:0 0 0 250px;z-index:60;overflow-y:auto;background:var(--jm-bg)}
+@media(max-width:768px){.configure-page.active{inset:0;z-index:200}}
 .configure-breadcrumb{position:sticky;top:0;background:var(--jm-surface);border-bottom:1px solid var(--jm-border);padding:14px 28px;display:flex;align-items:center;gap:14px;z-index:50;box-shadow:var(--jm-shadow-sm)}
 .configure-breadcrumb .crumb{font-size:13px;color:var(--jm-text-muted);cursor:pointer}
 .configure-breadcrumb .crumb:hover{color:var(--jm-primary)}
@@ -1186,7 +1190,7 @@ const NAV={
   ],
   partner:[
     {i:'🏠',l:'Dashboard',t:'top',a:true},
-    {i:'📅',l:'Bookings',t:'bookings'},
+    {i:'📅',l:'Bookings',action:'openBookings()'},
     {i:'💰',l:'Earnings',t:'earnings'},
     {i:'💬',l:'Messages',action:'openMessenger()'},
     {i:'📅',l:'Calendar',action:'openCalendar()'},
@@ -1292,7 +1296,7 @@ function buildNav(role){
   document.getElementById('navMenu').innerHTML=items.map((it,idx)=>{
     let onclick;
     if(it.action){
-      onclick=it.action; // direct JS call (e.g. openBookings())
+      onclick='_navActivate(this);'+it.action; // highlight + close any page, then open — same as section items
     } else if(it.h){
       onclick=`window.location.href='${it.h}'`;
     } else if(it.t==='top'){
@@ -1317,6 +1321,7 @@ function buildNav(role){
 let _currentPage=null;
 function showPage(pageKey, navEl){
   _currentPage=pageKey;
+  if(typeof _closeAllPages==='function') _closeAllPages(); // close any takeover page first
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   if(navEl) navEl.classList.add('active');
   const role=(JSON.parse(localStorage.getItem('jm_user')||'{}').user_type)
@@ -1354,6 +1359,22 @@ function showPage(pageKey, navEl){
 function navScroll(navEl,targetId){
   const key = targetId ? targetId.replace(/^sec-[^-]+-/, '') : null;
   showPage(key, navEl);
+}
+// Close any open takeover page (Calendar/Bookings/Recordings/Payments) and
+// restore the underlying sections + topbar — so every nav item opens the same
+// way: nav stays, main content swaps. Called by showPage and each open*().
+function _closeAllPages(){
+  document.querySelectorAll('.configure-page.active').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='');
+  document.querySelectorAll('.topbar, .sidebar').forEach(s=>s.style.display='');
+}
+// Used by ACTION nav items (Calendar/Wallet/Settings/…) so they behave exactly
+// like the section items: highlight the clicked item + close any open page,
+// then run their opener. Single source of "how a menu item opens".
+function _navActivate(el){
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  if(el) el.classList.add('active');
+  _closeAllPages();
 }
 function renderList(id,items,empty){
   const el=document.getElementById(id);
@@ -3022,7 +3043,7 @@ async function openConfigure(courseId){
   _cfgCourseId=courseId;
   document.getElementById('configurePage').classList.add('active');
   document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
-  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
+  document.querySelectorAll('.topbar').forEach(s=>s.style.display='none'); // keep sidebar visible (synced nav)
   await _reopenConfigure(courseId);
 }
 function closeConfigurePage(){
@@ -5637,7 +5658,7 @@ function openWizard(){
   window._wiz = { step:1, data:{ title:'', category:'General', level:'beginner', price:0, description:'', cover:null } };
   document.getElementById('wizardPage').classList.add('active');
   document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
-  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
+  document.querySelectorAll('.topbar').forEach(s=>s.style.display='none'); // keep sidebar visible (synced nav)
   renderWizard();
 }
 function closeWizard(){
@@ -5832,7 +5853,7 @@ window._att = null;
 async function openAttGrid(courseId){
   document.getElementById('attGridPage').classList.add('active');
   document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
-  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
+  document.querySelectorAll('.topbar').forEach(s=>s.style.display='none'); // keep sidebar visible (synced nav)
   const courses=window._teacherCourses||[];
   if(!courses.length){
     document.getElementById('att-body').innerHTML='<div class="card" style="max-width:600px;margin:40px auto;padding:24px;text-align:center"><div style="font-size:48px">📚</div><div style="font-weight:600;margin-top:10px">No courses yet</div><div style="color:var(--jm-text-muted);margin-top:6px">Create a course first to mark attendance.</div></div>';
@@ -5934,9 +5955,10 @@ function closeBookings(){
   document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='');
 }
 async function _openMoneyPage(kind){
+  _closeAllPages();
   document.getElementById('bookingsPage').classList.add('active');
   document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
-  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
+  document.querySelectorAll('.topbar').forEach(s=>s.style.display='none'); // keep sidebar visible
   document.getElementById('bk-crumb').textContent=kind==='payments'?'Payments':'Bookings';
   const body=document.getElementById('bk-body');
   body.innerHTML='<div style="text-align:center;padding:40px;color:#888">Loading…</div>';
@@ -6013,9 +6035,10 @@ async function _openMoneyPage(kind){
 // and teacher both see this (scoped server-side). Opens a full page with
 // inline video players.
 async function openRecordings(){
+  _closeAllPages();
   document.getElementById('bookingsPage').classList.add('active');
   document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
-  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
+  document.querySelectorAll('.topbar').forEach(s=>s.style.display='none'); // keep sidebar visible
   document.getElementById('bk-crumb').textContent='Recordings';
   const body=document.getElementById('bk-body');
   body.innerHTML='<div style="text-align:center;padding:40px;color:#888">Loading…</div>';
@@ -6145,7 +6168,7 @@ async function _lpGenerate(){
 async function openAttendanceReport(){
   document.getElementById('bookingsPage').classList.add('active');
   document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
-  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
+  document.querySelectorAll('.topbar').forEach(s=>s.style.display='none'); // keep sidebar visible (synced nav)
   document.getElementById('bk-crumb').textContent='Attendance report';
   const body=document.getElementById('bk-body');
   body.innerHTML='<div style="text-align:center;padding:40px;color:#888">Loading…</div>';
@@ -6172,7 +6195,7 @@ async function openAttendanceReport(){
 async function openTestAnalytics(testId, testTitle){
   document.getElementById('bookingsPage').classList.add('active');
   document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
-  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
+  document.querySelectorAll('.topbar').forEach(s=>s.style.display='none'); // keep sidebar visible (synced nav)
   document.getElementById('bk-crumb').textContent='Analytics — '+(testTitle||'Test');
   const body=document.getElementById('bk-body');
   body.innerHTML='<div style="text-align:center;padding:40px;color:#888">Loading…</div>';
@@ -6227,7 +6250,7 @@ async function openTestAnalytics(testId, testTitle){
 async function openEssayInbox(){
   document.getElementById('bookingsPage').classList.add('active');
   document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
-  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
+  document.querySelectorAll('.topbar').forEach(s=>s.style.display='none'); // keep sidebar visible (synced nav)
   document.getElementById('bk-crumb').textContent='Essay grading';
   const body=document.getElementById('bk-body');
   body.innerHTML='<div style="text-align:center;padding:40px;color:#888">Loading…</div>';
@@ -6637,7 +6660,7 @@ window._reader=null;
 async function openReader(courseId, courseTitle){
   document.getElementById('readerPage').classList.add('active');
   document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
-  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
+  document.querySelectorAll('.topbar').forEach(s=>s.style.display='none'); // keep sidebar visible (synced nav)
   document.getElementById('rd-crumb').textContent=courseTitle||'Course';
   window._reader={ courseId, courseTitle, activeLecture:null };
   await _renderReader();
@@ -7124,7 +7147,7 @@ function _demoCheckout(order, courseId, courseTitle, amount){
 async function openMyInstitutions(){
   document.getElementById('bookingsPage').classList.add('active');
   document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
-  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
+  document.querySelectorAll('.topbar').forEach(s=>s.style.display='none'); // keep sidebar visible (synced nav)
   document.getElementById('bk-crumb').textContent='My Institutions';
   const body=document.getElementById('bk-body');
   body.innerHTML='<div style="text-align:center;padding:40px;color:#888">Loading…</div>';
@@ -7180,7 +7203,7 @@ function setActiveInstitution(id){
 function openSettings(){
   document.getElementById('settingsPage').classList.add('active');
   document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
-  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
+  document.querySelectorAll('.topbar').forEach(s=>s.style.display='none'); // keep sidebar visible (synced nav)
   const lang=localStorage.getItem('jm_lang')||'en';
   const theme=localStorage.getItem('jm_theme')||'light';
   const role=(JSON.parse(localStorage.getItem('jm_user')||'{}').user_type)||(JSON.parse(localStorage.getItem('jm_user')||'{}').role)||'student';
@@ -7346,7 +7369,7 @@ function openCRMConfig(){
   if(!overlay) return toast('Settings page not available',true);
   overlay.classList.add('active');
   document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
-  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
+  document.querySelectorAll('.topbar').forEach(s=>s.style.display='none'); // keep sidebar visible (synced nav)
   const c=_crm();
   const lastInv = Number(localStorage.getItem('jm_invoice_seq')||28);
   const previewInv = _crmFmtInvoice(c.invoiceFormat, lastInv+1);
@@ -7695,7 +7718,7 @@ async function stChangePassword(){
 async function openEduOS(initialTab){
   document.getElementById('bookingsPage').classList.add('active');
   document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
-  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
+  document.querySelectorAll('.topbar').forEach(s=>s.style.display='none'); // keep sidebar visible (synced nav)
   document.getElementById('bk-crumb').textContent='EduOS Hub';
   const role=(currentUser&&currentUser.role)||'student';
   const isInst=['school','coaching','admin'].includes(role);
@@ -8069,7 +8092,7 @@ async function uploadOCR(form){
 async function openWallet(){
   document.getElementById('bookingsPage').classList.add('active');
   document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
-  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
+  document.querySelectorAll('.topbar').forEach(s=>s.style.display='none'); // keep sidebar visible (synced nav)
   document.getElementById('bk-crumb').textContent='Wallet';
   const body=document.getElementById('bk-body');
   body.innerHTML='<div style="text-align:center;padding:40px;color:#888">Loading…</div>';
@@ -8153,7 +8176,7 @@ async function applyReferral(){
 async function openPlans(){
   document.getElementById('bookingsPage').classList.add('active');
   document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
-  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
+  document.querySelectorAll('.topbar').forEach(s=>s.style.display='none'); // keep sidebar visible (synced nav)
   document.getElementById('bk-crumb').textContent='Plans';
   const body=document.getElementById('bk-body');
   body.innerHTML='<div style="text-align:center;padding:40px;color:#888">Loading…</div>';
@@ -8929,7 +8952,7 @@ function t(key){ const lang=localStorage.getItem('jm_lang')||'en'; return I18N[l
 async function openBilling(){
   document.getElementById('billingPage').classList.add('active');
   document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
-  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
+  document.querySelectorAll('.topbar').forEach(s=>s.style.display='none'); // keep sidebar visible (synced nav)
   await _renderBilling();
 }
 function closeBilling(){
@@ -9100,9 +9123,10 @@ function openMyExternalResults(){
 }
 
 async function openCalendar(){
+  _closeAllPages();
   document.getElementById('calendarPage').classList.add('active');
   document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
-  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
+  document.querySelectorAll('.topbar').forEach(s=>s.style.display='none'); // keep sidebar visible
   _calRef=new Date(); _calView=localStorage.getItem('jm_calView')||'month';
   await _renderCalendar();
 }
@@ -9357,7 +9381,7 @@ function calJoin(id){ window.location.href='/liveRoom.html?class='+id; }
 async function openProfilePage(){
   document.getElementById('profilePage').classList.add('active');
   document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
-  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
+  document.querySelectorAll('.topbar').forEach(s=>s.style.display='none'); // keep sidebar visible (synced nav)
   const body=document.getElementById('pf-body');
   body.innerHTML='<div style="text-align:center;padding:40px;color:#888">Loading…</div>';
   try{
