@@ -7,6 +7,7 @@
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#7c3aed">
 <link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="widget-styles.css">
 <script>if('serviceWorker' in navigator) window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));</script>
 <style>
 /* Dashboard-specific styles — uses theme.css design tokens */
@@ -439,6 +440,7 @@ html[data-theme="dark"]{
 }
 </style>
 <script src="/jm-theme.js"></script>
+<script src="/widget-registry.js"></script>
 </head>
 <body>
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
@@ -501,6 +503,15 @@ html[data-theme="dark"]{
     <div class="loading-state" id="loadingState">
       <div style="font-size:40px;margin-bottom:12px">⏳</div>
       <div>Loading your dashboard...</div>
+    </div>
+
+    <!-- WIDGET DASHBOARD (W1 engine) — default for student/teacher; toggle to classic -->
+    <div id="wgModeBar" style="display:none;justify-content:flex-end;margin-bottom:10px">
+      <button id="wgToggle" type="button" onclick="toggleWidgetMode()" style="font-size:12px;font-weight:700;background:var(--jm-surface,#fff);border:1px solid var(--jm-border,#ddd);border-radius:8px;padding:6px 12px;cursor:pointer;color:var(--jm-text-strong,#333)">🗂️ Classic view</button>
+    </div>
+    <div id="wgPanel" style="display:none">
+      <div class="wg-grid" id="wgMount"></div>
+      <div class="wg-add-tray" id="wgAddTray"></div>
     </div>
 
     <!-- STUDENT -->
@@ -2056,6 +2067,21 @@ async function loadDashboard(){
     const d=json.dashboard||{};
     document.getElementById('loadingState').style.display='none';
     const sec=document.getElementById('section-'+role);
+    // WIDGET SWAP: student/teacher default to the W1 widget dashboard; a toggle
+    // falls back to the classic per-role section. Other roles unchanged.
+    const WIDGET_ROLES=['student','teacher'];
+    const useWidgets = WIDGET_ROLES.includes(role) && localStorage.getItem('wg_mode')!=='classic' && window.EduOSWidgets;
+    if(WIDGET_ROLES.includes(role)){
+      const bar=document.getElementById('wgModeBar'); if(bar)bar.style.display='flex';
+      const btn=document.getElementById('wgToggle'); if(btn)btn.textContent=useWidgets?'🗂️ Classic view':'🧩 Widget view';
+    }
+    if(useWidgets){
+      document.getElementById('wgPanel').style.display='block';
+      try{ EduOSWidgets.boot(document.getElementById('wgMount')); }catch(_){}
+      // still run topbar/nav polish, but skip the classic section render
+      try{ renderGreeting(); renderNextClassHeader(); buildBottomNav(role); _initInstSwitcher(); refreshUnreadBadge(); refreshStudentSummary(); }catch(_){}
+      return;
+    }
     if(sec)sec.classList.add('visible');
     if(role==='student'){renderStudentDash(d); loadNotes(); loadStudentHistory(); loadWall(); startTimeTracking(); renderContinueLearning(); loadStudyActivity(); loadSuggestions();}
     else if(role==='teacher'){renderTeacherDash(d); loadTeacherWall();}
@@ -9583,6 +9609,13 @@ function openEmbed(url,title){
 function closeEmbed(){
   document.getElementById('embedOverlay').style.display='none';
   document.getElementById('embedIframe').src='';
+}
+// WIDGET SWAP: flip between the W1 widget dashboard and the classic per-role
+// section (student/teacher). Persisted so the choice sticks across sessions.
+function toggleWidgetMode(){
+  const onWidgets = localStorage.getItem('wg_mode')!=='classic';
+  localStorage.setItem('wg_mode', onWidgets ? 'classic' : 'widgets');
+  location.reload();
 }
 </script>
 </body>
