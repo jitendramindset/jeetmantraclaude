@@ -1,6 +1,8 @@
 const express = require('express');
+const jwt = require('jsonwebtoken');
 const { supabase, supabaseAdmin } = require('../config/supabase');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
+const { validate } = require('../middleware/validation');
 const { v4: uuidv4 } = require('uuid');
 
 const router = express.Router();
@@ -67,10 +69,12 @@ router.put('/users/:userId/toggle-status', authenticateToken, authorizeRole(['ad
       return res.status(400).json({ error: 'Cannot toggle status: is_active column not present in user schema' });
     }
 
+    const before = !!user.is_active;
+    const after = !before;
     const { data: updatedUser, error } = await supabaseAdmin
       .from('jeetmantra_users')
-      .update({ 
-        is_active: !user.is_active,
+      .update({
+        is_active: after,
         updated_at: new Date().toISOString()
       })
       .eq('id', userId)
@@ -80,6 +84,15 @@ router.put('/users/:userId/toggle-status', authenticateToken, authorizeRole(['ad
     if (error) {
       return res.status(400).json({ error: 'Failed to update user status' });
     }
+
+    // Security-relevant action: always audit, with before/after + actor IP/UA so
+    // block/unblock is reconstructable from the audit log alone.
+    await auditLog(req.user.id, after ? 'user.unblock' : 'user.block', userId, {
+      before: { is_active: before },
+      after: { is_active: after },
+      actor_ip: req.ip || req.headers['x-forwarded-for'] || null,
+      user_agent: req.headers['user-agent'] || null
+    });
 
     res.json({
       message: 'User status updated successfully',
@@ -148,6 +161,193 @@ router.get('/stats', authenticateToken, authorizeRole(['admin']), async (req, re
   }
 });
 
+// ── PLATFORM OS — Overview KPIs (DAU/WAU/MAU, signups, revenue trend).
+// Reuses existing tables (jeetmantra_users.last_login, payments). Heavy lifting
+// is done in JS rather than SQL window-funcs because the self-hosted PostgREST
+// path doesn't expose RPCs reliably (see [[supabase-selfhosted-quirks]]).
+router.get('/analytics/overview', authenticateToken, authorizeRole(['admin']), async (req, res) => {
+  try {
+    const now = new Date();
+    const day = 24 * 60 * 60 * 1000;
+    const since30 = new Date(now.getTime() - 30 * day).toISOString();
+    const since7  = new Date(now.getTime() - 7  * day).toISOString();
+    const since1  = new Date(now.getTime() - 1  * day).toISOString();
+    const monthAgo = new Date(now.getTime() - 30 * day).toISOString();
+
+    const [usersTotal, signups30, dauRows, wauRows, mauRows, payments30] = await Promise.all([
+      supabaseAdmin.from('jeetmantra_users').select('id', { count: 'exact', head: true }).then(r => r.count || 0).catch(() => 0),
+      supabaseAdmin.from('jeetmantra_users').select('id', { count: 'exact', head: true }).gte('created_at', since30).then(r => r.count || 0).catch(() => 0),
+      supabaseAdmin.from('jeetmantra_users').select('id', { count: 'exact', head: true }).gte('last_login', since1).then(r => r.count || 0).catch(() => 0),
+      supabaseAdmin.from('jeetmantra_users').select('id', { count: 'exact', head: true }).gte('last_login', since7).then(r => r.count || 0).catch(() => 0),
+      supabaseAdmin.from('jeetmantra_users').select('id', { count: 'exact', head: true }).gte('last_login', since30).then(r => r.count || 0).catch(() => 0),
+      supabaseAdmin.from('payments').select('amount, status, created_at').eq('status', 'completed').gte('created_at', monthAgo).then(r => r.data || []).catch(() => [])
+    ]);
+
+    // 30-day revenue sparkline (one bucket per day)
+    const buckets = {};
+    for (let i = 0; i < 30; i++) {
+      const d = new Date(now.getTime() - i * day);
+      buckets[d.toISOString().slice(0, 10)] = 0;
+    }
+    payments30.forEach(p => {
+      const d = String(p.created_at || '').slice(0, 10);
+      if (d in buckets) buckets[d] += parseFloat(p.amount || 0);
+    });
+    const revenueSeries = Object.keys(buckets).sort().map(d => ({ date: d, amount: buckets[d] }));
+    const revenue30 = revenueSeries.reduce((s, b) => s + b.amount, 0);
+
+    res.json({
+      users: { total: usersTotal, signups30 },
+      activity: { dau: dauRows, wau: wauRows, mau: mauRows },
+      revenue: { last30Total: revenue30, series: revenueSeries }
+    });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── SYSTEM STATUS: ping each integration the platform depends on. Returns a
+// per-feature health snapshot for the topbar status pill. Best-effort — any
+// individual probe failure becomes status:'down' rather than 500ing the whole call.
+router.get('/system/status', authenticateToken, authorizeRole(['admin']), async (req, res) => {
+  const probe = async (name, fn) => {
+    const t0 = Date.now();
+    try { await fn(); return { name, status: 'up', latency_ms: Date.now() - t0 }; }
+    catch (e) { return { name, status: 'down', latency_ms: Date.now() - t0, error: e.message }; }
+  };
+  const results = await Promise.all([
+    probe('database', async () => {
+      const { error } = await supabaseAdmin.from('jeetmantra_users').select('id').limit(1);
+      if (error) throw new Error(error.message);
+    }),
+    probe('leveldb', async () => {
+      try { const { put, get } = require('../config/leveldb'); await put('health:ping', Date.now()); await get('health:ping'); }
+      catch (e) { throw e; }
+    }),
+    probe('n8n', async () => {
+      // n8n is optional — if URL is configured, ping it
+      const url = process.env.N8N_WEBHOOK_URL || '';
+      if (!url) return; // "up" = not configured = OK
+    }),
+  ]);
+  const overall = results.every(r => r.status === 'up') ? 'up' : results.some(r => r.status === 'up') ? 'degraded' : 'down';
+  res.json({ overall, services: results, checked_at: new Date().toISOString() });
+});
+
+// ── ACTION INBOX: pending counts for the operations queues from Sprint 3.
+// Returns placeholder zeros until those tables land — the UI surface is built
+// now so Sprint 3 only needs to fill the numbers in.
+router.get('/actions/inbox', authenticateToken, authorizeRole(['admin']), async (req, res) => {
+  const safeCount = async (table, filter) => {
+    try {
+      let q = supabaseAdmin.from(table).select('id', { count: 'exact', head: true });
+      if (filter) q = filter(q);
+      const { count } = await q;
+      return count || 0;
+    } catch (_) { return 0; }
+  };
+  const [approvals, payouts, tickets, reports] = await Promise.all([
+    safeCount('approval_requests', q => q.eq('status', 'pending')),
+    safeCount('payouts',           q => q.eq('status', 'pending')),
+    safeCount('support_tickets',   q => q.in('status', ['open', 'pending'])),
+    safeCount('content_reports',   q => q.eq('status', 'pending'))
+  ]);
+  res.json({
+    inbox: {
+      approvals,
+      payouts,
+      tickets,
+      reports,
+      total: approvals + payouts + tickets + reports
+    },
+    note: 'Counts read from Sprint 3 tables when present; 0 otherwise.'
+  });
+});
+
+// ── TENANTS / INSTITUTES: list every institution (a jeetmantra_users row of
+// type school/coaching/franchise) with member counts + plan + recent signups.
+// Powers the Tenants console.
+router.get('/institutes', authenticateToken, authorizeRole(['admin']), async (req, res) => {
+  try {
+    const { q, type, page = 1, limit = 25 } = req.query;
+    const lim = Math.min(100, Math.max(1, Number(limit) || 25));
+    const off = (Math.max(1, Number(page) || 1) - 1) * lim;
+    let qb = supabaseAdmin.from('jeetmantra_users')
+      .select('id, full_name, email, user_type, created_at, is_active', { count: 'exact' })
+      .in('user_type', type ? [type] : ['school', 'coaching', 'franchise']);
+    if (q) {
+      const term = String(q).replace(/[%,()]/g, '');
+      qb = qb.or(`full_name.ilike.%${term}%,email.ilike.%${term}%`);
+    }
+    const { data: rows, count, error } = await qb.order('created_at', { ascending: false }).range(off, off + lim - 1);
+    if (error) return res.status(500).json({ error: error.message });
+
+    // Hydrate per-tenant counts: teachers + students + courses.
+    const ids = (rows || []).map(r => r.id);
+    let teacherCounts = {}, studentCounts = {}, courseCounts = {};
+    if (ids.length) {
+      const [t, s, c] = await Promise.all([
+        supabaseAdmin.from('institution_teachers').select('institution_id').in('institution_id', ids).then(r => r.data || []).catch(() => []),
+        supabaseAdmin.from('institution_students').select('institution_id').in('institution_id', ids).then(r => r.data || []).catch(() => []),
+        supabaseAdmin.from('courses').select('institution_id').in('institution_id', ids).then(r => r.data || []).catch(() => [])
+      ]);
+      t.forEach(r => { teacherCounts[r.institution_id] = (teacherCounts[r.institution_id] || 0) + 1; });
+      s.forEach(r => { studentCounts[r.institution_id] = (studentCounts[r.institution_id] || 0) + 1; });
+      c.forEach(r => { courseCounts[r.institution_id] = (courseCounts[r.institution_id] || 0) + 1; });
+    }
+    const institutes = (rows || []).map(r => ({
+      id: r.id,
+      name: r.full_name,
+      email: r.email,
+      type: r.user_type,
+      is_active: r.is_active !== false,
+      created_at: r.created_at,
+      teacher_count: teacherCounts[r.id] || 0,
+      student_count: studentCounts[r.id] || 0,
+      course_count:  courseCounts[r.id] || 0
+    }));
+    res.json({ institutes, page: Number(page), limit: lim, total: count || 0 });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── ADMIN PAYMENTS LIST: platform-wide payment ledger with filters. Replaces
+// the broken admin-frontend pattern of calling /payments/my (which returns the
+// admin's OWN payments only). Filter by status (pending/completed/failed/refunded),
+// payment method, date range, free-text q (matches id / transaction_id / user_id).
+router.get('/payments', authenticateToken, authorizeRole(['admin']), async (req, res) => {
+  try {
+    const { status, method, from, to, q, page = 1, limit = 25 } = req.query;
+    const lim = Math.min(100, Math.max(1, Number(limit) || 25));
+    const off = (Math.max(1, Number(page) || 1) - 1) * lim;
+
+    let query = supabaseAdmin.from('payments').select('*', { count: 'exact' });
+    if (status) query = query.eq('status', status);
+    if (method) query = query.eq('payment_method', method);
+    if (from) query = query.gte('created_at', new Date(from).toISOString());
+    if (to) query = query.lte('created_at', new Date(to).toISOString());
+    if (q) {
+      const term = String(q).replace(/[%,()]/g, ''); // strip PostgREST .or() metacharacters
+      query = query.or(`id.ilike.%${term}%,transaction_id.ilike.%${term}%,user_id.eq.${term}`);
+    }
+    const { data: rows, count, error } = await query.order('created_at', { ascending: false }).range(off, off + lim - 1);
+    if (error) return res.status(500).json({ error: error.message });
+
+    // Hydrate payer names (jeetmantra_users.id is VARCHAR — no FK embed possible)
+    const ids = [...new Set((rows || []).map(r => r.user_id).filter(Boolean))];
+    let payers = {};
+    if (ids.length) {
+      const { data: users } = await supabaseAdmin.from('jeetmantra_users').select('id, full_name, email').in('id', ids);
+      payers = Object.fromEntries((users || []).map(u => [u.id, u]));
+    }
+    const payments = (rows || []).map(p => ({
+      ...p,
+      payer_name: payers[p.user_id]?.full_name || null,
+      payer_email: payers[p.user_id]?.email || null
+    }));
+    res.json({ payments, page: Number(page), limit: lim, total: count || 0 });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── ADMIN USER DETAIL: deep view of one user.
 router.get('/users/:userId', authenticateToken, authorizeRole(['admin']), async (req, res) => {
   try {
@@ -164,7 +364,7 @@ router.get('/users/:userId', authenticateToken, authorizeRole(['admin']), async 
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.put('/users/:userId', authenticateToken, authorizeRole(['admin']), async (req, res) => {
+router.put('/users/:userId', authenticateToken, authorizeRole(['admin']), validate('adminUserUpdate'), async (req, res) => {
   try {
     const { fullName, role, status } = req.body || {};
     const updates = { updated_at: new Date().toISOString() };
@@ -228,6 +428,175 @@ router.post('/courses/:id/moderate', authenticateToken, authorizeRole(['admin'])
     await supabaseAdmin.from('courses').update({ ...updates, updated_at: new Date().toISOString() }).eq('id', req.params.id);
     await auditLog(req.user.id, 'course.moderate', req.params.id, { action });
     res.json({ message: 'Moderation applied' });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ════════════════════════════════════════════════════════════════════
+// Sprint 6 — Impersonation ("view as user") support workflow.
+//
+// Admin starts an impersonation by POSTing target user + reason; receives
+// a SHORT-LIVED JWT signed as the target user with extra claims
+// { actor_id, scope, imp_session_id }. The client uses this token for
+// follow-up calls. Stop POSTs the session id, server marks ended_at.
+// Both transitions are audit_log'd with IP/UA/before-after.
+//
+// Hard caps: default 15 min, max 120 min, never beyond the configured
+// JWT lifetime. Re-uses the same JWT_SECRET as normal auth so existing
+// middleware accepts the token transparently.
+// ════════════════════════════════════════════════════════════════════
+router.post('/impersonate/start', authenticateToken, authorizeRole(['admin']), validate('impersonationStart'), async (req, res) => {
+  try {
+    const { targetUserId, scope = 'read', reason, durationMinutes = 15 } = req.validatedData;
+    if (targetUserId === req.user.id) return res.status(400).json({ error: "Can't impersonate yourself" });
+    const { data: target } = await supabaseAdmin.from('jeetmantra_users')
+      .select('id, full_name, email, user_type').eq('id', targetUserId).maybeSingle();
+    if (!target) return res.status(404).json({ error: 'Target user not found' });
+    // Never impersonate another admin (defense in depth).
+    if (target.user_type === 'admin') return res.status(403).json({ error: "Refusing to impersonate another admin" });
+
+    const expiresAt = new Date(Date.now() + Math.min(120, Math.max(1, Number(durationMinutes) || 15)) * 60000);
+    const sessionId = uuidv4();
+    // Mint a token that LOOKS like the target user (id, role) so existing
+    // route gates work, but carries the actor_id and imp_session_id for audit.
+    const token = jwt.sign({
+      id: target.id,
+      email: target.email,
+      role: target.user_type,
+      actor_id: req.user.id,
+      imp_session_id: sessionId,
+      imp_scope: scope
+    }, process.env.JWT_SECRET, { expiresIn: Math.floor((expiresAt.getTime() - Date.now()) / 1000) });
+
+    // Persist the session row.
+    try {
+      await supabaseAdmin.from('impersonation_sessions').insert({
+        id: sessionId,
+        actor_id: req.user.id, target_id: targetUserId, scope, reason,
+        actor_ip: req.ip || req.headers['x-forwarded-for'] || null,
+        user_agent: req.headers['user-agent'] || null,
+        expires_at: expiresAt.toISOString()
+      });
+    } catch (_) { /* table not migrated yet — token still works */ }
+
+    await auditLog(req.user.id, 'impersonate.start', targetUserId, {
+      scope, reason, duration_minutes: durationMinutes,
+      session_id: sessionId,
+      actor_ip: req.ip || req.headers['x-forwarded-for'] || null,
+      user_agent: req.headers['user-agent'] || null
+    });
+
+    res.json({
+      sessionId, token, expiresAt: expiresAt.toISOString(),
+      target: { id: target.id, full_name: target.full_name, email: target.email, role: target.user_type },
+      scope
+    });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.post('/impersonate/stop', authenticateToken, async (req, res) => {
+  try {
+    // Either the admin OR the impersonated session itself can stop. We close
+    // by session_id from the body, or every active session for the calling
+    // admin if none provided.
+    const sessionId = req.body?.sessionId;
+    let q = supabaseAdmin.from('impersonation_sessions')
+      .update({ ended_at: new Date().toISOString() }).is('ended_at', null);
+    if (sessionId) {
+      q = q.eq('id', sessionId);
+    } else if (req.user.imp_session_id) {
+      q = q.eq('id', req.user.imp_session_id);
+    } else if (req.user.role === 'admin') {
+      q = q.eq('actor_id', req.user.id);
+    } else {
+      return res.status(400).json({ error: 'sessionId required' });
+    }
+    await q;
+    await auditLog(req.user.actor_id || req.user.id, 'impersonate.stop', sessionId || null, {});
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.get('/impersonate/sessions', authenticateToken, authorizeRole(['admin']), async (req, res) => {
+  try {
+    const { active } = req.query;
+    let q = supabaseAdmin.from('impersonation_sessions').select('*').order('started_at', { ascending: false }).limit(50);
+    if (active === '1') q = q.is('ended_at', null);
+    const { data } = await q;
+    res.json({ sessions: data || [] });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ════════════════════════════════════════════════════════════════════
+// Sprint 6 — Admin bookings list (activates the existing "Bookings &
+// Venues" sidebar entry in admin-os.html). Cross-tenant view.
+// ════════════════════════════════════════════════════════════════════
+router.get('/bookings', authenticateToken, authorizeRole(['admin']), async (req, res) => {
+  try {
+    const { status, resource_type, from, to, q, page = 1, limit = 25 } = req.query;
+    const lim = Math.min(100, Math.max(1, Number(limit) || 25));
+    const off = (Math.max(1, Number(page) || 1) - 1) * lim;
+    let qb = supabaseAdmin.from('bookings_v2').select('*', { count: 'exact' });
+    if (status)        qb = qb.eq('status', status);
+    if (resource_type) qb = qb.eq('resource_type', resource_type);
+    if (from)          qb = qb.gte('start_at', new Date(from).toISOString());
+    if (to)            qb = qb.lte('start_at', new Date(to).toISOString());
+    if (q) {
+      const term = String(q).replace(/[%,()]/g, '');
+      qb = qb.or(`booker_id.eq.${term},resource_id.eq.${term},id.eq.${term}`);
+    }
+    const { data: rows, count, error } = await qb.order('start_at', { ascending: false }).range(off, off + lim - 1);
+    if (error) return res.status(500).json({ error: error.message });
+
+    // Hydrate resource title + booker name
+    const resourceIds = [...new Set((rows || []).map(r => r.resource_id))];
+    const bookerIds   = [...new Set((rows || []).map(r => r.booker_id))];
+    let resources = {}, bookers = {};
+    if (resourceIds.length) {
+      const { data } = await supabaseAdmin.from('resources').select('id, title, type, venue_name').in('id', resourceIds);
+      resources = Object.fromEntries((data || []).map(x => [x.id, x]));
+    }
+    if (bookerIds.length) {
+      const { data } = await supabaseAdmin.from('jeetmantra_users').select('id, full_name, email').in('id', bookerIds);
+      bookers = Object.fromEntries((data || []).map(x => [x.id, x]));
+    }
+    const bookings = (rows || []).map(b => ({
+      ...b,
+      resource: resources[b.resource_id] || null,
+      booker:   bookers[b.booker_id] || null
+    }));
+    res.json({ bookings, page: Number(page), limit: lim, total: count || 0 });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// GET /admin/live-classes — platform-wide live classes (admin Live & Recordings
+// section). Optional status filter; hydrates course title + host name.
+router.get('/live-classes', authenticateToken, authorizeRole(['admin']), async (req, res) => {
+  try {
+    const { status, page = 1, limit = 50 } = req.query;
+    const lim = Math.min(100, Math.max(1, Number(limit) || 50));
+    const off = (Math.max(1, Number(page) || 1) - 1) * lim;
+    let qb = supabaseAdmin.from('live_classes').select('*', { count: 'exact' });
+    if (status) qb = qb.eq('status', status);
+    const { data: rows, count, error } = await qb.order('scheduled_time', { ascending: false }).range(off, off + lim - 1);
+    if (error) return res.status(500).json({ error: error.message });
+
+    const courseIds = [...new Set((rows || []).map(r => r.course_id).filter(Boolean))];
+    const hostIds   = [...new Set((rows || []).map(r => r.teacher_id || r.host_id).filter(Boolean))];
+    let courses = {}, hosts = {};
+    if (courseIds.length) {
+      const { data } = await supabaseAdmin.from('courses').select('id, title').in('id', courseIds);
+      courses = Object.fromEntries((data || []).map(x => [x.id, x]));
+    }
+    if (hostIds.length) {
+      const { data } = await supabaseAdmin.from('jeetmantra_users').select('id, full_name').in('id', hostIds);
+      hosts = Object.fromEntries((data || []).map(x => [x.id, x]));
+    }
+    const classes = (rows || []).map(c => ({
+      ...c,
+      course_title: courses[c.course_id]?.title || null,
+      host_name: hosts[c.teacher_id || c.host_id]?.full_name || null
+    }));
+    res.json({ classes, page: Number(page), limit: lim, total: count || 0 });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

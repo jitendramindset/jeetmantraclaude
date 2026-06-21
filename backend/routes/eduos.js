@@ -26,8 +26,20 @@ const path = require('path');
 const multer = require('multer');
 const { supabaseAdmin } = require('../config/supabase');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
+const { requireCapability } = require('../middleware/requireCapability');
 const { CREATOR_ROLES, INSTITUTION_ROLES, STUDENT_ROLES, PARENT_ROLES } = require('../config/roles');
+const { validate } = require('../middleware/validation');
 const { v4: uuidv4 } = require('uuid');
+
+// S1-3 fix: institution-scoped routes below used .eq('institution_id', resolveInstitutionForAdmin(req)),
+// which works when the caller IS the institution but causes admin queries to
+// return zero rows. This helper lets admin override the scope via
+// ?institution_id=X (so platform staff can manage any tenant's ops), while
+// non-admin callers stay locked to their own institution_id (== req.user.id).
+function resolveInstitutionForAdmin(req) {
+  if (req.user.role === 'admin' && req.query.institution_id) return req.query.institution_id;
+  return req.user.id;
+}
 
 const router = express.Router();
 
@@ -516,17 +528,16 @@ router.get('/report-card/:studentId', authenticateToken, async (req, res) => {
 // Admissions (school/coaching/admin only).
 router.get('/admissions', authenticateToken, authorizeRole(INSTITUTION_ROLES), async (req, res) => {
   try {
-    const { data } = await supabaseAdmin.from('admissions').select('*').eq('institution_id', req.user.id).order('applied_at', { ascending: false });
+    const { data } = await supabaseAdmin.from('admissions').select('*').eq('institution_id', resolveInstitutionForAdmin(req)).order('applied_at', { ascending: false });
     const counts = { applied: 0, interview: 0, admitted: 0, rejected: 0 };
     (data || []).forEach(a => { counts[a.stage] = (counts[a.stage] || 0) + 1; });
     res.json({ admissions: data || [], counts });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.post('/admissions', authenticateToken, authorizeRole(INSTITUTION_ROLES), async (req, res) => {
+router.post('/admissions', authenticateToken, requireCapability('admissions.manage'), validate('admissionCreate'), async (req, res) => {
   try {
-    const { studentName, studentEmail, studentPhone, courseId, notes } = req.body || {};
-    if (!studentName) return res.status(400).json({ error: 'studentName required' });
+    const { studentName, studentEmail, studentPhone, courseId, notes } = req.validatedData;
     const { data, error } = await supabaseAdmin.from('admissions').insert({
       id: uuidv4(), institution_id: req.user.id,
       student_name: studentName, student_email: studentEmail || null,
@@ -538,14 +549,14 @@ router.post('/admissions', authenticateToken, authorizeRole(INSTITUTION_ROLES), 
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.put('/admissions/:id', authenticateToken, authorizeRole(INSTITUTION_ROLES), async (req, res) => {
+router.put('/admissions/:id', authenticateToken, requireCapability('admissions.manage'), validate('admissionUpdate'), async (req, res) => {
   try {
-    const { stage, notes } = req.body || {};
+    const { stage, notes } = req.validatedData;
     const updates = { updated_at: new Date().toISOString() };
     if (stage) updates.stage = stage;
     if (notes !== undefined) updates.notes = notes;
     const { data, error } = await supabaseAdmin.from('admissions').update(updates)
-      .eq('id', req.params.id).eq('institution_id', req.user.id).select().single();
+      .eq('id', req.params.id).eq('institution_id', resolveInstitutionForAdmin(req)).select().single();
     if (error) return res.status(400).json({ error: error.message });
     res.json({ admission: data });
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -554,15 +565,14 @@ router.put('/admissions/:id', authenticateToken, authorizeRole(INSTITUTION_ROLES
 // Fee plans.
 router.get('/fees/plans', authenticateToken, authorizeRole(INSTITUTION_ROLES), async (req, res) => {
   try {
-    const { data } = await supabaseAdmin.from('fee_plans').select('*').eq('institution_id', req.user.id);
+    const { data } = await supabaseAdmin.from('fee_plans').select('*').eq('institution_id', resolveInstitutionForAdmin(req));
     res.json({ plans: data || [] });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.post('/fees/plans', authenticateToken, authorizeRole(INSTITUTION_ROLES), async (req, res) => {
+router.post('/fees/plans', authenticateToken, requireCapability('billing.manage'), validate('feePlanCreate'), async (req, res) => {
   try {
-    const { name, amount, frequency, courseId } = req.body || {};
-    if (!name || !amount) return res.status(400).json({ error: 'name + amount required' });
+    const { name, amount, frequency, courseId } = req.validatedData;
     const { data, error } = await supabaseAdmin.from('fee_plans').insert({
       id: uuidv4(), institution_id: req.user.id, name,
       amount: Number(amount), frequency: frequency || 'monthly',
@@ -577,17 +587,16 @@ router.post('/fees/plans', authenticateToken, authorizeRole(INSTITUTION_ROLES), 
 router.get('/fees/invoices', authenticateToken, authorizeRole([...INSTITUTION_ROLES, 'parent', 'student']), async (req, res) => {
   try {
     let q = supabaseAdmin.from('fee_invoices').select('*');
-    if (INSTITUTION_ROLES.includes(req.user.role)) q = q.eq('institution_id', req.user.id);
+    if (INSTITUTION_ROLES.includes(req.user.role)) q = q.eq('institution_id', resolveInstitutionForAdmin(req));
     else q = q.eq('student_id', req.user.id);
     const { data } = await q.order('due_date', { ascending: false });
     res.json({ invoices: data || [] });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.post('/fees/invoices', authenticateToken, authorizeRole(INSTITUTION_ROLES), async (req, res) => {
+router.post('/fees/invoices', authenticateToken, requireCapability('billing.manage'), validate('feeInvoiceCreate'), async (req, res) => {
   try {
-    const { studentId, feePlanId, amount, dueDate } = req.body || {};
-    if (!studentId || !amount) return res.status(400).json({ error: 'studentId + amount required' });
+    const { studentId, feePlanId, amount, dueDate } = req.validatedData;
     const { data, error } = await supabaseAdmin.from('fee_invoices').insert({
       id: uuidv4(), institution_id: req.user.id, student_id: studentId,
       fee_plan_id: feePlanId || null, amount: Number(amount),
@@ -607,6 +616,18 @@ router.post('/fees/invoices', authenticateToken, authorizeRole(INSTITUTION_ROLES
 
 router.put('/fees/invoices/:id/pay', authenticateToken, async (req, res) => {
   try {
+    // Ownership gate (was authenticateToken-only → any user could mark ANY
+    // invoice paid by id). Allowed: the institution that issued it, the student
+    // it belongs to, or admin.
+    const { data: inv } = await supabaseAdmin.from('fee_invoices')
+      .select('institution_id, student_id').eq('id', req.params.id).maybeSingle();
+    if (!inv) return res.status(404).json({ error: 'Invoice not found' });
+    const isAdmin = req.user.role === 'admin';
+    const isInstitution = INSTITUTION_ROLES.includes(req.user.role) && inv.institution_id === resolveInstitutionForAdmin(req);
+    const isStudent = inv.student_id === req.user.id;
+    if (!isAdmin && !isInstitution && !isStudent) {
+      return res.status(403).json({ error: 'Not authorized to settle this invoice' });
+    }
     await supabaseAdmin.from('fee_invoices').update({
       status: 'paid', paid_at: new Date().toISOString()
     }).eq('id', req.params.id);
@@ -615,11 +636,11 @@ router.put('/fees/invoices/:id/pay', authenticateToken, async (req, res) => {
 });
 
 // Send fee reminders for invoices due in next 7 days.
-router.post('/fees/send-reminders', authenticateToken, authorizeRole(INSTITUTION_ROLES), async (req, res) => {
+router.post('/fees/send-reminders', authenticateToken, requireCapability('billing.manage'), async (req, res) => {
   try {
     const sevenDaysOut = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
     const { data: due } = await supabaseAdmin.from('fee_invoices').select('*')
-      .eq('institution_id', req.user.id).eq('status', 'pending')
+      .eq('institution_id', resolveInstitutionForAdmin(req)).eq('status', 'pending')
       .lte('due_date', sevenDaysOut);
     let sent = 0;
     for (const inv of (due || [])) {
@@ -637,15 +658,14 @@ router.post('/fees/send-reminders', authenticateToken, authorizeRole(INSTITUTION
 // Payroll.
 router.get('/payroll', authenticateToken, authorizeRole(INSTITUTION_ROLES), async (req, res) => {
   try {
-    const { data } = await supabaseAdmin.from('staff_payroll').select('*').eq('institution_id', req.user.id).order('created_at', { ascending: false });
+    const { data } = await supabaseAdmin.from('staff_payroll').select('*').eq('institution_id', resolveInstitutionForAdmin(req)).order('created_at', { ascending: false });
     res.json({ payroll: data || [] });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.post('/payroll', authenticateToken, authorizeRole(INSTITUTION_ROLES), async (req, res) => {
+router.post('/payroll', authenticateToken, requireCapability('payroll.manage'), validate('payrollCreate'), async (req, res) => {
   try {
-    const { staffId, periodMonth, baseSalary, bonuses, deductions } = req.body || {};
-    if (!staffId || !baseSalary) return res.status(400).json({ error: 'staffId + baseSalary required' });
+    const { staffId, periodMonth, baseSalary, bonuses, deductions } = req.validatedData;
     const net = Number(baseSalary) + (Number(bonuses) || 0) - (Number(deductions) || 0);
     const { data, error } = await supabaseAdmin.from('staff_payroll').insert({
       id: uuidv4(), institution_id: req.user.id, staff_id: staffId,
@@ -658,11 +678,11 @@ router.post('/payroll', authenticateToken, authorizeRole(INSTITUTION_ROLES), asy
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.put('/payroll/:id/pay', authenticateToken, authorizeRole(INSTITUTION_ROLES), async (req, res) => {
+router.put('/payroll/:id/pay', authenticateToken, requireCapability('payroll.manage'), async (req, res) => {
   try {
     await supabaseAdmin.from('staff_payroll').update({
       status: 'paid', paid_at: new Date().toISOString()
-    }).eq('id', req.params.id).eq('institution_id', req.user.id);
+    }).eq('id', req.params.id).eq('institution_id', resolveInstitutionForAdmin(req));
     res.json({ message: 'Marked paid' });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -671,17 +691,16 @@ router.put('/payroll/:id/pay', authenticateToken, authorizeRole(INSTITUTION_ROLE
 router.get('/leave', authenticateToken, async (req, res) => {
   try {
     let q = supabaseAdmin.from('staff_leave').select('*');
-    if (INSTITUTION_ROLES.includes(req.user.role)) q = q.eq('institution_id', req.user.id);
+    if (INSTITUTION_ROLES.includes(req.user.role)) q = q.eq('institution_id', resolveInstitutionForAdmin(req));
     else q = q.eq('staff_id', req.user.id);
     const { data } = await q.order('created_at', { ascending: false });
     res.json({ requests: data || [] });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.post('/leave', authenticateToken, async (req, res) => {
+router.post('/leave', authenticateToken, validate('leaveCreate'), async (req, res) => {
   try {
-    const { institutionId, leaveType, fromDate, toDate, reason } = req.body || {};
-    if (!institutionId || !fromDate || !toDate) return res.status(400).json({ error: 'institutionId, fromDate, toDate required' });
+    const { institutionId, leaveType, fromDate, toDate, reason } = req.validatedData;
     const { data, error } = await supabaseAdmin.from('staff_leave').insert({
       id: uuidv4(), institution_id: institutionId, staff_id: req.user.id,
       leave_type: leaveType || 'casual', from_date: fromDate, to_date: toDate,
@@ -692,13 +711,13 @@ router.post('/leave', authenticateToken, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.put('/leave/:id/decide', authenticateToken, authorizeRole(INSTITUTION_ROLES), async (req, res) => {
+router.put('/leave/:id/decide', authenticateToken, requireCapability('hr.manage'), validate('leaveDecide'), async (req, res) => {
   try {
-    const { decision } = req.body || {}; // 'approved' | 'rejected'
+    const { decision } = req.validatedData; // 'approved' | 'rejected'
     await supabaseAdmin.from('staff_leave').update({
       status: decision === 'approved' ? 'approved' : 'rejected',
       approved_by: req.user.id, decided_at: new Date().toISOString()
-    }).eq('id', req.params.id).eq('institution_id', req.user.id);
+    }).eq('id', req.params.id).eq('institution_id', resolveInstitutionForAdmin(req));
     res.json({ message: 'Decision recorded' });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -720,12 +739,9 @@ router.get('/tenant/branding', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.put('/tenant/branding', authenticateToken, authorizeRole(INSTITUTION_ROLES), async (req, res) => {
+router.put('/tenant/branding', authenticateToken, requireCapability('org.branding'), validate('tenantBranding'), async (req, res) => {
   try {
-    const { subdomain, brandLogo, brandColor, brandName } = req.body || {};
-    if (subdomain && !/^[a-z][a-z0-9-]{2,30}$/i.test(subdomain)) {
-      return res.status(400).json({ error: 'Invalid subdomain — letters/digits/hyphen, 3-30 chars' });
-    }
+    const { subdomain, brandLogo, brandColor, brandName } = req.validatedData;
     const updates = {};
     if (subdomain !== undefined) updates.subdomain = subdomain ? String(subdomain).toLowerCase() : null;
     if (brandLogo !== undefined) updates.brand_logo = brandLogo;

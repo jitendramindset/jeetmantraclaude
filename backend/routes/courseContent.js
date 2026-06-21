@@ -16,6 +16,7 @@ const path = require('path');
 const fs = require('fs');
 const { supabase, supabaseAdmin } = require('../config/supabase');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
+const { requireCapability } = require('../middleware/requireCapability');
 const { v4: uuidv4 } = require('uuid');
 
 const router = express.Router();
@@ -273,7 +274,7 @@ router.get('/:courseId/tests', authenticateToken, async (req, res) => {
   res.json({ tests: full ? (data || []) : [] });
 });
 
-router.post('/:courseId/tests', authenticateToken, async (req, res) => {
+router.post('/:courseId/tests', authenticateToken, requireCapability('test.create'), async (req, res) => {
   const { allowed } = await ownsCourse(req.params.courseId, req.user);
   if (!allowed) return res.status(403).json({ error: 'Not your course' });
   const { title, description, totalMarks, durationMinutes, scheduledFor, topicId,
@@ -297,7 +298,7 @@ router.post('/:courseId/tests', authenticateToken, async (req, res) => {
   res.status(201).json({ test: data });
 });
 
-router.put('/tests/:id', authenticateToken, async (req, res) => {
+router.put('/tests/:id', authenticateToken, requireCapability('test.create'), async (req, res) => {
   const { allowed } = await ownsContentItem('course_tests', req.params.id, req.user);
   if (!allowed) return res.status(403).json({ error: 'Not your course' });
   const { title, description, totalMarks, durationMinutes, scheduledFor, topicId,
@@ -361,7 +362,7 @@ router.get('/tests/:testId/questions', authenticateToken, async (req, res) => {
 // POST /api/course-content/tests/:testId/questions
 // Supports type ∈ { mcq, true_false, short, long, fill, match } plus an optional
 // section_id, image_url and match_pairs (for type:match).
-router.post('/tests/:testId/questions', authenticateToken, async (req, res) => {
+router.post('/tests/:testId/questions', authenticateToken, requireCapability('test.create'), async (req, res) => {
   const { data: test } = await supabaseAdmin.from('course_tests').select('course_id').eq('id', req.params.testId).single();
   if (!test) return res.status(404).json({ error: 'Test not found' });
   const { allowed } = await ownsCourse(test.course_id, req.user);
@@ -625,10 +626,19 @@ router.get('/:courseId/full', authenticateToken, async (req, res) => {
     supabaseAdmin.from('course_tests').select('*').eq('course_id', courseId).order('created_at', { ascending: false }).then(r => r.data || [])
   ]);
   if (!course) return res.status(404).json({ error: 'Course not found' });
+  // Group flat content under its topic so the workspace Topics tab and the grid
+  // "Explore" tree can show per-chapter rollups. Flat arrays are ALSO returned
+  // unchanged so the book reader (which reads full.lectures/materials) still works.
+  const nestTopics = (tps) => tps.map(t => ({
+    ...t,
+    lectures: lectures.filter(l => l.topic_id === t.id),
+    materials: materials.filter(m => m.topic_id === t.id),
+    tests: tests.filter(x => x.topic_id === t.id)
+  }));
   // Gate paid content: non-owner/non-enrolled callers get only preview items
   // (so the course preview still works without leaking the full curriculum).
   const full = await canViewFull(courseId, req.user);
-  if (full) return res.json({ course, topics, lectures, materials, tests });
+  if (full) return res.json({ course, topics: nestTopics(topics), lectures, materials, tests });
   res.json({
     course,
     topics: topics.filter(t => t.is_preview),
@@ -647,7 +657,7 @@ router.get('/tests/:testId/sections', authenticateToken, async (req, res) => {
   res.json({ sections: data || [] });
 });
 
-router.post('/tests/:testId/sections', authenticateToken, async (req, res) => {
+router.post('/tests/:testId/sections', authenticateToken, requireCapability('test.create'), async (req, res) => {
   const { data: test } = await supabaseAdmin.from('course_tests').select('course_id').eq('id', req.params.testId).single();
   if (!test) return res.status(404).json({ error: 'Test not found' });
   const { allowed } = await ownsCourse(test.course_id, req.user);
@@ -743,7 +753,7 @@ router.delete('/question-bank/:id', authenticateToken, async (req, res) => {
 });
 
 // Copy a bank item into a specific test as a question.
-router.post('/tests/:testId/questions/from-bank/:bankId', authenticateToken, async (req, res) => {
+router.post('/tests/:testId/questions/from-bank/:bankId', authenticateToken, requireCapability('test.create'), async (req, res) => {
   const { data: test } = await supabaseAdmin.from('course_tests').select('course_id').eq('id', req.params.testId).single();
   if (!test) return res.status(404).json({ error: 'Test not found' });
   const { allowed } = await ownsCourse(test.course_id, req.user);

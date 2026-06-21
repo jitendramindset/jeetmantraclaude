@@ -3,6 +3,8 @@ const { supabase, supabaseAdmin } = require('../config/supabase');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
 const { validate } = require('../middleware/validation');
 const { CREATOR_ROLES } = require('../config/roles');
+const { resolveInstitution } = require('../middleware/resolveInstitution');
+const { requireCapability } = require('../middleware/requireCapability');
 const { v4: uuidv4 } = require('uuid');
 
 const router = express.Router();
@@ -22,10 +24,34 @@ function distanceKm(lat1, lon1, lat2, lon2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-// Get all courses (public)
+// Get all courses (public) or teacher's own courses (?mine=1 with auth token)
 router.get('/', async (req, res) => {
   try {
-    const { category, level, page = 1, limit = 12 } = req.query;
+    const { category, level, page = 1, limit = 12, mine } = req.query;
+    // mine=1: return only courses owned by the authenticated teacher
+    if (mine === '1') {
+      const authHeader = req.headers.authorization;
+      const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+      let teacherId = null;
+      if (token) {
+        try {
+          const jwt = require('jsonwebtoken');
+          const decoded = jwt.verify(token, process.env.JWT_SECRET || 'jeetmantra_secret_2024');
+          teacherId = decoded.id || decoded.userId || decoded.sub;
+        } catch(e) {}
+      }
+      if (!teacherId) return res.json({ courses: [], _debug: 'no_teacher_id' });
+      const { data: courses, error } = await supabaseAdmin
+        .from('courses').select('*')
+        .eq('teacher_id', teacherId)
+        .order('created_at', { ascending: false });
+      if (error) {
+        console.error('[courses?mine=1] supabase error:', error.message);
+        return res.json({ courses: [], _debug: error.message });
+      }
+      return res.json({ courses: courses || [] });
+    }
+
     let query = supabaseAdmin.from('courses').select('*').eq('is_active', true);
 
     if (category) query = query.eq('category', category);
@@ -130,7 +156,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create course (teacher only)
-router.post('/', authenticateToken, authorizeRole(CREATOR_ROLES), validate('courseCreate'), async (req, res) => {
+router.post('/', authenticateToken, requireCapability('course.create'), validate('courseCreate'), async (req, res) => {
   try {
     const courseId = uuidv4();
     const { title, description, category, level, price, startDate, endDate, maxStudents, batchTiming,
@@ -171,6 +197,23 @@ router.post('/', authenticateToken, authorizeRole(CREATOR_ROLES), validate('cour
     if (typeof freeListing === 'boolean') insertData.free_listing = freeListing;
     if (typeof demoClass === 'boolean') insertData.demo_class = demoClass;
 
+    // Tag the course to an institution so institute-scoped dashboards return it.
+    // Prefer an explicit institutionId from the form, else the teacher's active
+    // institution (X-Active-Institution header). Both are validated against
+    // membership via resolveInstitution so a caller can't tag arbitrary orgs.
+    // requireTeacher: tagging a course to an institution is a teaching action,
+    // so only teaching membership qualifies (a user merely enrolled there as a
+    // student must not be able to publish a course under that institution).
+    let institutionId = req.validatedData.institutionId;
+    if (institutionId && institutionId !== 'all') {
+      const verified = await resolveInstitution({ headers: { 'x-active-institution': institutionId }, query: {}, user: req.user }, { requireTeacher: true });
+      institutionId = verified && verified !== 'all' ? verified : null;
+    } else {
+      const active = await resolveInstitution(req, { requireTeacher: true });
+      institutionId = active && active !== 'all' ? active : null;
+    }
+    if (institutionId) insertData.institution_id = institutionId;
+
     const { data: course, error } = await supabaseAdmin
       .from('courses')
       .insert(insertData)
@@ -192,7 +235,7 @@ router.post('/', authenticateToken, authorizeRole(CREATOR_ROLES), validate('cour
 });
 
 // Update course (teacher only)
-router.put('/:id', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
+router.put('/:id', authenticateToken, requireCapability('course.edit'), async (req, res) => {
   try {
     // Verify ownership
     const { data: course } = await supabaseAdmin
@@ -258,7 +301,7 @@ router.put('/:id', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, 
 });
 
 // Delete course (teacher only)
-router.delete('/:id', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
+router.delete('/:id', authenticateToken, requireCapability('course.delete'), async (req, res) => {
   try {
     // Verify ownership
     const { data: course } = await supabaseAdmin
@@ -329,6 +372,54 @@ router.get('/:id/students', authenticateToken, async (req, res) => {
       };
     }));
     res.json({ course, students: rows });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// GET /api/courses/:id/analytics — aggregate course analytics for the workspace
+// Analytics tab: students, completion rate, average attendance, revenue.
+// Teacher/admin only. Each metric is guarded so a missing table/column yields 0.
+router.get('/:id/analytics', authenticateToken, async (req, res) => {
+  try {
+    const courseId = req.params.id;
+    const { data: course } = await supabaseAdmin.from('courses').select('teacher_id, title, price').eq('id', courseId).single();
+    if (!course) return res.status(404).json({ error: 'Course not found' });
+    if (req.user.role !== 'admin' && course.teacher_id !== req.user.id) {
+      return res.status(403).json({ error: 'Not your course' });
+    }
+    const [enrollments, totalLecturesRes, presentRes, paymentsRes] = await Promise.all([
+      supabaseAdmin.from('enrollments').select('id, student_id, progress_percentage, status').eq('course_id', courseId).then(r => r.data || []).catch(() => []),
+      supabaseAdmin.from('course_lectures').select('id', { count: 'exact', head: true }).eq('course_id', courseId).then(r => r.count || 0).catch(() => 0),
+      supabaseAdmin.from('attendance').select('id', { count: 'exact', head: true }).eq('course_id', courseId).eq('status', 'present').then(r => r.count || 0).catch(() => 0),
+      supabaseAdmin.from('payments').select('amount, status').eq('course_id', courseId).then(r => r.data || []).catch(() => [])
+    ]);
+    const studentCount = new Set(enrollments.map(e => e.student_id)).size;
+    const totalLectures = totalLecturesRes || 0;
+    // Completion: prefer stored progress_percentage; fall back to attendance ratio.
+    const withProgress = enrollments.filter(e => e.progress_percentage != null);
+    let completionRate;
+    if (withProgress.length) {
+      completionRate = Math.round(withProgress.reduce((s, e) => s + Number(e.progress_percentage || 0), 0) / withProgress.length);
+    } else {
+      completionRate = (totalLectures && studentCount) ? Math.min(100, Math.round((presentRes / (studentCount * totalLectures)) * 100)) : 0;
+    }
+    const avgAttendance = (totalLectures && studentCount) ? Math.min(100, Math.round((presentRes / (studentCount * totalLectures)) * 100)) : 0;
+    // Revenue: sum of completed payments, else estimate paid enrollments × price.
+    let revenue = paymentsRes
+      .filter(p => !p.status || ['paid', 'success', 'completed', 'captured'].includes(String(p.status).toLowerCase()))
+      .reduce((s, p) => s + parseFloat(p.amount || 0), 0);
+    if (!revenue && course.price) revenue = studentCount * Number(course.price || 0);
+    res.json({
+      analytics: {
+        students: studentCount,
+        completionRate,
+        avgAttendance,
+        revenue,
+        totalLectures,
+        presentRecords: presentRes
+      }
+    });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

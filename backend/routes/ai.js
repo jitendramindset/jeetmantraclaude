@@ -18,11 +18,13 @@ const { get: ldbGet, put: ldbPut } = require('../config/leveldb');
 
 const router = express.Router();
 
-// Human-readable names for the 9 supported UI languages. Used both as the
-// localizer's target and to gate requests to known languages.
+// Human-readable names for the 12 supported UI languages — must match the
+// frontend picker (i18n-lite.js) and the seed dictionary (i18n-seed.js).
+// Used both as the localizer's target and to gate requests to known languages.
 const TR_LANGS = {
   en: 'English', hi: 'Hindi', bn: 'Bengali', mr: 'Marathi', ta: 'Tamil',
-  te: 'Telugu', gu: 'Gujarati', kn: 'Kannada', pa: 'Punjabi'
+  te: 'Telugu', gu: 'Gujarati', kn: 'Kannada', pa: 'Punjabi',
+  ml: 'Malayalam', or: 'Odia', ur: 'Urdu'
 };
 // Tolerant array-of-strings parser for the localizer's JSON reply.
 function parseTrArray(text) {
@@ -91,7 +93,13 @@ router.post('/generate', authenticateToken, async (req, res) => {
 // error so the UI never breaks.
 router.post('/translate', authenticateToken, async (req, res) => {
   try {
-    let { q, target, source } = req.body || {};
+    let { q, target, source, entity_type, entity_id, field } = req.body || {};
+    // Optional entity context — when provided alongside { target, q }, results
+    // are ALSO persisted into content_translations so the Sprint 5 admin
+    // queue and per-entity readers see them. Backward-compatible: absent
+    // these, behavior is exactly as before (LevelDB-only cache).
+    const persistEntity = entity_type && entity_id && field
+      && ['course','topic','lecture','material','test','question','assignment','certificate','notification','message'].includes(entity_type);
     target = String(target || '').toLowerCase();
     source = String(source || 'en').toLowerCase();
     if (!TR_LANGS[target]) return res.status(400).json({ error: 'Unsupported target language' });
@@ -135,6 +143,48 @@ router.post('/translate', authenticateToken, async (req, res) => {
       }
     } else {
       for (const m of miss) map[m.s] = m.s; // unparseable → leave source
+    }
+    // ── Persist into content_translations when caller supplied entity context.
+    // Best-effort: failures here don't break the API contract. When q is a
+    // multi-string batch with one entity_id, each (string → translation) pair
+    // is keyed by field "<field>[<idx>]" so callers can address individual
+    // items without colliding on the unique (entity, field, lang) index.
+    if (persistEntity && Array.isArray(arr)) {
+      try {
+        const { v4: uuidv4 } = require('uuid');
+        const now = new Date().toISOString();
+        const fld = String(field);
+        const rows = [];
+        for (let i = 0; i < q.length; i++) {
+          const src = q[i];
+          const tgt = map[src];
+          if (tgt == null) continue;
+          const rowField = q.length === 1 ? fld : `${fld}[${i}]`;
+          rows.push({
+            id: uuidv4(),
+            entity_type, entity_id, field: rowField,
+            source_lang: source || 'en',
+            target_lang: target,
+            source_hash: crypto.createHash('sha1').update(src).digest('hex'),
+            text: String(tgt),
+            generated_by: 'ai',
+            generated_at: now
+          });
+        }
+        if (rows.length) {
+          // Delete-then-insert per row to play nicely with the unique
+          // (entity_type, entity_id, field, target_lang) index.
+          for (const row of rows) {
+            try {
+              await supabaseAdmin.from('content_translations').delete()
+                .eq('entity_type', row.entity_type).eq('entity_id', row.entity_id)
+                .eq('field', row.field).eq('target_lang', row.target_lang);
+            } catch (_) { /* ignore */ }
+          }
+          try { await supabaseAdmin.from('content_translations').insert(rows); }
+          catch (_) { /* best-effort */ }
+        }
+      } catch (_) { /* persistence is best-effort */ }
     }
     res.json({ map, calls: 1 });
   } catch (e) {

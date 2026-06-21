@@ -5,6 +5,9 @@ const multer = require('multer');
 const { supabase, supabaseAdmin } = require('../config/supabase');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
 const { CREATOR_ROLES } = require('../config/roles');
+const { awardForEvent } = require('../services/award');
+const { validate } = require('../middleware/validation');
+const { requireCapability } = require('../middleware/requireCapability');
 const { v4: uuidv4 } = require('uuid');
 
 const uploadDir = path.join(__dirname, '..', 'uploads');
@@ -21,7 +24,7 @@ const upload = multer({ storage });
 const router = express.Router();
 
 // Schedule a live class (teacher only)
-router.post('/', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
+router.post('/', authenticateToken, requireCapability('live.schedule'), validate('liveClassCreate'), async (req, res) => {
   try {
     const { courseId, title, description, scheduledTime, duration, meetingLink, capacity, topicId } = req.body;
     const classId = uuidv4();
@@ -252,6 +255,15 @@ router.post('/:classId/join', authenticateToken, async (req, res) => {
       if (error) return res.status(400).json({ error: 'Failed to join class: ' + error.message });
     }
 
+    // Sprint 5 award pipeline (first-join only — subsequent rejoins are idempotent).
+    if (!existing) {
+      awardForEvent({
+        userId: studentId, eventType: 'live_joined',
+        refTable: 'live_classes', refId: liveClass.id,
+        metadata: { course_id: liveClass.course_id, title: liveClass.title }
+      }).catch(() => {});
+    }
+
     res.json({
       message: existing ? 'Rejoining live class' : 'Joined live class successfully',
       meetingLink: liveClass.meeting_link,
@@ -294,7 +306,7 @@ router.post('/:classId/documents', authenticateToken, upload.single('file'), asy
 });
 
 // Update live class (teacher only)
-router.put('/:classId', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
+router.put('/:classId', authenticateToken, authorizeRole(CREATOR_ROLES), validate('liveClassUpdate'), async (req, res) => {
   try {
     // Verify teacher owns this class
     const { data: liveClass } = await supabase
@@ -344,7 +356,7 @@ router.put('/:classId', authenticateToken, authorizeRole(CREATOR_ROLES), async (
 });
 
 // Start live class (teacher only)
-router.post('/:classId/start', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
+router.post('/:classId/start', authenticateToken, requireCapability('live.start'), async (req, res) => {
   try {
     // Verify teacher owns this class
     const { data: liveClass } = await supabase
@@ -389,7 +401,7 @@ router.post('/:classId/start', authenticateToken, authorizeRole(CREATOR_ROLES), 
 });
 
 // End live class (teacher only)
-router.post('/:classId/end', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
+router.post('/:classId/end', authenticateToken, requireCapability('live.start'), async (req, res) => {
   try {
     // Verify teacher owns this class
     const { data: liveClass } = await supabase
@@ -469,7 +481,7 @@ const recStorage = multer.diskStorage({
   filename: (req, file, cb) => cb(null, 'rec-' + req.params.classId + '-' + Date.now() + '.webm')
 });
 const recUpload = multer({ storage: recStorage, limits: { fileSize: 500 * 1024 * 1024 } });
-router.post('/:classId/recording', authenticateToken, authorizeRole(CREATOR_ROLES), recUpload.single('recording'), async (req, res) => {
+router.post('/:classId/recording', authenticateToken, authorizeRole(CREATOR_ROLES), recUpload.single('recording'), validate('liveRecording'), async (req, res) => {
   try {
     const { data: cls } = await supabaseAdmin.from('live_classes').select('teacher_id').eq('id', req.params.classId).single();
     if (!cls) return res.status(404).json({ error: 'Class not found' });

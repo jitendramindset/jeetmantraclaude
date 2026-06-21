@@ -25,7 +25,10 @@ const fs = require('fs');
 const { supabaseAdmin } = require('../config/supabase');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
 const { CREATOR_ROLES } = require('../config/roles');
+const { validate } = require('../middleware/validation');
+const { requireCapability } = require('../middleware/requireCapability');
 const { v4: uuidv4 } = require('uuid');
+const { awardForEvent } = require('../services/award');
 
 const router = express.Router();
 
@@ -82,7 +85,7 @@ async function announceSubmission({ template, student, kind }) {
 }
 
 // POST /api/assignments — teacher creates an assignment template
-router.post('/', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
+router.post('/', authenticateToken, requireCapability('assignment.manage'), validate('assignmentCreate'), async (req, res) => {
   try {
     const { courseId, title, description, dueDate, topicId } = req.body;
     if (!courseId || !title || !dueDate) {
@@ -198,6 +201,15 @@ router.post('/:id/submit', authenticateToken, upload.single('file'), async (req,
     }).select().single();
     if (error) return res.status(400).json({ error: error.message });
     announceSubmission({ template, student: req.user, kind: 'assignment' }).catch(() => {});
+
+    // Sprint 5 award pipeline (assignment_submitted is unique per template, so
+    // repeat re-submissions of the same assignment don't double-award).
+    awardForEvent({
+      userId: req.user.id, eventType: 'assignment_submitted',
+      refTable: 'assignments', refId: template.id,
+      metadata: { course_id: template.course_id, title: template.title }
+    }).catch(() => {});
+
     res.status(201).json({ message: 'Submitted', assignment: data });
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -205,7 +217,7 @@ router.post('/:id/submit', authenticateToken, upload.single('file'), async (req,
 });
 
 // PUT /api/assignments/:id — teacher edits the assignment TEMPLATE (title/desc/due)
-router.put('/:id', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
+router.put('/:id', authenticateToken, requireCapability('assignment.manage'), validate('assignmentEdit'), async (req, res) => {
   try {
     const { data: row } = await supabaseAdmin.from('assignments').select('teacher_id, student_id').eq('id', req.params.id).single();
     if (!row) return res.status(404).json({ error: 'Assignment not found' });
@@ -226,7 +238,7 @@ router.put('/:id', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, 
 });
 
 // PUT /api/assignments/:id/grade — teacher grades a per-student submission
-router.put('/:id/grade', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
+router.put('/:id/grade', authenticateToken, requireCapability('assignment.grade'), validate('assignmentGrade'), async (req, res) => {
   try {
     const { grade, feedback } = req.body;
     if (grade == null) return res.status(400).json({ error: 'grade required' });

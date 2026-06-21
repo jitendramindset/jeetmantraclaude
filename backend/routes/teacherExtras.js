@@ -13,7 +13,10 @@
 const express = require('express');
 const { supabaseAdmin } = require('../config/supabase');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
+const { requireCapability } = require('../middleware/requireCapability');
 const { CREATOR_ROLES } = require('../config/roles');
+const { resolveInstitution } = require('../middleware/resolveInstitution');
+const { validate } = require('../middleware/validation');
 const { v4: uuidv4 } = require('uuid');
 
 const router = express.Router();
@@ -23,7 +26,12 @@ router.get('/timetable', authenticateToken, authorizeRole(CREATOR_ROLES), async 
   try {
     const from = req.query.from ? new Date(req.query.from) : new Date();
     const to = req.query.to ? new Date(req.query.to) : new Date(from.getTime() + 7 * 24 * 60 * 60 * 1000);
-    const { data: courses } = await supabaseAdmin.from('courses').select('id, title').eq('teacher_id', req.user.id);
+    // Scope to the active institution when a specific one is selected; 'all' or
+    // none → every course the teacher owns.
+    const instId = await resolveInstitution(req);
+    let coursesQ = supabaseAdmin.from('courses').select('id, title').eq('teacher_id', req.user.id);
+    if (instId && instId !== 'all') coursesQ = coursesQ.eq('institution_id', instId);
+    const { data: courses } = await coursesQ;
     const courseIds = (courses || []).map(c => c.id);
     if (!courseIds.length) return res.json({ events: [] });
     const courseTitleById = Object.fromEntries((courses || []).map(c => [c.id, c.title]));
@@ -70,7 +78,7 @@ router.get('/timetable', authenticateToken, authorizeRole(CREATOR_ROLES), async 
 // ── RECURRING LIVE CLASS: expand pattern into rows
 // Body: { courseId, title, description, startTime, duration, meetingLink,
 //         daysOfWeek: [0..6], weeks: integer }
-router.post('/live-classes/recurring', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
+router.post('/live-classes/recurring', authenticateToken, requireCapability('live.schedule'), validate('recurringClass'), async (req, res) => {
   try {
     const { courseId, title, description, startTime, duration, meetingLink, daysOfWeek, weeks, isOnline, venue } = req.body;
     if (!courseId || !startTime || !Array.isArray(daysOfWeek) || !daysOfWeek.length || !weeks)
@@ -151,7 +159,7 @@ router.get('/attendance/roster/:courseId', authenticateToken, authorizeRole(CREA
 // ── BULK ATTENDANCE (mixed status): mark each student with their own status.
 // Body: { courseId, classDate, marks: [{ enrollmentId, status }] }
 // Existing rows for the same (enrollment, date) are UPDATED, not duplicated.
-router.post('/attendance/bulk-mixed', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
+router.post('/attendance/bulk-mixed', authenticateToken, requireCapability('attendance.mark'), validate('attendanceBulkMixed'), async (req, res) => {
   try {
     const { courseId, classDate, marks } = req.body;
     if (!courseId || !classDate || !Array.isArray(marks) || !marks.length)
@@ -243,7 +251,7 @@ router.get('/payments', authenticateToken, authorizeRole(CREATOR_ROLES), async (
 
 // ── BULK ATTENDANCE: mark every enrollment present (or with override list)
 // Body: { courseId, classDate, status?, enrollmentIds? }
-router.post('/attendance/bulk', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
+router.post('/attendance/bulk', authenticateToken, requireCapability('attendance.mark'), validate('attendanceBulk'), async (req, res) => {
   try {
     const { courseId, classDate, enrollmentIds, status } = req.body;
     if (!courseId || !classDate) return res.status(400).json({ error: 'courseId and classDate required' });
@@ -368,7 +376,7 @@ router.get('/invoices', authenticateToken, authorizeRole(CREATOR_ROLES), async (
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.post('/invoices', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
+router.post('/invoices', authenticateToken, requireCapability('invoice.manage'), validate('invoiceCreate'), async (req, res) => {
   try {
     const { clientName, clientEmail, clientId, items, taxPercent, dueDate, notes } = req.body || {};
     if (!clientName) return res.status(400).json({ error: 'clientName required' });
@@ -400,7 +408,7 @@ router.post('/invoices', authenticateToken, authorizeRole(CREATOR_ROLES), async 
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.put('/invoices/:id', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
+router.put('/invoices/:id', authenticateToken, requireCapability('invoice.manage'), validate('invoiceUpdate'), async (req, res) => {
   try {
     const { data: row } = await supabaseAdmin.from('invoices').select('owner_id').eq('id', req.params.id).maybeSingle();
     if (!row) return res.status(404).json({ error: 'Invoice not found' });
@@ -529,7 +537,7 @@ router.get('/bookings/:id', authenticateToken, authorizeRole(CREATOR_ROLES), asy
 });
 
 // PUT /api/teacher/bookings/:id — reschedule or change status.
-router.put('/bookings/:id', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
+router.put('/bookings/:id', authenticateToken, requireCapability('booking.manage'), async (req, res) => {
   try {
     const { data: b } = await supabaseAdmin.from('bookings').select('course_id').eq('id', req.params.id).single();
     if (!b) return res.status(404).json({ error: 'Booking not found' });
@@ -547,7 +555,7 @@ router.put('/bookings/:id', authenticateToken, authorizeRole(CREATOR_ROLES), asy
 });
 
 // POST /api/teacher/bookings/:id/cancel — cancel + auto-refund tied payment.
-router.post('/bookings/:id/cancel', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
+router.post('/bookings/:id/cancel', authenticateToken, requireCapability('booking.manage'), async (req, res) => {
   try {
     const { data: b } = await supabaseAdmin.from('bookings').select('*').eq('id', req.params.id).single();
     if (!b) return res.status(404).json({ error: 'Booking not found' });
@@ -598,7 +606,7 @@ router.get('/essays/pending', authenticateToken, authorizeRole(CREATOR_ROLES), a
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.post('/essays/grade', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
+router.post('/essays/grade', authenticateToken, requireCapability('assignment.grade'), validate('essayGrade'), async (req, res) => {
   try {
     const { sessionId, questionId, score, feedback } = req.body || {};
     if (!sessionId || !questionId || score == null) return res.status(400).json({ error: 'sessionId, questionId, score required' });
@@ -685,7 +693,7 @@ router.get('/export', authenticateToken, authorizeRole(CREATOR_ROLES), async (re
 
 // ── ANNOUNCEMENT: broadcast a message to the course's chat room
 // Body: { courseId, message }
-router.post('/announcement', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
+router.post('/announcement', authenticateToken, requireCapability('student.manage'), validate('courseAnnouncement'), async (req, res) => {
   try {
     const { courseId, message } = req.body;
     if (!courseId || !message) return res.status(400).json({ error: 'courseId and message required' });
@@ -711,6 +719,33 @@ router.post('/announcement', authenticateToken, authorizeRole(CREATOR_ROLES), as
     }).select().single();
     if (error) return res.status(400).json({ error: error.message });
     res.status(201).json({ message: 'Announcement sent', chatMessage: msg });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── GET /teacher/recordings — all saved recordings for teacher's live classes
+router.get('/recordings', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
+  try {
+    const { data: courses } = await supabaseAdmin
+      .from('courses').select('id, title').eq('teacher_id', req.user.id);
+    const courseIds = (courses || []).map(c => c.id);
+    if (!courseIds.length) return res.json({ recordings: [] });
+    const { data: classes } = await supabaseAdmin
+      .from('live_classes').select('id, title, course_id, scheduled_time, recording_url, recording_duration')
+      .in('course_id', courseIds)
+      .not('recording_url', 'is', null)
+      .order('scheduled_time', { ascending: false });
+    const courseTitle = Object.fromEntries((courses || []).map(c => [c.id, c.title]));
+    const recordings = (classes || []).map(c => ({
+      id: c.id,
+      class_title: c.title,
+      course_title: courseTitle[c.course_id] || '',
+      url: c.recording_url,
+      duration: c.recording_duration || null,
+      created_at: c.scheduled_time
+    }));
+    res.json({ recordings });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

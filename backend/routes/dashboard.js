@@ -1,23 +1,10 @@
 const express = require('express');
 const { supabaseAdmin } = require('../config/supabase');
 const { authenticateToken } = require('../middleware/auth');
+const { resolveInstitution } = require('../middleware/resolveInstitution');
+const { countUnread } = require('../services/chatUnread');
 
 const router = express.Router();
-
-// Optional institution-scoping. When the client sends X-Active-Institution: <id>
-// (or ?inst=<id>), we narrow course lists to those owned by that institution.
-// Validates membership: the caller must be linked to the institution as a
-// teacher or student, else the header is ignored.
-async function resolveInstitution(req) {
-  const id = req.headers['x-active-institution'] || req.query.inst;
-  if (!id) return null;
-  const userId = req.user.id;
-  const [{ data: t }, { data: s }] = await Promise.all([
-    require('../config/supabase').supabaseAdmin.from('institution_teachers').select('id').eq('institution_id', id).eq('teacher_id', userId).maybeSingle(),
-    require('../config/supabase').supabaseAdmin.from('institution_students').select('id').eq('institution_id', id).eq('student_id', userId).maybeSingle()
-  ]);
-  return (t || s) ? id : null;
-}
 
 router.get('/', authenticateToken, async (req, res) => {
   try {
@@ -73,11 +60,11 @@ router.get('/', authenticateToken, async (req, res) => {
       };
 
     } else if (role === 'teacher') {
-      // When an active institution is set, narrow to courses the teacher
-      // teaches inside THAT institution. Without the header, behavior is
-      // unchanged (every course they own).
+      // When a SPECIFIC active institution is set, narrow to courses the teacher
+      // teaches inside THAT institution. 'all' (combined view) or no header →
+      // every course they own (the union across all their institutions).
       let teacherCoursesQ = supabaseAdmin.from('courses').select('*').eq('teacher_id', userId);
-      if (instId) teacherCoursesQ = teacherCoursesQ.eq('institution_id', instId);
+      if (instId && instId !== 'all') teacherCoursesQ = teacherCoursesQ.eq('institution_id', instId);
       const { data: courses } = await teacherCoursesQ;
       const courseIds = courses?.map(c => c.id) || [];
       const { data: bookings } = courseIds.length
@@ -108,6 +95,50 @@ router.get('/', authenticateToken, async (req, res) => {
       const { data: earnings } = await supabaseAdmin.from('earnings').select('*').eq('user_id', userId).order('date', { ascending: false }).limit(10);
       const { data: listings } = await supabaseAdmin.from('marketplace_listings').select('*, courses(title)').eq('seller_id', userId);
       const totalEarnings = earnings?.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0) || 0;
+
+      // ── Command-center KPI metrics. Each query is guarded so one failure
+      // (e.g. a column absent on a given deploy) yields 0 instead of blanking
+      // the whole dashboard. Run concurrently — all depend only on courseIds.
+      const nowIso = new Date().toISOString();
+      const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
+      const notifSince = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+      const [studentsCount, pendingAssignments, upcomingClasses, recordingsCount, testsPending, notifications, unreadMessages, monthEarnRows] = await Promise.all([
+        courseIds.length
+          ? supabaseAdmin.from('enrollments').select('student_id').in('course_id', courseIds)
+              .then(r => new Set((r.data || []).map(e => e.student_id)).size).catch(() => 0)
+          : Promise.resolve(0),
+        courseIds.length
+          ? supabaseAdmin.from('assignments').select('id', { count: 'exact', head: true })
+              .in('course_id', courseIds).not('student_id', 'is', null).is('grade', null)
+              .then(r => r.count || 0).catch(() => 0)
+          : Promise.resolve(0),
+        courseIds.length
+          ? supabaseAdmin.from('live_classes').select('id', { count: 'exact', head: true })
+              .in('course_id', courseIds).eq('status', 'scheduled').gte('scheduled_time', nowIso)
+              .then(r => r.count || 0).catch(() => 0)
+          : Promise.resolve(0),
+        courseIds.length
+          ? supabaseAdmin.from('live_classes').select('id', { count: 'exact', head: true })
+              .in('course_id', courseIds).not('recording_url', 'is', null)
+              .then(r => r.count || 0).catch(() => 0)
+          : Promise.resolve(0),
+        courseIds.length
+          ? supabaseAdmin.from('course_tests').select('id', { count: 'exact', head: true })
+              .in('course_id', courseIds).not('scheduled_for', 'is', null).gte('scheduled_for', nowIso)
+              .then(r => r.count || 0).catch(() => 0)
+          : Promise.resolve(0),
+        courseIds.length
+          ? supabaseAdmin.from('activity_feed').select('id', { count: 'exact', head: true })
+              .or(`target_user_id.eq.${userId},course_id.in.(${courseIds.join(',')})`).gte('created_at', notifSince)
+              .then(r => r.count || 0).catch(() => 0)
+          : supabaseAdmin.from('activity_feed').select('id', { count: 'exact', head: true })
+              .eq('target_user_id', userId).gte('created_at', notifSince).then(r => r.count || 0).catch(() => 0),
+        countUnread(userId).catch(() => 0),
+        supabaseAdmin.from('earnings').select('amount').eq('user_id', userId)
+          .gte('date', monthStart.toISOString()).then(r => r.data || []).catch(() => [])
+      ]);
+      const monthlyEarnings = monthEarnRows.reduce((s, e) => s + parseFloat(e.amount || 0), 0);
+
       dashboardData = {
         courses: courses || [],
         bookings: bookings || [],
@@ -116,6 +147,15 @@ router.get('/', authenticateToken, async (req, res) => {
         enrollments: enrichedEnrollments,
         earnings: earnings || [],
         totalEarnings,
+        // Command-center KPIs
+        monthlyEarnings,
+        studentsCount,
+        pendingAssignments,
+        upcomingClasses,
+        recordingsCount,
+        testsPending,
+        notifications,
+        unreadMessages,
         marketplaceListings: listings || []
       };
 

@@ -3,12 +3,13 @@ const { supabase, supabaseAdmin } = require('../config/supabase');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
 const { validate } = require('../middleware/validation');
 const { CREATOR_ROLES } = require('../config/roles');
+const { requireCapability } = require('../middleware/requireCapability');
 const { v4: uuidv4 } = require('uuid');
 
 const router = express.Router();
 
-// Record attendance (teacher only)
-router.post('/', authenticateToken, authorizeRole(CREATOR_ROLES), validate('recordAttendance'), async (req, res) => {
+// Record attendance (capability: attendance.mark — teacher + assistant_teacher)
+router.post('/', authenticateToken, requireCapability('attendance.mark'), validate('recordAttendance'), async (req, res) => {
   try {
     const { enrollmentId, status, classDate } = req.validatedData;
     const attendanceId = uuidv4();

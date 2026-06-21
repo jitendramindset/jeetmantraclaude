@@ -27,6 +27,29 @@ const teacherExtrasRoutes = require('./routes/teacherExtras');
 const parentExtrasRoutes  = require('./routes/parentExtras');
 const walletRoutes        = require('./routes/wallet');
 const eduosRoutes         = require('./routes/eduos');
+const calendarRoutes      = require('./routes/calendar');
+// Sprint 3 — operations queues + localization depth
+const approvalsRoutes     = require('./routes/approvals');
+const payoutsRoutes       = require('./routes/payouts');
+const supportRoutes       = require('./routes/support');
+const reportsRoutes       = require('./routes/reports');
+const notifAdminRoutes    = require('./routes/notificationsAdmin');
+const translationsRoutes  = require('./routes/translations');
+// Sprint 4 — unified booking engine
+const resourcesRoutes     = require('./routes/resources');
+const bookingsRoutes      = require('./routes/bookings');
+// Sprint 5 — student success: streak / XP / badges + dedicated notifications
+const gamificationRoutes  = require('./routes/gamification');
+const notificationsRoutes = require('./routes/notifications');
+// Sprint 6 — certificates + impersonation
+const certificatesRoutes  = require('./routes/certificates');
+// Sprint 7 — role-org unification foundation
+const orgsRoutes          = require('./routes/orgs');
+const meRoutes            = require('./routes/me');
+const seoRoutes           = require('./routes/seo');
+const timetableRoutes     = require('./routes/timetable');
+const i18nRoutes          = require('./routes/i18n');
+const studioRoutes        = require('./routes/studio');
 const ragRoutes           = require('./routes/rag');
 const { cacheMiddleware, syncMiddleware } = require('./middleware/datasync');
 
@@ -92,6 +115,31 @@ app.use('/api/teacher', teacherExtrasRoutes);
 app.use('/api/parent', parentExtrasRoutes);
 app.use('/api/wallet', walletRoutes);
 app.use('/api/eduos', eduosRoutes);
+app.use('/api/calendar', calendarRoutes);
+// Sprint 3 mounts
+app.use('/api/approvals', approvalsRoutes);
+app.use('/api/payouts', payoutsRoutes);
+app.use('/api/support', supportRoutes);
+app.use('/api/reports', reportsRoutes);
+app.use('/api/notifications-admin', notifAdminRoutes);
+app.use('/api/translations', translationsRoutes);
+// Sprint 4 mounts
+app.use('/api/resources', resourcesRoutes);
+app.use('/api/bookings', bookingsRoutes);
+// Sprint 5 mounts
+app.use('/api/gamification', gamificationRoutes);
+app.use('/api/notifications', notificationsRoutes);
+app.use('/api/certificates', certificatesRoutes);
+// Sprint 7 mounts
+app.use('/api/orgs', orgsRoutes);
+app.use('/api/capabilities', orgsRoutes.capRouter);
+app.use('/api/categories', orgsRoutes.catRouter);
+app.use('/api/me', meRoutes);
+app.use('/api/seo', seoRoutes);
+app.use('/', seoRoutes.rootRouter); // /sitemap.xml + /robots.txt
+app.use('/api/timetable', timetableRoutes);
+app.use('/api/i18n', i18nRoutes);
+app.use('/api/studio', studioRoutes);
 app.use('/api/rag', ragRoutes);
 
 // LevelDB sync queue endpoint

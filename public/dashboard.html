@@ -7,6 +7,7 @@
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#7c3aed">
 <link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="widget-styles.css">
 <script>if('serviceWorker' in navigator) window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));</script>
 <style>
 /* Dashboard-specific styles — uses theme.css design tokens */
@@ -127,13 +128,32 @@ html[data-theme="dark"]{
 .course-group-head .count{background:var(--jm-primary-tint);color:var(--jm-primary);padding:1px 8px;border-radius:var(--jm-radius-pill);font-size:11px}
 /* Grid view */
 .course-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(260px,100%),1fr));gap:14px}
-.course-grid-card{border:1px solid var(--jm-border);border-radius:12px;padding:16px;background:var(--jm-surface);display:flex;flex-direction:column;gap:8px;transition:all .18s}
-.course-grid-card:hover{border-color:var(--jm-primary);box-shadow:0 6px 18px rgba(0,0,0,.06);transform:translateY(-2px)}
-/* Clamp card titles to 2 lines + meta to 1 so long titles don't make cards
-   uneven or crowd the action row. */
+.course-grid-card{border:1px solid var(--jm-border);border-radius:12px;background:var(--jm-surface);display:flex;flex-direction:column;transition:all .18s;overflow:visible;position:relative}
+.course-grid-card:hover{border-color:var(--jm-primary);box-shadow:0 6px 18px rgba(0,0,0,.08);transform:translateY(-2px)}
 .course-grid-card .cg-title{font-weight:700;font-size:15px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .course-grid-card .cg-meta{font-size:11px;color:var(--jm-text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.course-grid-card .cg-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:auto;padding-top:8px}
+.cg-card-body{padding:12px 14px 10px;display:flex;flex-direction:column;gap:5px}
+.cg-card-foot{display:flex;align-items:center;gap:6px;padding:8px 12px;border-top:1px solid var(--jm-border)}
+/* ⋮ action menu */
+.cg-menu-wrap{position:relative;margin-left:auto}
+.cg-menu-drop{position:absolute;right:0;bottom:calc(100% + 6px);z-index:300;background:var(--jm-surface);border:1px solid var(--jm-border);border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.14);min-width:196px;display:none;flex-direction:column;padding:4px}
+.cg-menu-drop.open{display:flex}
+.cg-menu-drop button{background:none;border:none;cursor:pointer;padding:8px 13px;text-align:left;font-size:13px;border-radius:6px;color:var(--jm-text-strong);display:flex;align-items:center;gap:9px;width:100%}
+.cg-menu-drop button:hover{background:var(--jm-surface-2);color:var(--jm-primary)}
+.cg-menu-drop .msep{height:1px;background:var(--jm-border);margin:3px 8px}
+/* Topic tree */
+.cg-tree-panel{border-top:1px solid var(--jm-border);display:none;flex-direction:column;max-height:270px;overflow-y:auto;border-radius:0 0 12px 12px}
+.cg-tree-panel.open{display:flex}
+.cg-tree-msg{padding:10px 14px;font-size:12px;color:var(--jm-text-muted);font-style:italic}
+.cg-ti{display:flex;align-items:center;gap:7px;padding:7px 14px;font-size:12px;border-bottom:1px solid var(--jm-border);cursor:pointer;user-select:none}
+.cg-ti:last-child{border-bottom:none}
+.cg-ti:hover{background:var(--jm-surface-2)}
+.cg-ti.chapter{background:color-mix(in oklab,var(--jm-primary) 6%,var(--jm-surface));font-weight:700;color:var(--jm-text-strong)}
+.cg-ti.topic{padding-left:26px;font-weight:600;color:var(--jm-text-strong)}
+.cg-ti.leaf{padding-left:42px;font-weight:400;color:var(--jm-text-muted)}
+.cg-ti .ti-arrow{font-size:10px;transition:transform .15s;flex-shrink:0}
+.cg-ti .ti-arrow.open{transform:rotate(90deg)}
+.cg-ti .ti-count{margin-left:auto;font-size:10px;font-weight:600;color:var(--jm-text-muted);background:var(--jm-surface-2);padding:1px 6px;border-radius:999px}
 /* Book-like reader content pane */
 .book-page{background:var(--jm-surface);border:1px solid var(--jm-border);border-radius:4px;box-shadow:0 1px 3px rgba(0,0,0,.04),0 10px 30px rgba(0,0,0,.06);padding:48px 56px;max-width:780px;margin:0 auto;min-height:calc(100vh - 220px);position:relative;background-image:linear-gradient(var(--jm-surface),var(--jm-surface))}
 .book-page::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:linear-gradient(180deg,var(--jm-primary),#a855f7);border-radius:4px 0 0 4px;opacity:.5}
@@ -185,10 +205,12 @@ html[data-theme="dark"]{
 .stat-card .label::before{display:none}
 .stat-card .value{font-size:32px;letter-spacing:-0.03em}
 .stat-card .sub{margin-top:2px}
+.row-actions{display:flex;align-items:center;gap:4px;flex-wrap:wrap;justify-content:flex-end;flex-shrink:0;max-width:60%}
 .row-actions .btn-sm{background:var(--jm-surface-2);border-color:transparent;border-radius:8px;padding:6px 9px}
 .row-actions .btn-sm:hover{background:color-mix(in oklab,var(--jm-primary) 14%,transparent);color:var(--jm-primary);border-color:transparent}
 .row-actions .btn-sm.btn-primary{background:var(--jm-primary);color:#fff}
-.item-list li{border-radius:10px;padding:11px 8px}
+.item-list li{border-radius:10px;padding:11px 8px;align-items:flex-start;gap:8px}
+.item-list li>div:first-child{flex:1;min-width:0}
 .badge{font-weight:600;letter-spacing:.01em}
 .bn-item.active{border-radius:12px}
 /* ═════════════════════════════════════════════════════════════════════ */
@@ -303,7 +325,11 @@ html[data-theme="dark"]{
 /* Full-viewport overlay. Fixed positioning so the still-present .main
    (flex:1, margin-left:250px) can't push these pages to the right. Covers
    the sidebar too, so it reads as a proper full-screen page on every size. */
-.configure-page.active{display:flex;flex-direction:column;position:fixed;inset:0;z-index:200;overflow-y:auto;background:var(--jm-bg)}
+/* Takeover pages (Calendar/Bookings/Recordings/Payments) sit BESIDE the sidebar
+   so the nav stays visible — they open the same way as the inline section pages
+   (Courses/Teachers) instead of full-screen-hiding the menu. */
+.configure-page.active{display:flex;flex-direction:column;position:fixed;inset:0 0 0 250px;z-index:60;overflow-y:auto;background:var(--jm-bg)}
+@media(max-width:768px){.configure-page.active{inset:0;z-index:200}}
 .configure-breadcrumb{position:sticky;top:0;background:var(--jm-surface);border-bottom:1px solid var(--jm-border);padding:14px 28px;display:flex;align-items:center;gap:14px;z-index:50;box-shadow:var(--jm-shadow-sm)}
 .configure-breadcrumb .crumb{font-size:13px;color:var(--jm-text-muted);cursor:pointer}
 .configure-breadcrumb .crumb:hover{color:var(--jm-primary)}
@@ -418,6 +444,7 @@ html[data-theme="dark"]{
 }
 </style>
 <script src="/jm-theme.js"></script>
+<script src="/widget-registry.js"></script>
 </head>
 <body>
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
@@ -462,8 +489,13 @@ html[data-theme="dark"]{
       <input type="text" placeholder="Search courses..." data-i18n-placeholder="search_courses" aria-label="Search courses" oninput="debounceSearch(this.value)">
     </div>
     <div class="topbar-actions">
+      <button id="instSwitcherBtn" onclick="openMyInstitutions()" title="Switch institution" style="display:none;align-items:center;gap:5px;padding:4px 10px;border:1px solid var(--jm-border);border-radius:8px;background:var(--jm-surface-2,#f8fafc);color:var(--jm-text);font-size:12px;font-weight:600;cursor:pointer;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">🏫 <span id="instSwitcherName">Institution</span> ▾</button>
+      <!-- Sprint 5: student streak + XP chips. Hidden until /api/gamification/summary
+           returns a positive number — keeps the topbar clean for new accounts. -->
+      <button id="streakChip" onclick="openGamificationPanel()" title="Learning streak" style="display:none;align-items:center;gap:4px;padding:4px 9px;border-radius:99px;background:linear-gradient(135deg,#f97316,#ef4444);color:#fff;border:none;font-size:12px;font-weight:700;cursor:pointer">🔥 <span id="streakCount">0</span></button>
+      <button id="xpChip" onclick="openGamificationPanel()" title="XP & level" style="display:none;align-items:center;gap:4px;padding:4px 9px;border-radius:99px;background:linear-gradient(135deg,#7c3aed,#ec4899);color:#fff;border:none;font-size:12px;font-weight:700;cursor:pointer">⭐ Lv<span id="xpLevel">1</span> · <span id="xpTotal">0</span></button>
       <button class="lang-curr-btn no-i18n" id="langCurrBtn" onclick="openLangPicker()" title="Language / भाषा" style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border:1px solid var(--jm-border);border-radius:8px;background:transparent;color:var(--jm-text);font-weight:700;font-size:12px;cursor:pointer"><span id="langCurrNative">English</span> 🌐</button>
-      <button class="icon-btn" onclick="openMessenger()" title="Messages" aria-label="Messages" style="border:none">💬</button>
+      <span style="position:relative;display:inline-flex"><button class="icon-btn" onclick="openMessenger()" title="Messages" aria-label="Messages" style="border:none">💬</button><span id="msgBadge" style="display:none;position:absolute;top:-2px;right:-2px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#ef4444;color:#fff;font-size:10px;font-weight:700;line-height:16px;text-align:center;pointer-events:none"></span></span>
       <button class="icon-btn" onclick="toggleNotifs(event)" title="Notifications" aria-label="Notifications" style="position:relative;cursor:pointer;border:none;background:transparent">🔔<span id="notifDot" style="display:none;position:absolute;top:6px;right:6px;width:8px;height:8px;border-radius:50%;background:#ef4444"></span>
         <div class="notif-dropdown" id="notifDropdown" onclick="event.stopPropagation()"></div>
       </button>
@@ -475,6 +507,27 @@ html[data-theme="dark"]{
     <div class="loading-state" id="loadingState">
       <div style="font-size:40px;margin-bottom:12px">⏳</div>
       <div>Loading your dashboard...</div>
+    </div>
+
+    <!-- WIDGET DASHBOARD (W1 engine) — default for student/teacher; toggle to classic -->
+    <div id="wgModeBar" style="display:none;align-items:center;gap:8px;margin-bottom:10px">
+      <input id="wgCmd" type="text" placeholder="Ask or command… e.g. show revenue" aria-label="Command palette"
+        onkeydown="if(event.key==='Enter'){EduOSWidgets.handleCommand(this.value);this.value='';}"
+        style="flex:1;max-width:420px;font-size:13px;background:var(--jm-surface,#fff);border:1px solid var(--jm-border,#ddd);border-radius:8px;padding:7px 12px;color:var(--jm-text-strong,#333);outline:none">
+      <button id="wgMic" type="button" title="Voice command" aria-label="Voice command"
+        onclick="if(!EduOSWidgets.listen())alert('Voice not supported in this browser')"
+        style="font-size:14px;background:var(--jm-surface,#fff);border:1px solid var(--jm-border,#ddd);border-radius:8px;padding:6px 11px;cursor:pointer">🎤</button>
+      <div style="flex:1"></div>
+      <button id="wgToggle" type="button" onclick="toggleWidgetMode()" style="font-size:12px;font-weight:700;background:var(--jm-surface,#fff);border:1px solid var(--jm-border,#ddd);border-radius:8px;padding:6px 12px;cursor:pointer;color:var(--jm-text-strong,#333)">🗂️ Classic view</button>
+    </div>
+    <div id="wgPanel" style="display:none">
+      <div class="wg-grid" id="wgMount"></div>
+      <div class="wg-add-tray" id="wgAddTray"></div>
+    </div>
+    <!-- For roles still on the classic dashboard: a link to their validated
+         widget dashboard (composed from /api/me/contexts). -->
+    <div id="wgTryBar" style="display:none;justify-content:flex-end;margin-bottom:10px">
+      <a href="/widgets.html" style="font-size:12px;font-weight:700;background:var(--jm-surface,#fff);border:1px solid var(--jm-border,#ddd);border-radius:8px;padding:6px 12px;color:var(--jm-text-strong,#333);text-decoration:none">🧩 Try the widget dashboard →</a>
     </div>
 
     <!-- STUDENT -->
@@ -553,13 +606,46 @@ html[data-theme="dark"]{
 
     <!-- TEACHER -->
     <div class="role-section" id="section-teacher">
-      <div class="stats-grid">
-        <div class="stat-card" style="--sc:#7c3aed"><div class="label">My Courses</div><div class="value" id="t-courses">0</div><div class="sub">Published</div></div>
-        <div class="stat-card" style="--sc:#0ea5e9"><div class="label">Bookings</div><div class="value" id="t-bookings">0</div><div class="sub">All time</div></div>
-        <div class="stat-card" style="--sc:#10b981"><div class="label">Earnings</div><div class="value" id="t-earnings">₹0</div><div class="sub">Total</div></div>
-        <div class="stat-card" style="--sc:#f59e0b"><div class="label">Listings</div><div class="value" id="t-listings">0</div><div class="sub">On marketplace</div></div>
+      <!-- TEACHER COMMAND CENTER — premium top strip -->
+      <div style="margin-bottom:20px">
+        <div id="t-greeting" style="font-size:22px;font-weight:800;letter-spacing:-0.02em;margin-bottom:4px;color:var(--jm-text)">Good morning 👋</div>
+        <div id="t-date-line" style="font-size:13px;color:var(--jm-text-muted)"></div>
       </div>
-      <div class="grid-2">
+      <!-- Quick actions strip -->
+      <div class="quick-actions" id="t-quick-actions" style="margin-bottom:20px">
+        <button class="qa" style="--qc:#7c3aed" onclick="openModal('scheduleLive')">📡 Start Live</button>
+        <button class="qa" style="--qc:#0ea5e9" onclick="openWizard()">📚 Create Course</button>
+        <button class="qa" style="--qc:#10b981" onclick="openAttGrid()">✅ Attendance</button>
+        <button class="qa" style="--qc:#f59e0b" onclick="openModal('addTest')">🧪 New Test</button>
+        <button class="qa" style="--qc:#ec4899" onclick="openLessonPlanner()">🤖 AI Lesson Plan</button>
+        <button class="qa" style="--qc:#6366f1" onclick="openCalendar()">📅 Calendar</button>
+        <button class="qa" style="--qc:#14b8a6" onclick="openEmbed('/studio.html','🎥 Studio')">🎥 Studio</button>
+      </div>
+      <!-- Stat cards -->
+      <div class="stats-grid" style="grid-template-columns:repeat(auto-fit,minmax(min(170px,100%),1fr))">
+        <div class="stat-card" style="--sc:#7c3aed;cursor:pointer" onclick="navScroll(null,'sec-teacher-courses')"><div class="label">My Courses</div><div class="value" id="t-courses">0</div><div class="sub">Published</div></div>
+        <div class="stat-card" style="--sc:#ec4899;cursor:pointer" onclick="openCalendar()"><div class="label">Today's Classes</div><div class="value" id="t-today-count">0</div><div class="sub">Scheduled today</div></div>
+        <div class="stat-card" style="--sc:#8b5cf6;cursor:pointer" onclick="openCalendar()"><div class="label">Upcoming</div><div class="value" id="t-upcoming">0</div><div class="sub">Classes ahead</div></div>
+        <div class="stat-card" style="--sc:#0ea5e9;cursor:pointer" onclick="navScroll(null,'sec-teacher-courses')"><div class="label">Students</div><div class="value" id="t-bookings">0</div><div class="sub">Enrolled</div></div>
+        <div class="stat-card" style="--sc:#f59e0b"><div class="label">Pending</div><div class="value" id="t-pending-count">0</div><div class="sub">Assignments to check</div></div>
+        <div class="stat-card" style="--sc:#ef4444"><div class="label">Tests</div><div class="value" id="t-tests">0</div><div class="sub">Scheduled ahead</div></div>
+        <div class="stat-card" style="--sc:#6366f1;cursor:pointer" onclick="navScroll(null,'sec-teacher-recordings')"><div class="label">Recordings</div><div class="value" id="t-recordings">0</div><div class="sub">Saved sessions</div></div>
+        <div class="stat-card" style="--sc:#10b981"><div class="label">Earnings</div><div class="value" id="t-earnings">₹0</div><div class="sub" id="t-earnings-sub">Total revenue</div></div>
+        <div class="stat-card" style="--sc:#06b6d4;cursor:pointer" onclick="openMessenger()"><div class="label">Messages</div><div class="value" id="t-unread">0</div><div class="sub">Unread</div></div>
+        <div class="stat-card" style="--sc:#f97316;cursor:pointer" onclick="toggleNotifs()"><div class="label">Notifications</div><div class="value" id="t-notifs">0</div><div class="sub">Last 14 days</div></div>
+      </div>
+      <!-- Today's schedule strip -->
+      <div class="section" id="sec-teacher-today" style="--sc:#ec4899;margin-top:18px">
+        <div class="section-title">📅 Today's Schedule
+          <div class="actions">
+            <button class="btn-sm btn-outline" onclick="openCalendar()">Full Calendar →</button>
+          </div>
+        </div>
+        <div class="card" id="t-today-schedule" style="padding:0">
+          <div class="empty-state" style="padding:20px"><div class="icon">✨</div>No classes today</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(400px,100%),1fr));gap:16px">
         <div class="section" id="sec-teacher-courses" style="--sc:#7c3aed">
           <div class="section-title">📚 My Courses
             <div class="actions">
@@ -589,23 +675,33 @@ html[data-theme="dark"]{
           </div>
         </div>
       </div>
-      <div class="grid-2">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(400px,100%),1fr));gap:16px">
         <div class="section" id="sec-teacher-live" style="--sc:#ec4899">
           <div class="section-title">📡 Live Classes
             <div class="actions">
               <button class="btn-sm btn-outline" onclick="openTimetable(0)">📅 Timetable</button>
               <button class="btn-sm btn-outline" onclick="openModal('scheduleRecurring')">🔁 Recurring</button>
-              <button class="btn-sm btn-primary" onclick="openModal('scheduleLive')">+ Schedule Class</button>
+              <button class="btn-sm btn-primary" onclick="openModal('scheduleLive')">+ Schedule</button>
             </div>
           </div>
           <div class="card"><ul class="item-list" id="t-liveList"><li style="width:100%"><div class="empty-state"><div class="icon">📺</div>None scheduled</div></li></ul></div>
         </div>
         <div class="section" id="sec-teacher-bookings" style="--sc:#0ea5e9">
-          <div class="section-title">📊 Recent Bookings
-            <div class="actions"><button class="btn-sm btn-outline" onclick="openAttGrid()">📝 Take Attendance</button></div>
+          <div class="section-title">👥 Students &amp; Bookings
+            <div class="actions"><button class="btn-sm btn-outline" onclick="openAttGrid()">✅ Attendance</button></div>
           </div>
           <div class="card"><ul class="item-list" id="t-bookingsList"><li style="width:100%"><div class="empty-state"><div class="icon">📅</div>No bookings</div></li></ul></div>
         </div>
+      </div>
+      <!-- Recordings section -->
+      <div class="section" id="sec-teacher-recordings" style="--sc:#6366f1">
+        <div class="section-title">🎬 Recordings
+          <div class="actions">
+            <button class="btn-sm btn-outline" onclick="openTeacherRecordings()">View All →</button>
+            <button class="btn-sm btn-primary" onclick="openEmbed('/studio.html','🎥 Studio')">🎥 Open Studio</button>
+          </div>
+        </div>
+        <div class="card"><ul class="item-list" id="t-recordingsList"><li style="width:100%"><div class="empty-state"><div class="icon">🎬</div>No recordings yet — record in Studio to save here</div></li></ul></div>
       </div>
       <div class="section" id="sec-teacher-wall" style="--sc:#10b981">
         <div class="section-title">📰 Class Wall
@@ -613,11 +709,13 @@ html[data-theme="dark"]{
         </div>
         <div class="card"><ul class="item-list" id="t-wallList"><li style="width:100%"><div class="empty-state"><div class="icon">📰</div>Submissions, homework &amp; class activity appear here</div></li></ul></div>
       </div>
-      <div class="section" id="sec-teacher-earnings"><div class="section-title">💰 Earnings</div>
-        <div class="card"><ul class="item-list" id="t-earningsList"><li style="width:100%"><div class="empty-state"><div class="icon">💸</div>No earnings yet</div></li></ul></div>
-      </div>
-      <div class="section" id="sec-teacher-profile"><div class="section-title">👤 Profile</div>
-        <div class="card" id="t-profile">Loading…</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(400px,100%),1fr));gap:16px">
+        <div class="section" id="sec-teacher-earnings"><div class="section-title">💰 Earnings</div>
+          <div class="card"><ul class="item-list" id="t-earningsList"><li style="width:100%"><div class="empty-state"><div class="icon">💸</div>No earnings yet</div></li></ul></div>
+        </div>
+        <div class="section" id="sec-teacher-profile"><div class="section-title">👤 Profile</div>
+          <div class="card" id="t-profile">Loading…</div>
+        </div>
       </div>
     </div>
 
@@ -1092,7 +1190,7 @@ const NAV={
   ],
   partner:[
     {i:'🏠',l:'Dashboard',t:'top',a:true},
-    {i:'📅',l:'Bookings',t:'bookings'},
+    {i:'📅',l:'Bookings',action:'openBookings()'},
     {i:'💰',l:'Earnings',t:'earnings'},
     {i:'💬',l:'Messages',action:'openMessenger()'},
     {i:'📅',l:'Calendar',action:'openCalendar()'},
@@ -1198,7 +1296,7 @@ function buildNav(role){
   document.getElementById('navMenu').innerHTML=items.map((it,idx)=>{
     let onclick;
     if(it.action){
-      onclick=it.action; // direct JS call (e.g. openBookings())
+      onclick='_navActivate(this);'+it.action; // highlight + close any page, then open — same as section items
     } else if(it.h){
       onclick=`window.location.href='${it.h}'`;
     } else if(it.t==='top'){
@@ -1223,6 +1321,7 @@ function buildNav(role){
 let _currentPage=null;
 function showPage(pageKey, navEl){
   _currentPage=pageKey;
+  if(typeof _closeAllPages==='function') _closeAllPages(); // close any takeover page first
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   if(navEl) navEl.classList.add('active');
   const role=(JSON.parse(localStorage.getItem('jm_user')||'{}').user_type)
@@ -1260,6 +1359,22 @@ function showPage(pageKey, navEl){
 function navScroll(navEl,targetId){
   const key = targetId ? targetId.replace(/^sec-[^-]+-/, '') : null;
   showPage(key, navEl);
+}
+// Close any open takeover page (Calendar/Bookings/Recordings/Payments) and
+// restore the underlying sections + topbar — so every nav item opens the same
+// way: nav stays, main content swaps. Called by showPage and each open*().
+function _closeAllPages(){
+  document.querySelectorAll('.configure-page.active').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='');
+  document.querySelectorAll('.topbar, .sidebar').forEach(s=>s.style.display='');
+}
+// Used by ACTION nav items (Calendar/Wallet/Settings/…) so they behave exactly
+// like the section items: highlight the clicked item + close any open page,
+// then run their opener. Single source of "how a menu item opens".
+function _navActivate(el){
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  if(el) el.classList.add('active');
+  _closeAllPages();
 }
 function renderList(id,items,empty){
   const el=document.getElementById(id);
@@ -1371,24 +1486,224 @@ function getTeacherCourseView(){ return localStorage.getItem('jm_tCourseView')||
 function setTeacherCourseView(v){ localStorage.setItem('jm_tCourseView',v); renderTeacherCourses(); }
 // One-stop course hub — schedule a class, adjust price, batches, analytics and
 // configure content all from a single panel instead of hunting across menus.
-function openCourseHub(courseId, title){
+// ── COURSE WORKSPACE (Phase 3) — unified full-screen course management hub ──
+let _cwCourseId=null, _cwTab='overview', _cwData={};
+function openCourseHub(courseId, title, tab){
+  _cwCourseId=courseId; _cwTab=tab||'overview'; _cwData={};
   const c=(window._teacherCoursesById||{})[courseId]||{};
-  showModal('🎛 Manage — '+(title||c.title||'Course'), `
-    <div class="form-row"><label>💰 Price (₹) — update instantly</label>
-      <div style="display:flex;gap:8px">
-        <input id="hub-price" type="number" min="0" value="${Number(c.price)||0}" style="flex:1">
-        <button class="btn-sm btn-primary" onclick="_hubSavePrice('${courseId}')">Save</button>
+  const ws=document.getElementById('courseWorkspace');
+  if(!ws){ _buildCourseWorkspace(tab); return; }
+  ws.classList.add('active');
+  document.getElementById('cw-title').textContent=title||c.title||'Course';
+  _cwLoadTab(tab||'overview');
+}
+function _buildCourseWorkspace(tab){
+  if(document.getElementById('courseWorkspace')) return;
+  const ws=document.createElement('div');
+  ws.id='courseWorkspace';
+  ws.className='configure-page';
+  ws.innerHTML=`
+    <div class="configure-breadcrumb">
+      <button class="btn-sm btn-outline" onclick="_closeCourseWorkspace()">← Dashboard</button>
+      <span class="crumb-sep">/</span>
+      <span class="crumb active" id="cw-title">Course</span>
+      <div style="margin-left:auto;display:flex;gap:8px">
+        <button class="btn-sm btn-outline" onclick="openEditCourse(window._teacherCoursesById[_cwCourseId])">✏️ Edit</button>
+        <button class="btn-sm btn-primary" onclick="_hubSchedule(_cwCourseId)">📡 Schedule Class</button>
+        <button class="btn-sm btn-outline" onclick="openEmbed('/studio.html?course='+_cwCourseId,'🎥 Studio')">🎥 Studio</button>
       </div>
     </div>
-    <h4 style="margin:14px 0 8px">Quick actions</h4>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(150px,100%),1fr));gap:8px">
-      <button class="btn-sm btn-outline" style="padding:11px" onclick="closeAnyModal();_hubSchedule('${courseId}')">📡 Schedule live class</button>
-      <button class="btn-sm btn-outline" style="padding:11px" onclick="closeAnyModal();openEduOS('batches')">👥 New batch</button>
-      <button class="btn-sm btn-outline" style="padding:11px" onclick="closeAnyModal();openCourseStudents('${courseId}','${(title||c.title||'Course').replace(/'/g,"\\'")}')">📊 Students &amp; analytics</button>
-      <button class="btn-sm btn-outline" style="padding:11px" onclick="closeAnyModal();openConfigure('${courseId}')">⚙️ Configure content</button>
-      <button class="btn-sm btn-outline" style="padding:11px" onclick="closeAnyModal();openModal('listCourse')">🛒 List on marketplace</button>
-      <button class="btn-sm btn-outline" style="padding:11px" onclick="closeAnyModal();openQuestionBank()">❓ Question bank</button>
-    </div>`);
+    <!-- Tab bar -->
+    <div style="background:var(--jm-surface);border-bottom:1px solid var(--jm-border);padding:0 28px;display:flex;gap:2px;overflow-x:auto">
+      ${[['overview','📋 Overview'],['topics','📖 Topics'],['live','📡 Live Classes'],['tests','🧪 Tests'],['assignments','📝 Assignments'],['students','👥 Students'],['recordings','🎬 Recordings'],['analytics','📊 Analytics']].map(([k,l])=>`<button id="cw-tab-${k}" onclick="_cwLoadTab('${k}')" style="border:none;background:none;padding:13px 16px;font-size:13px;font-weight:600;color:var(--jm-text-muted);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all .15s" onmouseover="this.style.color='var(--jm-primary)'" onmouseout="if(!this.classList.contains('cw-active'))this.style.color='var(--jm-text-muted)'">${l}</button>`).join('')}
+    </div>
+    <div id="cw-body" class="configure-body"></div>`;
+  document.body.appendChild(ws);
+  ws.classList.add('active');
+  const c=(window._teacherCoursesById||{})[_cwCourseId]||{};
+  document.getElementById('cw-title').textContent=c.title||'Course';
+  _cwLoadTab(tab||_cwTab||'overview');
+}
+function _closeCourseWorkspace(){
+  const ws=document.getElementById('courseWorkspace');
+  if(ws) ws.classList.remove('active');
+}
+async function _cwLoadTab(tab){
+  _cwTab=tab;
+  // Update tab indicators
+  document.querySelectorAll('[id^="cw-tab-"]').forEach(b=>{
+    b.classList.remove('cw-active');
+    b.style.color='var(--jm-text-muted)';
+    b.style.borderBottomColor='transparent';
+  });
+  const activeBtn=document.getElementById('cw-tab-'+tab);
+  if(activeBtn){ activeBtn.classList.add('cw-active'); activeBtn.style.color='var(--jm-primary)'; activeBtn.style.borderBottomColor='var(--jm-primary)'; }
+  const body=document.getElementById('cw-body');
+  body.innerHTML='<div class="loading-state">Loading…</div>';
+  const cid=_cwCourseId; const token=localStorage.getItem('jm_token');
+  try{
+    if(tab==='overview'){
+      const c=(window._teacherCoursesById||{})[cid]||{};
+      body.innerHTML=`<div class="cfg-header">
+        ${c.cover_image?`<img src="${escHtml(c.cover_image)}" alt="" style="width:80px;height:60px;object-fit:cover;border-radius:10px">`:'<div style="width:80px;height:60px;background:var(--jm-primary-tint);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:2em">📚</div>'}
+        <div><h2 style="font-size:22px;font-weight:800;margin:0 0 4px">${escHtml(c.title||'Course')}</h2>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <span class="badge badge-blue">${escHtml(c.category||'General')}</span>
+          <span class="badge ${c.is_active!==false?'badge-green':'badge-yellow'}">${c.is_active!==false?'Active':'Inactive'}</span>
+          <span class="badge badge-blue">${escHtml(c.level||'beginner')}</span>
+          <span style="font-size:13px;font-weight:700;color:var(--jm-primary)">₹${Number(c.price||0).toLocaleString('en-IN')}</span>
+        </div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr));gap:16px;margin-bottom:24px">
+        <div class="stat-card" style="--sc:#7c3aed"><div class="label">Price</div><div class="value" style="font-size:24px">₹${Number(c.price||0).toLocaleString('en-IN')}</div>
+          <div style="display:flex;gap:6px;margin-top:8px"><input type="number" id="hub-price" value="${Number(c.price)||0}" min="0" style="flex:1;padding:6px;border:1px solid var(--jm-border);border-radius:6px;background:var(--jm-surface);color:var(--jm-text);font-size:13px"><button class="btn-sm btn-primary" onclick="_hubSavePrice('${cid}')">Save</button></div>
+        </div>
+        <div class="stat-card" style="--sc:#10b981;cursor:pointer" onclick="_cwLoadTab('students')"><div class="label">Students</div><div class="value" id="cw-ov-students">—</div></div>
+        <div class="stat-card" style="--sc:#0ea5e9;cursor:pointer" onclick="_cwLoadTab('live')"><div class="label">Live Classes</div><div class="value" id="cw-ov-live">—</div></div>
+        <div class="stat-card" style="--sc:#f59e0b;cursor:pointer" onclick="_cwLoadTab('topics')"><div class="label">Topics</div><div class="value" id="cw-ov-topics">—</div></div>
+      </div>
+      <div class="card" style="margin-bottom:14px"><div style="font-size:13px;font-weight:700;margin-bottom:8px">📄 Description</div><div style="font-size:14px;line-height:1.7;color:var(--jm-text-muted);white-space:pre-wrap">${escHtml(c.description||'No description yet.')}</div></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn-sm btn-outline" onclick="_cwLoadTab('topics')">📖 Manage Topics</button>
+        <button class="btn-sm btn-outline" onclick="_hubSchedule('${cid}')">📡 Schedule Live Class</button>
+        <button class="btn-sm btn-outline" onclick="openModal('addTest');setTimeout(()=>{const s=document.getElementById('m-course');if(s)s.value='${cid}'},80)">🧪 Add Test</button>
+        <button class="btn-sm btn-outline" onclick="openCourseStudents('${cid}','')">👥 View Students</button>
+        <button class="btn-sm btn-outline" onclick="openModal('listCourse')">🛒 List on Marketplace</button>
+        <button class="btn-sm btn-primary" onclick="openConfigure('${cid}')">⚙️ Full Configure →</button>
+      </div>`;
+      // Load live count in background
+      fetch(API+'/live-classes/course/'+cid,{headers:{Authorization:'Bearer '+token}}).then(x=>x.json()).then(r=>{
+        const el=document.getElementById('cw-ov-live'); if(el) el.textContent=(r.liveClasses||r.classes||[]).length;
+      }).catch(()=>{});
+      fetch(API+'/course-content/'+cid+'/full',{headers:{Authorization:'Bearer '+token}}).then(x=>x.json()).then(r=>{
+        const tEl=document.getElementById('cw-ov-topics'); if(tEl) tEl.textContent=(r.topics||[]).length;
+      }).catch(()=>{});
+      fetch(API+'/courses/'+cid+'/students',{headers:{Authorization:'Bearer '+token}}).then(x=>x.json()).then(r=>{
+        const sEl=document.getElementById('cw-ov-students'); if(sEl) sEl.textContent=(r.students||r.data||[]).length;
+      }).catch(()=>{});
+    }
+    else if(tab==='topics'){
+      const r=await fetch(API+'/course-content/'+cid+'/full',{headers:{Authorization:'Bearer '+token}}).then(x=>x.json());
+      const topics=r.topics||[];
+      body.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h2 style="margin:0;font-size:18px">📖 Topics (${topics.length})</h2>
+        <div style="display:flex;gap:8px"><button class="btn-sm btn-outline" onclick="cfgQuickPage('${cid}')">+ Quick Add</button><button class="btn-sm btn-primary" onclick="openModal('addTopic');_modalCtx.courseId='${cid}'">+ Add Topic</button></div>
+      </div>
+      ${topics.length?topics.map((t,i)=>`<div class="card" style="margin-bottom:10px;padding:14px 16px">
+        <div style="display:flex;align-items:flex-start;gap:12px">
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:700;font-size:15px;margin-bottom:4px">${escHtml(t.title||'Untitled Topic')}</div>
+            ${t.description?`<div style="font-size:12px;color:var(--jm-text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:600px">${escHtml(t.description.replace(/<[^>]+>/g,'').slice(0,120))}</div>`:'<div style="font-size:12px;color:var(--jm-text-muted)">No content yet</div>'}
+            <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+              ${(t.lectures||[]).length?`<span class="badge badge-blue">🎬 ${(t.lectures||[]).length} lectures</span>`:''}
+              ${(t.materials||[]).length?`<span class="badge badge-blue">📎 ${(t.materials||[]).length} materials</span>`:''}
+              ${(t.tests||[]).length?`<span class="badge badge-yellow">🧪 ${(t.tests||[]).length} tests</span>`:''}
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;flex-shrink:0">
+            <button class="btn-sm btn-primary" onclick="editTopicContent('${t.id}','${cid}')">📝 Edit Content</button>
+            <button class="btn-sm btn-outline" onclick="openConfigure('${cid}')">⚙️ Configure</button>
+          </div>
+        </div>
+      </div>`).join(''):`<div class="empty-state" style="padding:60px"><div class="icon">📖</div><div>No topics yet</div><button class="btn-sm btn-primary" style="margin-top:12px" onclick="openModal('addTopic');_modalCtx.courseId='${cid}'">+ Add First Topic</button></div>`}`;
+    }
+    else if(tab==='live'){
+      const r=await fetch(API+'/live-classes/course/'+cid,{headers:{Authorization:'Bearer '+token}}).then(x=>x.json());
+      const cls=r.liveClasses||r.classes||[];
+      body.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h2 style="margin:0;font-size:18px">📡 Live Classes (${cls.length})</h2>
+        <div style="display:flex;gap:8px"><button class="btn-sm btn-outline" onclick="openModal('scheduleRecurring');setTimeout(()=>{const s=document.getElementById('m-course');if(s)s.value='${cid}'},80)">🔁 Recurring</button><button class="btn-sm btn-primary" onclick="_hubSchedule('${cid}')">+ Schedule Class</button></div>
+      </div>
+      ${cls.length?cls.map(c=>{
+        const when=c.scheduled_time?new Date(c.scheduled_time).toLocaleString([], {weekday:'short',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'—';
+        const s=c.status||'scheduled'; const bc=s==='live'?'#16a34a':s==='completed'?'#0ea5e9':'#f59e0b';
+        return `<div class="card" style="margin-bottom:8px;padding:12px 16px;display:flex;align-items:center;gap:12px">
+          <div style="width:3px;height:40px;background:${bc};border-radius:2px;flex-shrink:0"></div>
+          <div style="flex:1"><div style="font-weight:700">${escHtml(c.title)}</div><div style="font-size:11px;color:var(--jm-text-muted)">${when} · ${c.duration||60}min</div></div>
+          <div style="display:flex;gap:6px">
+            ${s==='live'?`<button class="btn-sm btn-primary" onclick="window.open('/liveRoom.html?class=${c.id}','_blank')">▶ Join</button>`:''}
+            ${s==='scheduled'?`<button class="btn-sm btn-outline" onclick="startLive('${c.id}')">▶ Start</button>`:''}
+            <span style="font-size:11px;padding:3px 8px;border-radius:99px;background:${bc}22;color:${bc};font-weight:700">${s}</span>
+            <button class="btn-sm btn-outline" onclick="openLiveRoster('${c.id}')">👥</button>
+          </div>
+        </div>`;
+      }).join(''):`<div class="empty-state" style="padding:60px"><div class="icon">📡</div><div>No classes yet</div><button class="btn-sm btn-primary" style="margin-top:12px" onclick="_hubSchedule('${cid}')">+ Schedule First Class</button></div>`}`;
+    }
+    else if(tab==='students'){
+      body.innerHTML='<div class="loading-state">Loading students…</div>';
+      const r=await fetch(API+'/courses/'+cid+'/students',{headers:{Authorization:'Bearer '+token}}).then(x=>x.json()).catch(()=>({}));
+      const students=r.students||r.data||r.enrollments||[];
+      body.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h2 style="margin:0;font-size:18px">👥 Students (${students.length})</h2>
+        <button class="btn-sm btn-outline" onclick="openAttGrid()">✅ Take Attendance</button>
+      </div>
+      ${students.length?`<div class="card" style="padding:0;overflow:hidden"><table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead><tr style="background:var(--jm-surface-2)"><th style="padding:10px 14px;text-align:left;font-size:11px;text-transform:uppercase;color:var(--jm-text-muted)">Student</th><th style="padding:10px 14px;text-align:left;font-size:11px;text-transform:uppercase;color:var(--jm-text-muted)">Email</th><th style="padding:10px 14px;text-align:left;font-size:11px;text-transform:uppercase;color:var(--jm-text-muted)">Enrolled</th><th style="padding:10px 14px;text-align:left;font-size:11px;text-transform:uppercase;color:var(--jm-text-muted)">Status</th></tr></thead>
+        <tbody>${students.map(s=>`<tr style="border-top:1px solid var(--jm-border)"><td style="padding:10px 14px"><div style="font-weight:600">${escHtml(s.full_name||s.name||s.student_name||'—')}</div></td><td style="padding:10px 14px;color:var(--jm-text-muted)">${escHtml(s.email||'—')}</td><td style="padding:10px 14px;color:var(--jm-text-muted);font-size:11px">${s.enrolled_at||s.created_at?new Date(s.enrolled_at||s.created_at).toLocaleDateString():'—'}</td><td style="padding:10px 14px"><span class="badge badge-green">${s.status||'active'}</span></td></tr>`).join('')}</tbody>
+      </table></div>`:`<div class="empty-state" style="padding:60px"><div class="icon">👥</div><div>No students enrolled yet</div></div>`}`;
+    }
+    else if(tab==='recordings'){
+      const r=await fetch(API+'/teacher/recordings',{headers:{Authorization:'Bearer '+token}}).then(x=>x.json()).catch(()=>({}));
+      const recs=(r.recordings||[]).filter(rec=>rec.course_id===cid||!rec.course_id);
+      body.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h2 style="margin:0;font-size:18px">🎬 Recordings (${recs.length})</h2>
+        <button class="btn-sm btn-primary" onclick="openEmbed('/studio.html?course=${cid}','🎥 Studio')">🎥 Record Now</button>
+      </div>
+      ${recs.length?recs.map(rec=>{
+        const when=rec.created_at?new Date(rec.created_at).toLocaleString():'—';
+        const dur=rec.duration?Math.round(rec.duration/60)+'m':'—';
+        return `<div class="card" style="margin-bottom:8px;padding:12px 16px;display:flex;align-items:center;gap:12px">
+          <div style="font-size:2em">🎬</div>
+          <div style="flex:1"><div style="font-weight:700">${escHtml(rec.class_title||'Recording')}</div><div style="font-size:11px;color:var(--jm-text-muted)">${when} · ${dur}</div></div>
+          <div style="display:flex;gap:6px">
+            <a href="${escHtml(rec.url||'#')}" target="_blank" class="btn-sm btn-primary">▶ Play</a>
+            <button class="btn-sm btn-outline" onclick="copyToClipboard('${escHtml(rec.url||'')}')">📋 Share</button>
+          </div>
+        </div>`;
+      }).join(''):`<div class="empty-state" style="padding:60px"><div class="icon">🎬</div><div>No recordings yet</div><div style="font-size:13px;margin-top:8px;color:var(--jm-text-muted)">Use Smart Studio to record your sessions</div><button class="btn-sm btn-primary" style="margin-top:12px" onclick="openEmbed('/studio.html?course=${cid}','🎥 Studio')">🎥 Open Studio</button></div>`}`;
+    }
+    else if(tab==='analytics'){
+      body.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h2 style="margin:0;font-size:18px">📊 Analytics</h2></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr));gap:16px;margin-bottom:24px">
+        <div class="stat-card" style="--sc:#7c3aed"><div class="label">Students</div><div class="value" id="cw-a-stu">…</div></div>
+        <div class="stat-card" style="--sc:#10b981"><div class="label">Completion Rate</div><div class="value" id="cw-a-comp">…</div></div>
+        <div class="stat-card" style="--sc:#0ea5e9"><div class="label">Avg Attendance</div><div class="value" id="cw-a-att">…</div></div>
+        <div class="stat-card" style="--sc:#f59e0b"><div class="label">Revenue</div><div class="value" id="cw-a-rev">…</div></div>
+      </div>
+      <div id="cw-a-extra" class="card" style="padding:16px"><div style="color:var(--jm-text-muted);font-size:13px">Loading analytics…</div></div>`;
+      api('/courses/'+cid+'/analytics','GET').then(r=>{
+        const a=r.analytics||{};
+        const set=(id,v)=>{const el=document.getElementById(id); if(el) el.textContent=v;};
+        set('cw-a-stu', a.students??0);
+        set('cw-a-comp', (a.completionRate??0)+'%');
+        set('cw-a-att', (a.avgAttendance??0)+'%');
+        set('cw-a-rev', '₹'+Number(a.revenue||0).toLocaleString('en-IN'));
+        const ex=document.getElementById('cw-a-extra');
+        if(ex) ex.innerHTML=`<div style="font-size:13px;color:var(--jm-text-muted);line-height:1.7">📚 <b>${a.totalLectures||0}</b> lectures · ✅ <b>${a.presentRecords||0}</b> attendance records logged.<br>Completion = average student progress. Attendance = present records ÷ (students × lectures).</div>`;
+      }).catch(e=>{
+        const ex=document.getElementById('cw-a-extra'); if(ex) ex.innerHTML='<div style="color:#b91c1c;font-size:13px">'+escHtml(e.message)+'</div>';
+        ['cw-a-stu','cw-a-comp','cw-a-att','cw-a-rev'].forEach(id=>{const el=document.getElementById(id); if(el&&el.textContent==='…') el.textContent='—';});
+      });
+    }
+    else if(tab==='tests'){
+      _cwLoadTab_fallback(body,cid,'tests','🧪 Tests','addTest','Test');
+    }
+    else if(tab==='assignments'){
+      _cwLoadTab_fallback(body,cid,'assignments','📝 Assignments','addAssignment','Assignment');
+    }
+  }catch(e){ body.innerHTML='<div class="empty-state"><div class="icon">⚠️</div><div>'+escHtml(e.message||'Load error')+'</div></div>'; }
+}
+function _cwLoadTab_fallback(body,cid,key,label,modalKey,itemLabel){
+  api('/course-content/'+cid+'/full','GET').then(r=>{
+    const items=r[key]||[];
+    body.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h2 style="margin:0;font-size:18px">${label} (${items.length})</h2>
+      <button class="btn-sm btn-primary" onclick="openModal('${modalKey}');_modalCtx.courseId='${cid}'">+ Add ${itemLabel}</button>
+    </div>
+    ${items.length?items.map(it=>`<div class="card" style="margin-bottom:8px;padding:12px 16px;display:flex;align-items:center;gap:10px">
+      <div style="flex:1"><div style="font-weight:700">${escHtml(it.title||itemLabel)}</div><div style="font-size:11px;color:var(--jm-text-muted)">${escHtml(it.description||it.topic_title||'')}</div></div>
+    </div>`).join(''):`<div class="empty-state" style="padding:60px"><div class="icon">${label[0]}</div><div>No ${key} yet</div><button class="btn-sm btn-primary" style="margin-top:12px" onclick="openModal('${modalKey}');_modalCtx.courseId='${cid}'">+ Add First ${itemLabel}</button></div>`}`;
+  }).catch(e=>{ body.innerHTML='<div class="empty-state"><div class="icon">⚠️</div>'+escHtml(e.message)+'</div>'; });
 }
 async function _hubSavePrice(courseId){
   const price=Number(val('hub-price')); if(isNaN(price)||price<0){ toast('Enter a valid price',true); return; }
@@ -1401,17 +1716,83 @@ function _hubSchedule(courseId){
 }
 function _tCourseActions(c){
   const t=(c.title||'Course').replace(/'/g,"\\'");
-  return `<button class="btn-sm btn-primary" onclick="openCourseHub('${c.id}','${t}')" title="Manage (schedule, price, batches, analytics)">🎛 Manage</button>`+
-    `<button class="btn-sm btn-outline" onclick="previewCourse('${c.id}','${t}')" title="Preview as student">👁 Preview</button>`+
-    `<button class="btn-sm btn-outline" onclick="openConfigure('${c.id}')" title="Configure">⚙️</button>`+
-    `<button class="btn-sm btn-outline" onclick="openEditCourse(window._teacherCoursesById['${c.id}'])" title="Edit">✏️</button>`+
+  // Edit Course = Manage + Configure + Edit combined → opens full course workspace
+  return `<button class="btn-sm btn-primary" onclick="openCourseHub('${c.id}','${t}')" title="Edit course — topics, schedule, price, configure">✏️ Edit Course</button>`+
+    `<button class="btn-sm btn-outline" onclick="previewCourse('${c.id}','${t}')" title="Preview as student">👁</button>`+
     `<button class="btn-sm btn-outline" onclick="openCourseStudents('${c.id}','${t}')" title="Students">👥</button>`+
     `<button class="btn-sm btn-outline" onclick="openCourseChat('${c.id}','${t}')" title="Chat">💬</button>`+
     `<button class="btn-sm btn-outline" onclick="openAnnouncement('${c.id}','${t}')" title="Announce">📢</button>`+
-    `<button class="btn-sm btn-outline" onclick="openAttendanceLog('${c.id}','${t}')" title="History">🗓</button>`+
     `<button class="btn-sm btn-outline" onclick="duplicateCourse('${c.id}')" title="Duplicate">📑</button>`+
-    `<button class="btn-sm btn-outline" onclick="archiveCourse('${c.id}',${c.archived?true:false})" title="${c.archived?'Unarchive':'Archive'}">${c.archived?'♻':'🗄'}</button>`;
+    `<button class="btn-sm btn-outline" onclick="archiveCourse('${c.id}',${c.archived?true:false})" title="${c.archived?'Unarchive':'Archive'}">${c.archived?'♻️':'🗄'}</button>`;
 }
+// ── Grid card: ⋮ action menu ─────────────────────────────────────────────
+function _cgCloseMenus(){ document.querySelectorAll('.cg-menu-drop.open').forEach(d=>d.classList.remove('open')); }
+function _cgMenu(id,e){
+  e.stopPropagation();
+  const drop=document.getElementById('cgm_'+id); if(!drop) return;
+  const wasOpen=drop.classList.contains('open');
+  _cgCloseMenus();
+  if(!wasOpen) drop.classList.add('open');
+}
+document.addEventListener('click',_cgCloseMenus);
+
+// ── Grid card: 📂 topic tree ─────────────────────────────────────────────
+const _cgTreeCache={};
+async function _cgTree(id,btn){
+  const panel=document.getElementById('cgt_'+id); if(!panel) return;
+  const isOpen=panel.classList.contains('open');
+  if(isOpen){ panel.classList.remove('open'); btn.textContent='📂 Explore'; return; }
+  panel.classList.add('open');
+  btn.textContent='📂 Hide';
+  if(_cgTreeCache[id]){ panel.innerHTML=_cgTreeCache[id]; return; }
+  panel.innerHTML='<div class="cg-tree-msg">Loading…</div>';
+  try{
+    const r=await api('/course-content/'+id+'/full','GET');
+    const topics=r.topics||r.sections||[];
+    if(!topics.length){ panel.innerHTML='<div class="cg-tree-msg">No topics yet — add them in Edit Course.</div>'; return; }
+    let html='';
+    topics.forEach((tp,ti)=>{
+      const nid='cgn_'+id+'_'+ti;
+      // Server nests content under each topic by topic_id: lectures/materials/tests.
+      const lecs=tp.lectures||tp.videos||[];
+      const mats=tp.materials||[];
+      const tsts=tp.tests||tp.quizzes||[];
+      const items=lecs.length+mats.length+tsts.length;
+      html+=`<div class="cg-ti chapter" onclick="_cgToggleNode('${nid}',this)">
+        <span class="ti-arrow">▶</span>
+        <span>📖</span>
+        <span style="flex:1">${escHtml(tp.title||'Chapter '+(ti+1))}</span>
+        <span class="ti-count">${items} item${items!==1?'s':''}</span>
+      </div>
+      <div id="${nid}" style="display:none">`;
+      lecs.forEach((v,vi)=>{
+        const label=typeof v==='string'?'Lecture '+(vi+1):escHtml(v.title||'Lecture '+(vi+1));
+        html+=`<div class="cg-ti leaf"><span>🎬</span><span>${label}</span></div>`;
+      });
+      mats.forEach((m,mi)=>{
+        const icon=m&&m.type==='image'?'🖼':m&&m.type==='pdf'?'📄':'📎';
+        const label=typeof m==='string'?'Material '+(mi+1):escHtml(m.title||'Material '+(mi+1));
+        html+=`<div class="cg-ti leaf"><span>${icon}</span><span>${label}</span></div>`;
+      });
+      tsts.forEach((q,qi)=>{
+        const label=typeof q==='string'?'Test '+(qi+1):escHtml(q.title||'Test '+(qi+1));
+        html+=`<div class="cg-ti leaf"><span>🧪</span><span>${label}</span></div>`;
+      });
+      if(!items) html+=`<div class="cg-ti leaf" style="color:var(--jm-text-muted)"><span>—</span><span>No content yet</span></div>`;
+      html+=`</div>`;
+    });
+    _cgTreeCache[id]=html;
+    panel.innerHTML=html;
+  }catch(e){ panel.innerHTML=`<div class="cg-tree-msg">⚠ ${escHtml(e.message)}</div>`; }
+}
+function _cgToggleNode(nid,hdr){
+  const el=document.getElementById(nid); if(!el) return;
+  const open=el.style.display==='none';
+  el.style.display=open?'block':'none';
+  const arr=hdr.querySelector('.ti-arrow');
+  if(arr) arr.classList.toggle('open',open);
+}
+
 function _tCoverHtml(c, h){
   if(c.cover_image) return `<img src="${escHtml(c.cover_image)}" loading="lazy" decoding="async" style="width:100%;height:${h}px;object-fit:cover;border-radius:8px 8px 0 0;display:block">`;
   return `<div style="width:100%;height:${h}px;border-radius:8px 8px 0 0;background:linear-gradient(135deg,var(--jm-primary),#a855f7);display:flex;align-items:center;justify-content:center;font-size:32px">📚</div>`;
@@ -1435,25 +1816,70 @@ function renderTeacherCourses(){
   const renderItems=(list)=>{
     if(view==='grid'){
       return `<div class="course-grid">${list.map(c=>{
+        const t=(c.title||'Course').replace(/'/g,"\\'");
         const statusBadge=c.archived?'<span class="badge badge-yellow">Archived</span>':(c.is_active?'<span class="badge badge-green">Active</span>':'<span class="badge badge-red">Inactive</span>');
-        return `<div class="course-grid-card" style="padding:0;overflow:hidden">
-          ${_tCoverHtml(c,120)}
-          <div style="padding:14px;display:flex;flex-direction:column;gap:6px;flex:1">
+        return `<div class="course-grid-card" id="cgc_${c.id}">
+          <div style="border-radius:12px 12px 0 0;overflow:hidden;flex-shrink:0">${_tCoverHtml(c,116)}</div>
+          <div class="cg-card-body">
             <div class="cg-title">${escHtml(c.title||'Course')}</div>
             <div class="cg-meta">${escHtml(c.category||'General')} · ${escHtml(c.level||'beginner')}</div>
-            <div style="display:flex;align-items:center;gap:8px"><span style="font-weight:800;color:var(--jm-primary)">${c.price?fmt(c.price):'Free'}</span>${statusBadge}</div>
-            <div class="cg-actions">${_tCourseActions(c)}</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:2px">
+              <span style="font-weight:800;color:var(--jm-primary)">${c.price?fmt(c.price):'Free'}</span>${statusBadge}
+            </div>
+          </div>
+          <div class="cg-card-foot">
+            <button class="btn-sm btn-primary" onclick="openCourseHub('${c.id}','${t}')" title="Edit course — topics, schedule, price, configure">✏️ Edit</button>
+            <button class="btn-sm btn-outline" onclick="_cgTree('${c.id}',this)" title="Explore chapters &amp; topics" id="cgExplBtn_${c.id}">📂 Explore</button>
+            <div class="cg-menu-wrap">
+              <button class="btn-sm btn-outline" onclick="_cgMenu('${c.id}',event)" title="More actions" style="padding:6px 10px;font-size:16px;line-height:1">⋮</button>
+              <div class="cg-menu-drop" id="cgm_${c.id}">
+                <button onclick="openCourseHub('${c.id}','${t}');_cgCloseMenus()">✏️ Edit Course</button>
+                <button onclick="previewCourse('${c.id}','${t}');_cgCloseMenus()">👁 Preview as Student</button>
+                <div class="msep"></div>
+                <button onclick="openCourseStudents('${c.id}','${t}');_cgCloseMenus()">👥 View Students</button>
+                <button onclick="openCourseChat('${c.id}','${t}');_cgCloseMenus()">💬 Course Chat</button>
+                <button onclick="openAnnouncement('${c.id}','${t}');_cgCloseMenus()">📢 Announcement</button>
+                <button onclick="openAttendanceLog('${c.id}','${t}');_cgCloseMenus()">🗓 Attendance Log</button>
+                <div class="msep"></div>
+                <button onclick="duplicateCourse('${c.id}');_cgCloseMenus()">📑 Duplicate</button>
+                <button onclick="archiveCourse('${c.id}',${c.archived?true:false});_cgCloseMenus()">${c.archived?'♻️ Unarchive':'🗄 Archive'}</button>
+              </div>
+            </div>
+          </div>
+          <div class="cg-tree-panel" id="cgt_${c.id}">
+            <div class="cg-tree-msg">Click "📂 Explore" to browse chapters &amp; topics</div>
           </div>
         </div>`;
       }).join('')}</div>`;
     }
     return `<ul class="item-list">${list.map(c=>{
-      const statusBadge=c.archived?'badge-yellow':(c.is_active?'badge-green':'badge-red');
-      const statusTxt=c.archived?'Archived':(c.is_active?'Active':'Inactive');
-      return `<li><div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
-        ${c.cover_image?`<img src="${escHtml(c.cover_image)}" loading="lazy" decoding="async" width="48" height="48" style="width:48px;height:48px;object-fit:cover;border-radius:8px;flex-shrink:0">`:`<div style="width:48px;height:48px;border-radius:8px;background:var(--jm-primary-tint);display:flex;align-items:center;justify-content:center;flex-shrink:0">📚</div>`}
-        <div style="min-width:0"><div style="font-weight:600">${escHtml(c.title||'Course')}</div><div style="font-size:11px;color:var(--jm-text-muted)">${escHtml(c.category||'General')} · ${escHtml(c.level||'beginner')} · ${c.price?fmt(c.price):'Free'}</div></div>
-      </div><div class="row-actions"><span class="badge ${statusBadge}">${statusTxt}</span>${_tCourseActions(c)}</div></li>`;
+      const t=(c.title||'Course').replace(/'/g,"\\'");
+      const sbCls=c.archived?'badge-yellow':(c.is_active?'badge-green':'badge-red');
+      const sbTxt=c.archived?'Archived':(c.is_active?'Active':'Inactive');
+      return `<li style="position:relative;gap:8px">
+        ${c.cover_image
+          ? `<img src="${escHtml(c.cover_image)}" loading="lazy" decoding="async" width="44" height="44" style="width:44px;height:44px;object-fit:cover;border-radius:8px;flex-shrink:0">`
+          : `<div style="width:44px;height:44px;border-radius:8px;background:var(--jm-primary-tint);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px">📚</div>`}
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(c.title||'Course')}</div>
+          <div style="font-size:11px;color:var(--jm-text-muted);margin-top:2px">${escHtml(c.category||'General')} · ${escHtml(c.level||'beginner')} · ${c.price?fmt(c.price):'Free'}</div>
+        </div>
+        <span class="badge ${sbCls}" style="flex-shrink:0">${sbTxt}</span>
+        <button class="btn-sm btn-primary" onclick="openCourseHub('${c.id}','${t}')" style="flex-shrink:0;white-space:nowrap">✏️ Edit</button>
+        <div style="position:relative;flex-shrink:0">
+          <button class="btn-sm btn-outline" onclick="_cgMenu('${c.id}',event)" title="More actions" style="padding:5px 9px;font-size:16px;line-height:1">⋮</button>
+          <div class="cg-menu-drop" id="cgm_${c.id}" style="bottom:calc(100% + 4px)">
+            <button onclick="previewCourse('${c.id}','${t}');_cgCloseMenus()">👁 Preview as Student</button>
+            <button onclick="openCourseStudents('${c.id}','${t}');_cgCloseMenus()">👥 View Students</button>
+            <button onclick="openCourseChat('${c.id}','${t}');_cgCloseMenus()">💬 Course Chat</button>
+            <button onclick="openAnnouncement('${c.id}','${t}');_cgCloseMenus()">📢 Announcement</button>
+            <button onclick="openAttendanceLog('${c.id}','${t}');_cgCloseMenus()">🗓 Attendance Log</button>
+            <div class="msep"></div>
+            <button onclick="duplicateCourse('${c.id}');_cgCloseMenus()">📑 Duplicate</button>
+            <button onclick="archiveCourse('${c.id}',${c.archived?true:false});_cgCloseMenus()">${c.archived?'♻️ Unarchive':'🗄 Archive'}</button>
+          </div>
+        </div>
+      </li>`;
     }).join('')}</ul>`;
   };
   if(groupBy==='none'){ cont.innerHTML=renderItems(courses); return; }
@@ -1476,17 +1902,32 @@ function renderCreatorBlock(prefix, d){
   setText(prefix+'earnTotal',fmt(d.totalEarnings));
   // Courses list
   renderList(prefix+'coursesList',(d.courses||[]).map(c=>{
-    const t=c.title.replace(/'/g,"\\'");
-    return `<li><span>${c.title}</span><div class="row-actions">
-      <span class="badge ${c.is_active?'badge-green':'badge-red'}">${c.is_active?'Active':'Inactive'}</span>
-      <button class="btn-sm btn-outline" onclick="openCourseChat('${c.id}','${t}')">💬 Chat</button>
-      <button class="btn-sm btn-outline" onclick="openCourseStudents('${c.id}','${t}')">👥 Students</button>
-      <button class="btn-sm btn-outline" onclick="openAttendanceLog('${c.id}','${t}')">🗓 History</button>
-      <button class="btn-sm btn-outline" onclick="openEditCourse(window._teacherCoursesById['${c.id}'])">✏️ Edit</button>
-      <button class="btn-sm btn-outline" onclick="openConfigure('${c.id}')">⚙️ Configure</button>
-      <button class="btn-sm btn-outline" onclick="duplicateCourse('${c.id}')">📑 Duplicate</button>
-      <button class="btn-sm btn-outline" onclick="archiveCourse('${c.id}',${c.archived?true:false})">${c.archived?'♻ Unarchive':'🗄 Archive'}</button>
-    </div></li>`;
+    const t=(c.title||'Course').replace(/'/g,"\\'");
+    const sbCls=c.is_active?'badge-green':'badge-red';
+    const sbTxt=c.is_active?'Active':'Inactive';
+    const archLbl=c.archived?'♻️ Unarchive':'🗄 Archive';
+    return `<li style="position:relative;gap:8px">
+      <div style="flex:1;min-width:0;overflow:hidden">
+        <div style="font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(c.title||'Course')}</div>
+      </div>
+      <span class="badge ${sbCls}" style="flex-shrink:0">${sbTxt}</span>
+      <button class="btn-sm btn-primary" onclick="openCourseHub('${c.id}','${t}')" style="flex-shrink:0">✏️ Edit</button>
+      <div style="position:relative;flex-shrink:0">
+        <button class="btn-sm btn-outline" onclick="_cgMenu('${prefix}${c.id}',event)">⋮</button>
+        <div class="cg-menu-drop" id="cgm_${prefix}${c.id}" style="bottom:calc(100% + 4px)">
+          <button onclick="openCourseHub('${c.id}','${t}')">✏️ Edit Course</button>
+          <button onclick="previewCourse('${c.id}','${t}')">👁 Preview as Student</button>
+          <div class="msep"></div>
+          <button onclick="openCourseStudents('${c.id}','${t}')">👥 View Students</button>
+          <button onclick="openCourseChat('${c.id}','${t}')">💬 Course Chat</button>
+          <button onclick="openAnnouncement('${c.id}','${t}')">📢 Announcement</button>
+          <button onclick="openAttendanceLog('${c.id}','${t}')">🗓 Attendance Log</button>
+          <div class="msep"></div>
+          <button onclick="duplicateCourse('${c.id}')">📑 Duplicate</button>
+          <button onclick="archiveCourse('${c.id}',${c.archived?true:false})">${archLbl}</button>
+        </div>
+      </div>
+    </li>`;
   }),['📖','No courses yet — click + New Course to start']);
   // Live classes list
   renderList(prefix+'liveList',(d.liveClasses||[]).map(c=>{
@@ -1505,10 +1946,57 @@ function renderTeacherDash(d){
   // Stash for modals that need a course/enrollment picker
   window._teacherCourses=d.courses||[];
   window._teacherEnrollments=d.enrollments||[];
-  document.getElementById('t-courses').textContent=d.courses?.length||0;
-  document.getElementById('t-bookings').textContent=d.bookings?.length||0;
-  document.getElementById('t-earnings').textContent=fmt(d.totalEarnings);
-  document.getElementById('t-listings').textContent=d.marketplaceListings?.length||0;
+  const _tSet=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  _tSet('t-courses',d.courses?.length||0);
+  // "Students" = distinct enrolled students (was wrongly showing bookings.length,
+  // which is capped at 10 and counts service bookings, not enrollments).
+  _tSet('t-bookings',d.studentsCount ?? (d.enrollments?.length||0));
+  _tSet('t-earnings',fmt(d.totalEarnings));
+  _tSet('t-listings',d.marketplaceListings?.length||0);
+  // Command-center KPIs (backend-computed)
+  _tSet('t-upcoming', d.upcomingClasses ?? 0);
+  _tSet('t-tests', d.testsPending ?? 0);
+  _tSet('t-recordings', d.recordingsCount ?? 0);
+  _tSet('t-unread', d.unreadMessages ?? 0);
+  _tSet('t-notifs', d.notifications ?? 0);
+  if(d.monthlyEarnings != null){ const es=document.getElementById('t-earnings-sub'); if(es) es.textContent='₹'+Number(d.monthlyEarnings).toLocaleString('en-IN')+' this month'; }
+  // Command center: greeting + date
+  const now=new Date(); const hr=now.getHours();
+  const greetWord=hr<12?'Good morning':hr<17?'Good afternoon':'Good evening';
+  const _jmU=JSON.parse(localStorage.getItem('jm_user')||'{}');
+  const uName=(currentUser?.fullName||currentUser?.full_name||_jmU?.fullName||_jmU?.full_name||_jmU?.name||'').split(' ')[0]||'Teacher';
+  const gEl=document.getElementById('t-greeting'); if(gEl) gEl.textContent=greetWord+' '+uName+' 👋';
+  const dEl=document.getElementById('t-date-line'); if(dEl) dEl.textContent=now.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  // Today's classes count
+  const todayStr=now.toISOString().slice(0,10);
+  const todayClasses=(d.liveClasses||[]).filter(c=>c.scheduled_time&&c.scheduled_time.slice(0,10)===todayStr);
+  const todayEl=document.getElementById('t-today-count'); if(todayEl) todayEl.textContent=todayClasses.length;
+  // Pending assignments
+  const pendingEl=document.getElementById('t-pending-count'); if(pendingEl) pendingEl.textContent=d.pendingAssignments||(d.assignments||[]).filter(a=>!a.graded).length||0;
+  // Today's schedule timeline
+  const todaySched=document.getElementById('t-today-schedule');
+  if(todaySched){
+    if(todayClasses.length){
+      todaySched.innerHTML=todayClasses.map(c=>{
+        const t=new Date(c.scheduled_time); const s=c.status||'scheduled';
+        const badge=s==='live'?'#16a34a':s==='completed'?'#0ea5e9':'#f59e0b';
+        return `<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--jm-border)">
+          <div style="text-align:center;min-width:48px"><div style="font-size:18px;font-weight:800;line-height:1">${t.getHours()}:${String(t.getMinutes()).padStart(2,'0')}</div><div style="font-size:9px;color:var(--jm-text-muted);text-transform:uppercase">${t.toLocaleString('en',{hour12:true}).slice(-2)}</div></div>
+          <div style="width:3px;height:40px;border-radius:2px;background:${badge};flex-shrink:0"></div>
+          <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:14px">${escHtml(c.title)}</div><div style="font-size:11px;color:var(--jm-text-muted)">${escHtml(c.courses?.title||'')}</div></div>
+          <div style="display:flex;gap:6px">
+            ${s==='live'?`<button class="btn-sm btn-primary" onclick="window.open('/liveRoom.html?class=${c.id}','_blank')">▶ Join</button>`:''}
+            ${s==='scheduled'?`<button class="btn-sm btn-outline" onclick="startLive('${c.id}')">▶ Start</button>`:''}
+            <span style="font-size:11px;padding:3px 8px;border-radius:99px;background:${badge}22;color:${badge};font-weight:700">${s}</span>
+          </div>
+        </div>`;
+      }).join('');
+    } else {
+      todaySched.innerHTML='<div class="empty-state" style="padding:20px"><div class="icon">✨</div>No classes today — <button class="btn-sm btn-outline" style="display:inline-block;margin-top:6px" onclick="openModal(\'scheduleLive\')">Schedule one →</button></div>';
+    }
+  }
+  // Load recordings for teacher
+  _loadTeacherRecordings();
   // Stash full course objects so Edit modal can pre-populate
   window._teacherCoursesById=Object.fromEntries((d.courses||[]).map(c=>[c.id,c]));
   window._teacherCoursesData=d.courses||[];
@@ -1605,12 +2093,31 @@ async function loadDashboard(){
   document.title='JeetMantra — '+role.charAt(0).toUpperCase()+role.slice(1)+' Dashboard';
   buildNav(role);
   try{
-    const res=await fetch(API+'/dashboard',{headers:{'Authorization':'Bearer '+token}});
-    if(res.status===401){logout();return;}
-    const json=await res.json();
+    // Route through api() so X-Active-Institution is sent — the dashboard is the
+    // one endpoint that re-scopes everything when the teacher switches institute.
+    // api() handles 401 (redirect to login) internally.
+    const json=await api('/dashboard','GET');
     const d=json.dashboard||{};
     document.getElementById('loadingState').style.display='none';
     const sec=document.getElementById('section-'+role);
+    // WIDGET SWAP: student/teacher default to the W1 widget dashboard; a toggle
+    // falls back to the classic per-role section. Other roles unchanged.
+    const WIDGET_ROLES=['student','teacher'];
+    const useWidgets = WIDGET_ROLES.includes(role) && localStorage.getItem('wg_mode')!=='classic' && window.EduOSWidgets;
+    if(WIDGET_ROLES.includes(role)){
+      const bar=document.getElementById('wgModeBar'); if(bar)bar.style.display='flex';
+      const btn=document.getElementById('wgToggle'); if(btn)btn.textContent=useWidgets?'🗂️ Classic view':'🧩 Widget view';
+    } else if(window.EduOSWidgets){
+      // Other roles stay on classic, but can reach their validated widget set.
+      const tb=document.getElementById('wgTryBar'); if(tb)tb.style.display='flex';
+    }
+    if(useWidgets){
+      document.getElementById('wgPanel').style.display='block';
+      try{ EduOSWidgets.boot(document.getElementById('wgMount')); }catch(_){}
+      // still run topbar/nav polish, but skip the classic section render
+      try{ renderGreeting(); renderNextClassHeader(); buildBottomNav(role); _initInstSwitcher(); refreshUnreadBadge(); refreshStudentSummary(); }catch(_){}
+      return;
+    }
     if(sec)sec.classList.add('visible');
     if(role==='student'){renderStudentDash(d); loadNotes(); loadStudentHistory(); loadWall(); startTimeTracking(); renderContinueLearning(); loadStudyActivity(); loadSuggestions();}
     else if(role==='teacher'){renderTeacherDash(d); loadTeacherWall();}
@@ -1623,7 +2130,7 @@ async function loadDashboard(){
     else if(role==='content_creator')renderContentCreatorDash(d);
     else if(role==='franchise')renderFranchiseDash(d);
     // EduOS UI polish — applies after the role section renders.
-    try{ renderGreeting(); injectQuickActions(); renderTodaySchedule(); buildBottomNav(role); }catch(_){}
+    try{ renderGreeting(); injectQuickActions(); renderNextClassHeader(); renderTodaySchedule(); buildBottomNav(role); _initInstSwitcher(); refreshUnreadBadge(); refreshStudentSummary(); }catch(_){}
   }catch(e){
     document.getElementById('loadingState').innerHTML='<div class="empty-state"><div class="icon">⚠️</div><div>We couldn\'t load your dashboard.</div><div style="font-size:13px;margin-top:6px;color:var(--jm-text-muted,#888)">Check your connection and try again.</div><button class="btn btn-sm" style="margin-top:14px" onclick="location.reload()">🔄 Retry</button></div>';
   }
@@ -1632,7 +2139,7 @@ let searchTimer=null;
 function debounceSearch(q){
   clearTimeout(searchTimer);
   if(!q.trim())return;
-  searchTimer=setTimeout(()=>{window.location.href='/marketplace.html?q='+encodeURIComponent(q);},700);
+  searchTimer=setTimeout(()=>{openEmbed('/marketplace.html?q='+encodeURIComponent(q),'🛒 Marketplace');},700);
 }
 function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('overlay').classList.toggle('show');}
 function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('overlay').classList.remove('show');}
@@ -1964,7 +2471,7 @@ const MODAL_DEFS={
       </div>
       <div class="form-row"><label>Price (₹)</label><input id="m-price" type="number" min="0" value="0"></div>
       <div class="form-row"><label>Cover / thumbnail image (optional)</label><input id="m-cover" type="file" accept="image/*" onchange="jmCoverPreview(this,'m-cover-prev')"><img id="m-cover-prev" style="display:none;margin-top:8px;max-height:120px;border-radius:8px;border:1px solid var(--jm-border);object-fit:cover"></div>
-      <div style="font-size:12px;color:var(--jm-text-muted)">After creating, you can add topics, lectures, materials, tests and assignments via ⚙️ Configure.</div>`,
+      <div style="font-size:12px;color:var(--jm-text-muted)">After creating, you'll be taken straight to the Topics editor to start adding content.</div>`,
     submit:async ()=>{
       const body={title:val('m-title'),description:val('m-desc'),category:val('m-cat')||'General',level:val('m-level'),price:Number(val('m-price'))||0};
       if(!body.title) throw new Error('Title is required');
@@ -1979,7 +2486,12 @@ const MODAL_DEFS={
           body:fd
         });
       }
-      return 'Course created: '+r.course.title;
+      const newId=r.course?.id; const newTitle=r.course?.title||'New Course';
+      // submitModal's own success path calls loadDashboard() to refresh the course
+      // list; we just auto-open the new course's Topics editor afterward. (Delay
+      // clears submitModal's ~800ms closeModal()+loadDashboard() first.)
+      if(newId) setTimeout(()=>{ try{ openCourseHub(newId, newTitle, 'topics'); }catch(_){} }, 900);
+      return 'Course created! Opening topics editor…';
     }
   },
   scheduleLive: {
@@ -2070,10 +2582,15 @@ const MODAL_DEFS={
       <div class="form-row"><label>Topic Title *</label><input id="m-title" placeholder="e.g. Chapter 3 — Geometry"></div>
       <div class="form-row"><label>Description <span style="font-size:11px;color:var(--jm-text-muted)">(Notion-style — headings, tables, code…)</span></label>${richField('m-desc','')}</div>`,
     submit:async()=>{
-      const courseId=_modalCtx.courseId;
+      const courseId=_modalCtx.courseId||_cwCourseId;
+      if(!courseId) throw new Error('No course selected');
       if(!val('m-title')) throw new Error('Title required');
       await api('/course-content/'+courseId+'/topics','POST',{ title:val('m-title'), description:val('m-desc'), order_index:Date.now()%10000 });
-      _reopenConfigure(courseId);
+      // Refresh every surface that lists topics: the Configure tree, the course
+      // workspace Topics tab, and the grid "Explore" tree cache.
+      delete _cgTreeCache[courseId];
+      if(typeof _cwCourseId!=='undefined' && _cwCourseId===courseId && typeof _cwLoadTab==='function') _cwLoadTab('topics');
+      else if(typeof _reopenConfigure==='function') _reopenConfigure(courseId);
       return 'Topic added';
     }
   },
@@ -2389,6 +2906,55 @@ async function aiExplain(type, id){
     showModal('Simple Explanation','<div style="white-space:pre-wrap;font-size:14px;line-height:1.7">'+escHtml(txt)+'</div>');
   }catch(e){ toast('AI: '+e.message,true); }
 }
+// ── Sprint 5 / SS-7: Translate the current reader topic to the chosen language.
+// First production consumer of Sprint 3 /api/translations/content. Pulls the
+// topic's description from the cached reader data, calls the persist-and-cache
+// endpoint, and swaps the rendered body in place. Falls back gracefully if the
+// content_translations table hasn't been migrated yet.
+const READER_LANG_NAMES = {
+  en:'English', hi:'हिन्दी', bn:'বাংলা', ta:'தமிழ்', te:'తెలుగు',
+  mr:'मराठी', gu:'ગુજરાતી', kn:'ಕನ್ನಡ', pa:'ਪੰਜਾਬੀ',
+  ml:'മലയാളം', or:'ଓଡ଼ିଆ', ur:'اردو'
+};
+async function readerTranslateTopic(topicId){
+  const r=window._reader; if(!r){ toast('Open the reader first',true); return; }
+  const topic=(r.full?.topics||[]).find(t=>t.id===topicId);
+  if(!topic){ toast('Topic not loaded',true); return; }
+  // Build language picker (12 supported langs)
+  const current=localStorage.getItem('jm_lang')||'en';
+  const opts=Object.entries(READER_LANG_NAMES).map(([k,v])=>`<option value="${k}" ${k===current?'selected':''}>${escHtml(v)}</option>`).join('');
+  showModal('🌐 Translate topic', `
+    <div class="form-row"><label>Target language</label><select id="trtarget" style="width:100%">${opts}</select></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+      <button class="btn-sm btn-outline" onclick="closeAnyModal()">Cancel</button>
+      <button class="btn-sm btn-primary" id="trgo" onclick="_doReaderTranslate('${topicId}')">Translate</button>
+    </div>
+    <div id="tr-result" style="margin-top:14px"></div>`);
+}
+async function _doReaderTranslate(topicId){
+  const target=document.getElementById('trtarget')?.value||'en';
+  const out=document.getElementById('tr-result'); if(out) out.innerHTML='<div style="color:var(--jm-text-muted);font-size:13px">Translating…</div>';
+  document.getElementById('trgo')?.setAttribute('disabled','true');
+  try{
+    const r=window._reader;
+    const topic=(r.full?.topics||[]).find(t=>t.id===topicId);
+    const source=(topic.description||topic.notes||'').replace(/<[^>]+>/g,' ').trim();
+    if(!source){ if(out) out.innerHTML='<div style="color:var(--jm-text-muted)">Nothing to translate.</div>'; return; }
+    const resp=await api('/translations/content','POST',{
+      entity_type:'topic', entity_id:topicId, field:'description',
+      target_lang:target, source_text:source
+    });
+    if(out){
+      out.innerHTML=`<div style="border-top:1px solid var(--jm-border);padding-top:10px;font-size:14px;line-height:1.7;white-space:pre-wrap">${escHtml(resp.text||'')}</div>
+        <div style="font-size:11px;color:var(--jm-text-muted);margin-top:6px">${resp.cached?'⚡ Served from cache':'✨ Newly generated'} · ${escHtml(resp.generated_by||'')}</div>`;
+    }
+    // Light gamification: award once per language switch.
+    try{ api('/gamification/streak/checkin','POST'); }catch(_){}
+  }catch(e){
+    if(out) out.innerHTML='<div style="color:#b91c1c">'+escHtml(e.message||'Translation failed')+'</div>';
+  }
+  document.getElementById('trgo')?.removeAttribute('disabled');
+}
 // Generic modal for AI output / detail views
 function showModal(title, bodyHtml){
   let m=document.getElementById('jm-generic-modal');
@@ -2477,7 +3043,7 @@ async function openConfigure(courseId){
   _cfgCourseId=courseId;
   document.getElementById('configurePage').classList.add('active');
   document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
-  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
+  document.querySelectorAll('.topbar').forEach(s=>s.style.display='none'); // keep sidebar visible (synced nav)
   await _reopenConfigure(courseId);
 }
 function closeConfigurePage(){
@@ -3414,7 +3980,10 @@ async function openStudentDetail(courseId, studentId){
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
         <div class="msgr-avatar" style="width:48px;height:48px;font-size:22px">👤</div>
         <div><div style="font-weight:700;font-size:16px">${escHtml(r.student?.full_name||'Student')}</div><div style="font-size:12px;color:var(--jm-text-muted)">${escHtml(r.student?.email||'')}</div></div>
-        <div style="margin-left:auto;text-align:center"><div style="font-size:24px;font-weight:800;color:var(--jm-primary)">${p.percentage||0}%</div><div style="font-size:10px;color:var(--jm-text-muted)">progress</div></div>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:12px">
+          <button class="btn-sm btn-primary" onclick="openDmWith('${studentId}','${escHtml(r.student?.full_name||'')}')">💬 Message</button>
+          <div style="text-align:center"><div style="font-size:24px;font-weight:800;color:var(--jm-primary)">${p.percentage||0}%</div><div style="font-size:10px;color:var(--jm-text-muted)">progress</div></div>
+        </div>
       </div>
       <div style="display:flex;gap:10px;margin-bottom:16px">
         <div style="flex:1;background:var(--jm-surface-2);border-radius:8px;padding:10px;text-align:center"><div style="font-size:18px;font-weight:800">${p.attended_lectures||0}/${p.total_lectures||0}</div><div style="font-size:10px;color:var(--jm-text-muted)">Lectures attended</div></div>
@@ -3578,13 +4147,33 @@ async function cancelLiveClass(id, courseId){
   try{ await api('/live-classes/'+id,'PUT',{status:'cancelled'}); toast('Class cancelled'); _renderConfigurePage(courseId); }
   catch(e){ toast(e.message||'Cancel failed',true); }
 }
-async function rescheduleLiveClass(id, courseId){
-  const when=prompt('New date & time (YYYY-MM-DD HH:MM, 24h):');
-  if(!when) return;
-  const dt=new Date(when.replace(' ','T'));
-  if(isNaN(dt.getTime())){ toast('Invalid date/time format',true); return; }
-  try{ await api('/live-classes/'+id,'PUT',{scheduledTime:dt.toISOString()}); toast('✓ Rescheduled'); _renderConfigurePage(courseId); }
-  catch(e){ toast(e.message||'Reschedule failed',true); }
+// Default datetime-local value: next hour, formatted for the local timezone.
+function _reschedDefault(){
+  const d=new Date(Date.now()+3600000); d.setMinutes(0,0,0);
+  return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);
+}
+function rescheduleLiveClass(id, courseId){
+  showModal('🕑 Reschedule class', `
+    <div class="form-row"><label>New date &amp; time</label><input type="datetime-local" id="resch-dt" value="${_reschedDefault()}" style="width:100%"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+      <button class="btn-sm btn-outline" onclick="closeAnyModal()">Cancel</button>
+      <button class="btn-sm btn-primary" onclick="_doReschedule('${id}','${courseId||''}',false)">Save</button>
+    </div>`);
+}
+// Shared by reschedule (reopen=false) and re-open-completed (reopen=true).
+async function _doReschedule(id, courseId, reopen){
+  const v=document.getElementById('resch-dt')?.value;
+  if(!v){ toast('Pick a date & time',true); return; }
+  const dt=new Date(v);
+  if(isNaN(dt.getTime())){ toast('Invalid date/time',true); return; }
+  try{
+    const body=reopen?{status:'scheduled',scheduledTime:dt.toISOString()}:{scheduledTime:dt.toISOString()};
+    await api('/live-classes/'+id,'PUT',body);
+    toast('✓ '+(reopen?'Re-opened':'Rescheduled'));
+    closeAnyModal();
+    if(courseId && typeof _renderConfigurePage==='function') try{ _renderConfigurePage(courseId); }catch(_){}
+    if(typeof _cwCourseId!=='undefined' && _cwCourseId===courseId && typeof _cwLoadTab==='function') try{ _cwLoadTab('live'); }catch(_){}
+  }catch(e){ toast(e.message||'Reschedule failed',true); }
 }
 // Post-class management for a completed/cancelled class: recording, AI summary,
 // attendance, share, and re-open.
@@ -3621,11 +4210,13 @@ async function _mccGenSummary(id, courseId){
   try{ toast('🤖 generating summary…'); await api('/live-classes/'+id+'/summary','POST',{}); toast('✓ Summary ready'); _mccRender(id, courseId); }
   catch(e){ toast(e.message||'Summary failed',true); }
 }
-async function _mccReopen(id, courseId){
-  const when=prompt('Re-open at new date & time (YYYY-MM-DD HH:MM, 24h):'); if(!when) return;
-  const dt=new Date(when.replace(' ','T')); if(isNaN(dt.getTime())){ toast('Invalid date/time',true); return; }
-  try{ await api('/live-classes/'+id,'PUT',{status:'scheduled',scheduledTime:dt.toISOString()}); toast('✓ Re-opened'); closeAnyModal(); _renderConfigurePage(courseId); }
-  catch(e){ toast(e.message||'Re-open failed',true); }
+function _mccReopen(id, courseId){
+  showModal('↺ Re-open &amp; reschedule', `
+    <div class="form-row"><label>New date &amp; time</label><input type="datetime-local" id="resch-dt" value="${_reschedDefault()}" style="width:100%"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+      <button class="btn-sm btn-outline" onclick="closeAnyModal()">Cancel</button>
+      <button class="btn-sm btn-primary" onclick="_doReschedule('${id}','${courseId||''}',true)">Re-open</button>
+    </div>`);
 }
 async function renderChat(){
   if(!_activeChat) return;
@@ -4513,6 +5104,52 @@ async function loadWall(){
 }
 
 // ── Teacher class wall — submissions, homework, class activity ──────────
+// ── Teacher Recordings ────────────────────────────────────────────────
+async function _loadTeacherRecordings(){
+  const el=document.getElementById('t-recordingsList'); if(!el) return;
+  try{
+    const token=localStorage.getItem('jm_token');
+    const r=await fetch(API+'/teacher/recordings',{headers:{Authorization:'Bearer '+token}}).then(x=>x.json()).catch(()=>({}));
+    const recs=r.recordings||r.data||[];
+    if(!recs.length){ el.innerHTML='<li style="width:100%"><div class="empty-state"><div class="icon">🎬</div>No recordings yet. Record a class in Studio and save it to a live class.</div></li>'; return; }
+    el.innerHTML=recs.slice(0,8).map(rec=>{
+      const when=rec.created_at?new Date(rec.created_at).toLocaleString([], {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'—';
+      const dur=rec.duration?Math.round(rec.duration/60)+'m':'—';
+      const cls=rec.class_title||rec.live_class_title||'Recording';
+      const url=rec.url||rec.recording_url||'#';
+      return `<li><div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px">${escHtml(cls)}</div><div style="font-size:11px;color:var(--jm-text-muted)">${when} · ${dur}</div></div><div class="row-actions"><button class="btn-sm btn-outline" onclick="window.open('${escHtml(url)}','_blank')">▶ Play</button><button class="btn-sm btn-outline" onclick="copyToClipboard('${escHtml(url)}')">📋 Share</button></div></li>`;
+    }).join('');
+    if(recs.length>8) el.innerHTML+=`<li style="text-align:center"><button class="btn-sm btn-primary" onclick="openTeacherRecordings()">View all ${recs.length} recordings →</button></li>`;
+  }catch(e){ el.innerHTML='<li style="width:100%"><div class="empty-state"><div class="icon">⚠️</div>Could not load recordings</div></li>'; }
+}
+async function openTeacherRecordings(){
+  const token=localStorage.getItem('jm_token');
+  let recs=[];
+  try{ const r=await fetch(API+'/teacher/recordings',{headers:{Authorization:'Bearer '+token}}).then(x=>x.json()); recs=r.recordings||r.data||[]; }catch(e){}
+  const rows=recs.length?recs.map(rec=>{
+    const when=rec.created_at?new Date(rec.created_at).toLocaleString():'—';
+    const dur=rec.duration?Math.round(rec.duration/60)+'m':'—';
+    const cls=escHtml(rec.class_title||rec.live_class_title||'Recording');
+    const url=escHtml(rec.url||rec.recording_url||'#');
+    return `<tr><td style="padding:8px">${cls}</td><td style="padding:8px;color:var(--jm-text-muted)">${when}</td><td style="padding:8px">${dur}</td><td style="padding:8px;display:flex;gap:6px"><a href="${url}" target="_blank" class="btn-sm btn-primary">▶ Play</a><button class="btn-sm btn-outline" onclick="copyToClipboard('${url}')">📋</button></td></tr>`;
+  }).join(''):`<tr><td colspan="4" style="padding:24px;text-align:center;color:var(--jm-text-muted)">No recordings yet</td></tr>`;
+  const modal=document.createElement('div');
+  modal.innerHTML=`<div style="position:fixed;inset:0;background:rgba(15,23,42,.55);backdrop-filter:blur(4px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)this.remove()">
+    <div style="background:var(--jm-surface);border-radius:16px;max-width:820px;width:100%;max-height:86vh;overflow:auto;box-shadow:0 24px 60px rgba(0,0,0,.3);border:1px solid var(--jm-border)">
+      <div style="padding:18px 22px;border-bottom:1px solid var(--jm-border);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:var(--jm-surface)">
+        <div><h3 style="margin:0;font-size:17px;color:var(--jm-text)">🎬 All Recordings</h3><div style="font-size:12px;color:var(--jm-text-muted);margin-top:2px">${recs.length} recording${recs.length!==1?'s':''} saved</div></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn-sm btn-outline" onclick="openEmbed('/studio.html','🎥 Studio')">🎥 Open Studio</button>
+          <button onclick="this.closest('[style*=fixed]').remove()" style="border:none;background:transparent;font-size:22px;cursor:pointer;color:var(--jm-text-muted)">✕</button>
+        </div>
+      </div>
+      <div style="padding:18px 22px">
+        <table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:var(--jm-surface-2)"><th style="padding:8px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--jm-text-muted)">Class</th><th style="padding:8px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--jm-text-muted)">Date</th><th style="padding:8px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--jm-text-muted)">Duration</th><th style="padding:8px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--jm-text-muted)">Actions</th></tr></thead><tbody>${rows}</tbody></table>
+      </div>
+    </div>
+  </div>`;
+  document.body.appendChild(modal.firstElementChild);
+}
 async function loadTeacherWall(){
   const el=document.getElementById('t-wallList'); if(!el) return;
   try{
@@ -4552,6 +5189,77 @@ async function openMessenger(initial){
   }
   await msgrLoadConvos();
   if(initial==='ai'||!_msgr.rooms.length) msgrOpenAI();
+}
+// Open (or create) a 1:1 DM thread with a user and focus it in the messenger.
+// Wires the existing /chat/rooms/dm/:userId backend (previously had no caller).
+async function openDmWith(userId, name){
+  try{
+    const r=await api('/chat/rooms/dm/'+userId,'GET');
+    closeAnyModal();
+    await openMessenger();
+    await msgrOpenRoom(r.room.id, r.peer?.full_name||name||'Direct message','direct');
+    refreshUnreadBadge();
+  }catch(e){ toast(e.message||'Could not open chat',true); }
+}
+// Pull unread message count → topbar badge + Messages KPI.
+async function refreshUnreadBadge(){
+  try{
+    const r=await api('/chat/unread','GET');
+    const t=r.total||0;
+    const b=document.getElementById('msgBadge');
+    if(b){ if(t>0){ b.textContent=t>99?'99+':String(t); b.style.display='inline-block'; } else { b.style.display='none'; } }
+    const k=document.getElementById('t-unread'); if(k) k.textContent=t;
+  }catch(e){}
+}
+// Sprint 5: pull streak + XP from /api/gamification/summary and surface in the
+// topbar chips. Silent on failure — endpoint may not exist yet for older deploys.
+async function refreshStudentSummary(){
+  try{
+    const role=(JSON.parse(localStorage.getItem('jm_user')||'{}').user_type)||'';
+    if(role!=='student') return;
+    const r=await api('/gamification/summary','GET');
+    const streak=r.streak?.current||0;
+    const xp=r.xp?.total||0;
+    const lvl=r.xp?.level||1;
+    const sc=document.getElementById('streakChip');
+    const xc=document.getElementById('xpChip');
+    if(sc){
+      document.getElementById('streakCount').textContent=String(streak);
+      sc.style.display=streak>0?'inline-flex':'inline-flex'; // always show for students; 0 streak nudges check-in
+    }
+    if(xc){
+      document.getElementById('xpLevel').textContent=String(lvl);
+      document.getElementById('xpTotal').textContent=xp>=1000?(xp/1000).toFixed(1)+'k':String(xp);
+      xc.style.display='inline-flex';
+    }
+  }catch(_){ /* gamification tables not migrated yet → silent */ }
+}
+// Sprint 5: minimal panel showing streak / XP / badges. Reuses showModal()
+// rather than building a dedicated page — Sprint 6 can promote to a section.
+async function openGamificationPanel(){
+  showModal('🏆 Your progress', '<div id="gam-body" style="min-height:240px"><div style="color:var(--jm-text-muted);padding:20px;text-align:center">Loading…</div></div>');
+  try{
+    const [s, xp, b]=await Promise.all([
+      api('/gamification/streak','GET').catch(()=>({streak:{current_streak:0,longest_streak:0}})),
+      api('/gamification/xp','GET').catch(()=>({total:0,level:1,recent:[]})),
+      api('/gamification/badges','GET').catch(()=>({badges:[],earnedCount:0,totalCount:0}))
+    ]);
+    const body=document.getElementById('gam-body'); if(!body) return;
+    const st=s.streak||{};
+    const earned=(b.badges||[]).filter(x=>x.earned);
+    const locked=(b.badges||[]).filter(x=>!x.earned);
+    body.innerHTML=`
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+        <div style="background:linear-gradient(135deg,#f97316,#ef4444);color:#fff;border-radius:12px;padding:14px"><div style="font-size:11px;opacity:.85;text-transform:uppercase">Streak</div><div style="font-size:26px;font-weight:800;line-height:1">🔥 ${st.current_streak||0}</div><div style="font-size:11px;opacity:.85;margin-top:2px">Longest: ${st.longest_streak||0} days</div></div>
+        <div style="background:linear-gradient(135deg,#7c3aed,#ec4899);color:#fff;border-radius:12px;padding:14px"><div style="font-size:11px;opacity:.85;text-transform:uppercase">XP · Level ${xp.level||1}</div><div style="font-size:26px;font-weight:800;line-height:1">⭐ ${(xp.total||0).toLocaleString()}</div><div style="font-size:11px;opacity:.85;margin-top:2px">Next level: ${(xp.nextLevelAt||100).toLocaleString()}</div></div>
+      </div>
+      <div style="font-weight:700;margin-bottom:6px">🏅 Badges (${b.earnedCount}/${b.totalCount})</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:8px">
+        ${earned.map(x=>`<div title="${escHtml(x.description||'')}" style="text-align:center;padding:8px;background:var(--jm-surface-2);border-radius:10px;border:1.5px solid #f59e0b"><div style="font-size:26px">${escHtml(x.icon||'🏆')}</div><div style="font-size:10px;font-weight:700;margin-top:2px">${escHtml(x.title)}</div></div>`).join('')}
+        ${locked.slice(0,12).map(x=>`<div title="Locked: ${escHtml(x.description||'')}" style="text-align:center;padding:8px;background:var(--jm-surface-2);border-radius:10px;opacity:.4;filter:grayscale(1)"><div style="font-size:26px">${escHtml(x.icon||'🔒')}</div><div style="font-size:10px;margin-top:2px">${escHtml(x.title)}</div></div>`).join('')}
+      </div>
+      ${earned.length===0?'<div style="text-align:center;color:var(--jm-text-muted);font-size:12px;margin-top:14px">Submit an assignment or join a class to earn your first badge.</div>':''}`;
+  }catch(e){ const b=document.getElementById('gam-body'); if(b) b.innerHTML='<div style="color:#b91c1c;padding:16px">'+escHtml(e.message||'Could not load progress')+'</div>'; }
 }
 async function msgrLoadConvos(){
   const list=document.getElementById('msgr-convos'); if(!list) return;
@@ -4639,6 +5347,7 @@ async function msgrRenderRoom(){
       return `<div class="msgr-bubble ${mine?'me':'them'}">${!mine?`<div class="who">${escHtml(m.sender_name||'')}</div>`:''}${escHtml(m.content||'')}<div class="tm">${new Date(m.created_at).toLocaleTimeString()}</div></div>`;
     }).join('');
     el.scrollTop=el.scrollHeight;
+    refreshUnreadBadge(); // opening the room marked it read server-side
   }catch(e){ el.innerHTML='<div style="color:#b91c1c;padding:16px">'+escHtml(e.message)+'</div>'; }
 }
 // Ask the AI assistant inside the messenger thread (shared by typed Send and the
@@ -4949,7 +5658,7 @@ function openWizard(){
   window._wiz = { step:1, data:{ title:'', category:'General', level:'beginner', price:0, description:'', cover:null } };
   document.getElementById('wizardPage').classList.add('active');
   document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
-  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
+  document.querySelectorAll('.topbar').forEach(s=>s.style.display='none'); // keep sidebar visible (synced nav)
   renderWizard();
 }
 function closeWizard(){
@@ -5144,7 +5853,7 @@ window._att = null;
 async function openAttGrid(courseId){
   document.getElementById('attGridPage').classList.add('active');
   document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
-  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
+  document.querySelectorAll('.topbar').forEach(s=>s.style.display='none'); // keep sidebar visible (synced nav)
   const courses=window._teacherCourses||[];
   if(!courses.length){
     document.getElementById('att-body').innerHTML='<div class="card" style="max-width:600px;margin:40px auto;padding:24px;text-align:center"><div style="font-size:48px">📚</div><div style="font-weight:600;margin-top:10px">No courses yet</div><div style="color:var(--jm-text-muted);margin-top:6px">Create a course first to mark attendance.</div></div>';
@@ -5246,9 +5955,10 @@ function closeBookings(){
   document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='');
 }
 async function _openMoneyPage(kind){
+  _closeAllPages();
   document.getElementById('bookingsPage').classList.add('active');
   document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
-  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
+  document.querySelectorAll('.topbar').forEach(s=>s.style.display='none'); // keep sidebar visible
   document.getElementById('bk-crumb').textContent=kind==='payments'?'Payments':'Bookings';
   const body=document.getElementById('bk-body');
   body.innerHTML='<div style="text-align:center;padding:40px;color:#888">Loading…</div>';
@@ -5325,9 +6035,10 @@ async function _openMoneyPage(kind){
 // and teacher both see this (scoped server-side). Opens a full page with
 // inline video players.
 async function openRecordings(){
+  _closeAllPages();
   document.getElementById('bookingsPage').classList.add('active');
   document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
-  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
+  document.querySelectorAll('.topbar').forEach(s=>s.style.display='none'); // keep sidebar visible
   document.getElementById('bk-crumb').textContent='Recordings';
   const body=document.getElementById('bk-body');
   body.innerHTML='<div style="text-align:center;padding:40px;color:#888">Loading…</div>';
@@ -5457,7 +6168,7 @@ async function _lpGenerate(){
 async function openAttendanceReport(){
   document.getElementById('bookingsPage').classList.add('active');
   document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
-  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
+  document.querySelectorAll('.topbar').forEach(s=>s.style.display='none'); // keep sidebar visible (synced nav)
   document.getElementById('bk-crumb').textContent='Attendance report';
   const body=document.getElementById('bk-body');
   body.innerHTML='<div style="text-align:center;padding:40px;color:#888">Loading…</div>';
@@ -5484,7 +6195,7 @@ async function openAttendanceReport(){
 async function openTestAnalytics(testId, testTitle){
   document.getElementById('bookingsPage').classList.add('active');
   document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
-  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
+  document.querySelectorAll('.topbar').forEach(s=>s.style.display='none'); // keep sidebar visible (synced nav)
   document.getElementById('bk-crumb').textContent='Analytics — '+(testTitle||'Test');
   const body=document.getElementById('bk-body');
   body.innerHTML='<div style="text-align:center;padding:40px;color:#888">Loading…</div>';
@@ -5539,7 +6250,7 @@ async function openTestAnalytics(testId, testTitle){
 async function openEssayInbox(){
   document.getElementById('bookingsPage').classList.add('active');
   document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
-  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
+  document.querySelectorAll('.topbar').forEach(s=>s.style.display='none'); // keep sidebar visible (synced nav)
   document.getElementById('bk-crumb').textContent='Essay grading';
   const body=document.getElementById('bk-body');
   body.innerHTML='<div style="text-align:center;padding:40px;color:#888">Loading…</div>';
@@ -5623,7 +6334,7 @@ const VOICE_INTENTS=[
   {re:/(message|chat|मैसेज|चैट|संदेश)/i,      act:()=>openMessenger(),              en:'Opening messages',         hi:'मैसेज खोल रहे हैं'},
   {re:/(wall|वॉल|गतिविधि)/i,                  act:()=>navByLabel('wall'),           en:'Opening the wall',          hi:'वॉल खोल रहे हैं'},
   {re:/(recording|रिकॉर्डिंग)/i,               act:()=>openRecordings(),             en:'Opening recordings',       hi:'रिकॉर्डिंग खोल रहे हैं'},
-  {re:/(studio|स्टूडियो|कैमरा)/i,             act:()=>location.href='/studio.html', en:'Opening the studio',       hi:'स्टूडियो खोल रहे हैं'},
+  {re:/(studio|स्टूडियो|कैमरा)/i,             act:()=>openEmbed('/studio.html','🎥 Studio'), en:'Opening the studio',       hi:'स्टूडियो खोल रहे हैं'},
   {re:/(download|डाउनलोड|offline|ऑफलाइन)/i, act:()=>openDownloads(),              en:'Opening downloads',        hi:'डाउनलोड खोल रहे हैं'},
   {re:/(attendance|हाज़िरी|हाजिरी|उपस्थिति)/i,act:()=>{ try{openAttendanceReport()}catch(e){openAttGrid()} }, en:'Opening attendance', hi:'हाज़िरी खोल रहे हैं'},
   {re:/(payment|पेमेंट|भुगतान)/i,             act:()=>openPayments(),               en:'Opening payments',         hi:'पेमेंट खोल रहे हैं'},
@@ -5631,7 +6342,7 @@ const VOICE_INTENTS=[
   {re:/(coupon|कूपन)/i,                        act:()=>openCoupons(),                en:'Opening coupons',          hi:'कूपन खोल रहे हैं'},
   {re:/(setting|सेटिंग)/i,                     act:()=>openSettings(),               en:'Opening settings',         hi:'सेटिंग खोल रहे हैं'},
   {re:/(profile|प्रोफ़ाइल|प्रोफाइल)/i,        act:()=>openProfilePage(),            en:'Opening your profile',     hi:'प्रोफ़ाइल खोल रहे हैं'},
-  {re:/(marketplace|मार्केट|बाज़ार)/i,        act:()=>location.href='/marketplace.html', en:'Opening the marketplace', hi:'मार्केटप्लेस खोल रहे हैं'},
+  {re:/(marketplace|मार्केट|बाज़ार)/i,        act:()=>openEmbed('/marketplace.html','🛒 Marketplace'), en:'Opening the marketplace', hi:'मार्केटप्लेस खोल रहे हैं'},
   {re:/(near|nearby|आस ?पास|नज़दीक)/i,       act:()=>openNearbySearch(),           en:'Finding courses near you', hi:'आपके पास के कोर्स खोज रहे हैं'},
   {re:/(log ?out|लॉग ?आउट)/i,                 act:()=>logout(),                     en:'Logging out',              hi:'लॉग आउट कर रहे हैं'}
 ];
@@ -5949,7 +6660,7 @@ window._reader=null;
 async function openReader(courseId, courseTitle){
   document.getElementById('readerPage').classList.add('active');
   document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
-  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
+  document.querySelectorAll('.topbar').forEach(s=>s.style.display='none'); // keep sidebar visible (synced nav)
   document.getElementById('rd-crumb').textContent=courseTitle||'Course';
   window._reader={ courseId, courseTitle, activeLecture:null };
   await _renderReader();
@@ -6130,8 +6841,10 @@ async function _renderReader(){
     Object.values(topicMap).forEach(t=>{
       pages.push({ kind:'topic', id:t.id, title:t.title, data:t });
       t.lectures.forEach(l=>pages.push({ kind:'lecture', id:l.id, title:l.title, data:l, topicTitle:t.title }));
+      t.materials.forEach(m=>pages.push({ kind:'material', id:m.id||m.url, title:m.title||'Document', data:m, topicTitle:t.title }));
     });
     orphanLectures.forEach(l=>pages.push({ kind:'lecture', id:l.id, title:l.title, data:l, topicTitle:'' }));
+    orphanMaterials.forEach(m=>pages.push({ kind:'material', id:m.id||m.url, title:m.title||'Document', data:m, topicTitle:'' }));
     window._reader.pages=pages;
     window._reader.full=full;
 
@@ -6171,9 +6884,9 @@ async function _renderReader(){
           <div style="margin-bottom:10px">
             <div style="font-weight:600;font-size:13px;padding:6px 4px;border-bottom:1px solid var(--jm-border);margin-bottom:4px;cursor:pointer" onclick="readerOpenTopic('${t.id}')" onmouseover="this.style.color='var(--jm-primary)'" onmouseout="this.style.color=''">📁 ${escHtml(t.title)}${(t.images&&t.images.length)?` <span style="font-size:10px;opacity:.6">🖼${t.images.length}</span>`:''}${(t.attachments&&t.attachments.length)?` <span style="font-size:10px;opacity:.6">📎${t.attachments.length}</span>`:''}</div>
             ${t.lectures.map(l=>tocItem(l.title,'🎬',`readerOpenLecture('${l.id}')`,l.duration?l.duration+' min':'')).join('')}
-            ${t.materials.map(m=>tocItem(m.title,m.type==='pdf'?'📄':m.type==='image'?'🖼':'📎',`window.open('${escHtml(m.url||'#')}','_blank')`,m.type)).join('')}
+            ${t.materials.map(m=>tocItem(m.title,m.type==='pdf'?'📄':m.type==='image'?'🖼':'📎',`readerOpenMaterial('${m.id||m.url}')`,m.type)).join('')}
           </div>`).join('')}
-        ${orphanLectures.length||orphanMaterials.length?`<div style="margin-bottom:10px"><div style="font-weight:600;font-size:13px;padding:6px 4px;border-bottom:1px solid var(--jm-border);margin-bottom:4px">📁 Other</div>${orphanLectures.map(l=>tocItem(l.title,'🎬',`readerOpenLecture('${l.id}')`)).join('')}${orphanMaterials.map(m=>tocItem(m.title,'📎',`window.open('${escHtml(m.url||'#')}','_blank')`)).join('')}</div>`:''}
+        ${orphanLectures.length||orphanMaterials.length?`<div style="margin-bottom:10px"><div style="font-weight:600;font-size:13px;padding:6px 4px;border-bottom:1px solid var(--jm-border);margin-bottom:4px">📁 Other</div>${orphanLectures.map(l=>tocItem(l.title,'🎬',`readerOpenLecture('${l.id}')`)).join('')}${orphanMaterials.map(m=>tocItem(m.title,'📎',`readerOpenMaterial('${m.id||m.url}')`)).join('')}</div>`:''}
         ${(full.tests||[]).length?`<div style="margin-bottom:10px"><div style="font-weight:600;font-size:13px;padding:6px 4px;border-bottom:1px solid var(--jm-border);margin-bottom:4px">✏️ Tests</div>${full.tests.map((t,i)=>{ window._studentTests=full.tests; return tocItem(t.title,'✏️',`openTakeTest(${i})`,t.total_marks+' marks');}).join('')}</div>`:''}
         ${(assigns.assignments||[]).length?`<div><div style="font-weight:600;font-size:13px;padding:6px 4px;border-bottom:1px solid var(--jm-border);margin-bottom:4px">📝 Assignments</div>${assigns.assignments.map(a=>tocItem(a.title,'📝',`openSubmitAssignment('${a.id}')`,a.due_date?'Due '+new Date(a.due_date).toLocaleDateString():'')).join('')}</div>`:''}
       </div>`;
@@ -6251,13 +6964,54 @@ function readerRenderPage(idx){
       <div class="book-kicker">Chapter</div>
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap">
         <h2 class="book-title" style="flex:1;min-width:0">${escHtml(t.title||'Topic')}</h2>
-        <div class="row-actions"><button class="btn-sm btn-outline" onclick="readerSpeakAll()" title="Read aloud in your language">🔊 Listen</button><button class="btn-sm btn-outline" onclick="aiSummarize('topic','${t.id}')">🤖 Summarize</button><button class="btn-sm btn-outline" onclick="aiExplain('topic','${t.id}')">💡 Explain</button><button class="btn-sm btn-primary" onclick="openAiTutor()">🤖 Ask Tutor</button></div>
+        <div class="row-actions"><button class="btn-sm btn-outline" onclick="readerSpeakAll()" title="Read aloud in your language">🔊 Listen</button><button class="btn-sm btn-outline" onclick="readerTranslateTopic('${t.id}')" title="Translate this topic to your chosen language">🌐 Translate</button><button class="btn-sm btn-outline" onclick="aiSummarize('topic','${t.id}')">🤖 Summarize</button><button class="btn-sm btn-outline" onclick="aiExplain('topic','${t.id}')">💡 Explain</button><button class="btn-sm btn-primary" onclick="openAiTutor()">🤖 Ask Tutor</button></div>
       </div>
       <div style="margin-bottom:8px"></div>
       ${(function(){ const rich=t.description||t.notes||''; if(!rich) return ''; return /<[a-z][\s\S]*>/i.test(rich)?`<div class="rich-content">${sanitizeRich(rich)}</div>`:`<div class="book-body">${escHtml(rich).replace(/\n/g,'<br>')}</div>`; })()}
       ${imgs}
       ${atts?`<div style="margin-top:16px">${atts}</div>`:''}
       ${!t.description&&!t.notes&&!imgs&&!atts?'<div class="empty-state"><div class="icon">📁</div>This chapter has no content yet.</div>':''}
+    </div>`;
+  }
+  // Material page renderer
+  if(pg.kind==='material'){
+    const m=pg.data;
+    const url=m.url||m;
+    let viewer='';
+    if(/\.pdf($|\?)/i.test(url)){
+      viewer=`<div style="border-radius:8px;overflow:hidden;border:1px solid var(--jm-border)">
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--jm-surface-2);border-bottom:1px solid var(--jm-border)">
+          <span>📄 PDF</span><span style="flex:1;font-size:12px;color:var(--jm-text-muted);overflow:hidden;text-overflow:ellipsis">${escHtml(url.split('/').pop().split('?')[0])}</span>
+          <a href="${escHtml(url)}" target="_blank" class="btn-sm btn-outline" style="font-size:11px">⬡ Full screen</a>
+          <a href="${escHtml(url)}" download class="btn-sm btn-outline" style="font-size:11px">⬇</a>
+        </div>
+        <iframe src="${escHtml(url)}" style="width:100%;height:640px;border:0;display:block" title="${escHtml(m.title||'PDF')}"></iframe>
+      </div>`;
+    } else if(/\.(jpe?g|png|gif|webp|svg)($|\?)/i.test(url)){
+      viewer=`<div class="book-figure"><img src="${escHtml(url)}" alt="${escHtml(m.title||'')}" style="max-width:100%;border-radius:8px;cursor:pointer" onclick="window.open('${escHtml(url)}','_blank')"></div>`;
+    } else if(/\.(mp4|webm|ogg)($|\?)/i.test(url)){
+      viewer=`<video src="${escHtml(url)}" controls style="width:100%;max-height:480px;border-radius:8px;background:#000"></video>`;
+    } else {
+      viewer=`<div style="padding:28px;background:var(--jm-primary-tint);border-radius:12px;text-align:center;margin:16px 0">
+        <div style="font-size:48px;margin-bottom:12px">📎</div>
+        <div style="font-weight:700;margin-bottom:16px">${escHtml(m.title||'Document')}</div>
+        <a href="${escHtml(url)}" target="_blank" class="btn-sm btn-primary" style="margin-right:8px;text-decoration:none">▶ Open Document</a>
+        <a href="${escHtml(url)}" download class="btn-sm btn-outline" style="text-decoration:none">⬇ Download</a>
+      </div>`;
+    }
+    html=`<div class="book-page">
+      <div class="book-kicker">${pg.topicTitle?escHtml(pg.topicTitle)+' · ':''}Document</div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+        <h2 class="book-title" style="flex:1;min-width:0">${escHtml(m.title||'Document')}</h2>
+        <div class="row-actions">
+          <a href="${escHtml(url)}" download class="btn-sm btn-outline">⬇ Download</a>
+          <button class="btn-sm btn-outline" onclick="readerSpeakAll()">🔊 Listen</button>
+          <button class="btn-sm btn-outline" onclick="aiSummarize('material','${escHtml(m.id||'')}')">🤖 Summarize</button>
+          <button class="btn-sm btn-primary" onclick="openAiTutor()">🤖 Ask Tutor</button>
+        </div>
+      </div>
+      ${m.description?`<div class="book-body" style="margin-bottom:16px">${escHtml(m.description).replace(/\n/g,'<br>')}</div>`:''}
+      ${viewer}
     </div>`;
   }
   main.innerHTML=html;
@@ -6280,6 +7034,14 @@ function readerOpenTopic(topicId){
   const r=window._reader; if(!r||!r.pages) return;
   const i=r.pages.findIndex(p=>p.kind==='topic'&&p.id===topicId);
   if(i>=0) readerRenderPage(i);
+}
+function readerOpenMaterial(idOrUrl){
+  const r=window._reader; if(!r||!r.pages) return;
+  const i=r.pages.findIndex(p=>p.kind==='material'&&(p.id===idOrUrl||p.data?.url===idOrUrl));
+  if(i>=0) readerRenderPage(i);
+  else { // fallback: open in new tab if not in pages yet
+    const url=idOrUrl; if(url&&url.startsWith('http')) window.open(url,'_blank');
+  }
 }
 async function readerSaveNote(){
   const inp=document.getElementById('rd-note-input'); if(!inp||!inp.value.trim()) return;
@@ -6385,7 +7147,7 @@ function _demoCheckout(order, courseId, courseTitle, amount){
 async function openMyInstitutions(){
   document.getElementById('bookingsPage').classList.add('active');
   document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
-  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
+  document.querySelectorAll('.topbar').forEach(s=>s.style.display='none'); // keep sidebar visible (synced nav)
   document.getElementById('bk-crumb').textContent='My Institutions';
   const body=document.getElementById('bk-body');
   body.innerHTML='<div style="text-align:center;padding:40px;color:#888">Loading…</div>';
@@ -6397,11 +7159,19 @@ async function openMyInstitutions(){
       return;
     }
     const active=localStorage.getItem('jm_active_institution')||'';
+    const isAll=!active||active==='all';
     body.innerHTML=`
       <div style="max-width:900px;margin:0 auto">
         <h2 style="margin-bottom:14px">🏫 My Institutions (${links.length})</h2>
-        <div style="color:var(--jm-text-muted);font-size:13px;margin-bottom:18px">You're a member of multiple institutions with a single JeetMantra account. Switch the active one to filter your dashboard.</div>
+        <div style="color:var(--jm-text-muted);font-size:13px;margin-bottom:18px">You're a member of multiple institutions with a single JeetMantra account. Pick one to scope your dashboard, or "All Institutes" for a combined view.</div>
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(280px,100%),1fr));gap:14px">
+          <div class="card" style="padding:18px;border:2px solid ${isAll?'var(--jm-primary)':'var(--jm-border)'}">
+            <div style="font-weight:700;font-size:15px;margin-bottom:4px">🌐 All Institutes</div>
+            <div style="font-size:12px;color:var(--jm-text-muted);margin-bottom:10px">Combined view across every institution you belong to.</div>
+            ${isAll
+              ? '<button class="btn-sm btn-primary" disabled>✓ Active</button>'
+              : `<button class="btn-sm btn-outline" onclick="setActiveInstitution('all')">Switch to combined</button>`}
+          </div>
           ${links.map(i=>{
             const id=i.institution_id||i.id;
             const isActive=active===id;
@@ -6433,7 +7203,7 @@ function setActiveInstitution(id){
 function openSettings(){
   document.getElementById('settingsPage').classList.add('active');
   document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
-  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
+  document.querySelectorAll('.topbar').forEach(s=>s.style.display='none'); // keep sidebar visible (synced nav)
   const lang=localStorage.getItem('jm_lang')||'en';
   const theme=localStorage.getItem('jm_theme')||'light';
   const role=(JSON.parse(localStorage.getItem('jm_user')||'{}').user_type)||(JSON.parse(localStorage.getItem('jm_user')||'{}').role)||'student';
@@ -6492,7 +7262,7 @@ function openSettings(){
     <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--jm-text-muted);margin:8px 0 10px">Admin</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:14px;margin-bottom:24px">
       ${tile('#ef4444','🛡','Audit log','Recent admin actions',"toast('See Admin page')")}
-      ${tile('#7c3aed','💰','Commission rate','Platform commission %',"window.location.href='/admin.html'")}
+      ${tile('#7c3aed','💰','Commission rate','Platform commission %',"openEmbed('/admin.html','⚙️ Admin')")}
       ${tile('#ec4899','🔌','n8n / webhooks','Configure automations','openN8nConfig()')}
     </div>`:''}
     <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--jm-text-muted);margin:8px 0 10px">Account</div>
@@ -6599,7 +7369,7 @@ function openCRMConfig(){
   if(!overlay) return toast('Settings page not available',true);
   overlay.classList.add('active');
   document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
-  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
+  document.querySelectorAll('.topbar').forEach(s=>s.style.display='none'); // keep sidebar visible (synced nav)
   const c=_crm();
   const lastInv = Number(localStorage.getItem('jm_invoice_seq')||28);
   const previewInv = _crmFmtInvoice(c.invoiceFormat, lastInv+1);
@@ -6948,7 +7718,7 @@ async function stChangePassword(){
 async function openEduOS(initialTab){
   document.getElementById('bookingsPage').classList.add('active');
   document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
-  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
+  document.querySelectorAll('.topbar').forEach(s=>s.style.display='none'); // keep sidebar visible (synced nav)
   document.getElementById('bk-crumb').textContent='EduOS Hub';
   const role=(currentUser&&currentUser.role)||'student';
   const isInst=['school','coaching','admin'].includes(role);
@@ -7322,7 +8092,7 @@ async function uploadOCR(form){
 async function openWallet(){
   document.getElementById('bookingsPage').classList.add('active');
   document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
-  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
+  document.querySelectorAll('.topbar').forEach(s=>s.style.display='none'); // keep sidebar visible (synced nav)
   document.getElementById('bk-crumb').textContent='Wallet';
   const body=document.getElementById('bk-body');
   body.innerHTML='<div style="text-align:center;padding:40px;color:#888">Loading…</div>';
@@ -7406,7 +8176,7 @@ async function applyReferral(){
 async function openPlans(){
   document.getElementById('bookingsPage').classList.add('active');
   document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
-  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
+  document.querySelectorAll('.topbar').forEach(s=>s.style.display='none'); // keep sidebar visible (synced nav)
   document.getElementById('bk-crumb').textContent='Plans';
   const body=document.getElementById('bk-body');
   body.innerHTML='<div style="text-align:center;padding:40px;color:#888">Loading…</div>';
@@ -7470,7 +8240,7 @@ const CMDK_ACTIONS=()=>{
     {c:'Action',   l:'➕ New course',    f:()=>typeof openWizard==='function'&&openWizard()},
     {c:'Action',   l:'📝 Take attendance', f:()=>typeof openAttGrid==='function'&&openAttGrid()},
     {c:'Action',   l:'🤖 Lesson planner', f:()=>typeof openLessonPlanner==='function'&&openLessonPlanner()},
-    {c:'Action',   l:'🛒 Marketplace',  f:()=>{window.location.href='/marketplace.html';}},
+    {c:'Action',   l:'🛒 Marketplace',  f:()=>openEmbed('/marketplace.html','🛒 Marketplace')},
     {c:'Action',   l:'🚪 Log out',      f:()=>logout()}
   ];
   return a;
@@ -7489,6 +8259,22 @@ function cmdkType(v){ clearTimeout(_cmdkDebounce); _cmdkDebounce=setTimeout(()=>
 function renderCmdK(q){
   q=(q||'').toLowerCase();
   const all=CMDK_ACTIONS();
+  // Inject real data: courses, students, recordings
+  if(window._teacherCourses?.length){
+    window._teacherCourses.forEach(c=>{
+      all.push({c:'Courses',l:'📚 '+c.title,f:()=>openCourseHub(c.id,c.title)});
+    });
+  }
+  if(window._teacherEnrollments?.length){
+    const seen=new Set();
+    window._teacherEnrollments.forEach(e=>{
+      const n=e.student_name||e.full_name||e.name||'';
+      if(n&&!seen.has(n)){ seen.add(n); all.push({c:'Students',l:'👤 '+n,f:()=>{}});  }
+    });
+  }
+  if(window._teacherCoursesData?.length && q){
+    // already covered by _teacherCourses above
+  }
   const matches=q?all.filter(a=>a.l.toLowerCase().includes(q)||a.c.toLowerCase().includes(q)):all;
   _cmdkSel=Math.min(_cmdkSel, Math.max(0,matches.length-1));
   // Group by category
@@ -7519,6 +8305,23 @@ document.addEventListener('keydown', e=>{
 // GREETING — top of dashboard. Replaces "Teacher Dashboard" with
 // "Good morning, <name>" + a tiny subtitle.
 // ============================================================
+async function _initInstSwitcher(){
+  try{
+    const r=await api('/institutions/my-institutions','GET');
+    const links=r.institutions||r.links||[];
+    // Always show the switcher when the teacher belongs to ANY institution, so
+    // the current scoping state ("All Institutes" vs a specific one) is visible.
+    if(links.length>=1){
+      const activeId=localStorage.getItem('jm_active_institution')||'';
+      const isAll=!activeId||activeId==='all';
+      const active=isAll?null:links.find(l=>(l.institution_id||l.id)===activeId);
+      const name=isAll?'All Institutes':(active?(active.name||active.institution_name||'Institution'):'All Institutes');
+      const btn=document.getElementById('instSwitcherBtn');
+      const nameEl=document.getElementById('instSwitcherName');
+      if(btn&&nameEl){ nameEl.textContent=name; btn.style.display='inline-flex'; }
+    }
+  }catch(e){}
+}
 function renderGreeting(){
   const u=JSON.parse(localStorage.getItem('jm_user')||'{}');
   const h=new Date().getHours();
@@ -7534,23 +8337,43 @@ function renderGreeting(){
 function injectQuickActions(){
   const role=(JSON.parse(localStorage.getItem('jm_user')||'{}').user_type)||(JSON.parse(localStorage.getItem('jm_user')||'{}').role)||'student';
   const isCreator=['teacher','partner','school','coaching','admin','content_creator','corporate_trainer'].includes(role);
-  if(!isCreator) return;
+  // Sprint 5: students also get a quick-action bar (Resume / Ask AI / Translate /
+  // Practice / Calendar). The student-flavored version is below.
+  if(!isCreator && role!=='student') return;
   const sec=document.getElementById('section-'+role);
   if(!sec || sec.querySelector('.quick-actions')) return;
   const bar=document.createElement('div');
   bar.className='quick-actions';
-  bar.innerHTML=`
-    <button class="qa" style="--qc:#7c3aed" data-i18n="new_course" onclick="openWizard()">➕ New course</button>
-    <button class="qa" style="--qc:#ec4899" data-i18n="schedule_live" onclick="openModal('scheduleLive')">📡 Schedule live</button>
-    <button class="qa" style="--qc:#0ea5e9" data-i18n="take_attendance" onclick="openAttGrid()">📝 Attendance</button>
-    <button class="qa" style="--qc:#10b981" data-i18n="calendar_qa" onclick="openCalendar()">📅 Calendar</button>
-    <button class="qa" style="--qc:#f59e0b" data-i18n="ai_lesson_plan" onclick="openLessonPlanner()">🤖 AI lesson plan</button>
-    <button class="qa" style="--qc:#8b5cf6" data-i18n="question_bank" onclick="openQuestionBank()">❓ Question bank</button>`;
+  if(role==='student'){
+    bar.innerHTML=`
+      <button class="qa" style="--qc:#7c3aed" onclick="resumeLastCourse()">▶️ Resume</button>
+      <button class="qa" style="--qc:#ec4899" onclick="openMessenger('ai')">🤖 Ask AI</button>
+      <button class="qa" style="--qc:#0ea5e9" onclick="openCalendar()">📅 Calendar</button>
+      <button class="qa" style="--qc:#10b981" onclick="navScroll(null,'sec-student-tests')">🧪 Tests</button>
+      <button class="qa" style="--qc:#f59e0b" onclick="navScroll(null,'sec-student-hw')">📝 Homework</button>
+      <button class="qa" style="--qc:#8b5cf6" onclick="document.getElementById('marketplaceFab')?.click()">🛒 Marketplace</button>`;
+  } else {
+    bar.innerHTML=`
+      <button class="qa" style="--qc:#7c3aed" data-i18n="new_course" onclick="openWizard()">➕ New course</button>
+      <button class="qa" style="--qc:#ec4899" data-i18n="schedule_live" onclick="openModal('scheduleLive')">📡 Schedule live</button>
+      <button class="qa" style="--qc:#0ea5e9" data-i18n="take_attendance" onclick="openAttGrid()">📝 Attendance</button>
+      <button class="qa" style="--qc:#10b981" data-i18n="calendar_qa" onclick="openCalendar()">📅 Calendar</button>
+      <button class="qa" style="--qc:#f59e0b" data-i18n="ai_lesson_plan" onclick="openLessonPlanner()">🤖 AI lesson plan</button>
+      <button class="qa" style="--qc:#8b5cf6" data-i18n="question_bank" onclick="openQuestionBank()">❓ Question bank</button>`;
+  }
   const statsGrid=sec.querySelector('.stats-grid');
   if(statsGrid) statsGrid.insertAdjacentElement('afterend', bar);
   else sec.prepend(bar);
   // Re-apply the chosen language to the freshly-inserted buttons.
   if(typeof setLang==='function') setLang(localStorage.getItem('jm_lang')||'en');
+}
+// Sprint 5 helper: deep-link the "Resume" button to the most-recent enrolled course.
+async function resumeLastCourse(){
+  try{
+    const r=await api('/student/today','GET');
+    if(r.continueLearning && r.continueLearning.course_id) openReader(r.continueLearning.course_id, r.continueLearning.title);
+    else navScroll(null,'sec-student-courses');
+  }catch(_){ navScroll(null,'sec-student-courses'); }
 }
 
 // ============================================================
@@ -7586,6 +8409,82 @@ async function renderTodaySchedule(){
     }).join('')}</div>`;
   const statsGrid=sec.querySelector('.stats-grid');
   if(statsGrid) statsGrid.insertAdjacentElement('afterend', wid);
+}
+
+// ============================================================
+// NEXT-CLASS COMMAND HEADER — soonest upcoming live class with a live
+// countdown + Start, plus an always-present AI Assistant launcher.
+// ============================================================
+async function renderNextClassHeader(){
+  const role=(JSON.parse(localStorage.getItem('jm_user')||'{}').user_type)||(JSON.parse(localStorage.getItem('jm_user')||'{}').role)||'student';
+  // Sprint 5: students see the next-class header too (their version pulls from
+  // /api/calendar instead of /teacher/timetable). The render below auto-adapts.
+  if(!['teacher','partner','school','coaching','content_creator','corporate_trainer','student'].includes(role)) return;
+  const sec=document.getElementById('section-'+role); if(!sec) return;
+  // Run token: if a later invocation (e.g. an institution switch firing while
+  // this one is still awaiting the timetable) starts, this one bails before
+  // inserting, so two bars can't be appended concurrently.
+  const myRun=(window._ncRun=(window._ncRun||0)+1);
+  let next=null;
+  try{
+    const now=Date.now();
+    const from=new Date(now).toISOString();
+    const to=new Date(now+7*24*3600*1000).toISOString();
+    // Sprint 5: students use the unified /api/calendar (Sprint 2) — closes S2A-2.
+    // Creator roles keep the existing /teacher/timetable for now.
+    const url = role==='student'
+      ? '/calendar?view=week&from='+from+'&to='+to+'&types=live'
+      : '/teacher/timetable?from='+from+'&to='+to;
+    const r=await api(url,'GET').catch(()=>({events:[]}));
+    const live=(r.events||[]).filter(e=>e.type==='live'&&new Date(e.start).getTime()>now).sort((a,b)=>new Date(a.start)-new Date(b.start));
+    next=live[0]||null;
+  }catch(_){}
+  const bar=document.createElement('div');
+  bar.id='next-class-bar';
+  bar.style.cssText='display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:linear-gradient(135deg,var(--jm-primary),#7c3aed);color:#fff;border-radius:14px;padding:14px 18px;margin-bottom:16px';
+  if(next){
+    const start=new Date(next.start);
+    bar.innerHTML=`
+      <div style="font-size:26px">⏭</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:11px;opacity:.85;text-transform:uppercase;letter-spacing:.04em">Next class · <span class="nc-countdown" data-start="${start.toISOString()}">…</span></div>
+        <div style="font-weight:800;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(next.title||'Live class')}</div>
+        <div style="font-size:12px;opacity:.85">${escHtml(next.course_title||'')} · ${start.toLocaleString('en-IN',{weekday:'short',hour:'2-digit',minute:'2-digit'})}</div>
+      </div>
+      ${role==='student'
+        ? `<button class="btn-sm" style="background:#fff;color:var(--jm-primary);font-weight:700;border:none" onclick="joinLive('${next.id}')">▶ Join</button>`
+        : `<button class="btn-sm" style="background:#fff;color:var(--jm-primary);font-weight:700;border:none" onclick="startLive('${next.id}')">▶ Start</button>`}
+      <button class="btn-sm" style="background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.4)" onclick="openMessenger('ai')">✨ AI Assistant</button>`;
+  } else {
+    bar.innerHTML=`
+      <div style="font-size:24px">✨</div>
+      <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:15px">${role==='student'?'No upcoming classes':'No upcoming classes scheduled'}</div><div style="font-size:12px;opacity:.85">${role==='student'?'Browse courses to find a live class, or ask the AI for help.':'Schedule one, or ask your AI assistant to help plan.'}</div></div>
+      ${role==='student'
+        ? `<button class="btn-sm" style="background:#fff;color:var(--jm-primary);font-weight:700;border:none" onclick="navScroll(null,'sec-student-courses')">📚 My courses</button>`
+        : `<button class="btn-sm" style="background:#fff;color:var(--jm-primary);font-weight:700;border:none" onclick="openModal('scheduleLive')">📡 Schedule</button>`}
+      <button class="btn-sm" style="background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.4)" onclick="openMessenger('ai')">✨ AI Assistant</button>`;
+  }
+  if(myRun!==window._ncRun) return; // superseded by a newer render
+  sec.querySelectorAll('#next-class-bar').forEach(b=>b.remove()); // collapse any dupes
+  const statsGrid=sec.querySelector('.stats-grid');
+  if(statsGrid) statsGrid.insertAdjacentElement('beforebegin', bar);
+  else sec.insertAdjacentElement('afterbegin', bar);
+  _startCountdowns();
+}
+function _startCountdowns(){
+  const tick=()=>{
+    const els=document.querySelectorAll('.nc-countdown');
+    if(!els.length){ if(window._ncTimer){ clearInterval(window._ncTimer); window._ncTimer=null; } return; }
+    els.forEach(el=>{
+      const diff=new Date(el.dataset.start).getTime()-Date.now();
+      if(diff<=0){ el.textContent='now'; return; }
+      const m=Math.floor(diff/60000), h=Math.floor(m/60), d=Math.floor(h/24);
+      el.textContent= d>0?('in '+d+'d '+(h%24)+'h') : h>0?('in '+h+'h '+(m%60)+'m') : ('in '+Math.max(1,m)+'m');
+    });
+  };
+  tick();
+  if(window._ncTimer) clearInterval(window._ncTimer);
+  window._ncTimer=setInterval(tick,30000);
 }
 
 // ============================================================
@@ -8053,7 +8952,7 @@ function t(key){ const lang=localStorage.getItem('jm_lang')||'en'; return I18N[l
 async function openBilling(){
   document.getElementById('billingPage').classList.add('active');
   document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
-  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
+  document.querySelectorAll('.topbar').forEach(s=>s.style.display='none'); // keep sidebar visible (synced nav)
   await _renderBilling();
 }
 function closeBilling(){
@@ -8203,23 +9102,31 @@ function openMyExternalResults(){
     <td style="padding:6px 8px">${(r.title||r.topic||'—').replace(/[<>&]/g,'')}</td>
     <td style="padding:6px 8px">${(r.lang||'').toUpperCase()}</td>
     <td style="padding:6px 8px;text-align:right">${r.turns||0} turns</td></tr>`).join('') : '<tr><td colspan="4" style="padding:14px;text-align:center;color:var(--jm-text-muted)">No language practice yet. Open Bhasha Setu to begin.</td></tr>';
-  const html = `<div id="jmResModal" style="position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:center;justify-content:center" onclick="if(event.target===this)this.remove()">
-    <div style="background:#fff;border-radius:14px;max-width:780px;width:92%;max-height:84vh;overflow:auto;box-shadow:0 24px 60px rgba(0,0,0,.3)">
-      <div style="padding:18px 22px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center"><h3 style="margin:0;font-size:17px">📊 My Results &amp; Progress</h3><button onclick="document.getElementById('jmResModal').remove()" style="border:none;background:transparent;font-size:22px;cursor:pointer">✕</button></div>
+  const html = `<div id="jmResModal" style="position:fixed;inset:0;background:rgba(15,23,42,.55);backdrop-filter:blur(4px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px" onclick="if(event.target===this)this.remove()">
+    <div style="background:var(--jm-surface,#fff);border-radius:16px;max-width:820px;width:100%;max-height:86vh;overflow:auto;box-shadow:0 24px 60px rgba(0,0,0,.3);border:1px solid var(--jm-border,#e5e7eb)">
+      <div style="padding:18px 22px;border-bottom:1px solid var(--jm-border,#e5e7eb);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:var(--jm-surface,#fff)">
+        <div><h3 style="margin:0;font-size:17px;color:var(--jm-text,#111)">📊 My Results &amp; Progress</h3><div style="font-size:12px;color:var(--jm-text-muted,#666);margin-top:2px">${exams.length} exam${exams.length!==1?'s':''} · ${bhasha.length} language session${bhasha.length!==1?'s':''}</div></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <a href="/exam-platform.html" class="btn-sm btn-outline" style="display:inline-block">🧪 Take Exam</a>
+          <a href="/bhasha-setu.html" class="btn-sm btn-outline" style="display:inline-block">🈯 Bhasha Setu</a>
+          <button onclick="document.getElementById('jmResModal').remove()" style="border:none;background:transparent;font-size:22px;cursor:pointer;color:var(--jm-text-muted,#888)">✕</button>
+        </div>
+      </div>
       <div style="padding:18px 22px">
         <div style="font-size:13px;font-weight:700;margin-bottom:8px;color:#7c3aed">🧪 Exam Attempts</div>
-        <table style="width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:18px"><thead><tr style="background:#f6f3ff"><th style="padding:8px;text-align:left">When</th><th style="padding:8px;text-align:left">Topic</th><th style="padding:8px;text-align:right">Score</th><th style="padding:8px;text-align:right">%</th><th style="padding:8px;text-align:left">Grade</th></tr></thead><tbody>${examRows}</tbody></table>
+        <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:18px"><thead><tr style="background:var(--jm-surface-2,#f6f3ff)"><th style="padding:8px;text-align:left;color:var(--jm-text-muted,#666);font-size:11px;text-transform:uppercase">When</th><th style="padding:8px;text-align:left;color:var(--jm-text-muted,#666);font-size:11px;text-transform:uppercase">Topic</th><th style="padding:8px;text-align:right;color:var(--jm-text-muted,#666);font-size:11px;text-transform:uppercase">Score</th><th style="padding:8px;text-align:right;color:var(--jm-text-muted,#666);font-size:11px;text-transform:uppercase">%</th><th style="padding:8px;text-align:left;color:var(--jm-text-muted,#666);font-size:11px;text-transform:uppercase">Grade</th></tr></thead><tbody>${examRows}</tbody></table></div>
         <div style="font-size:13px;font-weight:700;margin-bottom:8px;color:#16a34a">🈯 Language Practice (Bhasha Setu)</div>
-        <table style="width:100%;border-collapse:collapse;font-size:12.5px"><thead><tr style="background:#f0fdf4"><th style="padding:8px;text-align:left">When</th><th style="padding:8px;text-align:left">Lesson</th><th style="padding:8px;text-align:left">Lang</th><th style="padding:8px;text-align:right">Activity</th></tr></thead><tbody>${bhashaRows}</tbody></table>
+        <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px"><thead><tr style="background:var(--jm-surface-2,#f0fdf4)"><th style="padding:8px;text-align:left;color:var(--jm-text-muted,#666);font-size:11px;text-transform:uppercase">When</th><th style="padding:8px;text-align:left;color:var(--jm-text-muted,#666);font-size:11px;text-transform:uppercase">Lesson</th><th style="padding:8px;text-align:left;color:var(--jm-text-muted,#666);font-size:11px;text-transform:uppercase">Lang</th><th style="padding:8px;text-align:right;color:var(--jm-text-muted,#666);font-size:11px;text-transform:uppercase">Activity</th></tr></thead><tbody>${bhashaRows}</tbody></table></div>
       </div>
     </div></div>`;
   const wrap = document.createElement('div'); wrap.innerHTML = html; document.body.appendChild(wrap.firstElementChild);
 }
 
 async function openCalendar(){
+  _closeAllPages();
   document.getElementById('calendarPage').classList.add('active');
   document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
-  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
+  document.querySelectorAll('.topbar').forEach(s=>s.style.display='none'); // keep sidebar visible
   _calRef=new Date(); _calView=localStorage.getItem('jm_calView')||'month';
   await _renderCalendar();
 }
@@ -8235,7 +9142,7 @@ function calNext(){ _calShift(1); }
 function _calShift(dir){
   const d=new Date(_calRef);
   if(_calView==='month') d.setMonth(d.getMonth()+dir);
-  else if(_calView==='week') d.setDate(d.getDate()+7*dir);
+  else if(_calView==='week'||_calView==='agenda') d.setDate(d.getDate()+14*dir);
   else d.setDate(d.getDate()+dir);
   _calRef=d; _renderCalendar();
 }
@@ -8246,7 +9153,11 @@ async function _calFetchRange(start, end){
   while(d<=end){
     const key=d.getFullYear()+'-'+(d.getMonth()+1);
     if(!seen.has(key)){ seen.add(key);
-      try{ const r=await api(`/teacher/calendar?year=${d.getFullYear()}&month=${d.getMonth()+1}`,'GET'); Object.assign(merged, r.days||{}); }catch(e){}
+      try{
+        const role=(JSON.parse(localStorage.getItem('jm_user')||'{}').user_type)||'student';
+        const calPath=role==='student'?`/student/calendar?year=${d.getFullYear()}&month=${d.getMonth()+1}`:`/teacher/calendar?year=${d.getFullYear()}&month=${d.getMonth()+1}`;
+        const r=await api(calPath,'GET'); Object.assign(merged, r.days||{});
+      }catch(e){}
     }
     d.setMonth(d.getMonth()+1);
   }
@@ -8259,6 +9170,7 @@ async function _renderCalendar(){
   let start,end,label;
   if(_calView==='month'){ start=new Date(_calRef.getFullYear(),_calRef.getMonth(),1); end=new Date(_calRef.getFullYear(),_calRef.getMonth()+1,0); label=_calRef.toLocaleString('en-IN',{month:'long',year:'numeric'}); }
   else if(_calView==='week'){ const dow=(_calRef.getDay()+6)%7; start=new Date(_calRef); start.setDate(_calRef.getDate()-dow); end=new Date(start); end.setDate(start.getDate()+6); label=start.toLocaleDateString('en-IN',{day:'numeric',month:'short'})+' – '+end.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}); }
+  else if(_calView==='agenda'){ start=new Date(_calRef); end=new Date(_calRef); end.setDate(end.getDate()+13); label='Next 14 days · '+start.toLocaleDateString('en-IN',{day:'numeric',month:'short'})+' – '+end.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}); }
   else { start=new Date(_calRef); end=new Date(_calRef); label=_calRef.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'}); }
   try{
     _calEventsByDay=await _calFetchRange(start,end);
@@ -8268,6 +9180,7 @@ async function _renderCalendar(){
     let inner;
     if(_calView==='month') inner=_calMonthHtml();
     else if(_calView==='week') inner=_calWeekHtml(start);
+    else if(_calView==='agenda') inner=_calAgendaHtml(start,end);
     else inner=_calDayHtml(start);
     body.innerHTML=`
       <div style="max-width:1180px;margin:0 auto">
@@ -8276,7 +9189,7 @@ async function _renderCalendar(){
           <button class="btn-sm btn-outline" onclick="calToday()">Today</button>
           <button class="btn-sm btn-outline" onclick="calNext()">→</button>
           <h2 style="margin:0;flex:1;min-width:0;font-size:18px">📅 ${escHtml(label)}</h2>
-          <div style="display:inline-flex;gap:4px">${viewBtn('day','Day')}${viewBtn('week','Week')}${viewBtn('month','Month')}</div>
+          <div style="display:inline-flex;gap:4px">${viewBtn('day','Day')}${viewBtn('week','Week')}${viewBtn('month','Month')}${viewBtn('agenda','Agenda')}</div>
         </div>
         ${inner}
         <div style="margin-top:14px;display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--jm-text-muted)">
@@ -8351,6 +9264,40 @@ function _calDayHtml(d){
     </div>`);
   }
   return `<div class="card" style="padding:8px 12px">${rows.join('')}</div>`;
+}
+function _calAgendaHtml(start,end){
+  const todayIso=_iso(new Date());
+  const rows=[]; let d=new Date(start);
+  while(d<=end){
+    const iso=_iso(d);
+    const locals=_calLocalFor(iso);
+    const evs=[...(_calEventsByDay[iso]||[]),...locals].sort((a,b)=>new Date(a.time)-new Date(b.time));
+    if(evs.length){
+      const isToday=iso===todayIso;
+      const dayLabel=d.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'});
+      rows.push(`<div style="margin-bottom:14px">
+        <div style="font-size:12px;font-weight:700;color:${isToday?'var(--jm-primary)':'var(--jm-text-muted)'};padding:6px 0;border-bottom:1px solid var(--jm-border);margin-bottom:8px;display:flex;gap:8px;align-items:center">
+          ${isToday?'<span style="background:var(--jm-primary);color:#fff;padding:2px 7px;border-radius:999px;font-size:11px">TODAY</span>':''}
+          ${escHtml(dayLabel)}
+        </div>
+        ${evs.map(ev=>{
+          const t=ev.time?new Date(ev.time).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'';
+          const icon={live:'📡',test:'🧪',assignment:'📋',meeting:'🤝',note:'📝',reminder:'⏰'}[ev.type]||'•';
+          const clickFn=ev._local?`calLocalDetail('${ev.id}')`:`calEventDetail('${ev.id}')`;
+          return `<div onclick="${clickFn}" style="display:flex;gap:10px;align-items:center;padding:9px 12px;background:var(--jm-bg);border:1px solid var(--jm-border);border-left:4px solid ${_calColor(ev.type)};border-radius:6px;margin-bottom:6px;cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--jm-primary-tint)'" onmouseout="this.style.background='var(--jm-bg)'">
+            <span style="font-size:18px">${icon}</span>
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:600;font-size:13px;color:var(--jm-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(ev.title)}</div>
+              ${ev.course_title?`<div style="font-size:11px;color:var(--jm-text-muted)">${escHtml(ev.course_title)}</div>`:''}
+            </div>
+            ${t?`<span style="font-size:12px;font-weight:700;color:var(--jm-text-muted);white-space:nowrap">${t}</span>`:''}
+          </div>`;
+        }).join('')}
+      </div>`);
+    }
+    d.setDate(d.getDate()+1);
+  }
+  return `<div class="card" style="padding:14px">${rows.length?rows.join(''):`<div style="text-align:center;padding:40px;color:var(--jm-text-muted)">✨ No events in the next 14 days</div>`}</div>`;
 }
 // Local (client-side) calendar items — meetings / notes / reminders the teacher
 // jots without a backend row. Keyed by date in localStorage.
@@ -8434,7 +9381,7 @@ function calJoin(id){ window.location.href='/liveRoom.html?class='+id; }
 async function openProfilePage(){
   document.getElementById('profilePage').classList.add('active');
   document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
-  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='none');
+  document.querySelectorAll('.topbar').forEach(s=>s.style.display='none'); // keep sidebar visible (synced nav)
   const body=document.getElementById('pf-body');
   body.innerHTML='<div style="text-align:center;padding:40px;color:#888">Loading…</div>';
   try{
@@ -8682,6 +9629,33 @@ loadDashboard();
     document.head.appendChild(s);
   }
 })();
+</script>
+
+<!-- Embed overlay for Studio / Marketplace / Admin — keeps user in-app -->
+<div id="embedOverlay" style="display:none;position:fixed;inset:0;z-index:500;flex-direction:column;background:var(--jm-bg,#0f0f1a)">
+  <div style="display:flex;align-items:center;gap:10px;padding:8px 14px;background:var(--jm-surface,#1a1a2e);border-bottom:1px solid var(--jm-border,#2a2a3a);flex-shrink:0">
+    <span id="embedTitle" style="font-weight:700;font-size:15px;color:var(--jm-text,#e2e8f0);flex:1"></span>
+    <button onclick="closeEmbed()" style="border:none;background:var(--jm-surface2,#252540);color:var(--jm-text,#e2e8f0);border-radius:8px;padding:6px 14px;font-size:13px;font-weight:700;cursor:pointer">✕ Close</button>
+  </div>
+  <iframe id="embedIframe" src="" style="flex:1;border:none;width:100%;height:100%"></iframe>
+</div>
+<script>
+function openEmbed(url,title){
+  document.getElementById('embedTitle').textContent=title||url;
+  document.getElementById('embedIframe').src=url;
+  document.getElementById('embedOverlay').style.display='flex';
+}
+function closeEmbed(){
+  document.getElementById('embedOverlay').style.display='none';
+  document.getElementById('embedIframe').src='';
+}
+// WIDGET SWAP: flip between the W1 widget dashboard and the classic per-role
+// section (student/teacher). Persisted so the choice sticks across sessions.
+function toggleWidgetMode(){
+  const onWidgets = localStorage.getItem('wg_mode')!=='classic';
+  localStorage.setItem('wg_mode', onWidgets ? 'classic' : 'widgets');
+  location.reload();
+}
 </script>
 </body>
 </html>

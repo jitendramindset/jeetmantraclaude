@@ -2,6 +2,8 @@ const express = require('express');
 const crypto = require('crypto');
 const { supabase, supabaseAdmin } = require('../config/supabase');
 const { authenticateToken } = require('../middleware/auth');
+const { verifyWebhookSecret } = require('../middleware/verifyWebhookSecret');
+const { validate } = require('../middleware/validation');
 const { v4: uuidv4 } = require('uuid');
 
 const router = express.Router();
@@ -25,10 +27,9 @@ async function couponRedeemedBy(code, userId) {
 
 // ── COUPONS: validate a code + apply against an amount. Returns the
 // discounted amount the order should be created with.
-router.post('/coupons/apply', authenticateToken, async (req, res) => {
+router.post('/coupons/apply', authenticateToken, validate('couponApply'), async (req, res) => {
   try {
-    const { code, amount, courseId } = req.body || {};
-    if (!code || !amount) return res.status(400).json({ error: 'code + amount required' });
+    const { code, amount, courseId } = req.validatedData;
     const { data: c } = await supabaseAdmin.from('coupons').select('*').eq('code', String(code).toUpperCase()).maybeSingle();
     if (!c) return res.status(404).json({ error: 'Invalid coupon code' });
     if (c.expires_at && new Date(c.expires_at) < new Date()) return res.status(400).json({ error: 'Coupon expired' });
@@ -45,10 +46,9 @@ router.post('/coupons/apply', authenticateToken, async (req, res) => {
 });
 
 // Teacher creates a coupon (owner of the course gets to issue codes).
-router.post('/coupons', authenticateToken, async (req, res) => {
+router.post('/coupons', authenticateToken, validate('couponCreate'), async (req, res) => {
   try {
-    const { code, discountPercent, discountFlat, courseId, maxUses, expiresAt } = req.body || {};
-    if (!code) return res.status(400).json({ error: 'code required' });
+    const { code, discountPercent, discountFlat, courseId, maxUses, expiresAt } = req.validatedData;
     if (courseId) {
       const { data: course } = await supabaseAdmin.from('courses').select('teacher_id').eq('id', courseId).single();
       if (!course || course.teacher_id !== req.user.id) return res.status(403).json({ error: 'Not your course' });
@@ -101,9 +101,9 @@ router.get('/config', (req, res) => {
 
 // Create a Razorpay order (or a demo order when no keys configured).
 // Body: { courseId, amount, currency? } — amount in rupees; converted to paise.
-router.post('/order', authenticateToken, async (req, res) => {
+router.post('/order', authenticateToken, validate('paymentOrder'), async (req, res) => {
   try {
-    const { courseId, amount, currency, couponCode } = req.body;
+    const { courseId, amount, currency, couponCode } = req.validatedData;
     let appliedAmount = Number(amount);
     let coupon = null;
     // Re-validate coupon server-side (don't trust client discount).
@@ -152,10 +152,9 @@ router.post('/order', authenticateToken, async (req, res) => {
 
 // Verify checkout result. Live: HMAC-SHA256(orderId|paymentId, secret) must
 // match the signature Razorpay returned. Demo: accept any "demo_*" order id.
-router.post('/verify', authenticateToken, async (req, res) => {
+router.post('/verify', authenticateToken, validate('paymentVerify'), async (req, res) => {
   try {
-    const { paymentRowId, razorpayOrderId, razorpayPaymentId, razorpaySignature, courseId } = req.body;
-    if (!paymentRowId) return res.status(400).json({ error: 'paymentRowId required' });
+    const { paymentRowId, razorpayOrderId, razorpayPaymentId, razorpaySignature, courseId } = req.validatedData;
 
     // The payment row must exist, belong to the caller, and still be pending —
     // otherwise a user could verify someone else's order or re-verify a row to
@@ -297,14 +296,34 @@ router.post('/:id/refund', authenticateToken, async (req, res) => {
     await supabaseAdmin.from('payments').update({
       status: 'refunded', updated_at: new Date().toISOString()
     }).eq('id', req.params.id);
+    // P0H-3: audit refund. Money-moving admin write must be reconstructable
+    // from the audit log alone (actor + before/after + IP/UA).
+    try {
+      await supabaseAdmin.from('audit_log').insert({
+        id: uuidv4(),
+        actor_id: req.user.id,
+        action: 'payment.refund',
+        target_id: req.params.id,
+        metadata: {
+          before: { status: p.status },
+          after:  { status: 'refunded' },
+          amount: p.amount,
+          user_id: p.user_id,
+          course_id: p.course_id,
+          actor_ip: req.ip || req.headers['x-forwarded-for'] || null,
+          user_agent: req.headers['user-agent'] || null
+        },
+        occurred_at: new Date().toISOString()
+      });
+    } catch (_) { /* audit best-effort */ }
     res.json({ message: 'Refund recorded' });
   } catch (e) { res.status(500).json({ error: 'Refund failed' }); }
 });
 
 // Create payment
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/', authenticateToken, validate('paymentCreate'), async (req, res) => {
   try {
-    const { courseId, amount, paymentMethod } = req.body;
+    const { courseId, amount, paymentMethod } = req.validatedData;
     const paymentId = uuidv4();
 
     const { data: payment, error } = await supabaseAdmin
@@ -360,8 +379,13 @@ router.get('/my', authenticateToken, async (req, res) => {
   }
 });
 
-// Update payment status (webhook from payment gateway)
-router.post('/webhook/payment', async (req, res) => {
+// Update payment status (legacy webhook from payment gateway). Previously
+// unauthenticated — anyone could mark any paymentId as 'completed'. Now requires
+// X-JM-Webhook-Secret (back-compat X-Webhook-Secret) matching env
+// PAYMENT_WEBHOOK_SECRET (or the generic WEBHOOK_SECRET fallback). The modern
+// path is POST /webhook (Razorpay HMAC) — this remains only for non-Razorpay
+// legacy callers.
+router.post('/webhook/payment', verifyWebhookSecret('PAYMENT_WEBHOOK_SECRET', 'payments-legacy'), async (req, res) => {
   try {
     const { paymentId, status, transactionId } = req.body;
 

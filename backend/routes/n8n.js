@@ -177,7 +177,13 @@ router.post('/notify', authenticateToken, async (req, res) => {
 router.post('/sync-users', async (req, res) => {
   try {
     const secret = req.headers['x-sync-secret'] || req.body.secret;
-    if (N8N_SECRET && secret !== N8N_SECRET) return res.status(401).json({ error: 'Unauthorized' });
+    // Fail-closed in production: these expose user/course data, so a missing
+    // N8N_SECRET must NOT mean "open to everyone".
+    if (!N8N_SECRET) {
+      if (process.env.NODE_ENV === 'production') return res.status(503).json({ error: 'Sync secret not configured' });
+    } else if (secret !== N8N_SECRET) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
 
     const { since } = req.body;
     let query = supabaseAdmin.from('jeetmantra_users').select('id,email,full_name,user_type,created_at,is_active').neq('status', 'deleted').order('created_at', { ascending: false }).limit(500);
@@ -195,7 +201,13 @@ router.post('/sync-users', async (req, res) => {
 router.post('/sync-courses', async (req, res) => {
   try {
     const secret = req.headers['x-sync-secret'] || req.body.secret;
-    if (N8N_SECRET && secret !== N8N_SECRET) return res.status(401).json({ error: 'Unauthorized' });
+    // Fail-closed in production: these expose user/course data, so a missing
+    // N8N_SECRET must NOT mean "open to everyone".
+    if (!N8N_SECRET) {
+      if (process.env.NODE_ENV === 'production') return res.status(503).json({ error: 'Sync secret not configured' });
+    } else if (secret !== N8N_SECRET) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
 
     const { since } = req.body;
     let query = supabaseAdmin.from('courses').select('id,title,category,level,price,is_active,created_at').order('created_at', { ascending: false }).limit(500);

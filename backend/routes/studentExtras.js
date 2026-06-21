@@ -6,6 +6,7 @@
  */
 const express = require('express');
 const { supabaseAdmin } = require('../config/supabase');
+const { awardForEvent } = require('../services/award');
 const { authenticateToken } = require('../middleware/auth');
 const { v4: uuidv4 } = require('uuid');
 
@@ -305,6 +306,22 @@ router.post('/progress/lecture', authenticateToken, async (req, res) => {
     const pct = total ? Math.round(100 * done / total) : 0;
     await supabaseAdmin.from('enrollments').update({ progress: pct })
       .eq('student_id', req.user.id).eq('course_id', courseId);
+
+    // Sprint 5 award pipeline: XP + streak per lecture completed. If this
+    // pushed completion to 100%, also fire course_completed (250 XP + badge).
+    awardForEvent({
+      userId: req.user.id, eventType: 'lecture_progress',
+      refTable: 'course_lectures', refId: lectureId,
+      metadata: { course_id: courseId, progress: pct }
+    }).catch(() => {});
+    if (pct >= 100) {
+      awardForEvent({
+        userId: req.user.id, eventType: 'course_completed',
+        refTable: 'courses', refId: courseId,
+        metadata: { progress: pct }
+      }).catch(() => {});
+    }
+
     res.json({ progress: pct, done, total });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -374,6 +391,159 @@ router.get('/compare', authenticateToken, async (req, res) => {
       return { ...c, lectures, tests, reviews, avgRating };
     }));
     res.json({ courses: out });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── STUDENT CALENDAR ─────────────────────────────────────────────────────────
+// GET /api/student/calendar?year=2026&month=6
+// Returns days:{iso:[events]} for the requested month — enrolled live classes,
+// tests and assignments due in that month.
+router.get('/calendar', authenticateToken, async (req, res) => {
+  try {
+    const year  = parseInt(req.query.year)  || new Date().getFullYear();
+    const month = parseInt(req.query.month) || new Date().getMonth() + 1;
+    const start = `${year}-${String(month).padStart(2,'0')}-01`;
+    const end   = new Date(year, month, 0).toISOString().slice(0, 10); // last day
+
+    // Get all enrolled course IDs
+    const { data: enrollments } = await supabaseAdmin
+      .from('enrollments').select('course_id').eq('student_id', req.user.id);
+    const courseIds = (enrollments || []).map(e => e.course_id);
+
+    const days = {};
+    const addEvent = (iso, ev) => { (days[iso] = days[iso] || []).push(ev); };
+
+    if (courseIds.length) {
+      // Live classes in range
+      const { data: classes } = await supabaseAdmin
+        .from('live_classes').select('id, title, course_id, scheduled_time, status')
+        .in('course_id', courseIds)
+        .gte('scheduled_time', start + 'T00:00:00')
+        .lte('scheduled_time', end + 'T23:59:59');
+      (classes || []).forEach(c => {
+        const iso = c.scheduled_time?.slice(0,10);
+        if (iso) addEvent(iso, { id: c.id, type: 'live', title: c.title, time: c.scheduled_time, status: c.status });
+      });
+
+      // Tests in range — mirror the teacher /timetable semantics: prefer
+      // scheduled_for (live test session), fall back to due_date (take-anytime
+      // deadline) only when scheduled_for is null. Without this, teacher and
+      // student calendars disagree on the SAME test (one shows "exam at 10am
+      // Friday", the other shows "due Sunday").
+      const { data: scheduledTests } = await supabaseAdmin
+        .from('course_tests').select('id, title, course_id, scheduled_for')
+        .in('course_id', courseIds)
+        .gte('scheduled_for', start + 'T00:00:00')
+        .lte('scheduled_for', end + 'T23:59:59');
+      (scheduledTests || []).forEach(t => {
+        const iso = t.scheduled_for?.slice(0, 10);
+        if (iso) addEvent(iso, { id: t.id, type: 'test', title: t.title, time: t.scheduled_for });
+      });
+      const { data: dueOnlyTests } = await supabaseAdmin
+        .from('course_tests').select('id, title, course_id, due_date')
+        .in('course_id', courseIds)
+        .is('scheduled_for', null)
+        .gte('due_date', start).lte('due_date', end);
+      (dueOnlyTests || []).forEach(t => {
+        if (t.due_date) addEvent(t.due_date, { id: t.id, type: 'test', title: t.title, time: t.due_date + 'T00:00:00' });
+      });
+
+      // Assignments due in range
+      const { data: assignments } = await supabaseAdmin
+        .from('assignments').select('id, title, course_id, due_date')
+        .in('course_id', courseIds)
+        .gte('due_date', start).lte('due_date', end);
+      (assignments || []).forEach(a => {
+        if (a.due_date) addEvent(a.due_date, { id: a.id, type: 'assignment', title: a.title, time: a.due_date + 'T00:00:00' });
+      });
+    }
+
+    res.json({ year, month, days });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── (Sprint 5) GET /api/student/today — Today's hub: classes, due assignments,
+// tests scheduled today, and the soonest "continue learning" lecture. Powers
+// the TodayCard on the student dashboard. Reuses the Sprint 2 unified calendar
+// endpoint for events (closes the deferred S2A-2 calendar rewire — the student
+// no longer hits the legacy 3-merge path).
+router.get('/today', authenticateToken, async (req, res) => {
+  try {
+    const now = new Date();
+    const start = new Date(now); start.setHours(0, 0, 0, 0);
+    const end   = new Date(start); end.setDate(end.getDate() + 1);
+
+    // ── Enrolled courses (used for "continue learning")
+    const { data: enrollments } = await supabaseAdmin
+      .from('enrollments').select('course_id, progress_percentage, courses(title, cover_image)')
+      .eq('student_id', req.user.id).order('updated_at', { ascending: false }).limit(10);
+    const enrolled = enrollments || [];
+
+    // ── Today's events via /calendar (Sprint 2 unified). We call the same DB
+    // layer directly (cheap and avoids a self-HTTP roundtrip).
+    const courseIds = enrolled.map(e => e.course_id).filter(Boolean);
+    let events = [];
+    if (courseIds.length) {
+      const fromIso = start.toISOString();
+      const toIso   = end.toISOString();
+      const [live, assigns, testScheduled, testDue] = await Promise.all([
+        supabaseAdmin.from('live_classes')
+          .select('id, title, scheduled_time, duration, status, course_id, is_online')
+          .in('course_id', courseIds)
+          .gte('scheduled_time', fromIso).lte('scheduled_time', toIso)
+          .then(r => r.data || []).catch(() => []),
+        supabaseAdmin.from('assignments')
+          .select('id, title, due_date, course_id')
+          .in('course_id', courseIds).is('student_id', null)
+          .gte('due_date', fromIso).lte('due_date', toIso)
+          .then(r => r.data || []).catch(() => []),
+        supabaseAdmin.from('course_tests')
+          .select('id, title, scheduled_for, duration_minutes, course_id')
+          .in('course_id', courseIds).not('scheduled_for', 'is', null)
+          .gte('scheduled_for', fromIso).lte('scheduled_for', toIso)
+          .then(r => r.data || []).catch(() => []),
+        supabaseAdmin.from('course_tests')
+          .select('id, title, due_date, course_id')
+          .in('course_id', courseIds).is('scheduled_for', null)
+          .gte('due_date', start.toISOString().slice(0, 10)).lte('due_date', end.toISOString().slice(0, 10))
+          .then(r => r.data || []).catch(() => [])
+      ]);
+      const titleById = Object.fromEntries(enrolled.map(e => [e.course_id, e.courses?.title]));
+      live.forEach(l => events.push({
+        id: l.id, type: 'live', title: l.title, start: l.scheduled_time,
+        course_id: l.course_id, course_title: titleById[l.course_id] || null,
+        duration: l.duration || 60, status: l.status, is_online: l.is_online !== false
+      }));
+      assigns.forEach(a => events.push({
+        id: a.id, type: 'assignment', title: a.title, start: a.due_date,
+        course_id: a.course_id, course_title: titleById[a.course_id] || null
+      }));
+      testScheduled.forEach(t => events.push({
+        id: t.id, type: 'test', title: t.title, start: t.scheduled_for,
+        course_id: t.course_id, course_title: titleById[t.course_id] || null,
+        duration: t.duration_minutes || 60
+      }));
+      testDue.forEach(t => events.push({
+        id: t.id, type: 'test', title: t.title, start: t.due_date + 'T00:00:00Z',
+        course_id: t.course_id, course_title: titleById[t.course_id] || null
+      }));
+      events.sort((a, b) => String(a.start || '').localeCompare(String(b.start || '')));
+    }
+
+    // ── Continue learning: the most-recently-updated enrollment that isn't 100%
+    const continueLearning = enrolled.filter(e => (e.progress_percentage || 0) < 100)[0] || null;
+
+    res.json({
+      date: start.toISOString().slice(0, 10),
+      events,
+      continueLearning: continueLearning ? {
+        course_id: continueLearning.course_id,
+        title: continueLearning.courses?.title || 'Course',
+        cover_image: continueLearning.courses?.cover_image || null,
+        progress_percentage: continueLearning.progress_percentage || 0
+      } : null,
+      enrolledCount: enrolled.length
+    });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

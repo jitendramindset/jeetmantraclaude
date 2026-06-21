@@ -1,6 +1,7 @@
 const express = require('express');
 const { supabase, supabaseAdmin } = require('../config/supabase');
 const { authenticateToken } = require('../middleware/auth');
+const { awardForEvent } = require('../services/award');
 const { v4: uuidv4 } = require('uuid');
 
 const router = express.Router();
@@ -86,6 +87,13 @@ router.post('/', authenticateToken, async (req, res) => {
     if (error) {
       return res.status(400).json({ error: 'Failed to enroll in course' });
     }
+
+    // Fire the award pipeline (XP + streak + first_steps badge) — non-blocking.
+    awardForEvent({
+      userId: req.user.id, eventType: 'course_enrolled',
+      refTable: 'enrollments', refId: enrollment.id,
+      metadata: { course_id: enrollment.course_id }
+    }).catch(() => {});
 
     res.status(201).json({
       message: 'Enrolled successfully',

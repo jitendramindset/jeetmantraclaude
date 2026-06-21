@@ -7,6 +7,7 @@ const crypto = require('crypto');
 const { supabaseAdmin } = require('../config/supabase');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
 const { INSTITUTION_ROLES } = require('../config/roles');
+const { validate } = require('../middleware/validation');
 const { v4: uuidv4 } = require('uuid');
 
 const router = express.Router();
@@ -68,7 +69,7 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // Top-up step 1: create a Razorpay order (or demo).
-router.post('/topup/order', authenticateToken, async (req, res) => {
+router.post('/topup/order', authenticateToken, validate('walletTopupOrder'), async (req, res) => {
   try {
     const amount = Number(req.body?.amount);
     if (!amount || amount < 50) return res.status(400).json({ error: 'min ₹50' });
@@ -88,7 +89,7 @@ router.post('/topup/order', authenticateToken, async (req, res) => {
 });
 
 // Top-up step 2: verify + credit. Demo orders auto-pass.
-router.post('/topup/verify', authenticateToken, async (req, res) => {
+router.post('/topup/verify', authenticateToken, validate('walletTopupVerify'), async (req, res) => {
   try {
     const { razorpayOrderId, razorpayPaymentId, razorpaySignature, amount } = req.body || {};
     let verified = false;
@@ -108,9 +109,9 @@ router.post('/topup/verify', authenticateToken, async (req, res) => {
 });
 
 // Spend from wallet — debit. Called by checkout when wallet pays for a course.
-router.post('/spend', authenticateToken, async (req, res) => {
+router.post('/spend', authenticateToken, validate('walletSpend'), async (req, res) => {
   try {
-    const { amount, reference, notes } = req.body || {};
+    const { amount, reference, notes } = req.validatedData;
     const amt = Number(amount);
     if (!amt || amt <= 0) return res.status(400).json({ error: 'amount required' });
     // The atomic debit inside postTransaction enforces sufficiency; no separate
@@ -183,10 +184,9 @@ router.get('/subscription', authenticateToken, async (req, res) => {
 
 // Subscribe (institutions / creators / admin). Demo: marks active for 30d
 // (monthly) or 365d (yearly). Real flow would call Razorpay Subscriptions.
-router.post('/subscribe', authenticateToken, authorizeRole([...INSTITUTION_ROLES, 'teacher', 'partner', 'content_creator', 'corporate_trainer']), async (req, res) => {
+router.post('/subscribe', authenticateToken, authorizeRole([...INSTITUTION_ROLES, 'teacher', 'partner', 'content_creator', 'corporate_trainer']), validate('walletSubscribe'), async (req, res) => {
   try {
-    const { planCode, billingPeriod } = req.body || {};
-    if (!planCode) return res.status(400).json({ error: 'planCode required' });
+    const { planCode, billingPeriod } = req.validatedData;
     const { data: plan } = await supabaseAdmin.from('platform_plans').select('*').eq('code', planCode).maybeSingle();
     if (!plan) return res.status(404).json({ error: 'Plan not found' });
     const period = billingPeriod === 'yearly' ? 'yearly' : 'monthly';
