@@ -35,6 +35,11 @@
   const CREATOR = ['teacher', 'coaching', 'school', 'partner', 'corporate_trainer', 'content_creator', 'franchise', 'coach', 'trainer'];
   const ORG_ADMIN = ['school', 'coaching', 'institute_owner', 'org_admin', 'franchise'];
   const SPORTS = ['coach', 'trainer', 'sports_academy', 'yoga_center', 'dance_academy', 'music_academy', 'institute_owner'];
+  // TEACHING = creators who actually run classes (excludes pure sellers partner/
+  // content_creator) — keeps grade/attendance/weak-students off seller dashboards.
+  const TEACHING = ['teacher', 'coaching', 'school', 'corporate_trainer', 'franchise', 'coach', 'trainer'];
+  // SELLERS = roles that list/sell on the marketplace.
+  const SELLERS = ['teacher', 'partner', 'coaching', 'school', 'content_creator', 'corporate_trainer', 'franchise'];
 
   const WIDGETS = [
     {
@@ -76,7 +81,7 @@
       render: d => { const c = listOf(d, 'liveClasses', 'classes', 'upcoming', 'items'); if (!c.length) return empty('No upcoming classes.'); return c.slice(0, 5).map(x => `<div class="wg-row"><span class="wg-row-t">${esc(x.title || x.course_title || 'Class')}</span><span class="wg-row-x">${when(x.scheduled_time || x.start_at || x.starts_at)}</span></div>`).join(''); }
     },
     {
-      id: 'pending-eval', title: 'Pending Evaluation', roles: CREATOR, capability: 'assignment.grade', category: 'teaching', size: 'small', priority: 22,
+      id: 'pending-eval', title: 'Pending Evaluation', roles: TEACHING, capability: 'assignment.grade', category: 'teaching', size: 'small', priority: 22,
       aiTriggers: ['pending evaluation', 'grade', 'essays to grade'],
       dataSource: () => api('/teacher/essays/pending'),
       render: d => { const it = listOf(d, 'items', 'essays'); if (!it.length) return empty('Nothing to grade.'); return `<div class="wg-big">${it.length}</div><div class="wg-sub">submissions awaiting your grade</div><a class="wg-link" href="dashboard.html#grade">Open grading →</a>`; }
@@ -86,6 +91,18 @@
       aiTriggers: ['revenue', 'earnings', 'income', 'show revenue'],
       dataSource: () => api('/teacher/payments'),
       render: d => { const p = listOf(d, 'payments'); const done = p.filter(x => x.status === 'completed'); const total = done.reduce((s, x) => s + (Number(x.amount) || 0), 0); return `<div class="wg-big">${fmtMoney(d?.total ?? total)}</div><div class="wg-sub">${done.length} completed payment${done.length !== 1 ? 's' : ''}</div><a class="wg-link" href="dashboard.html#payments">View payouts →</a>`; }
+    },
+    {
+      id: 'my-courses', title: 'My Courses', roles: CREATOR, capability: 'course.edit', category: 'teaching', size: 'medium', priority: 18,
+      aiTriggers: ['my courses', 'manage courses', 'course list'],
+      dataSource: () => api('/courses?mine=1'),
+      render: d => { const c = listOf(d, 'courses'); if (!c.length) return empty('No courses yet — create your first.') + `<a class="wg-link" href="dashboard.html#create">Create a course →</a>`; return c.slice(0, 4).map(x => `<a class="wg-row" href="dashboard.html#course"><span class="wg-row-t">${esc(x.title || 'Course')}</span><span class="wg-row-x">${x.is_active === false ? 'draft' : (x.category || '')}</span></a>`).join('') + (c.length > 4 ? `<a class="wg-link" href="dashboard.html#courses">+${c.length - 4} more →</a>` : ''); }
+    },
+    {
+      id: 'my-listings', title: 'Marketplace Sales', roles: SELLERS, category: 'finance', size: 'small', priority: 38,
+      aiTriggers: ['my listings', 'marketplace sales', 'my sales'],
+      dataSource: () => api('/marketplace/my/listings'),
+      render: d => { const l = listOf(d, 'listings'); if (!l.length) return empty('No listings yet.') + `<a class="wg-link" href="marketplace.html">List a course →</a>`; const active = l.filter(x => x.status === 'active' || !x.status).length; return `<div class="wg-big">${l.length}</div><div class="wg-sub">listing${l.length !== 1 ? 's' : ''} · ${active} active</div><a class="wg-link" href="marketplace.html">Manage listings →</a>`; }
     },
     {
       id: 'recommended', title: 'Recommended', roles: ['student', 'guest'], category: 'learning', size: 'large', priority: 40,
@@ -118,12 +135,12 @@
       render: d => { const total = d?.total ?? d?.unread ?? (listOf(d, 'rooms', 'threads').length); if (!total) return empty('No unread messages.'); return `<div class="wg-big">${pct(total)}</div><div class="wg-sub">unread · <a class="wg-link" href="dashboard.html#messages">Open inbox →</a></div>`; }
     },
     {
-      id: 'attendance-pending', title: 'Attendance', roles: CREATOR, capability: 'attendance.mark', category: 'teaching', size: 'small', priority: 24,
+      id: 'attendance-pending', title: 'Attendance', roles: TEACHING, capability: 'attendance.mark', category: 'teaching', size: 'small', priority: 24,
       aiTriggers: ['attendance', 'take attendance', 'mark attendance'],
       render: () => `<div class="wg-sub">Mark today's roster across your batches.</div><a class="wg-action" style="margin-top:10px" href="dashboard.html#attendance">✓ Take attendance</a>`
     },
     {
-      id: 'weak-students', title: 'Students Needing Help', roles: CREATOR, capability: 'analytics.read', category: 'teaching', size: 'small', priority: 28,
+      id: 'weak-students', title: 'Students Needing Help', roles: TEACHING, capability: 'analytics.read', category: 'teaching', size: 'small', priority: 28,
       aiTriggers: ['weak students', 'at risk', 'students needing help'],
       render: () => `<div class="wg-sub">Spot low-progress / low-attendance students from course analytics.</div><a class="wg-action" style="margin-top:10px" href="dashboard.html#analytics">📉 Open analytics</a>`
     },
