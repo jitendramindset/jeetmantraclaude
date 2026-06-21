@@ -131,6 +131,7 @@
 
     <div class="nav-group-title">Org</div>
     <div class="nav-item" data-section="franchise"><span class="ic">🌐</span>Franchise</div>
+    <div class="nav-item" data-section="widgets"><span class="ic">🧩</span>Widgets</div>
     <div class="nav-item" data-section="system"><span class="ic">⚙️</span>System</div>
   </div>
 
@@ -139,6 +140,7 @@
 </div>
 
 <script src="/jm-theme.js" defer></script>
+<script src="/widget-registry.js"></script>
 <script>
 const API = '/api';
 const STATE = { token: '', section: 'overview', activeInst: '' };
@@ -253,6 +255,7 @@ const SECTIONS = {
   aitrans:  () => renderComingSoon('AI & Translations', '🧠', 'Provider keys · Usage/spend by tenant · Quotas · Translation queue. Sprint 5.'),
   analytics: renderAnalytics,
   franchise:() => renderComingSoon('Franchise', '🌐', 'Branches · Network revenue · Per-branch KPIs. Reuses /api/eduos/franchise.'),
+  widgets:  renderWidgetsConfig,
   system:   renderSystem
 };
 
@@ -712,6 +715,71 @@ async function renderAnalytics() {
   } catch (e) {
     el('anaBody').innerHTML = `<div class="card" style="color:#b91c1c">Error: ${esc(e.message)}</div>`;
   }
+}
+
+// ───── Widget config (W3 admin) — per-role widget visibility for an org ─────
+const WG_ROLES = ['student','teacher','coaching','school','parent','coach','partner','institute_owner'];
+let _wgOrgId = null, _wgSettings = {};
+
+async function renderWidgetsConfig() {
+  el('content').innerHTML = `
+    <h1 class="page-title">Widget Configuration</h1>
+    <p class="page-sub">Enable / disable dashboard widgets per role for an organization. Saved to the org's settings; the widget engine honors it live via GET /api/me/contexts.</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px">
+      <select id="wgcOrg" onchange="loadWidgetConfig()" style="padding:6px 10px;border:1px solid var(--jm-border);border-radius:6px;background:var(--jm-surface);color:inherit"><option value="">Loading orgs…</option></select>
+      <select id="wgcRole" onchange="paintWidgetMatrix()" style="padding:6px 10px;border:1px solid var(--jm-border);border-radius:6px;background:var(--jm-surface);color:inherit">${WG_ROLES.map(r=>`<option value="${r}">${r}</option>`).join('')}</select>
+      <button id="wgcSave" onclick="saveWidgetConfig()" disabled style="padding:6px 16px;border:none;border-radius:6px;background:var(--jm-primary,#6366f1);color:#fff;font-weight:700;cursor:pointer">Save</button>
+    </div>
+    <div class="card" id="wgcMatrix" style="padding:16px"><div style="color:var(--jm-text-muted)">Pick an organization to configure its widgets.</div></div>
+  `;
+  try {
+    const r = await api('/admin/institutes?limit=100');
+    const orgs = r.institutes || [];
+    el('wgcOrg').innerHTML = '<option value="">Select organization…</option>' + orgs.map(o=>`<option value="${esc(o.id)}">${esc(o.name||o.id)}</option>`).join('');
+  } catch(e){ el('wgcOrg').innerHTML = '<option value="">Failed to load orgs</option>'; }
+}
+
+async function loadWidgetConfig() {
+  _wgOrgId = el('wgcOrg').value;
+  if (!_wgOrgId) { el('wgcMatrix').innerHTML='<div style="color:var(--jm-text-muted)">Pick an organization.</div>'; el('wgcSave').disabled=true; return; }
+  el('wgcMatrix').innerHTML='Loading…';
+  try {
+    const r = await api('/orgs/'+_wgOrgId+'/settings');
+    _wgSettings = (r.settings && r.settings.settings) || {};  // the org's settings jsonb
+    el('wgcSave').disabled=false;
+    paintWidgetMatrix();
+  } catch(e){ el('wgcMatrix').innerHTML='<div style="color:#b91c1c">Error: '+esc(e.message)+'</div>'; el('wgcSave').disabled=true; }
+}
+
+function paintWidgetMatrix() {
+  const widgets = (window.EduOSWidgets && window.EduOSWidgets.WIDGETS) || [];
+  const role = el('wgcRole').value;
+  const cfg = (_wgSettings.widgets||{})[role] || {};
+  const applicable = widgets.filter(w => !w.roles || w.roles.includes(role) || (w.roles && role==='institute_owner' && w.roles.includes('school')));
+  el('wgcMatrix').innerHTML = applicable.length ? applicable.map(w => {
+    const on = cfg[w.id] !== false;
+    return `<label style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--jm-border);cursor:pointer">
+      <input type="checkbox" ${on?'checked':''} onchange="wgcToggle('${w.id}',this.checked)" style="width:16px;height:16px">
+      <span style="flex:1"><strong>${esc(w.title)}</strong> <span style="font-size:11px;color:var(--jm-text-muted)">${esc(w.category)} · ${esc(w.size)}</span></span>
+    </label>`;
+  }).join('') : '<div style="color:var(--jm-text-muted)">No widgets apply to this role.</div>';
+}
+
+function wgcToggle(wid, on) {
+  const role = el('wgcRole').value;
+  _wgSettings.widgets = _wgSettings.widgets || {};
+  _wgSettings.widgets[role] = _wgSettings.widgets[role] || {};
+  if (on) delete _wgSettings.widgets[role][wid]; else _wgSettings.widgets[role][wid] = false; // store only disabled
+}
+
+async function saveWidgetConfig() {
+  if (!_wgOrgId) return;
+  const btn = el('wgcSave'); btn.disabled=true; btn.textContent='Saving…';
+  try {
+    await api('/orgs/'+_wgOrgId+'/settings', { method:'PUT', body: JSON.stringify({ settings: _wgSettings }) });
+    btn.textContent='Saved ✓';
+    setTimeout(()=>{ btn.textContent='Save'; btn.disabled=false; }, 1500);
+  } catch(e){ btn.textContent='Save'; btn.disabled=false; alert('Save failed: '+e.message); }
 }
 
 // ───── Coming-soon placeholder ─────
