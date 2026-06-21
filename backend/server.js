@@ -1,7 +1,17 @@
+// Sentry must be initialized before any other requires to instrument them.
+require('dotenv').config({ path: require('path').join(__dirname, '.env') });
+const Sentry = require('@sentry/node');
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.NODE_ENV || 'development',
+    tracesSampleRate: 0.05,
+  });
+}
+
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-require('dotenv').config({ path: require('path').join(__dirname, '.env') });
 
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
@@ -178,9 +188,24 @@ app.post('/api/sync/flush', async (req, res) => {
   }
 });
 
+app.get('/metrics', (req, res) => {
+  const mem = process.memoryUsage();
+  res.set('Content-Type', 'text/plain; version=0.0.4');
+  res.send([
+    '# HELP process_heap_bytes Node.js heap used in bytes',
+    '# TYPE process_heap_bytes gauge',
+    `process_heap_bytes ${mem.heapUsed}`,
+    '# HELP process_uptime_seconds Process uptime',
+    '# TYPE process_uptime_seconds counter',
+    `process_uptime_seconds ${Math.floor(process.uptime())}`,
+  ].join('\n') + '\n');
+});
+
 app.use((req, res) => {
   res.status(404).json({ error: 'Not Found', path: req.path, method: req.method });
 });
+
+if (process.env.SENTRY_DSN) Sentry.setupExpressErrorHandler(app);
 
 app.use((err, req, res, next) => {
   console.error('Error:', err);

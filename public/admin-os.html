@@ -802,7 +802,9 @@ const WG_INT_FIELDS = [
     ['ai_webhook_url', 'AI endpoint URL', 'https://n8n.../webhook/ai', 'text'],
     ['ai_webhook_key', 'AI key', '••••••••', 'password'] ] },
   { group: '🔗 Automation', hint: '', rows: [
-    ['n8n_secret', 'n8n sync secret', '••••••••', 'password'] ] }
+    ['n8n_secret', 'n8n sync secret', '••••••••', 'password'] ] },
+  { group: '🔍 Error monitoring', hint: 'Sentry DSN — paste your project DSN. Takes effect on next server restart (startup setting).', rows: [
+    ['sentry_dsn', 'Sentry DSN', 'https://key@oXXX.ingest.sentry.io/project', 'text'] ] }
 ];
 
 async function renderIntegrations() {
