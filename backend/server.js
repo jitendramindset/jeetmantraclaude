@@ -48,6 +48,8 @@ const orgsRoutes          = require('./routes/orgs');
 const meRoutes            = require('./routes/me');
 const seoRoutes           = require('./routes/seo');
 const timetableRoutes     = require('./routes/timetable');
+const i18nRoutes          = require('./routes/i18n');
+const studioRoutes        = require('./routes/studio');
 const ragRoutes           = require('./routes/rag');
 const { cacheMiddleware, syncMiddleware } = require('./middleware/datasync');
 
@@ -136,6 +138,8 @@ app.use('/api/me', meRoutes);
 app.use('/api/seo', seoRoutes);
 app.use('/', seoRoutes.rootRouter); // /sitemap.xml + /robots.txt
 app.use('/api/timetable', timetableRoutes);
+app.use('/api/i18n', i18nRoutes);
+app.use('/api/studio', studioRoutes);
 app.use('/api/rag', ragRoutes);
 
 // LevelDB sync queue endpoint

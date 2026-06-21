@@ -147,4 +147,35 @@ router.get('/categories', async (req, res) => {
   }
 });
 
+// GET /api/search/all?q=&types=course,org,teacher — unified entity search
+// across the platform (EDUOS_GAP_ANALYSIS_V2 §19). Public; returns grouped
+// results. Each query is sanitized against PostgREST filter injection.
+router.get('/all', async (req, res) => {
+  try {
+    const q = String(req.query.q || '').replace(/[,()*%\\]/g, ' ').trim();
+    if (!q) return res.json({ courses: [], organizations: [], teachers: [] });
+    const types = String(req.query.types || 'course,org,teacher').split(',');
+    const want = t => types.includes(t);
+    const lim = Math.min(20, Math.max(1, Number(req.query.limit) || 8));
+
+    const tasks = [];
+    tasks.push(want('course')
+      ? supabaseAdmin.from('courses').select('id,title,slug,category,cover_image').eq('is_active', true)
+          .or(`title.ilike.%${q}%,category.ilike.%${q}%`).limit(lim).then(r => r.data || []).catch(() => [])
+      : Promise.resolve([]));
+    tasks.push(want('org')
+      ? supabaseAdmin.from('organizations').select('id,name,slug,type,category')
+          .ilike('name', `%${q}%`).limit(lim).then(r => r.data || []).catch(() => [])
+      : Promise.resolve([]));
+    tasks.push(want('teacher')
+      ? supabaseAdmin.from('jeetmantra_users').select('id,full_name,user_type')
+          .in('user_type', ['teacher', 'partner', 'coaching', 'corporate_trainer', 'content_creator'])
+          .ilike('full_name', `%${q}%`).limit(lim).then(r => r.data || []).catch(() => [])
+      : Promise.resolve([]));
+
+    const [courses, organizations, teachers] = await Promise.all(tasks);
+    res.json({ courses, organizations, teachers });
+  } catch (e) { res.status(500).json({ error: 'Search failed' }); }
+});
+
 module.exports = router;

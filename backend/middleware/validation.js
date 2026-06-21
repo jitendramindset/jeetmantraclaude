@@ -389,6 +389,17 @@ const schemas = {
     newOwnerId: Joi.string().required()
   }),
 
+  // ── Sprint 11 (Phase D): studio persistence
+  studioScene: Joi.object({
+    id: Joi.string().optional(),
+    title: Joi.string().max(200).allow('','null').optional(),
+    data: Joi.object().unknown(true).required(),
+    thumbnail: Joi.string().allow('','null').optional()
+  }).unknown(true),
+  studioPublish: Joi.object({
+    courseId: Joi.string().required()
+  }),
+
   // ── Sprint 10 (Phase C): timetable + recurring booking slots
   timetableTemplate: Joi.object({
     orgId: Joi.string().required(),
