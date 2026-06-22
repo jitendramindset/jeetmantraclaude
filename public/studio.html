@@ -978,7 +978,7 @@ async function tLoadClasses(courseId){
     box.innerHTML=list.length? list.map(c=>{
       const when=c.scheduled_time?new Date(c.scheduled_time).toLocaleString():'—';
       return `<div class="scene" id="tc_${c.id}" onclick="tSelectClass('${c.id}','${_esc(c.title||'Class').replace(/'/g,"\\'")}')"><div class="thumb">${c.status==='live'?'🔴':'📡'}</div><div class="nm">${_esc(c.title||'Class')}<div style="font-size:10px;color:var(--mut)">${when} · ${_esc(c.status||'scheduled')}</div></div></div>`;
-    }).join('') : '<div class="hint">No classes yet — create one below.</div>';
+    }).join('') : '<div style="text-align:center;padding:14px 8px"><div style="font-size:13px;color:var(--mut);margin-bottom:10px">No classes yet — connect one to teach.</div><button onclick="document.getElementById(\'tNewTitle\')?.focus();" style="background:linear-gradient(135deg,var(--pri),#a855f7);color:#fff;border:0;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(124,58,237,.35)">📡 Create live class</button></div>';
   }catch(e){ box.innerHTML='<div class="banner warn">Couldn\'t load classes: '+_esc(e.message)+'</div>'; }
 }
 function tSelectClass(id, title){
