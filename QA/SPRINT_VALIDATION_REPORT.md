@@ -194,3 +194,33 @@ persist). `/assignments` 400 (wants a `courseId` query param — by design); `/b
 - `/notifications/unread` can serve a stale count briefly after a server-side insert that bypasses
   the per-user GET cache (60s TTL); the query itself is correct. Worth wiring cache invalidation
   into the notification producers in a later pass.
+
+---
+
+## Continued testing — session 3 (deep business-flow sweep)
+
+Exercised the core teacher↔student workflows end-to-end with real tokens. **No new server bugs**
+— every failure traced to the test harness using a wrong field name; the real frontend matches the
+backend schema in each case (verified).
+
+| Flow | Result |
+|---|---|
+| Course create → fetch → delete | ✅ 201 / 200 / 200 |
+| Student enroll → `/enrollments/my` | ✅ 201 (enrollment row) / 200 |
+| Assignment create → list → submit (`submissionUrl`/file) → submissions list → **grade** (`{grade}`) | ✅ 201 / 200 / 201 / 200 / **200 (grade=90, status "graded")** |
+| Chat DM room → send (`content`) → read | ✅ 200 / 201 / 200 (message persists) |
+| Gamification: checkin, summary, xp, badges | ✅ 200 ×4 |
+| Certificates: my, templates, verify(bad-token) | ✅ 200 / 200 / 404 (correct) |
+| Wallet: plans, subscription | ✅ 200; spend/topup empty → 400 (validation) |
+| Attendance / cert-issue (empty body) | ✅ 400 validation — not 500 |
+| Search | ✅ 200 |
+
+**Field-name notes (frontend already correct — not bugs):** chat send uses `content` (not
+`message`); assignment grade uses `{grade}` on the submission/assignment id; assignment submit
+needs `submissionUrl` or a file. Every write flow returns a clean 4xx on bad input rather than a
+500 — graceful validation throughout.
+
+**Cumulative result across sessions 1–3:** 8 real bugs found and fixed (2 dashboard/admin-os
+responsive, studio focus + declutter, role label/title, liveRoom 403-session, liveRoom responsive,
+notifications 500). All other validated surfaces — 10 role dashboards, login/signup, marketplace,
+settings, studio, admin-os, exam-platform, liveRoom, and ~20 API flows — are clean.
