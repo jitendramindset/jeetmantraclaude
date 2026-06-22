@@ -433,6 +433,12 @@ html[data-theme="dark"]{
   .stats-grid{grid-template-columns:1fr 1fr}
   .grid-2,.grid-3{grid-template-columns:1fr}
   .overlay.show{display:block}
+  /* Mobile topbar: wrap instead of overflowing (the wrap rule existed for tablet
+     only — carry it down so the action row + search reflow under 768px). */
+  .topbar{flex-wrap:wrap;row-gap:8px;padding:12px 14px;gap:10px}
+  .topbar h3{flex:1 1 auto;min-width:0;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .topbar .search-bar{order:5;flex:1 1 100%;max-width:none}
+  .topbar-actions{flex-wrap:wrap;justify-content:flex-end;gap:8px}
 }
 /* Tablet (769–1280px): narrow the sidebar so the content column isn't cramped,
    and let the topbar wrap instead of its items overflowing. */
