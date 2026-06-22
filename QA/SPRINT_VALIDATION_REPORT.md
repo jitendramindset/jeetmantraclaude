@@ -47,6 +47,25 @@ validated surfaces.**
   sidebar/content so the column shrinks and the nav scrolls internally.
 - **Re-verified:** overflow **0px** at 360/390/768; nav items still present and tappable.
 
+### ISSUE-3 (High, UX) — Studio unusable for teaching on mobile (cramped buttons, tiny board)
+- **Screen:** `studio.html` · **Severity:** High (core teaching surface) · **Width:** ≤760px
+- **Symptom:** on a phone the control columns stack below a small ~42vh board → "lots of buttons
+  and scroll", the actual board/whiteboard was barely visible, and there was no way to hide the
+  panels for a clean teaching board or take the whiteboard full-screen.
+- **Fix:** `public/studio.html` — added a **Focus / clean-board mode** (🔳 Focus button + `Esc`):
+  - hides the topbar and both control columns; the `.stage` (camera/whiteboard board) fills the
+    whole viewport (`#out` up to 86vh, full width);
+  - a floating **top bar** (`✕ Exit focus` + live format badge) and a floating **bottom action
+    bar** (⚙ Tools · 🖍 Board · 🎥 Cam · ⏺ Rec · ⤢ Exit) keep teaching controls one tap away;
+  - **⚙ Tools** slides the sources panel back in as a drawer without leaving focus, so you can add
+    a camera / screen / whiteboard / course content mid-lesson;
+  - reuses existing handlers (`toggleRecord`, `addWhiteboard`, `enableDevices`) — no new APIs.
+  - Also bumped the default mobile board from 42vh→50vh / `#out` 46vh→56vh so it's bigger even
+    outside focus mode.
+- **Re-verified (live):** Focus toggles on/off cleanly (topbar+cols hide, floating bars show,
+  board fills full width, overflow 0px, no console errors); exits restore the normal layout;
+  studio normal mode unchanged at 360/768/1280. Screenshot captured.
+
 ---
 
 ## Per-screen scorecard (validated screens)
@@ -65,7 +84,7 @@ console; Responsive = horizontal-overflow check at 360/768/1280; API = real data
 | Partner dashboard | ✅ | ✅ | ✅ **fixed** | ✅ 15 nav items | ✅ real data | |
 | Marketplace | ✅ | ✅ | ✅ clean 360→1920 | ✅ | ✅ | |
 | Settings | ✅ | ✅ | ✅ clean | ✅ | ✅ | |
-| Studio | ✅ | ✅ | ✅ clean (canvas) | ✅ | ✅ | |
+| Studio | ✅ | ✅ | ✅ **focus mode added** | ✅ + clean-board bars | ✅ | 🔳 Focus hides panels, board full-screen, floating top+bottom action bars |
 | Admin OS | ✅ | ✅ | ✅ **fixed** | ✅ gate enforced | ✅ migrations/backup UI | |
 | Exam platform | ✅ | ✅ | ✅ clean | ✅ | ✅ | |
 
@@ -91,15 +110,21 @@ Supabase and round-trip through the API.
 
 ---
 
-## Not validated this pass (needs context/accounts — not defects)
+## Gaps — not defects (need context/accounts, with how to close each)
 
-- **liveRoom.html** redirects to the dashboard without a live-class room id — needs a seeded
-  active class to exercise; not a bug.
-- **parent / corporate_trainer / content_creator / franchise / guest-faculty** dashboards — no
-  `*_test@jm.test` accounts exist; seed them to validate (the 6 covered roles share the same
-  `dashboard.html` engine, so risk is low).
-- Visual-regression baselines (Phase 8) and Lighthouse perf (Phase 9) — the authored Playwright
-  suite (`e2e/`) covers screenshot capture; run in CI where a browser can spawn.
+These are **not bugs** — they are surfaces this pass couldn't exercise without extra setup. Each
+has a concrete way to validate it:
+
+| Gap | Why not validated | How to close it |
+|---|---|---|
+| `liveRoom.html` | redirects to dashboard without a live-class room id | open `liveRoom.html?class=<id>` for a seeded live class |
+| parent / corporate_trainer / content_creator / franchise dashboards | no `*_test@jm.test` accounts seeded | create those test users (they share the one `dashboard.html` engine already validated for 6 roles → low risk) |
+| Visual-regression baselines (Phase 8) | needs a browser that can spawn for screenshot diffs | run the authored `e2e/` Playwright suite in CI (`.github/workflows/e2e.yml`) |
+| Lighthouse perf (Phase 9) | same browser-spawn constraint | run Lighthouse CI against the deployed preview |
+
+**Full-screen re-sweep after the Studio change:** all **23** screen×width combinations
+(login, signup, marketplace, settings, studio, teacher dashboard, admin-os, exam-platform across
+360/768/1280) re-checked → **0 overflows**, no regressions.
 
 ## Environment note
 

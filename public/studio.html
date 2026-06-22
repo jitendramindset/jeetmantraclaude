@@ -36,8 +36,22 @@ select,input[type=text]{width:100%;padding:8px;border-radius:6px;border:1px soli
 /* Tablet: 2-col — controls beside stage, settings panel spans full width below. */
 @media(max-width:1100px){.main{grid-template-columns:240px 1fr;grid-template-rows:1fr auto}.col.left{grid-row:1}.stage{grid-row:1}.col.right{grid-column:1/-1;grid-row:2;border-left:0;border-top:1px solid var(--bd);max-height:38vh}}
 /* Phone: single column, stage gets priority via 16:9 lock; panels flow naturally. */
-@media(max-width:760px){.main{grid-template-columns:1fr;grid-template-rows:none;grid-auto-flow:row;overflow-y:auto}.col.left,.col.right,.stage{grid-row:auto;grid-column:auto;max-height:none}.col{max-height:none}.stage{order:-1;min-height:42vh;padding:10px}#out{max-height:46vh}.corner{width:40px;height:40px;border-width:4px}}
+@media(max-width:760px){.main{grid-template-columns:1fr;grid-template-rows:none;grid-auto-flow:row;overflow-y:auto}.col.left,.col.right,.stage{grid-row:auto;grid-column:auto;max-height:none}.col{max-height:none}.stage{order:-1;min-height:50vh;padding:10px}#out{max-height:56vh}.corner{width:40px;height:40px;border-width:4px}}
 @media(max-width:480px){.topbar{padding:8px 10px;gap:6px}.btn{padding:9px 12px;font-size:12px;min-height:40px}#fmtSelect{width:100%;order:10}.col{padding:10px}.hint{display:none}}
+/* ── Focus / clean teaching board ──────────────────────────────────────────
+   Hide the topbar + both control columns so the board fills the screen; a
+   floating TOP bar (exit) and BOTTOM action bar keep teaching controls one tap
+   away. Works on phone, desktop and smartboard. Toggled via 🔳 Focus / Esc. */
+body.focus .topbar,body.focus .col{display:none!important}
+body.focus .main{grid-template-columns:1fr;grid-template-rows:1fr;grid-auto-flow:row;overflow:hidden}
+body.focus .stage{order:0;grid-row:auto;grid-column:auto;min-height:100vh;height:100vh;max-height:100vh;padding:4px}
+body.focus #out{max-height:86vh;max-width:100vw}
+/* ⚙ Tools slides the source panel in as a drawer without leaving focus mode */
+body.focus.panels .col.left{display:block!important;position:fixed;left:0;top:0;bottom:0;width:min(290px,86vw);max-height:100vh;z-index:430;box-shadow:6px 0 34px rgba(0,0,0,.55)}
+#focusTop{display:none;position:fixed;top:10px;left:10px;z-index:420;gap:8px;align-items:center}
+#focusBar{display:none;position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:420;gap:8px;align-items:center;background:rgba(18,18,26,.92);border:1px solid var(--bd);border-radius:16px;padding:8px 12px;box-shadow:0 10px 34px rgba(0,0,0,.55);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);max-width:96vw;flex-wrap:wrap;justify-content:center}
+body.focus #focusTop,body.focus #focusBar{display:flex}
+#focusBar .btn,#focusTop .btn{min-height:44px}
 /* Smartboard / 4K: scale up controls and type so they stay legible from a distance. */
 @media(min-width:2200px){.main{grid-template-columns:340px 1fr 400px}.btn{font-size:16px;padding:12px 20px}h4{font-size:14px}select,input[type=text]{font-size:15px;padding:11px}.scene .nm{font-size:15px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
@@ -175,7 +189,20 @@ select,input[type=text]{width:100%;padding:8px;border-radius:6px;border:1px soli
   <button class="btn" onclick="openGuide()" title="Show welcome guide">❓ Guide</button>
   <button class="btn pri" id="btnEnable" onclick="enableDevices()">🔓 Enable camera &amp; mic</button>
   <button class="btn" id="btnRec" onclick="toggleRecord()">⏺ Record</button>
+  <button class="btn" id="btnFocus" onclick="toggleFocus()" title="Clean full-screen teaching board — hides panels (Esc to exit)">🔳 Focus</button>
   <button class="btn" onclick="location.href='/dashboard.html'">← Exit</button>
+</div>
+<!-- Focus-mode floating bars: only visible in clean teaching mode (body.focus). -->
+<div id="focusTop">
+  <button class="btn" onclick="toggleFocus()" title="Exit clean board">✕ Exit focus</button>
+  <span id="focusFmtBadge" class="badge" style="background:rgba(124,58,237,.25);color:#c4b5fd;font-weight:700"></span>
+</div>
+<div id="focusBar" role="toolbar" aria-label="Teaching actions">
+  <button class="btn" onclick="studioFocusPanels()" title="Show sources & tools">⚙ Tools</button>
+  <button class="btn" onclick="addWhiteboard()" title="Add / focus whiteboard">🖍 Board</button>
+  <button class="btn" onclick="enableDevices()" title="Enable camera & mic">🎥 Cam</button>
+  <button class="btn pri" onclick="toggleRecord()" title="Start / stop recording">⏺ Rec</button>
+  <button class="btn" onclick="toggleFocus()" title="Exit clean board">⤢ Exit</button>
 </div>
 <!-- Hidden holder: keeping source <video>s in the DOM stops browsers from
      throttling/freezing them when used as canvas paint sources. -->
@@ -2377,6 +2404,21 @@ async function toggleRecord(){ const btn=document.getElementById('btnRec'); if(r
 initGL(); renderLoop(); renderScenes(); renderLayerList(); refreshDevices();
 // If Studio was opened from a live class (?class=), show the bound-class badge.
 if(CLASS_ID){ _bindClass(CLASS_ID,'class'); fetch(API+'/live-classes/'+CLASS_ID,{headers:{Authorization:'Bearer '+TOKEN}}).then(x=>x.json()).then(r=>{ const c=r.liveClass||r.class||r; if(c&&c.title) _bindClass(CLASS_ID,c.title); }).catch(()=>{}); }
+
+/* ── Focus / clean teaching board ──────────────────────────────────────────
+   Hide the topbar + both control columns so the board fills the screen. The
+   floating top bar (exit) + bottom action bar keep the essential teaching
+   controls one tap away; ⚙ Tools slides the source panel back in as a drawer. */
+function toggleFocus(){
+  const on = document.body.classList.toggle('focus');
+  if(!on) document.body.classList.remove('panels');      // close the drawer on exit
+  try{ const b=document.getElementById('focusFmtBadge'), src=document.getElementById('fmtBadge');
+       if(b&&src) b.textContent = src.textContent; }catch(e){}
+}
+function studioFocusPanels(){ document.body.classList.toggle('panels'); }
+document.addEventListener('keydown', function(e){
+  if(e.key==='Escape' && document.body.classList.contains('focus')) toggleFocus();
+});
 </script>
 <script src="/i18n-seed.js?v=4"></script>
 <script src="/i18n-lite.js?v=4" defer></script>
