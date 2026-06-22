@@ -133,7 +133,7 @@ select.filter-select{background:var(--jm-surface);border:1.5px solid var(--jm-bo
 </head>
 <body>
 <nav>
-  <a href="/" class="logo">Jeet<span class="accent">Mantra</span></a>
+  <a href="/" class="logo" data-embed-hide>Jeet<span class="accent">Mantra</span></a>
   <div class="nav-search">
     <span aria-hidden="true">🔍</span>
     <input type="text" placeholder="Search courses, topics, instructors..." aria-label="Search courses, topics, instructors" id="navSearch" oninput="debounceSearch(this.value)">
@@ -699,5 +699,17 @@ loadMyPurchases();
 <script src="/i18n-seed.js?v=4"></script>
 <script src="/i18n-lite.js?v=4" defer></script>
 <script src="/jm-nav.js" defer></script>
+<script>
+/* App-shell embed mode: when hosted in the shell (?embed=1), hide controls that
+   navigate OUT to the shell so they can't nest the iframe (shell supplies chrome). */
+(function(){ try{ if(new URLSearchParams(location.search).get('embed')!=='1') return;
+  document.documentElement.classList.add('embed');
+  var s=document.createElement('style');
+  s.textContent='html.embed a[href$="/dashboard.html"],html.embed a[href="/app"],html.embed [data-embed-hide]{display:none!important}';
+  (document.head||document.documentElement).appendChild(s);
+  var hide=function(){ document.querySelectorAll('[onclick]').forEach(function(el){ var o=el.getAttribute('onclick')||''; if(o.indexOf('dashboard.html')>-1 || /['"]\/app['"]/.test(o)) el.style.display='none'; }); };
+  if(document.readyState!=='loading') hide(); else document.addEventListener('DOMContentLoaded',hide);
+}catch(e){} })();
+</script>
 </body>
 </html>

@@ -6,7 +6,7 @@ const { getN8nConfig, setN8nConfig, triggerN8n } = require('../config/n8nConfig'
 
 const router = express.Router();
 
-const N8N_URL = process.env.N8N_WEBHOOK_URL || 'https://work.mantravat.cloud/webhook/jeetmantra';
+const N8N_URL = process.env.N8N_WEBHOOK_URL || '';
 const N8N_SECRET = process.env.N8N_WEBHOOK_SECRET || '';
 
 // ── Addon config: a user can add / view their own n8n webhook at runtime ──

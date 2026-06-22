@@ -297,6 +297,9 @@ async function notify({ userId, channel, type, title, body, link, to }) {
     id, user_id: userId, channel: channel || 'in-app', type: type || 'info',
     title, body, link, provider: providerName, status: 'sent'
   });
+  // Recipient ≠ requester → clear their notification/dashboard cache now so the
+  // unread count is fresh on the next poll (syncMiddleware only sees the writer).
+  try { require('../middleware/datasync').invalidateUser(userId, ['/api/notifications', '/api/dashboard']); } catch (_) {}
   return id;
 }
 router.notify = notify; // attach for cross-route imports

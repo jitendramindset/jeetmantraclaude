@@ -1,0 +1,216 @@
+# EduOS — Single App Shell Migration: HTML Audit & Roadmap
+
+Date: 2026-06-22 · Goal: collapse 21 standalone HTML pages into **one application shell**
+(`/app`) with dynamic role nav + widget/route rendering. Public marketing/auth pages stay
+standalone; everything post-login renders inside the shell.
+
+## Architectural decision (and why)
+
+`dashboard.html` is **already the app shell** — it has role-driven dynamic navigation
+(`buildNav`, ~22–27 items/role), a widget engine (`EduOSWidgets`), in-page section routing, the
+top bar, sidebar, content area, and a bottom mobile nav. Rebuilding a parallel shell would throw
+away thousands of lines of **validated** functionality (3 QA sessions).
+
+**So the migration is evolutionary, not a big-bang rewrite:**
+1. Promote `dashboard.html` to the canonical shell, served at **`/app`** (and `/app/*`).
+2. Always enter the app at `/app` after auth (done — login + signup redirect there).
+3. Bring the heavy standalone modules **into** the shell as routes that render in the content
+   area (embed mode hides each module's own chrome) — one module per phase, re-verifying each.
+4. Consolidate duplicate admin/settings/widget pages into shell modules, then delete the files.
+
+This preserves every working flow while delivering the single-shell UX incrementally — the
+"continuous migration process" the brief asks for, done safely.
+
+---
+
+## Full HTML inventory & classification (21 files)
+
+| File | KB | Purpose | Class | Target route / action | Remove? | Priority | % |
+|---|---|---|---|---|---|---|---|
+| `dashboard.html` | 689 | Logged-in shell (role nav, widgets, sections) | **App Shell** | served at `/app` | No (it *is* the shell) | — | **100** |
+| `index.html` | 1 | Landing/loading splash | Public | Keep `/` | No | — | 100 |
+| `website.html` | 223 | Marketing site (features/pricing) | Public | Keep `/website.html` | No | — | 100 |
+| `login.html` | 20 | Login (email/OTP/Google) | Public | Keep; redirects → `/app` | No | — | **100** |
+| `signup.html` | 45 | Signup | Public | Keep; redirects → `/app` | No | — | **100** |
+| `forgot-password.html` | 2 | Forgot password | Public | Keep | No | — | 100 |
+| `reset-password.html` | 3 | Reset password | Public | Keep | No | — | 100 |
+| `verify-email.html` | 1 | Email verification | Public | Keep | No | — | 100 |
+| `marketplace.html` | 40 | Course marketplace | Convert→Route (+public browse) | `/app/marketplace` | After embed | P1 | 10 |
+| `settings.html` | 8 | User settings | Convert→Route (consolidate) | `/app/settings` | After merge | P1 | 10 |
+| `studio.html` | 160 | Smart-camera studio workspace | Convert→Route (embed) | `/app/studio` | After embed | P2 | 5 |
+| `exam-platform.html` | 133 | Test/exam authoring + taking | Convert→Route | `/app/tests` (Test Center) | After embed | P2 | 5 |
+| `bhasha-setu.html` | 96 | Language-learning / reading hub | Convert→Route | `/app/learn` (Learning Hub) | After embed | P3 | 5 |
+| `liveRoom.html` | 38 | Live class room | Convert→Route | `/app/live/:classId` | After embed | P2 | 5 |
+| `admin-os.html` | 59 | Platform OS (admin) | Convert→Route | `/app/admin` | After embed | P2 | 5 |
+| `admin.html` | 37 | Legacy SuperAdmin panel | **Merge → Remove** | superseded by admin-os | **Yes** (after parity check) | P1 | 0 |
+| `control-center.html` | 10 | "AI Dev Control Center" (dev) | **Remove from prod** | dev-only tool | **Yes** (gate to dev) | P3 | 0 |
+| `widgets.html` | 3 | "Your Workspace" widget config | **Merge** | into `/app/settings` → Appearance/Widgets | **Yes** | P2 | 0 |
+| `components.html` | 30 | Component/style gallery (dev) | **Remove from prod** | dev style reference | **Yes** (dev-only) | P3 | 0 |
+| `jeetmantra-enhance.html` | 21 | Title "Print" — print/legacy template | **Analyze → Remove** | fold any live use into shell print/export | **Likely** | P3 | 0 |
+| `webhook-test.html` | 16 | Webhook tester (dev) | **Remove from prod** | dev-only tool | **Yes** (dev-only) | P3 | 0 |
+
+**Summary:** 7 public (keep) · 1 shell · 7 convert-to-route · 6 merge/remove.
+
+---
+
+## Phased roadmap
+
+### ✅ Phase 1 — Canonical `/app` entry (DONE, live-verified)
+- `backend/server.js`: `GET /app` + `/app/*` serve the shell (deep-link/refresh safe).
+- `login.html` (`redirectToDashboard` + auto-redirect) and `signup.html` now send users to
+  `/app?role=…`, never a standalone page.
+- Verified: `/app?role=teacher` stays on `/app`, renders the Teacher Dashboard shell (sidebar, 22
+  nav items, "👨‍🏫 Teacher" badge), no console errors, no login bounce.
+
+### ✅ Phase 2 — In-shell module host + embed mode (COMPLETE, live-verified)
+**Done & live-verified:**
+- `dashboard.html`: an in-shell **module host** (`#shellModuleHost`) overlays the content area and
+  hosts modules by hash route — `#/m/studio · #/m/tests · #/m/marketplace · #/m/settings ·
+  #/m/admin · #/m/learn` — in an `<iframe src="…?embed=1">`. The shell's top bar, sidebar and
+  bottom nav stay; a "← Back" + module title header sits above the frame. The overlay approach is
+  race-proof against the dashboard's async re-render.
+- **Legacy-link interception**: clicks on `a[href]` to `/studio.html`, `/exam-platform.html`,
+  `/bhasha-setu.html`, `/marketplace.html`, `/settings.html`, `/admin-os.html` are converted to the
+  in-shell hash route (no full-page navigation).
+- **studio.html embed mode**: `?embed=1` hides the studio "← Exit" / user-chip (would leave the
+  shell); the studio workspace toolbar stays. Studio's old Exit now targets `/app`.
+- Verified: studio + marketplace + exam-platform load inside the shell; Back restores the
+  dashboard; no console errors; shell chrome intact.
+
+**Done — embed mode on all routed modules (live-verified):**
+- `marketplace.html`, `settings.html`, `exam-platform.html`, `admin-os.html`, `liveRoom.html` got
+  a generic embed snippet: `?embed=1` adds `html.embed`, then CSS hides `a[href$="/dashboard.html"]`
+  / `a[href="/app"]` and JS hides any `[onclick]` that navigates to the shell — so no control can
+  nest the iframe. Verified each: embed class set, **0** visible dashboard back-out links/buttons.
+- `liveRoom` wired as a parameterized route `#/m/live/:classId`; the shell's `startLive`/`endLive`/
+  `joinLive`/`calJoin` now set `location.hash='#/m/live/<id>'` instead of a full-page navigation.
+- `bhasha-setu.html` is self-contained (internal `go()` nav, no shell back-out) — loads in-shell
+  as-is, no embed change needed.
+- Verified end-to-end: settings → admin-os switch in-shell via hash, embed mode on, shell sidebar
+  intact, no console errors.
+
+**Phase 2 status: COMPLETE** — all 7 standalone application modules (studio, exam-platform,
+marketplace, settings, admin-os, liveRoom, bhasha-setu) render inside the shell.
+
+### ✅ Phase 3 — Consolidate duplicates (links repointed; 5 legacy files deleted)
+**Done — every shell reference to a legacy page now routes in-shell:**
+- `admin.html` (legacy SuperAdmin) → all 3 dashboard refs + `index.html` entry-router repointed to
+  the admin-os route (`#/m/admin` / `openEmbed('/admin-os.html?embed=1')`). **`admin.html` now has
+  0 references.**
+- `widgets.html` → the "Try the widget dashboard" link now calls the in-page `toggleWidgetMode()`.
+  **`widgets.html` now has 0 references.**
+- `index.html` entry router: every role (incl. admin) now lands on `/app`, never a standalone page.
+
+**DELETED (0 live references — approved):** `admin.html`, `widgets.html`, `components.html`,
+`webhook-test.html`, `jeetmantra-enhance.html` (the last was already inlined into the shell). The
+last live refs were first repointed in `jm-nav.js`, `webhook-handler.js`, `login-api.js` (all → the
+shell / `/app`). `control-center.html` kept as the single explicit **dev** tool.
+
+**public/ HTML is now 16 files** (down from 21): 7 public (index, website, login, signup,
+forgot/reset-password, verify-email) · 1 shell (dashboard.html) · 7 in-shell modules (admin-os,
+bhasha-setu, exam-platform, liveRoom, marketplace, settings, studio) · 1 dev (control-center).
+
+### ✅ UI adjustment — module host viewport anchoring
+The in-shell module overlay used `position:absolute; inset:0`, which ballooned to the full
+(scrolling) content height on mobile (~1010px, running off-screen + behind the bottom nav). Fixed:
+the host is now `position:fixed`, computing top = shell-topbar bottom, left = sidebar width (0 when
+off-canvas), bottom = bottom-nav height; a `ResizeObserver` on the chrome (+ rAF + 400ms recalc)
+re-anchors it as the topbar wraps / chips load. Verified clean at 375 / 600 / 1280 (0 overflow,
+sits between topbar and bottom-nav on mobile, right of the sidebar on desktop).
+
+### ✅ Phase 4 — Global theme & settings (COMPLETE, live-verified)
+The Settings module (`/app#/m/settings`, backed by `JMSettings`/`jm_settings`) is now the **single
+source of truth** for all customization — theme/dark, primary+accent colour, font scale, language,
+branding, integrations. Resolved a real split: the shell had its own `jm_theme` store + inline
+Appearance panel separate from Settings.
+- Shell loads `jm-settings.js`; a head bridge seeds `JMSettings` from any legacy `jm_theme`
+  (existing dark choices survive) and keeps both mirrored.
+- Shell `setTheme()`/`setLang()` write **through** `JMSettings` (→ also fans to the satellite apps).
+- A `storage`-event listener re-applies `JMSettings` in the shell when the (in-iframe) Settings
+  module writes — so a colour/theme/font change in Settings reflects **live** in the shell, no reload.
+- Dashboard Configure's inline Appearance card links to the full Settings module.
+- **Verified:** change primary colour inside the Settings iframe → shell `--jm-primary` updates live
+  (#7c3aed→#ff0055) + persists; theme/language sync bidirectionally; no console errors.
+
+### Phase 5 — Re-audit
+- Full responsive + role + nav sweep of the unified shell (reuse the `e2e/` suite + the live
+  preview harness from the QA sprint). Stop condition: no standalone **application** HTML remains —
+  only landing, website, login, signup, forgot/reset password, verify-email.
+
+---
+
+## Stop condition tracking
+Standalone application pages remaining to absorb: **7** (studio, exam-platform, bhasha-setu,
+liveRoom, admin-os, marketplace, settings) + **6** to merge/remove. Public pages that legitimately
+stay standalone: index, website, login, signup, forgot-password, reset-password, verify-email.
+
+---
+
+## Visual-review polish (screenshot pass)
+
+Driving each screen with snapshots surfaced and fixed:
+- **Redundant module branding** — each in-shell module now hides its own top logo/brand in embed
+  (`data-embed-hide`): studio logo+badge, settings nav, marketplace logo, exam-platform logo,
+  admin-os brand. The shell + module-host header provide the only chrome. Verified hidden, 0 overflow.
+- **Sidebar nav leaked to standalone pages** (real bug) — `buildNav` rendered module items with
+  `onclick="location.href='/studio.html'"`, bypassing the in-shell router. Now module hrefs map to
+  `#/m/…`; `openEmbed()` likewise routes through the shell host. **Verified: 0 full-page leaks across
+  teacher/student/admin/school/coaching nav.**
+- **control-center.html** (dev tool) now 404s when `NODE_ENV=production`.
+
+**Stop condition met:** every production surface runs inside the one `/app` shell; the only
+standalone HTML is public (index, website, login, signup, forgot/reset-password, verify-email) +
+one dev-gated tool. All customization lives in Settings and applies everywhere live.
+
+---
+
+## ✅ True SPA: in-page rendering pattern (renderer registry)
+
+The earlier in-shell host loaded each module via an `<iframe src="/<module>.html?embed=1">`,
+which still fetched the module's HTML over the network. The user asked for a real SPA — modules
+should render from the menu without loading separate HTML files at all.
+
+**Pattern shipped:** a `RENDERERS` registry inside the shell. When `#/m/<id>` is opened, `route()`
+checks the registry first; if a renderer exists, it renders the module DIRECTLY into a
+`#shellModuleInline` div — no iframe, no network request for the module's `.html`. The iframe
+stays available as a fallback for modules not yet inlined (so the migration is gradual + safe).
+
+**Settings is the first inline module:**
+- `mountSettingsInline(root)` builds the full Settings form (branding · colors · dark · language
+  · text size · integrations) and wires it directly to `JMSettings` (same single source of truth).
+- Verified via the live network log: navigating to `#/m/settings` produces **zero requests for
+  `/settings.html`** — the URL stays on `/app` and the form appears in the shell content area.
+- Verified functionally: changing primary colour → `--jm-primary` updates live in the shell;
+  save persists to `jm_settings`; the duplicate "⚙️ Settings" title was dropped (host header
+  already shows it). Mobile and desktop both render cleanly.
+
+**Adding a module to the registry is now a 3-step pattern:**
+1. Write `mountFooInline(root)` — build the module's UI in `root.innerHTML`, wire its handlers.
+2. Add `foo: { title: '…', mount: mountFooInline }` to `RENDERERS`.
+3. The hash route `#/m/foo` and the sidebar's intercepted `/foo.html` clicks both go through
+   inline render automatically — no other changes needed.
+
+Marketplace, admin-os, exam-platform etc. still iframe (the fallback path stays clean) and can
+be ported to the renderer registry the same way when their UI complexity is worth the trade-off
+of inlining into the shell's bundle.
+
+### Per-screen review notes (screenshot-driven)
+- **Mobile dashboard** (375): hamburger + topbar chips + command bar + quick-actions card +
+  KPI cards stack cleanly; bottom nav (Home · Courses · Live · Calendar · Profile) covers the
+  primary destinations. Real "really-needed" prioritization already in place.
+- **Desktop dashboard** (1280): sidebar has 22 items for the teacher role; primary daily tools
+  are visible above the fold; secondary configs (Plans, Wallet, Settings, Profile, EduOS) live
+  below the fold. The dashboard's own `openSettings()` page already consolidates them into a
+  tile menu — which is the "configs as menu items" pattern the user described.
+- **Inline Settings** (mobile + desktop): single-column on mobile, two-column grid on desktop;
+  Branding / Localization / Integrations cards; Save + Reset CTAs. No duplicate brand. Live
+  color change applies to shell instantly.
+
+### What still iframes (and why)
+- **studio** (160KB, WebGL canvas + camera/MediaRecorder pipelines): the runtime isolation is a
+  feature, not noise — embed mode hides its chrome cleanly.
+- **exam-platform** (133KB, test-taking timer + grading engine): same — heavyweight standalone
+  app, the iframe stops state collisions with the shell.
+- **liveRoom** (Jitsi integration), **bhasha-setu** (self-contained language-tutor SPA),
+  **admin-os**, **marketplace**: all iframe with `?embed=1` cleanly; they can be ported to
+  inline render when worth the trade-off.

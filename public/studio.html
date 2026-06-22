@@ -36,8 +36,35 @@ select,input[type=text]{width:100%;padding:8px;border-radius:6px;border:1px soli
 /* Tablet: 2-col — controls beside stage, settings panel spans full width below. */
 @media(max-width:1100px){.main{grid-template-columns:240px 1fr;grid-template-rows:1fr auto}.col.left{grid-row:1}.stage{grid-row:1}.col.right{grid-column:1/-1;grid-row:2;border-left:0;border-top:1px solid var(--bd);max-height:38vh}}
 /* Phone: single column, stage gets priority via 16:9 lock; panels flow naturally. */
-@media(max-width:760px){.main{grid-template-columns:1fr;grid-template-rows:none;grid-auto-flow:row;overflow-y:auto}.col.left,.col.right,.stage{grid-row:auto;grid-column:auto;max-height:none}.col{max-height:none}.stage{order:-1;min-height:42vh;padding:10px}#out{max-height:46vh}.corner{width:40px;height:40px;border-width:4px}}
+@media(max-width:760px){.main{grid-template-columns:1fr;grid-template-rows:none;grid-auto-flow:row;overflow-y:auto}.col.left,.col.right,.stage{grid-row:auto;grid-column:auto;max-height:none}.col{max-height:none}.stage{order:-1;min-height:50vh;padding:10px}#out{max-height:56vh}.corner{width:40px;height:40px;border-width:4px}}
 @media(max-width:480px){.topbar{padding:8px 10px;gap:6px}.btn{padding:9px 12px;font-size:12px;min-height:40px}#fmtSelect{width:100%;order:10}.col{padding:10px}.hint{display:none}}
+/* ── Focus / clean teaching board ──────────────────────────────────────────
+   Hide the topbar + both control columns so the board fills the screen; a
+   floating TOP bar (exit) and BOTTOM action bar keep teaching controls one tap
+   away. Works on phone, desktop and smartboard. Toggled via 🔳 Focus / Esc. */
+body.focus .topbar,body.focus .col{display:none!important}
+body.focus .main{grid-template-columns:1fr;grid-template-rows:1fr;grid-auto-flow:row;overflow:hidden}
+body.focus .stage{order:0;grid-row:auto;grid-column:auto;min-height:100vh;height:100vh;max-height:100vh;padding:4px}
+body.focus #out{max-height:86vh;max-width:100vw}
+/* ⚙ Tools slides the source panel in as a drawer without leaving focus mode */
+body.focus.panels .col.left{display:block!important;position:fixed;left:0;top:0;bottom:0;width:min(290px,86vw);max-height:100vh;z-index:430;box-shadow:6px 0 34px rgba(0,0,0,.55)}
+#focusTop{display:none;position:fixed;top:10px;left:10px;z-index:420;gap:8px;align-items:center}
+#focusBar{display:none;position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:420;gap:8px;align-items:center;background:rgba(18,18,26,.92);border:1px solid var(--bd);border-radius:16px;padding:8px 12px;box-shadow:0 10px 34px rgba(0,0,0,.55);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);max-width:96vw;flex-wrap:wrap;justify-content:center}
+body.focus #focusTop,body.focus #focusBar{display:flex}
+#focusBar .btn,#focusTop .btn{min-height:44px}
+/* ── Collapsible control columns on mobile ─────────────────────────────────
+   The board is what matters; the source + setup panels are a lot of buttons on
+   a phone. Each column gets a sticky header that hides/shows its body, and on
+   mobile both start collapsed so Studio opens to a clean board — tap a header
+   to reveal only what you need. Hidden entirely on desktop (space is ample). */
+.col-toggle{display:none}
+@media(max-width:760px){
+  .col-toggle{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;
+    background:var(--panel2);border:1px solid var(--bd);color:var(--txt);font-weight:700;font-size:13px;
+    padding:12px;border-radius:8px;margin:0 0 10px;cursor:pointer;position:sticky;top:0;z-index:6;min-height:44px}
+  .col-toggle .col-arrow{font-size:12px;color:var(--mut)}
+  .col.collapsed>*:not(.col-toggle){display:none}
+}
 /* Smartboard / 4K: scale up controls and type so they stay legible from a distance. */
 @media(min-width:2200px){.main{grid-template-columns:340px 1fr 400px}.btn{font-size:16px;padding:12px 20px}h4{font-size:14px}select,input[type=text]{font-size:15px;padding:11px}.scene .nm{font-size:15px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
@@ -135,10 +162,10 @@ select,input[type=text]{width:100%;padding:8px;border-radius:6px;border:1px soli
 <div id="studioToast"></div>
 
 <div class="topbar">
-  <div class="logo">Jeet<span class="a">Mantra</span> Studio</div>
-  <span class="badge">🎥 Smart Camera</span>
+  <div class="logo" data-embed-hide>Jeet<span class="a">Mantra</span> Studio</div>
+  <span class="badge" data-embed-hide>🎥 Smart Camera</span>
   <!-- User profile chip — filled on load from jm_user -->
-  <span id="studioUserChip" style="display:none;background:rgba(124,58,237,.15);color:var(--pri);border-radius:8px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer" onclick="location.href='/dashboard.html'" title="Back to dashboard"></span>
+  <span id="studioUserChip" style="display:none;background:rgba(124,58,237,.15);color:var(--pri);border-radius:8px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer" onclick="location.href='/app'" title="Back to dashboard"></span>
   <button class="btn" id="btnAdjust" onclick="toggleAdjust()" title="Drag corners on the big preview to fix perspective">✂️ Crop</button>
   <button class="btn" id="btnLayout" onclick="toggleLayout()" title="Arrange multiple elements on the preview (drag to move, corner to resize)">🧩 Arrange layout</button>
   <button class="btn" id="btnTeach" onclick="openTeach()" title="Connect this Studio to a course's live class and go live">📡 Teach a course</button>
@@ -175,7 +202,20 @@ select,input[type=text]{width:100%;padding:8px;border-radius:6px;border:1px soli
   <button class="btn" onclick="openGuide()" title="Show welcome guide">❓ Guide</button>
   <button class="btn pri" id="btnEnable" onclick="enableDevices()">🔓 Enable camera &amp; mic</button>
   <button class="btn" id="btnRec" onclick="toggleRecord()">⏺ Record</button>
-  <button class="btn" onclick="location.href='/dashboard.html'">← Exit</button>
+  <button class="btn" id="btnFocus" onclick="toggleFocus()" title="Clean full-screen teaching board — hides panels (Esc to exit)">🔳 Focus</button>
+  <button class="btn" id="studioExitBtn" onclick="location.href='/app'">← Exit</button>
+</div>
+<!-- Focus-mode floating bars: only visible in clean teaching mode (body.focus). -->
+<div id="focusTop">
+  <button class="btn" onclick="toggleFocus()" title="Exit clean board">✕ Exit focus</button>
+  <span id="focusFmtBadge" class="badge" style="background:rgba(124,58,237,.25);color:#c4b5fd;font-weight:700"></span>
+</div>
+<div id="focusBar" role="toolbar" aria-label="Teaching actions">
+  <button class="btn" onclick="studioFocusPanels()" title="Show sources & tools">⚙ Tools</button>
+  <button class="btn" onclick="addWhiteboard()" title="Add / focus whiteboard">🖍 Board</button>
+  <button class="btn" onclick="enableDevices()" title="Enable camera & mic">🎥 Cam</button>
+  <button class="btn pri" onclick="toggleRecord()" title="Start / stop recording">⏺ Rec</button>
+  <button class="btn" onclick="toggleFocus()" title="Exit clean board">⤢ Exit</button>
 </div>
 <!-- Hidden holder: keeping source <video>s in the DOM stops browsers from
      throttling/freezing them when used as canvas paint sources. -->
@@ -183,6 +223,7 @@ select,input[type=text]{width:100%;padding:8px;border-radius:6px;border:1px soli
 <div class="main">
   <!-- SOURCES -->
   <div class="col left">
+    <button class="col-toggle" type="button" onclick="studioToggleCol(this)" aria-label="Toggle sources panel"><span>📥 Sources &amp; scenes</span><span class="col-arrow">▾</span></button>
     <div id="permBanner" class="banner warn">Click <b>Enable camera &amp; mic</b> to detect devices.</div>
     <h4>📥 Camera</h4>
     <select id="camSelect" onchange="startCamera(this.value)"><option value="">— enable first —</option></select>
@@ -505,6 +546,7 @@ select,input[type=text]{width:100%;padding:8px;border-radius:6px;border:1px soli
   </div>
   <!-- EDITOR -->
   <div class="col right">
+    <button class="col-toggle" type="button" onclick="studioToggleCol(this)" aria-label="Toggle setup panel"><span>⚙ Output &amp; setup</span><span class="col-arrow">▾</span></button>
     <h4>✂️ Perspective</h4>
     <!-- Simple Crop mode -->
     <div style="margin-bottom:8px">
@@ -936,7 +978,7 @@ async function tLoadClasses(courseId){
     box.innerHTML=list.length? list.map(c=>{
       const when=c.scheduled_time?new Date(c.scheduled_time).toLocaleString():'—';
       return `<div class="scene" id="tc_${c.id}" onclick="tSelectClass('${c.id}','${_esc(c.title||'Class').replace(/'/g,"\\'")}')"><div class="thumb">${c.status==='live'?'🔴':'📡'}</div><div class="nm">${_esc(c.title||'Class')}<div style="font-size:10px;color:var(--mut)">${when} · ${_esc(c.status||'scheduled')}</div></div></div>`;
-    }).join('') : '<div class="hint">No classes yet — create one below.</div>';
+    }).join('') : '<div style="text-align:center;padding:14px 8px"><div style="font-size:13px;color:var(--mut);margin-bottom:10px">No classes yet — connect one to teach.</div><button onclick="document.getElementById(\'tNewTitle\')?.focus();" style="background:linear-gradient(135deg,var(--pri),#a855f7);color:#fff;border:0;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(124,58,237,.35)">📡 Create live class</button></div>';
   }catch(e){ box.innerHTML='<div class="banner warn">Couldn\'t load classes: '+_esc(e.message)+'</div>'; }
 }
 function tSelectClass(id, title){
@@ -2377,6 +2419,55 @@ async function toggleRecord(){ const btn=document.getElementById('btnRec'); if(r
 initGL(); renderLoop(); renderScenes(); renderLayerList(); refreshDevices();
 // If Studio was opened from a live class (?class=), show the bound-class badge.
 if(CLASS_ID){ _bindClass(CLASS_ID,'class'); fetch(API+'/live-classes/'+CLASS_ID,{headers:{Authorization:'Bearer '+TOKEN}}).then(x=>x.json()).then(r=>{ const c=r.liveClass||r.class||r; if(c&&c.title) _bindClass(CLASS_ID,c.title); }).catch(()=>{}); }
+
+/* ── Focus / clean teaching board ──────────────────────────────────────────
+   Hide the topbar + both control columns so the board fills the screen. The
+   floating top bar (exit) + bottom action bar keep the essential teaching
+   controls one tap away; ⚙ Tools slides the source panel back in as a drawer. */
+function toggleFocus(){
+  const on = document.body.classList.toggle('focus');
+  if(!on) document.body.classList.remove('panels');      // close the drawer on exit
+  try{ const b=document.getElementById('focusFmtBadge'), src=document.getElementById('fmtBadge');
+       if(b&&src) b.textContent = src.textContent; }catch(e){}
+}
+function studioFocusPanels(){ document.body.classList.toggle('panels'); }
+document.addEventListener('keydown', function(e){
+  if(e.key==='Escape' && document.body.classList.contains('focus')) toggleFocus();
+});
+
+/* Embed mode: when hosted inside the app shell (/studio.html?embed=1), hide the
+   controls that would navigate OUT of the shell — the shell supplies the back
+   affordance + chrome. Studio's own toolbar stays (it's the module's workspace). */
+(function studioEmbed(){
+  try{
+    if(new URLSearchParams(location.search).get('embed')==='1'){
+      document.documentElement.classList.add('embed');
+      var es=document.createElement('style');
+      es.textContent='html.embed [data-embed-hide]{display:none!important}';
+      (document.head||document.documentElement).appendChild(es);
+      const ex=document.getElementById('studioExitBtn'); if(ex) ex.style.display='none';
+      const chip=document.getElementById('studioUserChip'); if(chip) chip.dataset.embed='1';
+    }
+  }catch(e){}
+})();
+
+/* Collapsible control columns (mobile) — tap a header to show only what you need. */
+function studioToggleCol(btn){
+  const col = btn.closest('.col'); if(!col) return;
+  const collapsed = col.classList.toggle('collapsed');
+  const a = btn.querySelector('.col-arrow'); if(a) a.textContent = collapsed ? '▾' : '▴';
+}
+/* On a phone, start both panels collapsed so Studio opens to a clean board. */
+(function studioInitCols(){
+  try{
+    if(window.matchMedia && window.matchMedia('(max-width:760px)').matches){
+      document.querySelectorAll('.col').forEach(col=>{
+        col.classList.add('collapsed');
+        const a = col.querySelector('.col-arrow'); if(a) a.textContent = '▾';
+      });
+    }
+  }catch(e){}
+})();
 </script>
 <script src="/i18n-seed.js?v=4"></script>
 <script src="/i18n-lite.js?v=4" defer></script>

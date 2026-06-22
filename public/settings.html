@@ -35,7 +35,7 @@ h1{font-size:26px;font-weight:800;letter-spacing:-.02em;margin-bottom:4px}
 </style>
 </head>
 <body>
-<nav>
+<nav data-embed-hide>
   <a href="/" class="logo">Jeet<b>Mantra</b></a>
   <div style="flex:1"></div>
   <a href="/dashboard.html" style="font-size:13px;font-weight:600;color:var(--jm-text-strong);text-decoration:none">← Dashboard</a>
@@ -132,6 +132,18 @@ function resetSettings() {
   JMSettings.set(JMSettings.DEFAULTS); load();
 }
 load();
+</script>
+<script>
+/* App-shell embed mode: when hosted in the shell (?embed=1), hide controls that
+   navigate OUT to the shell so they can't nest the iframe (shell supplies chrome). */
+(function(){ try{ if(new URLSearchParams(location.search).get('embed')!=='1') return;
+  document.documentElement.classList.add('embed');
+  var s=document.createElement('style');
+  s.textContent='html.embed a[href$="/dashboard.html"],html.embed a[href="/app"],html.embed [data-embed-hide]{display:none!important}';
+  (document.head||document.documentElement).appendChild(s);
+  var hide=function(){ document.querySelectorAll('[onclick]').forEach(function(el){ var o=el.getAttribute('onclick')||''; if(o.indexOf('dashboard.html')>-1 || /['"]\/app['"]/.test(o)) el.style.display='none'; }); };
+  if(document.readyState!=='loading') hide(); else document.addEventListener('DOMContentLoaded',hide);
+}catch(e){} })();
 </script>
 </body>
 </html>

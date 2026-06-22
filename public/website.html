@@ -22,6 +22,12 @@
     h1 { font-size: clamp(28px, 8vw, 44px) !important; }
     h2 { font-size: clamp(22px, 6vw, 32px) !important; }
     section, [style*="padding: 80px"], [style*="padding:80px"] { padding-left: 16px !important; padding-right: 16px !important; }
+    /* Mobile header cleanup: the inline top nav links and the duplicate
+       header "Book Free Demo" CTA collapse/overlap the logo on small
+       screens. Hide them on mobile — the hamburger drawer is the single
+       source of mobile navigation. */
+    .jm-header-nav, .jm-header-cta { display: none !important; }
+    .jm-header-inner { padding-left: 16px !important; padding-right: 16px !important; }
   }
 </style>
 </head>
@@ -74,9 +80,9 @@ function Header({ page, setPage }) {
 
   return (
     <header style={{ position: 'sticky', top: 0, zIndex: 100, background: 'rgba(255,255,255,0.96)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(0,0,0,0.07)', boxShadow: '0 1px 8px rgba(0,0,0,0.06)' }}>
-      <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 32px', height: 68, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div className="jm-header-inner" style={{ maxWidth: 1280, margin: '0 auto', padding: '0 32px', height: 68, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div onClick={() => setPage('Home')}><Logo /></div>
-        <nav style={{ display: 'flex', gap: 4 }} aria-label="Primary">
+        <nav className="jm-header-nav" style={{ display: 'flex', gap: 4 }} aria-label="Primary">
           {/* Use <a> not <button> so middle-click / Ctrl-click / screen-reader
               landmarks all work; the hash href is harmless because onClick
               calls preventDefault via the SPA navigator. */}
@@ -90,7 +96,7 @@ function Header({ page, setPage }) {
             }} aria-current={page === l ? 'page' : undefined}>{l}</a>
           ))}
         </nav>
-        <div style={{ display: 'flex', gap: 10 }}>
+        <div className="jm-header-cta" style={{ display: 'flex', gap: 10 }}>
           <a href="/login.html" style={{ border: '1.5px solid #e5e7eb', borderRadius: 9, padding: '9px 18px', fontSize: 13, fontWeight: 600, background: 'white', color: '#0f172a', cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'none' }}>Login</a>
           <a href="/signup.html" style={{ border: '1.5px solid #e5e7eb', borderRadius: 9, padding: '9px 18px', fontSize: 13, fontWeight: 600, background: 'white', color: '#0f172a', cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'none' }}>Sign Up</a>
           <button onClick={() => requireAuth(() => setPage('Contact'))} style={{ border: 'none', borderRadius: 9, padding: '9px 18px', fontSize: 13, fontWeight: 700, background: '#f97316', color: 'white', cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 2px 12px rgba(249,115,22,0.3)' }}>Book Free Demo</button>

@@ -107,14 +107,9 @@ class WebhookHandler {
       localStorage.setItem('jm_user', JSON.stringify(result.data.user));
       showToast(`Welcome back, ${result.data.user.name}!`, 'success');
 
-      // Redirect based on role
-      const dashboards = {
-        'Student': '/dashboard.html?role=student',
-        'Teacher': '/dashboard.html?role=teacher',
-        'Partner': '/dashboard.html?role=partner',
-        'Admin': '/admin.html'
-      };
-      setTimeout(() => window.location.href = dashboards[result.data.user.role] || '/dashboard.html', 1500);
+      // Single App Shell: every role enters at /app, never a standalone page.
+      const role = (result.data.user.role || 'student').toLowerCase();
+      setTimeout(() => window.location.href = '/app?role=' + encodeURIComponent(role), 1500);
     },
     (error) => {
       showToast(`Login failed: ${error}`, 'error');
@@ -143,7 +138,7 @@ class WebhookHandler {
           localStorage.setItem('jm_token', result.token);
           localStorage.setItem('jm_user', JSON.stringify(result.user));
           showToast('Login successful!', 'success');
-          setTimeout(() => window.location.href = '/dashboard.html', 1500);
+          setTimeout(() => window.location.href = '/app', 1500);
         },
         (error) => {
           showToast(`Invalid OTP: ${error}`, 'error');
@@ -161,7 +156,7 @@ class WebhookHandler {
         localStorage.setItem('jm_token', result.token);
         localStorage.setItem('jm_user', JSON.stringify(result.user));
         showToast('Google login successful!', 'success');
-        setTimeout(() => window.location.href = '/dashboard.html', 1500);
+        setTimeout(() => window.location.href = '/app', 1500);
       },
       (error) => {
         showToast(`Google login failed: ${error}`, 'error');

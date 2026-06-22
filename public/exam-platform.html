@@ -356,7 +356,7 @@
 </div>
 
 <nav>
-  <div class="logo">
+  <div class="logo" data-embed-hide>
     <div class="logo-icon" id="nav-logo-icon">📝</div>
     <span id="nav-brand-name">Exam<span id="nav-brand-name2">Forge</span></span>
   </div>
@@ -653,7 +653,7 @@
   <div class="page-title">Exam Results</div>
   <div class="page-subtitle">Detailed performance analytics and integrity report</div>
   <div id="results-container">
-    <div style="text-align:center;padding:60px;color:var(--muted)"><div style="font-size:44px;margin-bottom:14px">📊</div>No results yet. Complete an exam to see results.</div>
+    <div style="text-align:center;padding:60px;color:var(--muted)"><div style="font-size:44px;margin-bottom:14px">📊</div><div style="margin-bottom:14px">No results yet. Complete an exam to see results.</div><button onclick="showPage('take')" style="background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;border:0;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(124,58,237,.35)">📝 Take an exam</button></div>
   </div>
 </div>
 
@@ -2468,5 +2468,17 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 <script src="/jm-nav.js" defer></script>
+<script>
+/* App-shell embed mode: when hosted in the shell (?embed=1), hide controls that
+   navigate OUT to the shell so they can't nest the iframe (shell supplies chrome). */
+(function(){ try{ if(new URLSearchParams(location.search).get('embed')!=='1') return;
+  document.documentElement.classList.add('embed');
+  var s=document.createElement('style');
+  s.textContent='html.embed a[href$="/dashboard.html"],html.embed a[href="/app"],html.embed [data-embed-hide]{display:none!important}';
+  (document.head||document.documentElement).appendChild(s);
+  var hide=function(){ document.querySelectorAll('[onclick]').forEach(function(el){ var o=el.getAttribute('onclick')||''; if(o.indexOf('dashboard.html')>-1 || /['"]\/app['"]/.test(o)) el.style.display='none'; }); };
+  if(document.readyState!=='loading') hide(); else document.addEventListener('DOMContentLoaded',hide);
+}catch(e){} })();
+</script>
 </body>
 </html>

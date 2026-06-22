@@ -74,6 +74,8 @@ input:focus,select:focus{border-color:var(--jm-primary);box-shadow:0 0 0 3px rgb
 }
 </style>
 <script src="/jm-theme.js"></script>
+<!-- Google Identity Services — loaded async; init deferred until config fetch -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 <div class="container">
@@ -102,7 +104,10 @@ input:focus,select:focus{border-color:var(--jm-primary);box-shadow:0 0 0 3px rgb
       <button class="btn btn-primary" onclick="doLogin()" id="loginBtn">Login</button>
       <div class="divider">or continue with</div>
       <div class="social-btns">
-        <button class="btn-social" onclick="doGoogleLogin()" aria-label="Continue with Google">🔵 Google</button>
+        <button class="btn-social" id="googleBtn" onclick="doGoogleLogin()" aria-label="Continue with Google">
+        <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615Z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18Z"/><path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332Z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58Z"/></svg>
+        Google
+      </button>
         <button class="btn-social" onclick="showOTP()" aria-label="Login with phone OTP">📱 Phone OTP</button>
       </div>
       <div class="otp-section" id="otpSection">
@@ -209,7 +214,8 @@ function storeAuth(token, user) {
 }
 
 function redirectToDashboard(role) {
-  const dashUrl = '/dashboard.html?role=' + (role || 'student');
+  // Single App Shell: always enter the app at /app, never a standalone page.
+  const dashUrl = '/app?role=' + (role || 'student');
   setTimeout(() => { window.location.href = dashUrl; }, 800);
 }
 
@@ -315,10 +321,68 @@ async function verifyOTP() {
   }
 }
 
-async function doGoogleLogin() {
-  showMsg('Google OAuth: Enter credentials below for demo', 'error');
-  // In production: use Google Identity Services
+// ── Google Sign-In (GSI One Tap) ──────────────────────────────────────────
+let _gClientId = '';
+
+async function _initGoogle() {
+  try {
+    const cfg = await fetch(API + '/auth/config').then(r => r.json());
+    _gClientId = cfg.google_client_id || '';
+  } catch {}
+  if (!_gClientId) return; // Google not configured — button stays, shows friendly error
+  if (!window.google) return; // GSI script still loading — onClick retries
+  google.accounts.id.initialize({
+    client_id: _gClientId,
+    callback: _handleGoogleCredential,
+    auto_select: false,
+    cancel_on_tap_outside: true,
+    context: 'signin',
+  });
 }
+
+function doGoogleLogin() {
+  if (!_gClientId) { showMsg('Google login is not configured on this server yet.', 'error'); return; }
+  if (!window.google) { showMsg('Google Sign-In is still loading — please try again.', 'error'); return; }
+  const btn = document.getElementById('googleBtn');
+  btn.disabled = true;
+  google.accounts.id.prompt(notification => {
+    // One Tap dismissed or suppressed → open popup flow instead
+    if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+      const params = new URLSearchParams({
+        client_id: _gClientId,
+        redirect_uri: window.location.origin + '/login.html',
+        response_type: 'token id_token',
+        scope: 'openid email profile',
+        nonce: Math.random().toString(36).slice(2),
+      });
+      window.open('https://accounts.google.com/o/oauth2/v2/auth?' + params, '_blank', 'width=500,height=600');
+    }
+    btn.disabled = false;
+  });
+}
+
+async function _handleGoogleCredential(response) {
+  const btn = document.getElementById('googleBtn');
+  if (btn) btn.disabled = true;
+  showMsg('Signing in with Google…', 'success');
+  try {
+    const res = await fetch(API + '/auth/google-login', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ credential: response.credential })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(extractError(data, 'Google login failed'));
+    storeAuth(data.token, data.user);
+    showMsg('✅ Signed in with Google! Redirecting…', 'success');
+    redirectToDashboard(data.user.role);
+  } catch (e) {
+    showMsg(e.message, 'error');
+    if (btn) btn.disabled = false;
+  }
+}
+
+// Kick off config fetch immediately so GSI is ready when the user clicks
+_initGoogle();
 
 // Auto-redirect if already logged in
 const existingToken = localStorage.getItem('jm_token');
@@ -326,7 +390,7 @@ const existingUser = localStorage.getItem('jm_user');
 if (existingToken && existingUser) {
   try {
     const u = JSON.parse(existingUser);
-    window.location.href = '/dashboard.html?role=' + u.role;
+    window.location.href = '/app?role=' + u.role;
   } catch {}
 }
 </script>

@@ -1,7 +1,17 @@
+// Sentry must be initialized before any other requires to instrument them.
+require('dotenv').config({ path: require('path').join(__dirname, '.env') });
+const Sentry = require('@sentry/node');
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.NODE_ENV || 'development',
+    tracesSampleRate: 0.05,
+  });
+}
+
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-require('dotenv').config({ path: require('path').join(__dirname, '.env') });
 
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
@@ -55,7 +65,15 @@ const { cacheMiddleware, syncMiddleware } = require('./middleware/datasync');
 
 const app = express();
 
-app.use(cors({ origin: process.env.FRONTEND_URL || '*', credentials: true }));
+// Production hardening: trust proxy + helmet + compression + rate limiting.
+require('./middleware/security').applySecurity(app);
+
+// CORS: lock to FRONTEND_URL in production (comma-separated list allowed); only
+// the dev convenience falls back to permissive '*'.
+const _cors = process.env.FRONTEND_URL
+  ? process.env.FRONTEND_URL.split(',').map(s => s.trim())
+  : (process.env.NODE_ENV === 'production' ? false : '*');
+app.use(cors({ origin: _cors, credentials: true }));
 // The Razorpay webhook signature is computed over the RAW request bytes, so it
 // must be parsed as a Buffer BEFORE the global JSON parser consumes the stream.
 // Path-specific raw parser first; everything else gets JSON.
@@ -66,6 +84,26 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Serve frontend files
 const frontendPath = path.join(__dirname, '..', 'public');
+
+// ── Single App Shell ────────────────────────────────────────────────────────
+// /app is the canonical post-login entry. The shell (currently dashboard.html —
+// already role-driven dynamic nav + widget engine + in-page section routing) is
+// served for /app and any /app/* client route so deep links / refreshes work.
+// Standalone module pages (studio/exam-platform/…) still resolve for now and are
+// being migrated to render *inside* this shell; public pages stay standalone.
+app.get(['/app', '/app/*'], (req, res) => {
+  res.sendFile(path.join(frontendPath, 'dashboard.html'));
+});
+
+// Dev-only pages — 404 in production so the prod build ships without dev tooling.
+const DEV_ONLY_PAGES = new Set(['/control-center.html']);
+app.use((req, res, next) => {
+  if (process.env.NODE_ENV === 'production' && DEV_ONLY_PAGES.has(req.path)) {
+    return res.status(404).send('Not found');
+  }
+  next();
+});
+
 app.use(express.static(frontendPath));
 
 // LevelDB wiring for ALL /api routes:
@@ -170,9 +208,24 @@ app.post('/api/sync/flush', async (req, res) => {
   }
 });
 
+app.get('/metrics', (req, res) => {
+  const mem = process.memoryUsage();
+  res.set('Content-Type', 'text/plain; version=0.0.4');
+  res.send([
+    '# HELP process_heap_bytes Node.js heap used in bytes',
+    '# TYPE process_heap_bytes gauge',
+    `process_heap_bytes ${mem.heapUsed}`,
+    '# HELP process_uptime_seconds Process uptime',
+    '# TYPE process_uptime_seconds counter',
+    `process_uptime_seconds ${Math.floor(process.uptime())}`,
+  ].join('\n') + '\n');
+});
+
 app.use((req, res) => {
   res.status(404).json({ error: 'Not Found', path: req.path, method: req.method });
 });
+
+if (process.env.SENTRY_DSN) Sentry.setupExpressErrorHandler(app);
 
 app.use((err, req, res, next) => {
   console.error('Error:', err);

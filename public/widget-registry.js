@@ -27,7 +27,18 @@
   const fmtMoney = n => '₹' + Number(n || 0).toLocaleString('en-IN');
   const when = t => { try { return new Date(t).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }); } catch { return ''; } };
   const listOf = (d, ...keys) => { for (const k of keys) if (Array.isArray(d?.[k])) return d[k]; return Array.isArray(d) ? d : []; };
-  const empty = msg => `<div class="wg-empty">${esc(msg)}</div>`;
+  // empty(msg) — plain "nothing here" line.
+  // empty(msg, { label, onclick }) — game-screen style: inviting CTA so the user
+  // can act in one tap instead of staring at a passive empty state. Hover/press
+  // styled via .wg-empty-cta (set in widget-styles.css; falls back to inline).
+  const empty = (msg, action) => {
+    if (!action) return `<div class="wg-empty">${esc(msg)}</div>`;
+    const handler = String(action.onclick || '').replace(/"/g, '&quot;');
+    return `<div class="wg-empty wg-empty-cta" style="text-align:center;padding:14px 8px">
+      <div style="font-size:13px;color:var(--jm-text-muted);margin-bottom:10px">${esc(msg)}</div>
+      <button onclick="${handler}" style="background:linear-gradient(135deg,var(--jm-primary),#a855f7);color:#fff;border:0;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(124,58,237,.35);transition:transform .12s,box-shadow .12s" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 14px rgba(124,58,237,.45)'" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 8px rgba(124,58,237,.35)'">${esc(action.label)}</button>
+    </div>`;
+  };
 
   // ── WIDGET LIBRARY ────────────────────────────────────────────────────────
   // Each manifest: id, title, roles[], capability?, category, size, priority,
@@ -66,7 +77,7 @@
       id: 'continue-learning', title: 'Continue Learning', roles: ['student'], category: 'learning', size: 'medium', priority: 15,
       aiTriggers: ['continue learning', 'resume', 'my courses'],
       dataSource: () => api('/student/continue-learning'),
-      render: d => { const it = listOf(d, 'items'); if (!it.length) return empty('No courses in progress — explore the marketplace.'); return it.slice(0, 4).map(c => `<a class="wg-row" href="dashboard.html"><span class="wg-row-t">${esc(c.title || c.course_title || c.course_id)}</span><span class="wg-bar"><i style="width:${pct(c.progress)}%"></i></span><span class="wg-row-x">${pct(c.progress)}%</span></a>`).join(''); }
+      render: d => { const it = listOf(d, 'items'); if (!it.length) return empty('No courses in progress yet.', { label: '🛒 Browse marketplace', onclick: "location.hash='#/m/marketplace'" }); return it.slice(0, 4).map(c => `<a class="wg-row" href="dashboard.html"><span class="wg-row-t">${esc(c.title || c.course_title || c.course_id)}</span><span class="wg-bar"><i style="width:${pct(c.progress)}%"></i></span><span class="wg-row-x">${pct(c.progress)}%</span></a>`).join(''); }
     },
     {
       id: 'assignments-due', title: 'Assignments Due', roles: ['student'], category: 'learning', size: 'small', priority: 20,
@@ -78,13 +89,13 @@
       id: 'upcoming-classes', title: 'Upcoming Classes', roles: null, category: 'teaching', size: 'medium', priority: 25,
       aiTriggers: ["today's classes", 'upcoming classes', 'schedule', 'open calendar'],
       dataSource: () => api('/live-classes/upcoming'),
-      render: d => { const c = listOf(d, 'liveClasses', 'classes', 'upcoming', 'items'); if (!c.length) return empty('No upcoming classes.'); return c.slice(0, 5).map(x => `<div class="wg-row"><span class="wg-row-t">${esc(x.title || x.course_title || 'Class')}</span><span class="wg-row-x">${when(x.scheduled_time || x.start_at || x.starts_at)}</span></div>`).join(''); }
+      render: (d, ctx) => { const c = listOf(d, 'liveClasses', 'classes', 'upcoming', 'items'); const isStudent = (ctx && (ctx.roles||[]).includes('student')); if (!c.length) return empty('No upcoming classes.', { label: isStudent?'🛒 Browse courses':'📡 Schedule a class', onclick: isStudent?"location.hash='#/m/marketplace'":"if(typeof openSchedule==='function')openSchedule();else location.hash='#/m/calendar'" }); return c.slice(0, 5).map(x => `<div class="wg-row"><span class="wg-row-t">${esc(x.title || x.course_title || 'Class')}</span><span class="wg-row-x">${when(x.scheduled_time || x.start_at || x.starts_at)}</span></div>`).join(''); }
     },
     {
       id: 'pending-eval', title: 'Pending Evaluation', roles: TEACHING, capability: 'assignment.grade', category: 'teaching', size: 'small', priority: 22,
       aiTriggers: ['pending evaluation', 'grade', 'essays to grade'],
       dataSource: () => api('/teacher/essays/pending'),
-      render: d => { const it = listOf(d, 'items', 'essays'); if (!it.length) return empty('Nothing to grade.'); return `<div class="wg-big">${it.length}</div><div class="wg-sub">submissions awaiting your grade</div><a class="wg-link" href="dashboard.html#grade">Open grading →</a>`; }
+      render: d => { const it = listOf(d, 'items', 'essays'); if (!it.length) return empty('Inbox zero — nothing to grade.', { label: '📝 Create an assignment', onclick: "if(typeof openAssignmentEditor==='function')openAssignmentEditor();else location.hash='#/m/tests'" }); return `<div class="wg-big">${it.length}</div><div class="wg-sub">submissions awaiting your grade</div><a class="wg-link" href="dashboard.html#grade">Open grading →</a>`; }
     },
     {
       id: 'revenue', title: 'Revenue', roles: CREATOR.concat(['institute_owner']), capability: 'payment.read', category: 'finance', size: 'medium', priority: 30,
@@ -96,13 +107,13 @@
       id: 'my-courses', title: 'My Courses', roles: CREATOR, capability: 'course.edit', category: 'teaching', size: 'medium', priority: 18,
       aiTriggers: ['my courses', 'manage courses', 'course list'],
       dataSource: () => api('/courses?mine=1'),
-      render: d => { const c = listOf(d, 'courses'); if (!c.length) return empty('No courses yet — create your first.') + `<a class="wg-link" href="dashboard.html#create">Create a course →</a>`; return c.slice(0, 4).map(x => `<a class="wg-row" href="dashboard.html#course"><span class="wg-row-t">${esc(x.title || 'Course')}</span><span class="wg-row-x">${x.is_active === false ? 'draft' : (x.category || '')}</span></a>`).join('') + (c.length > 4 ? `<a class="wg-link" href="dashboard.html#courses">+${c.length - 4} more →</a>` : ''); }
+      render: d => { const c = listOf(d, 'courses'); if (!c.length) return empty('No courses yet — create your first.', { label: '➕ Create a course', onclick: "if(typeof openCourseCreator==='function')openCourseCreator();else location.hash='#create'" }); return c.slice(0, 4).map(x => `<a class="wg-row" href="dashboard.html#course"><span class="wg-row-t">${esc(x.title || 'Course')}</span><span class="wg-row-x">${x.is_active === false ? 'draft' : (x.category || '')}</span></a>`).join('') + (c.length > 4 ? `<a class="wg-link" href="dashboard.html#courses">+${c.length - 4} more →</a>` : ''); }
     },
     {
       id: 'my-listings', title: 'Marketplace Sales', roles: SELLERS, category: 'finance', size: 'small', priority: 38,
       aiTriggers: ['my listings', 'marketplace sales', 'my sales'],
       dataSource: () => api('/marketplace/my/listings'),
-      render: d => { const l = listOf(d, 'listings'); if (!l.length) return empty('No listings yet.') + `<a class="wg-link" href="marketplace.html">List a course →</a>`; const active = l.filter(x => x.status === 'active' || !x.status).length; return `<div class="wg-big">${l.length}</div><div class="wg-sub">listing${l.length !== 1 ? 's' : ''} · ${active} active</div><a class="wg-link" href="marketplace.html">Manage listings →</a>`; }
+      render: d => { const l = listOf(d, 'listings'); if (!l.length) return empty('No listings yet — turn a course into income.', { label: '🛒 List a course', onclick: "location.hash='#/m/marketplace'" }); const active = l.filter(x => x.status === 'active' || !x.status).length; return `<div class="wg-big">${l.length}</div><div class="wg-sub">listing${l.length !== 1 ? 's' : ''} · ${active} active</div><a class="wg-link" href="marketplace.html">Manage listings →</a>`; }
     },
     {
       id: 'recommended', title: 'Recommended', roles: ['student', 'guest'], category: 'learning', size: 'large', priority: 40,
@@ -114,7 +125,7 @@
       id: 'notifications', title: 'Notifications', roles: null, category: 'social', size: 'small', priority: 45,
       aiTriggers: ['notifications', 'alerts'],
       dataSource: () => api('/notifications/unread'),
-      render: d => { const n = listOf(d, 'notifications'); const total = d?.total ?? n.length; if (!total) return empty('No new notifications.'); return `<div class="wg-big">${total}</div><div class="wg-sub">unread</div>` + n.slice(0, 3).map(x => `<div class="wg-row"><span class="wg-row-t">${esc(x.title || x.message || 'Notification')}</span></div>`).join(''); }
+      render: d => { const n = listOf(d, 'notifications'); const total = d?.total ?? n.length; if (!total) return empty('All caught up — no new notifications.', { label: '🔔 Open notifications', onclick: "if(typeof toggleNotifs==='function')toggleNotifs(event);else location.hash='#/m/notifications'" }); return `<div class="wg-big" style="cursor:pointer" onclick="if(typeof toggleNotifs==='function')toggleNotifs(event)">${total}</div><div class="wg-sub">unread — tap to open</div>` + n.slice(0, 3).map(x => `<div class="wg-row"><span class="wg-row-t">${esc(x.title || x.message || 'Notification')}</span></div>`).join(''); }
     },
     {
       id: 'leaderboard', title: 'Leaderboard', roles: ['student'], category: 'learning', size: 'small', priority: 35,
@@ -126,7 +137,7 @@
       id: 'certificates', title: 'My Certificates', roles: ['student'], category: 'learning', size: 'small', priority: 55,
       aiTriggers: ['certificates', 'my certificates'],
       dataSource: () => api('/certificates/my'),
-      render: d => { const c = listOf(d, 'certificates'); if (!c.length) return empty('Earn your first certificate by completing a course.'); return `<div class="wg-big">${c.length}</div><div class="wg-sub">earned</div>` + c.slice(0, 3).map(x => `<div class="wg-row"><span class="wg-row-t">${esc(x.course_title || x.title || 'Certificate')}</span></div>`).join(''); }
+      render: d => { const c = listOf(d, 'certificates'); if (!c.length) return empty('Earn your first certificate by completing a course.', { label: '📚 Resume learning', onclick: "location.hash='#/m/marketplace'" }); return `<div class="wg-big">${c.length}</div><div class="wg-sub">earned</div>` + c.slice(0, 3).map(x => `<div class="wg-row"><span class="wg-row-t">${esc(x.course_title || x.title || 'Certificate')}</span></div>`).join(''); }
     },
     {
       id: 'messages', title: 'Messages', roles: null, category: 'social', size: 'small', priority: 46,
@@ -148,7 +159,7 @@
       id: 'timetable', title: 'Timetable', roles: ORG_ADMIN, capability: 'live.schedule', category: 'ops', size: 'medium', priority: 26,
       aiTriggers: ['timetable', 'class schedule', 'weekly schedule'],
       dataSource: () => api('/timetable/templates'),
-      render: d => { const t = listOf(d, 'templates'); if (!t.length) return empty('No timetable templates yet.') + `<a class="wg-link" href="dashboard.html#timetable">Create one →</a>`; return t.slice(0, 4).map(x => `<div class="wg-row"><span class="wg-row-t">${esc(x.name || 'Timetable')}</span></div>`).join('') + `<a class="wg-link" href="dashboard.html#timetable">Manage →</a>`; }
+      render: d => { const t = listOf(d, 'templates'); if (!t.length) return empty('No timetable templates yet.', { label: '📅 Create timetable', onclick: "location.hash='#timetable'" }); return t.slice(0, 4).map(x => `<div class="wg-row"><span class="wg-row-t">${esc(x.name || 'Timetable')}</span></div>`).join('') + `<a class="wg-link" href="dashboard.html#timetable">Manage →</a>`; }
     },
     {
       id: 'admissions', title: 'Admissions', roles: ORG_ADMIN, capability: 'admissions.manage', category: 'ops', size: 'small', priority: 32,
@@ -166,13 +177,13 @@
       id: 'bookings', title: 'Bookings', roles: SPORTS, capability: 'booking.manage', category: 'ops', size: 'medium', priority: 30,
       aiTriggers: ['bookings', 'court bookings', 'slot bookings'],
       dataSource: () => api('/bookings/received'),
-      render: d => { const b = listOf(d, 'bookings', 'items'); if (!b.length) return empty('No bookings yet.'); return b.slice(0, 5).map(x => `<div class="wg-row"><span class="wg-row-t">${esc(x.resource?.title || x.resource_type || 'Booking')}</span><span class="wg-row-x">${when(x.start_at)}</span></div>`).join(''); }
+      render: d => { const b = listOf(d, 'bookings', 'items'); if (!b.length) return empty('No bookings yet.', { label: '📅 Book a resource', onclick: "location.hash='#bookings'" }); return b.slice(0, 5).map(x => `<div class="wg-row"><span class="wg-row-t">${esc(x.resource?.title || x.resource_type || 'Booking')}</span><span class="wg-row-x">${when(x.start_at)}</span></div>`).join(''); }
     },
     {
       id: 'children', title: 'My Children', roles: ['parent'], category: 'learning', size: 'medium', priority: 12,
       aiTriggers: ['my children', 'my child', 'kids'],
       dataSource: () => api('/parent/children'),
-      render: d => { const ch = listOf(d, 'children', 'students', 'items'); if (!ch.length) return empty('Link a child to see their progress.') + `<a class="wg-link" href="dashboard.html#link-child">Link child →</a>`; return ch.slice(0, 4).map(c => `<a class="wg-row" href="dashboard.html#child"><span class="wg-row-t">${esc(c.full_name || c.name || 'Child')}</span><span class="wg-row-x">${c.class || c.grade || ''}</span></a>`).join(''); }
+      render: d => { const ch = listOf(d, 'children', 'students', 'items'); if (!ch.length) return empty('Link a child to see their progress.', { label: '👪 Link child', onclick: "location.hash='#link-child'" }); return ch.slice(0, 4).map(c => `<a class="wg-row" href="dashboard.html#child"><span class="wg-row-t">${esc(c.full_name || c.name || 'Child')}</span><span class="wg-row-x">${c.class || c.grade || ''}</span></a>`).join(''); }
     },
     {
       id: 'network', title: 'Network', roles: ['partner', 'franchise'], category: 'finance', size: 'small', priority: 36,

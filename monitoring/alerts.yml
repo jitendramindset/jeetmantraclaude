@@ -1,0 +1,72 @@
+groups:
+  - name: jeetmantra_api
+    rules:
+      # ── Availability ──────────────────────────────────────────────────────
+      - alert: ApiDown
+        expr: up{job="api"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "EduOS API is DOWN"
+          description: "The API container has not been reachable for 2 minutes. Check docker ps and nginx/traefik logs."
+
+      # ── Memory ────────────────────────────────────────────────────────────
+      - alert: ApiHighHeapUsage
+        expr: nodejs_heap_used_bytes / nodejs_heap_total_bytes > 0.90
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "API heap usage above 90%"
+          description: "Heap {{ printf \"%.1f\" (nodejs_heap_used_bytes / nodejs_heap_total_bytes * 100) }}% full. Consider increasing memory limit or investigating a leak."
+
+      - alert: ApiHeapCritical
+        expr: nodejs_heap_used_bytes / nodejs_heap_total_bytes > 0.98
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "API heap at 98% — OOM imminent"
+          description: "Heap near limit. Container will OOM-kill. Restart now or increase memory limit."
+
+      # ── Container resource (cAdvisor) ────────────────────────────────────
+      - alert: ContainerHighCPU
+        expr: rate(container_cpu_usage_seconds_total{name="eduos_api"}[5m]) > 1.8
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "API container CPU > 180% for 10 min"
+          description: "Sustained high CPU. Check for a runaway request, missing DB index, or loop."
+
+      - alert: ContainerRestarting
+        expr: increase(container_last_seen{name="eduos_api"}[10m]) == 0 and on() kube_pod_container_status_restarts_total > 0
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "API container is restarting"
+          description: "The eduos_api container has restarted. Check docker logs eduos_api."
+
+  - name: jeetmantra_business
+    rules:
+      # ── Uptime (process) ──────────────────────────────────────────────────
+      - alert: ApiUptimeTooLow
+        expr: nodejs_process_uptime_seconds < 60 and up{job="api"} == 1
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "API just restarted (uptime < 60s)"
+          description: "API process started less than a minute ago. May indicate a crash loop."
+
+      # ── Scrape gaps ───────────────────────────────────────────────────────
+      - alert: PrometheusScrapeFailing
+        expr: up{job=~"api|cadvisor"} == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Prometheus cannot scrape {{ $labels.job }}"
+          description: "Metrics scrape from {{ $labels.job }} has been failing for 5 minutes."

@@ -7,7 +7,8 @@
 <style>
 :root{--jm-primary:#7c3aed;--jm-bg:#0f0f17;--jm-surface:#1a1a25;--jm-border:#2a2a3a;--jm-text:#e4e4f0;--jm-text-muted:#9090a8;--jm-danger:#ef4444;--jm-success:#10b981}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,'Segoe UI',sans-serif;background:var(--jm-bg);color:var(--jm-text);height:100vh;overflow:hidden;display:flex;flex-direction:column}
+html{overflow-x:hidden}
+body{font-family:-apple-system,'Segoe UI',sans-serif;background:var(--jm-bg);color:var(--jm-text);height:100vh;overflow:hidden;display:flex;flex-direction:column;position:relative}
 .live-topbar{background:var(--jm-surface);padding:10px 18px;display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--jm-border);min-height:56px}
 .live-topbar .title{font-weight:700;font-size:15px;flex:1}
 .live-topbar .sub{font-size:12px;color:var(--jm-text-muted)}
@@ -199,11 +200,16 @@ async function api(path, method, body) {
     headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN },
     body: body ? JSON.stringify(body) : undefined
   });
-  // Auth expired → bounce to login preserving where to return.
-  if (r.status === 401 || r.status === 403) {
+  // 401 = session truly expired → clear token and bounce to login (preserve return).
+  if (r.status === 401) {
     localStorage.removeItem('jm_token');
     location.href = '/login.html?redirect=' + encodeURIComponent(location.pathname + location.search);
     throw new Error('Session expired');
+  }
+  // 403 = authenticated but not allowed (e.g. not enrolled / wrong role). Do NOT
+  // delete a valid token or force re-login — surface a clear access error instead.
+  if (r.status === 403) {
+    throw new Error('You don\'t have access to this live class.');
   }
   const j = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(j.error?.message || j.error || j.message || ('HTTP ' + r.status));
@@ -608,7 +614,7 @@ function _teardownRoom() {
 }
 function leaveRoom() {
   _teardownRoom();
-  window.location.href = '/dashboard.html';
+  window.location.href = '/app';
 }
 // Safety net: stop all timers + dispose Jitsi when the page is hidden/unloaded,
 // so polling doesn't keep running in a backgrounded/closed tab.
@@ -676,5 +682,17 @@ window.addEventListener('beforeunload', () => { if (_jitsiApi) { try { _jitsiApi
 </script>
 <script src="/i18n-seed.js?v=4"></script>
 <script src="/i18n-lite.js?v=4" defer></script>
+<script>
+/* App-shell embed mode: when hosted in the shell (?embed=1), hide controls that
+   navigate OUT to the shell so they can't nest the iframe (shell supplies chrome). */
+(function(){ try{ if(new URLSearchParams(location.search).get('embed')!=='1') return;
+  document.documentElement.classList.add('embed');
+  var s=document.createElement('style');
+  s.textContent='html.embed a[href$="/dashboard.html"],html.embed a[href="/app"],html.embed [data-embed-hide]{display:none!important}';
+  (document.head||document.documentElement).appendChild(s);
+  var hide=function(){ document.querySelectorAll('[onclick]').forEach(function(el){ var o=el.getAttribute('onclick')||''; if(o.indexOf('dashboard.html')>-1 || /['"]\/app['"]/.test(o)) el.style.display='none'; }); };
+  if(document.readyState!=='loading') hide(); else document.addEventListener('DOMContentLoaded',hide);
+}catch(e){} })();
+</script>
 </body>
 </html>

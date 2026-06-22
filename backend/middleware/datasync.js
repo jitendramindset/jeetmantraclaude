@@ -242,4 +242,23 @@ function logActivityFromWrite(evt, fullPath, req, body) {
   }).catch(() => {});
 }
 
-module.exports = { cacheMiddleware, syncMiddleware };
+// Clear ONE user's cached GETs for the given route families. For out-of-band
+// producers (e.g. notification writers) that mutate a user's data WITHOUT going
+// through that user's request — so syncMiddleware never fires for them and the
+// recipient would otherwise read a stale cache until the TTL (e.g. an unread
+// notification count that stays at 0 for ~60s). Keys embed `|u:<id>|`, so we
+// prefix-scan each family and delete only the target user's entries.
+async function invalidateUser(userId, families = ['/api/notifications', '/api/dashboard']) {
+  if (!userId) return;
+  const tag = 'u:' + userId;
+  try {
+    for (const f of families) {
+      const entries = await list('cache:' + f);
+      await Promise.all(
+        entries.filter(e => e.key.includes('|' + tag + '|')).map(e => del(e.key).catch(() => {}))
+      );
+    }
+  } catch (_) { /* best-effort: a failed invalidation just means a brief stale read */ }
+}
+
+module.exports = { cacheMiddleware, syncMiddleware, invalidateUser };

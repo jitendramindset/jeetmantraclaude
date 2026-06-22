@@ -52,6 +52,26 @@
   /* Cards */
   .row { display: grid; grid-template-columns: 2fr 1fr; gap: 14px; }
   @media (max-width: 1024px) { .row { grid-template-columns: 1fr; } }
+  /* Mobile / smartboard-portrait: collapse the fixed 240px sidebar (which left
+     only ~120px for content on a 360px screen) into a single column with a
+     horizontally-scrollable nav strip, so cards get full width and nothing
+     overflows. Nav stays usable (items still switch sections via onclick). */
+  @media (max-width: 768px) {
+    /* minmax(0,1fr) lets the single column shrink below its content's min-content
+       width — without it the nowrap nav row forces the column wider than the
+       viewport and the whole page overflows. */
+    .shell { grid-template-columns: minmax(0, 1fr); grid-template-rows: 56px auto 1fr; }
+    .topbar { grid-column: 1 / -1; min-width: 0; }
+    .sidebar { display: flex; flex-direction: row; align-items: center; gap: 6px;
+      min-width: 0; max-width: 100vw;
+      overflow-x: auto; overflow-y: hidden; white-space: nowrap;
+      border-right: 0; border-bottom: 1px solid var(--jm-border, #e5e7eb); padding: 6px 8px; }
+    .sidebar .nav-group-title { display: none; }
+    .nav-item { flex: 0 0 auto; }
+    .nav-item .badge { margin-left: 6px; }
+    .content { padding: 14px; min-width: 0; }
+    .cmdk { display: none; }
+  }
   .card { background: var(--jm-surface, #fff); border: 1px solid var(--jm-border, #e5e7eb); border-radius: 10px; padding: 14px; }
   .card h3 { margin: 0 0 10px; font-size: 14px; font-weight: 700; letter-spacing: -0.01em; display: flex; align-items: center; gap: 6px; }
   .card h3 .accent { color: var(--jm-text-muted, #888); font-weight: 400; font-size: 11px; margin-left: auto; }
@@ -97,7 +117,7 @@
 <div class="shell">
   <!-- TOP BAR -->
   <div class="topbar">
-    <div class="brand">⚡ EduOS<span class="pill">Platform OS</span></div>
+    <div class="brand" data-embed-hide>⚡ EduOS<span class="pill">Platform OS</span></div>
     <div class="cmdk">
       <input id="cmdk-input" placeholder="Search users, courses, payments… (Cmd-K)">
       <span class="kbd">⌘K</span>
@@ -106,7 +126,7 @@
     <div class="tenant-switcher" id="tenantSwitcher" title="Active tenant">🏫 <span id="tenantName">All tenants</span> ▾</div>
     <div class="status-pill" id="statusPill" title="System status"><span class="dot"></span><span id="statusText">checking…</span></div>
     <button class="icon-btn" title="Notifications">🔔</button>
-    <button class="icon-btn" title="Admin" onclick="window.location.href='/dashboard.html'">👤</button>
+    <button class="icon-btn" title="Admin" onclick="window.location.href='/app'">👤</button>
   </div>
 
   <!-- SIDEBAR -->
@@ -132,6 +152,7 @@
     <div class="nav-group-title">Org</div>
     <div class="nav-item" data-section="franchise"><span class="ic">🌐</span>Franchise</div>
     <div class="nav-item" data-section="widgets"><span class="ic">🧩</span>Widgets</div>
+    <div class="nav-item" data-section="integrations"><span class="ic">🔌</span>Integrations</div>
     <div class="nav-item" data-section="system"><span class="ic">⚙️</span>System</div>
   </div>
 
@@ -256,6 +277,7 @@ const SECTIONS = {
   analytics: renderAnalytics,
   franchise:() => renderComingSoon('Franchise', '🌐', 'Branches · Network revenue · Per-branch KPIs. Reuses /api/eduos/franchise.'),
   widgets:  renderWidgetsConfig,
+  integrations: renderIntegrations,
   system:   renderSystem
 };
 
@@ -593,11 +615,23 @@ async function renderSupport() {
   }
 }
 
-// ───── System / audit log (Sprint 8) ─────
+// ───── System / audit log + migrations (Sprint 8 + hardening) ─────
 async function renderSystem() {
   el('content').innerHTML = `
     <h1 class="page-title">System</h1>
-    <p class="page-sub">Platform audit trail — every privileged action with actor, target and timestamp. Powered by GET /api/admin/audit.</p>
+    <p class="page-sub">Platform audit trail + database migrations. Powered by /api/admin/audit and /api/admin/migrations.</p>
+    <div class="card" style="padding:16px;margin-bottom:16px">
+      <h3 style="margin:0 0 8px;font-size:14px">🗄️ Database migrations</h3>
+      <div style="font-size:11px;color:var(--jm-text-muted);margin-bottom:12px">Run pending SQL migrations against your Supabase instance via the /pg/query endpoint. Idempotent — safe to re-run.</div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <select id="migFile" style="padding:8px 10px;border:1px solid var(--jm-border);border-radius:6px;background:var(--jm-surface);color:inherit;font-size:13px">
+          <option value="001_rls_policies.sql">001_rls_policies.sql — RLS on all tables</option>
+          <option value="002_indexes.sql">002_indexes.sql — Performance indexes (50+ columns)</option>
+        </select>
+        <button onclick="runMigration()" id="migBtn" style="padding:8px 16px;border:none;border-radius:6px;background:#7c3aed;color:#fff;font-weight:700;cursor:pointer">Run migration</button>
+        <span id="migMsg" style="font-size:13px;font-weight:700"></span>
+      </div>
+    </div>
     <div class="card" style="padding:0;overflow:hidden">
       <table class="list" id="auditTable">
         <thead><tr><th>Action</th><th>Actor</th><th>Target</th><th>When</th></tr></thead>
@@ -782,6 +816,154 @@ async function saveWidgetConfig() {
   } catch(e){ btn.textContent='Save'; btn.disabled=false; alert('Save failed: '+e.message); }
 }
 
+// ───── Integrations (admin-mapped config — overrides .env) ─────
+const WG_INT_FIELDS = [
+  { group: '📧 Email (SMTP)', hint: 'Gmail: enable 2FA → create an App Password → use it as the password.', rows: [
+    ['smtp_host', 'SMTP host', 'smtp.gmail.com', 'text'],
+    ['smtp_port', 'SMTP port', '587', 'text'],
+    ['smtp_user', 'SMTP user / from email', 'you@gmail.com', 'text'],
+    ['smtp_pass', 'SMTP password (App Password)', '••••••••', 'password'],
+    ['smtp_from', 'From display', 'JeetMantra <you@gmail.com>', 'text'] ] },
+  { group: '📱 SMS / OTP', hint: 'Use a webhook (n8n → SMS gateway) OR Twilio. Webhook wins if both set.', rows: [
+    ['sms_webhook_url', 'SMS webhook URL', 'https://n8n.../webhook/sms', 'text'],
+    ['sms_webhook_secret', 'SMS webhook secret', '••••••••', 'password'],
+    ['twilio_sid', 'Twilio SID', 'ACxxxx…', 'text'],
+    ['twilio_token', 'Twilio token', '••••••••', 'password'],
+    ['twilio_from', 'Twilio from number', '+1xxxxxxxxxx', 'text'] ] },
+  { group: '🤖 AI generation', hint: 'Used by Exam Platform + AI tutor.', rows: [
+    ['ai_webhook_url', 'AI endpoint URL', 'https://n8n.../webhook/ai', 'text'],
+    ['ai_webhook_key', 'AI key', '••••••••', 'password'] ] },
+  { group: '🔗 Automation', hint: '', rows: [
+    ['n8n_secret', 'n8n sync secret', '••••••••', 'password'] ] },
+  { group: '🔍 Error monitoring', hint: 'Sentry DSN — paste your project DSN. Takes effect on next server restart (startup setting).', rows: [
+    ['sentry_dsn', 'Sentry DSN', 'https://key@oXXX.ingest.sentry.io/project', 'text'] ] }
+];
+
+async function renderIntegrations() {
+  el('content').innerHTML = `
+    <h1 class="page-title">Integrations</h1>
+    <p class="page-sub">Map email, SMS and AI providers here — stored in platform settings and used by the backend immediately (overrides server .env). Powered by /api/admin/settings.</p>
+    <div id="intForm"><div class="card" style="padding:16px;color:var(--jm-text-muted)">Loading…</div></div>
+  `;
+  let cur = {};
+  try { const r = await api('/admin/settings'); cur = r.settings || {}; } catch (e) {}
+  const fieldHtml = (key, label, ph, type) => {
+    const v = cur[key] || '';
+    const masked = type === 'password' && v ? '' : v;  // don't pre-fill secrets
+    const note = type === 'password' && v ? '<span style="font-size:11px;color:#16a34a">● set — leave blank to keep</span>' : '';
+    return `<div style="margin-bottom:12px"><label style="display:block;font-size:12px;font-weight:700;margin-bottom:4px">${esc(label)} ${note}</label>
+      <input id="int_${key}" type="${type}" value="${esc(masked)}" placeholder="${esc(ph)}" autocomplete="off"
+        style="width:100%;padding:8px 11px;border:1px solid var(--jm-border);border-radius:6px;background:var(--jm-surface);color:inherit;font-size:13px"></div>`;
+  };
+  el('intForm').innerHTML = WG_INT_FIELDS.map(g => `
+    <div class="card" style="padding:16px;margin-bottom:14px">
+      <h3 style="margin:0 0 2px;font-size:14px">${g.group}</h3>
+      ${g.hint ? `<div style="font-size:11px;color:var(--jm-text-muted);margin-bottom:12px">${esc(g.hint)}</div>` : '<div style="height:8px"></div>'}
+      ${g.rows.map(r => fieldHtml(...r)).join('')}
+    </div>`).join('') + `
+    <div style="display:flex;gap:10px;align-items:center">
+      <button id="intSave" onclick="saveIntegrations()" style="padding:9px 18px;border:none;border-radius:6px;background:var(--jm-primary,#6366f1);color:#fff;font-weight:700;cursor:pointer">Save integrations</button>
+      <button onclick="testIntegrationEmail()" style="padding:9px 16px;border:1px solid var(--jm-border);border-radius:6px;background:var(--jm-surface);color:inherit;font-weight:700;cursor:pointer">Send test email to me</button>
+      <span id="intMsg" style="font-size:13px;font-weight:700"></span>
+    </div>
+    <div class="card" style="padding:16px;margin-top:20px">
+      <h3 style="margin:0 0 6px;font-size:14px">💾 Database backup</h3>
+      <div style="font-size:11px;color:var(--jm-text-muted);margin-bottom:12px">Exports all tables via the Supabase REST API, compresses and AES-encrypts, saves to <code>backups/</code>. Configure <code>BACKUP_ENCRYPT_KEY</code> and optionally <code>BACKUP_S3_BUCKET</code> in .env or the server environment.</div>
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px">
+        <button onclick="triggerBackup()" id="backupBtn" style="padding:8px 16px;border:none;border-radius:6px;background:#0f766e;color:#fff;font-weight:700;cursor:pointer">Run backup now</button>
+        <button onclick="loadBackupList()" style="padding:8px 14px;border:1px solid var(--jm-border);border-radius:6px;background:var(--jm-surface);color:inherit;font-weight:700;cursor:pointer">Refresh list</button>
+        <span id="backupMsg" style="font-size:13px;font-weight:700"></span>
+      </div>
+      <div id="backupList" style="font-size:12px;color:var(--jm-text-muted)">Click "Refresh list" to see saved backups.</div>
+    </div>`;
+}
+
+async function saveIntegrations() {
+  const payload = {};
+  WG_INT_FIELDS.flatMap(g => g.rows).forEach(([key]) => {
+    const v = el('int_' + key)?.value ?? '';
+    // For password fields left blank, skip (keep existing); send everything else.
+    const isSecret = /pass|secret|token|key/i.test(key);
+    if (isSecret && v === '') return;
+    payload[key] = v;
+  });
+  const btn = el('intSave'); btn.disabled = true; btn.textContent = 'Saving…';
+  try {
+    await api('/admin/settings', { method: 'PUT', body: JSON.stringify(payload) });
+    el('intMsg').textContent = '✓ Saved & applied'; el('intMsg').style.color = '#16a34a';
+  } catch (e) { el('intMsg').textContent = 'Error: ' + e.message; el('intMsg').style.color = '#b91c1c'; }
+  btn.disabled = false; btn.textContent = 'Save integrations';
+  setTimeout(() => { el('intMsg').textContent = ''; }, 3000);
+}
+
+async function testIntegrationEmail() {
+  el('intMsg').textContent = 'Sending…'; el('intMsg').style.color = 'var(--jm-text-muted)';
+  try {
+    const r = await api('/admin/test-email', { method: 'POST', body: '{}' });
+    el('intMsg').textContent = r.sent ? '✓ Sent — check your inbox' : '⚠ ' + (r.note || 'Not sent (configure SMTP first)');
+    el('intMsg').style.color = r.sent ? '#16a34a' : '#b45309';
+  } catch (e) { el('intMsg').textContent = 'Error: ' + e.message; el('intMsg').style.color = '#b91c1c'; }
+}
+
+async function triggerBackup() {
+  const btn = el('backupBtn'); btn.disabled = true; btn.textContent = 'Starting…';
+  el('backupMsg').textContent = ''; el('backupMsg').style.color = 'var(--jm-text-muted)';
+  try {
+    const r = await api('/admin/backup/trigger', { method: 'POST', body: '{}' });
+    el('backupMsg').textContent = `✓ Backup running (pid ${r.pid}) — refresh list in ~30s`;
+    el('backupMsg').style.color = '#16a34a';
+    setTimeout(() => loadBackupList(), 35000);
+  } catch (e) {
+    el('backupMsg').textContent = 'Error: ' + e.message;
+    el('backupMsg').style.color = '#b91c1c';
+  }
+  btn.disabled = false; btn.textContent = 'Run backup now';
+}
+
+async function loadBackupList() {
+  const div = el('backupList');
+  div.textContent = 'Loading…';
+  try {
+    const r = await api('/admin/backup/list');
+    if (!r.backups || r.backups.length === 0) {
+      div.textContent = 'No backups found. Run one above or enable the --profile backup service.';
+      return;
+    }
+    div.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="text-align:left;border-bottom:1px solid var(--jm-border)">
+        <th style="padding:4px 8px">File</th><th style="padding:4px 8px">Size</th><th style="padding:4px 8px">Created</th>
+      </tr></thead><tbody>${r.backups.map(b => `<tr style="border-bottom:1px solid var(--jm-border)">
+        <td style="padding:4px 8px;font-family:monospace">${esc(b.name)}</td>
+        <td style="padding:4px 8px">${b.sizeMB} MB</td>
+        <td style="padding:4px 8px">${new Date(b.createdAt).toLocaleString()}</td>
+      </tr>`).join('')}</tbody></table>
+      <div style="margin-top:6px;color:var(--jm-text-muted)">Stored in: <code>${esc(r.dir)}</code></div>`;
+  } catch (e) { div.textContent = 'Error: ' + e.message; }
+}
+
+async function runMigration() {
+  const file = el('migFile')?.value;
+  if (!file) return;
+  const btn = el('migBtn'); btn.disabled = true; btn.textContent = 'Running…';
+  el('migMsg').textContent = ''; el('migMsg').style.color = 'var(--jm-text-muted)';
+  try {
+    const r = await api('/admin/migrations/run', { method: 'POST', body: JSON.stringify({ file }) });
+    const errs = r.errors || [];
+    if (errs.length) {
+      el('migMsg').textContent = `⚠ ${r.statements} statements, ${errs.length} errors`;
+      el('migMsg').style.color = '#b45309';
+      console.error('[migration errors]', errs);
+    } else {
+      el('migMsg').textContent = `✓ ${r.statements} statements applied`;
+      el('migMsg').style.color = '#16a34a';
+    }
+  } catch (e) {
+    el('migMsg').textContent = 'Error: ' + e.message;
+    el('migMsg').style.color = '#b91c1c';
+  }
+  btn.disabled = false; btn.textContent = 'Run migration';
+}
+
 // ───── Coming-soon placeholder ─────
 function renderComingSoon(name, emoji, blurb) {
   el('content').innerHTML = `
@@ -811,6 +993,18 @@ loadStatus();
 render('overview');
 // Refresh status every 30s
 setInterval(loadStatus, 30000);
+</script>
+<script>
+/* App-shell embed mode: when hosted in the shell (?embed=1), hide controls that
+   navigate OUT to the shell so they can't nest the iframe (shell supplies chrome). */
+(function(){ try{ if(new URLSearchParams(location.search).get('embed')!=='1') return;
+  document.documentElement.classList.add('embed');
+  var s=document.createElement('style');
+  s.textContent='html.embed a[href$="/dashboard.html"],html.embed a[href="/app"],html.embed [data-embed-hide]{display:none!important}';
+  (document.head||document.documentElement).appendChild(s);
+  var hide=function(){ document.querySelectorAll('[onclick]').forEach(function(el){ var o=el.getAttribute('onclick')||''; if(o.indexOf('dashboard.html')>-1 || /['"]\/app['"]/.test(o)) el.style.display='none'; }); };
+  if(document.readyState!=='loading') hide(); else document.addEventListener('DOMContentLoaded',hide);
+}catch(e){} })();
 </script>
 </body>
 </html>

@@ -29,6 +29,8 @@ body{display:flex;min-height:100vh;overflow-x:clip}
 .nav-item:hover{background:rgba(255,255,255,0.05);color:#fff}
 .nav-item.active{background:rgba(124,58,237,0.14);color:var(--jm-primary);border-right:3px solid var(--jm-primary)}
 .nav-item .icon{font-size:18px;width:22px;text-align:center}
+.nav-group-title{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,0.38);font-weight:600;padding:14px 20px 4px;pointer-events:none;user-select:none}
+.nav-group-title:not(:first-child){margin-top:4px;border-top:1px solid rgba(255,255,255,0.06)}
 .sidebar-footer{padding:16px 20px;border-top:1px solid rgba(255,255,255,0.1)}
 .btn-logout{width:100%;background:transparent;border:1.5px solid rgba(255,255,255,0.2);color:#fff;border-radius:var(--jm-radius-sm);padding:10px;cursor:pointer;font-size:13px;font-family:inherit;font-weight:600;transition:all .15s}
 .btn-logout:hover{background:var(--jm-primary);border-color:var(--jm-primary)}
@@ -433,6 +435,12 @@ html[data-theme="dark"]{
   .stats-grid{grid-template-columns:1fr 1fr}
   .grid-2,.grid-3{grid-template-columns:1fr}
   .overlay.show{display:block}
+  /* Mobile topbar: wrap instead of overflowing (the wrap rule existed for tablet
+     only — carry it down so the action row + search reflow under 768px). */
+  .topbar{flex-wrap:wrap;row-gap:8px;padding:12px 14px;gap:10px}
+  .topbar h3{flex:1 1 auto;min-width:0;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .topbar .search-bar{order:5;flex:1 1 100%;max-width:none}
+  .topbar-actions{flex-wrap:wrap;justify-content:flex-end;gap:8px}
 }
 /* Tablet (769–1280px): narrow the sidebar so the content column isn't cramped,
    and let the topbar wrap instead of its items overflowing. */
@@ -444,7 +452,32 @@ html[data-theme="dark"]{
 }
 </style>
 <script src="/jm-theme.js"></script>
-<script src="/widget-registry.js"></script>
+<script src="/jm-settings.js"></script>
+<script>
+/* Unify the customization store: the Settings module (/app#/m/settings) is the
+   single source of truth via JMSettings (jm_settings). Seed it from any legacy
+   jm_theme so existing dark-mode choices survive, then keep both mirrored so a
+   change made anywhere is reflected everywhere. */
+(function(){ try{
+  var raw = localStorage.getItem('jm_settings');
+  var s = raw ? JSON.parse(raw) : {};
+  if (s.dark === undefined && window.JMSettings) {
+    JMSettings.set({ dark: localStorage.getItem('jm_theme') === 'dark' });   // migrate legacy → unified
+  } else if (window.JMSettings) {
+    JMSettings.applyTheme();                                                  // apply Settings colors/font/dark
+    localStorage.setItem('jm_theme', JMSettings.get().dark ? 'dark' : 'light'); // keep legacy mirror in sync
+  }
+}catch(e){} })();
+/* The Settings module runs in an in-shell iframe; when it writes jm_settings the
+   shell (a separate same-origin document) gets a `storage` event — re-apply so a
+   colour/theme/font change in Settings reflects in the shell live, no reload. */
+window.addEventListener('storage', function(e){
+  if (e.key === 'jm_settings' && window.JMSettings) {
+    try { JMSettings.applyTheme(); localStorage.setItem('jm_theme', JMSettings.get().dark ? 'dark' : 'light'); } catch(_){}
+  }
+});
+</script>
+<script src="/widget-registry.js?v=5"></script>
 </head>
 <body>
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
@@ -527,7 +560,7 @@ html[data-theme="dark"]{
     <!-- For roles still on the classic dashboard: a link to their validated
          widget dashboard (composed from /api/me/contexts). -->
     <div id="wgTryBar" style="display:none;justify-content:flex-end;margin-bottom:10px">
-      <a href="/widgets.html" style="font-size:12px;font-weight:700;background:var(--jm-surface,#fff);border:1px solid var(--jm-border,#ddd);border-radius:8px;padding:6px 12px;color:var(--jm-text-strong,#333);text-decoration:none">🧩 Try the widget dashboard →</a>
+      <a href="#" onclick="toggleWidgetMode();return false" style="font-size:12px;font-weight:700;background:var(--jm-surface,#fff);border:1px solid var(--jm-border,#ddd);border-radius:8px;padding:6px 12px;color:var(--jm-text-strong,#333);text-decoration:none">🧩 Try the widget dashboard →</a>
     </div>
 
     <!-- STUDENT -->
@@ -955,7 +988,7 @@ html[data-theme="dark"]{
             </div>
             <div style="padding:10px 0;display:flex;justify-content:space-between;align-items:center">
               <div><div style="font-weight:600">Full Admin Panel</div><div style="font-size:11px;color:var(--jm-text-muted)">User management, courses, payouts</div></div>
-              <a href="/admin.html" class="btn-sm btn-primary" style="text-decoration:none">Open →</a>
+              <a href="#/m/admin" class="btn-sm btn-primary" style="text-decoration:none">Open →</a>
             </div>
             <div style="padding:10px 0;border-top:1px solid var(--jm-border);display:flex;justify-content:space-between;align-items:center">
               <div><div style="font-weight:600">🛰️ AI Dev Control Center</div><div style="font-size:11px;color:var(--jm-text-muted)">Live audit · module completion · issue backlog</div></div>
@@ -1140,53 +1173,69 @@ let currentUser=null,allUsers=[];
 // "t" maps to a section id `sec-{role}-{t}` (or 'top' to scroll back up).
 const NAV={
   student:[
+    {group:'Learn'},
     {i:'🏠',l:'Dashboard',t:'top',a:true},
     {i:'📚',l:'My Courses',t:'courses'},
     {i:'📡',l:'Live Classes',t:'live'},
+    {i:'📝',l:'Assignments',t:'hw'},
+    {i:'🧪',l:'Take Exam',h:'/exam-platform.html'},
+    {i:'🈯',l:'Bhasha Setu',h:'/bhasha-setu.html'},
+    {i:'🤖',l:'AI Tutor',action:'openAiTutor()'},
+    {group:'Progress'},
+    {i:'📊',l:'My Results',action:'openMyExternalResults()'},
+    {i:'🎓',l:'Certificates',action:'openCertificatesPage()'},
+    {i:'🗓',l:'Attendance',action:'openAttendanceReport()'},
+    {i:'🗒️',l:'Notes',t:'notes'},
+    {i:'📹',l:'Recordings',action:'openRecordings()'},
+    {i:'📥',l:'Downloads',action:'openDownloads()'},
+    {group:'Connect'},
     {i:'📰',l:'Wall',t:'wall'},
     {i:'💬',l:'Messages',action:'openMessenger()'},
     {i:'📅',l:'Calendar',action:'openCalendar()'},
     {i:'📍',l:'Near Me',action:'openNearbySearch()'},
-    {i:'📥',l:'Downloads',action:'openDownloads()'},
-    {i:'📹',l:'Recordings',action:'openRecordings()'},
-    {i:'📝',l:'Assignments',t:'hw'},
-    {i:'🧪',l:'Take Exam',h:'/exam-platform.html'},
-    {i:'🈯',l:'Bhasha Setu',h:'/bhasha-setu.html'},
-    {i:'📊',l:'My Results',action:'openMyExternalResults()'},
-    {i:'🗒️',l:'Notes',t:'notes'},
-    {i:'🗓',l:'Attendance',action:'openAttendanceReport()'},
+    {i:'🛒',l:'Marketplace',h:'/marketplace.html'},
+    {group:'Account'},
     {i:'🏫',l:'My Institutions',action:'openMyInstitutions()'},
     {i:'💳',l:'Payments',action:'openPayments()'},
-    {i:'🛰️',l:'EduOS',action:'openEduOS()'},
     {i:'💳',l:'Wallet',action:'openWallet()'},
     {i:'⚡',l:'Plans',action:'openPlans()'},
-    {i:'🛒',l:'Marketplace',h:'/marketplace.html'},
+    {i:'🛰️',l:'EduOS',action:'openEduOS()'},
     {i:'⚙️',l:'Settings',action:'openSettings()'},
-    {i:'👤',l:'Profile',action:'openProfilePage()'}
+    {i:'👤',l:'Profile',action:'openProfilePage()'},
+    {i:'❓',l:'Help',action:'openHelpPage()'}
   ],
   teacher:[
+    {group:'Primary'},
     {i:'🏠',l:'Dashboard',t:'top',a:true},
     {i:'📚',l:'My Courses',t:'courses'},
     {i:'📡',l:'Live Classes',t:'live'},
     {i:'🎥',l:'Studio',h:'/studio.html'},
-    {i:'📝',l:'Exam Builder',h:'/exam-platform.html'},
-    {i:'🈯',l:'Bhasha Setu',h:'/bhasha-setu.html'},
     {i:'📰',l:'Wall',t:'wall'},
     {i:'💬',l:'Messages',action:'openMessenger()'},
     {i:'📅',l:'Calendar',action:'openCalendar()'},
     {i:'📹',l:'Recordings',action:'openRecordings()'},
+    {group:'Tools'},
+    {i:'📝',l:'Exam Builder',h:'/exam-platform.html'},
+    {i:'🈯',l:'Bhasha Setu',h:'/bhasha-setu.html'},
+    {i:'🛒',l:'Marketplace',h:'/marketplace.html'},
     {i:'📊',l:'Bookings',action:'openBookings()'},
-    {i:'💰',l:'Payments',action:'openPayments()'},
-    {i:'🎟',l:'Coupons',action:'openCoupons()'},
-    {i:'🧾',l:'Billing',action:'openBilling()'},
     {i:'📝',l:'Essay grading',action:'openEssayInbox()'},
-    {i:'⚙️',l:'Settings',action:'openSettings()'},
-    {i:'🏫',l:'My Institutions',action:'openMyInstitutions()'},
-    {i:'🛰️',l:'EduOS',action:'openEduOS()'},
+    {i:'👨‍🎓',l:'My Students',action:'openMyStudentsPage()'},
+    {i:'📊',l:'Analytics',action:'openAnalyticsPage()'},
+    {i:'🧠',l:'Lesson Planner',action:'openLessonPlanner()'},
+    {i:'🤖',l:'AI Assistant',action:'openAiTutor()'},
+    {group:'Money'},
+    {i:'💰',l:'Payments',action:'openPayments()'},
     {i:'💳',l:'Wallet',action:'openWallet()'},
     {i:'⚡',l:'Plans',action:'openPlans()'},
-    {i:'🛒',l:'Marketplace',h:'/marketplace.html'},
-    {i:'👤',l:'Profile',action:'openProfilePage()'}
+    {i:'🎟',l:'Coupons',action:'openCoupons()'},
+    {i:'🧾',l:'Billing',action:'openBilling()'},
+    {group:'Account & setup'},
+    {i:'⚙️',l:'Settings',action:'openSettings()'},
+    {i:'👤',l:'Profile',action:'openProfilePage()'},
+    {i:'🏫',l:'My Institutions',action:'openMyInstitutions()'},
+    {i:'🛰️',l:'EduOS',action:'openEduOS()'},
+    {i:'❓',l:'Help',action:'openHelpPage()'}
   ],
   partner:[
     {i:'🏠',l:'Dashboard',t:'top',a:true},
@@ -1199,20 +1248,26 @@ const NAV={
     {i:'⚡',l:'Plans',action:'openPlans()'},
     {i:'🛒',l:'Marketplace',h:'/marketplace.html'},
     {i:'⚙️',l:'Settings',action:'openSettings()'},
-    {i:'👤',l:'Profile',action:'openProfilePage()'}
+    {i:'👤',l:'Profile',action:'openProfilePage()'},
+    {i:'❓',l:'Help',action:'openHelpPage()'}
   ],
   school:[
     {i:'🏠',l:'Dashboard',t:'top',a:true},
     {i:'📚',l:'Available Courses',t:'courses'},
+    {i:'👨‍🎓',l:'Students',t:'students'},
     {i:'👨‍🏫',l:'Teachers',t:'teachers'},
+    {i:'📊',l:'Analytics',action:'openAnalyticsPage()'},
     {i:'💳',l:'Payments',t:'payments'},
     {i:'💬',l:'Messages',action:'openMessenger()'},
     {i:'📅',l:'Calendar',action:'openCalendar()'},
     {i:'🛰️',l:'EduOS',action:'openEduOS()'},
     {i:'💳',l:'Wallet',action:'openWallet()'},
+    {i:'🎟',l:'Coupons',action:'openCoupons()'},
+    {i:'🧾',l:'Billing',action:'openBilling()'},
     {i:'🛒',l:'Browse Marketplace',h:'/marketplace.html'},
     {i:'⚙️',l:'Settings',action:'openSettings()'},
-    {i:'👤',l:'Profile',action:'openProfilePage()'}
+    {i:'👤',l:'Profile',action:'openProfilePage()'},
+    {i:'❓',l:'Help',action:'openHelpPage()'}
   ],
   parent:[
     {i:'🏠',l:'Dashboard',t:'top',a:true},
@@ -1220,6 +1275,7 @@ const NAV={
     {i:'📈',l:'Snapshot',t:'snapshot'},
     {i:'💬',l:'Messages',action:'openMessenger()'},
     {i:'📅',l:'Calendar',action:'openCalendar()'},
+    {i:'💳',l:'Payments',action:'openPayments()'},
     {i:'💳',l:'Wallet',action:'openWallet()'},
     {i:'🛒',l:'Marketplace',h:'/marketplace.html'},
     {i:'⚙️',l:'Settings',action:'openSettings()'},
@@ -1231,13 +1287,18 @@ const NAV={
     {i:'👨‍🏫',l:'Teachers',t:'teachers'},
     {i:'💰',l:'Earnings',t:'earnings'},
     {i:'📚',l:'Platform Courses',t:'courses'},
+    {i:'📝',l:'Exam Builder',h:'/exam-platform.html'},
+    {i:'📊',l:'Analytics',action:'openAnalyticsPage()'},
     {i:'💬',l:'Messages',action:'openMessenger()'},
     {i:'📅',l:'Calendar',action:'openCalendar()'},
     {i:'🛰️',l:'EduOS',action:'openEduOS()'},
     {i:'💳',l:'Wallet',action:'openWallet()'},
+    {i:'🎟',l:'Coupons',action:'openCoupons()'},
+    {i:'🧾',l:'Billing',action:'openBilling()'},
     {i:'🛒',l:'Browse Marketplace',h:'/marketplace.html'},
     {i:'⚙️',l:'Settings',action:'openSettings()'},
-    {i:'👤',l:'Profile',action:'openProfilePage()'}
+    {i:'👤',l:'Profile',action:'openProfilePage()'},
+    {i:'❓',l:'Help',action:'openHelpPage()'}
   ],
   admin:[
     {i:'🏠',l:'Dashboard',t:'top',a:true},
@@ -1246,9 +1307,11 @@ const NAV={
     {i:'💳',l:'Transactions',t:'transactions'},
     {i:'💬',l:'Messages',action:'openMessenger()'},
     {i:'📅',l:'Calendar',action:'openCalendar()'},
+    {i:'📊',l:'Analytics',action:'openAnalyticsPage()'},
     {i:'⚙️',l:'Settings',action:'openSettings()'},
     {i:'👤',l:'Profile',action:'openProfilePage()'},
-    {i:'🔧',l:'Full Admin Panel',h:'/admin.html'}
+    {i:'🔧',l:'Full Admin Panel',h:'#/m/admin'},
+    {i:'❓',l:'Help',action:'openHelpPage()'}
   ],
   corporate_trainer:[
     {i:'🏠',l:'Dashboard',t:'top',a:true},
@@ -1288,17 +1351,23 @@ const NAV={
     {i:'👤',l:'Profile',action:'openProfilePage()'}
   ]
 };
-const ROLE_LABELS={student:'🎓 Student',teacher:'👨‍🏫 Teacher',partner:'🤝 Partner',admin:'⚙️ Admin',school:'🏫 School',coaching:'🏆 Coaching',corporate_trainer:'💼 Corporate Trainer',content_creator:'🎬 Content Creator',franchise:'🏢 Franchise'};
-const ROLE_CLS={student:'role-student',teacher:'role-teacher',partner:'role-partner',admin:'role-admin',school:'role-school',coaching:'role-coaching',corporate_trainer:'role-teacher',content_creator:'role-partner',franchise:'role-admin'};
+const ROLE_LABELS={student:'🎓 Student',teacher:'👨‍🏫 Teacher',partner:'🤝 Partner',admin:'⚙️ Admin',school:'🏫 School',coaching:'🏆 Coaching',parent:'👪 Parent',corporate_trainer:'💼 Corporate Trainer',content_creator:'🎬 Content Creator',franchise:'🏢 Franchise'};
+const ROLE_CLS={student:'role-student',teacher:'role-teacher',partner:'role-partner',admin:'role-admin',school:'role-school',coaching:'role-coaching',parent:'role-student',corporate_trainer:'role-teacher',content_creator:'role-partner',franchise:'role-admin'};
 function fmt(n){return '₹'+Number(n||0).toLocaleString('en-IN');}
 function buildNav(role){
   const items=NAV[role]||NAV.student;
   document.getElementById('navMenu').innerHTML=items.map((it,idx)=>{
+    if(it.group){
+      return `<div class="nav-group-title" aria-hidden="true">${escHtml(it.group)}</div>`;
+    }
     let onclick;
     if(it.action){
       onclick='_navActivate(this);'+it.action; // highlight + close any page, then open — same as section items
     } else if(it.h){
-      onclick=`window.location.href='${it.h}'`;
+      // Module pages render INSIDE the shell via the hash router; other hrefs
+      // navigate normally. (Was a full-page jump to the standalone page.)
+      const _MOD={'/studio.html':'studio','/exam-platform.html':'tests','/bhasha-setu.html':'learn','/marketplace.html':'marketplace','/settings.html':'settings','/admin-os.html':'admin'};
+      onclick = _MOD[it.h] ? `location.hash='#/m/${_MOD[it.h]}'` : `window.location.href='${it.h}'`;
     } else if(it.t==='top'){
       onclick=`navScroll(this,null)`;
     } else {
@@ -2090,7 +2159,7 @@ async function loadDashboard(){
   document.getElementById('userRoleBadge').className='user-role '+(ROLE_CLS[role]||'role-student');
   document.getElementById('userAvatar').textContent=(currentUser.fullName||'U')[0].toUpperCase();
   document.getElementById('pageTitle').textContent=(ROLE_LABELS[role]||role).replace(/^[^\w]+/,'').trim()+' Dashboard';
-  document.title='JeetMantra — '+role.charAt(0).toUpperCase()+role.slice(1)+' Dashboard';
+  document.title='JeetMantra — '+(ROLE_LABELS[role]||role).replace(/^[^\w]+/,'').trim()+' Dashboard';
   buildNav(role);
   try{
     // Route through api() so X-Active-Institution is sent — the dashboard is the
@@ -5504,7 +5573,7 @@ async function cpnRefresh(){
       <div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px">${disc} · ${escHtml(c.course_title||'All courses')}</div><div style="font-size:11px;color:var(--jm-text-muted)">${used} ${exp}</div></div>
       <button class="btn-sm btn-outline" onclick="cpnDelete('${c.id}')" title="Delete" style="color:#b91c1c">🗑</button>
     </div>`;
-  }).join(''):'<div class="empty-state" style="padding:20px"><div class="icon">🎟</div>No coupons yet. Create one below.</div>';
+  }).join(''):'<div class="empty-state" style="text-align:center;padding:32px"><div class="icon" style="font-size:44px">🎟</div><div style="font-weight:600;margin:8px 0">No coupons yet</div><div style="color:var(--jm-text-muted);font-size:13px;margin-bottom:14px">Give learners a discount nudge — coupons drive enrollment by ~20%.</div><button onclick="document.getElementById(\'cpnCode\')?.focus({preventScroll:false}); document.getElementById(\'cpnCode\')?.scrollIntoView({behavior:\'smooth\',block:\'center\'})" style="background:linear-gradient(135deg,var(--jm-primary),#a855f7);color:#fff;border:0;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(124,58,237,.35)">🎟 Create first coupon</button></div>';
   body.innerHTML=`
     <div style="border:1px solid var(--jm-border);border-radius:10px;padding:14px;margin-bottom:16px">
       <div style="font-weight:700;font-size:13px;margin-bottom:10px">Create a coupon</div>
@@ -5536,6 +5605,134 @@ async function cpnCreate(){
   }catch(e){ toast(e.message||'Create failed',true); }
 }
 async function cpnDelete(id){ if(!confirm('Delete this coupon?'))return; try{ await api('/payments/coupons/'+id,'DELETE'); toast('Deleted'); cpnRefresh(); }catch(e){ toast(e.message,true); } }
+
+// ── My Certificates: every certificate this user has earned, with verify +
+// share links. Backed by GET /api/certificates/my. ─────────────────────────
+async function openCertificatesPage(){
+  showModal('🎓 My Certificates', `<div id="cert-body" style="min-height:160px"><div style="color:var(--jm-text-muted);padding:14px">Loading your certificates…</div></div>`);
+  const body=document.getElementById('cert-body'); if(!body) return;
+  let list=[];
+  try{ const r=await api('/certificates/my','GET'); list=r.certificates||[]; }
+  catch(e){ body.innerHTML=`<div class="empty-state" style="padding:20px"><div class="icon">⚠️</div>${escHtml(e.message||'Could not load certificates')}</div>`; return; }
+  if(!list.length){
+    body.innerHTML=`<div class="empty-state" style="text-align:center;padding:32px"><div class="icon" style="font-size:44px">🎓</div><div style="font-weight:600;margin:8px 0">No certificates yet</div><div style="color:var(--jm-text-muted);font-size:13px;margin-bottom:14px">Finish a course to earn your first certificate — it's verifiable and shareable with employers.</div><button onclick="closeAnyModal(); document.querySelector('.nav-item[data-nav-key=courses]')?.click()" style="background:linear-gradient(135deg,var(--jm-primary),#a855f7);color:#fff;border:0;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(124,58,237,.35)">📚 Go to my courses</button></div>`;
+    return;
+  }
+  const origin=location.origin;
+  body.innerHTML=list.map(c=>{
+    const issued=c.issued_at?new Date(c.issued_at).toLocaleDateString():'';
+    const title=escHtml(c.course_title||c.title||'Course certificate');
+    const verifyUrl=c.verify_token?`${origin}/api/certificates/verify/${encodeURIComponent(c.verify_token)}`:'';
+    return `<div style="display:flex;align-items:center;gap:12px;padding:14px;border:1px solid var(--jm-border);border-radius:12px;margin-bottom:10px;background:linear-gradient(135deg,var(--jm-primary-tint,#f3eefe),transparent)">
+      <div style="font-size:32px">🎓</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;font-size:14px">${title}</div>
+        <div style="font-size:11px;color:var(--jm-text-muted)">Issued ${issued}${c.certificate_number?' · #'+escHtml(c.certificate_number):''}</div>
+      </div>
+      ${verifyUrl?`<a href="${verifyUrl}" target="_blank" rel="noopener" class="btn-sm btn-outline" style="text-decoration:none">🔗 Verify</a>`:''}
+    </div>`;
+  }).join('');
+}
+
+// ── My Students: aggregate roster across all the teacher's courses. Loads each
+// course's /students endpoint and merges by student. ────────────────────────
+async function openMyStudentsPage(){
+  showModal('👨‍🎓 My Students', `<div id="stu-body" style="min-height:160px"><div style="color:var(--jm-text-muted);padding:14px">Loading your students…</div></div>`);
+  const body=document.getElementById('stu-body'); if(!body) return;
+  let courses=window._teacherCourses||[];
+  if(!courses.length){
+    body.innerHTML=`<div class="empty-state" style="text-align:center;padding:32px"><div class="icon" style="font-size:44px">👨‍🎓</div><div style="font-weight:600;margin:8px 0">No students yet</div><div style="color:var(--jm-text-muted);font-size:13px;margin-bottom:14px">Create a course and share it — enrolled learners will appear here with their progress.</div><button onclick="closeAnyModal(); (typeof openWizard==='function'?openWizard():document.querySelector('.nav-item[data-nav-key=courses]')?.click())" style="background:linear-gradient(135deg,var(--jm-primary),#a855f7);color:#fff;border:0;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(124,58,237,.35)">＋ Create a course</button></div>`;
+    return;
+  }
+  // Merge rosters across courses, keyed by student_id.
+  const byStudent={};
+  await Promise.all(courses.map(async c=>{
+    try{
+      const r=await api('/courses/'+c.id+'/students','GET');
+      (r.students||[]).forEach(s=>{
+        const k=s.student_id||s.email;
+        if(!byStudent[k]) byStudent[k]={name:s.full_name,email:s.email,courses:[],bestPct:0};
+        byStudent[k].courses.push(c.title);
+        byStudent[k].bestPct=Math.max(byStudent[k].bestPct, s.progress_percentage||0);
+      });
+    }catch(e){}
+  }));
+  const students=Object.values(byStudent);
+  if(!students.length){
+    body.innerHTML=`<div class="empty-state" style="text-align:center;padding:32px"><div class="icon" style="font-size:44px">👨‍🎓</div><div style="font-weight:600;margin:8px 0">No enrollments yet</div><div style="color:var(--jm-text-muted);font-size:13px;margin-bottom:14px">Your ${courses.length} course${courses.length>1?'s have':' has'} no enrolled students yet. Share your course link to get learners in.</div><button onclick="closeAnyModal(); document.querySelector('.nav-item[data-nav-key=courses]')?.click()" style="background:linear-gradient(135deg,var(--jm-primary),#a855f7);color:#fff;border:0;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(124,58,237,.35)">📚 View my courses</button></div>`;
+    return;
+  }
+  students.sort((a,b)=>b.bestPct-a.bestPct);
+  body.innerHTML=`<div style="font-size:12px;color:var(--jm-text-muted);margin-bottom:10px">${students.length} student${students.length>1?'s':''} across ${courses.length} course${courses.length>1?'s':''}</div>`+
+    students.map(s=>`<div style="display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--jm-border);border-radius:10px;margin-bottom:8px">
+      <div style="width:34px;height:34px;border-radius:50%;background:var(--jm-primary-tint,#eee);color:var(--jm-primary);display:flex;align-items:center;justify-content:center;font-weight:700">${escHtml((s.name||'?')[0].toUpperCase())}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:600;font-size:13px">${escHtml(s.name||'—')}</div>
+        <div style="font-size:11px;color:var(--jm-text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(s.courses.join(', '))}</div>
+      </div>
+      <div style="text-align:right"><div style="font-weight:700;font-size:13px">${s.bestPct}%</div><div style="font-size:10px;color:var(--jm-text-muted)">progress</div></div>
+    </div>`).join('');
+}
+
+// ── Help & Support: static help center with quick links + contact. No backend
+// dependency — always available to every role. ─────────────────────────────
+function openHelpPage(){
+  const faqs=[
+    ['🚀 Getting started','Pick a role on signup, then use the left sidebar to navigate. Every empty card has a button to create your first item.'],
+    ['💳 Payments & wallet','Top up your wallet from Wallet → Add money. Course purchases and refunds appear in your transaction history.'],
+    ['🎥 Going live','Teachers: open Studio to broadcast. Students join from Live Classes when a teacher is on air.'],
+    ['🌐 Language','Change the interface language from the top bar selector or Settings. Bhasha Setu offers per-line read-aloud in 12 languages.'],
+    ['🔒 Account & privacy','Manage your profile, password, and notification settings from Settings. We never share your data without consent.']
+  ];
+  const body=`
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">
+      <button onclick="closeAnyModal(); openMessenger&&openMessenger('ai')" style="flex:1;min-width:150px;background:linear-gradient(135deg,var(--jm-primary),#a855f7);color:#fff;border:0;padding:14px;border-radius:10px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(124,58,237,.35)">🤖 Ask the AI Assistant</button>
+      <a href="mailto:support@mantravat.cloud" style="flex:1;min-width:150px;text-align:center;background:var(--jm-surface-2,#f5f5f5);color:inherit;border:1px solid var(--jm-border);padding:14px;border-radius:10px;font-weight:700;text-decoration:none">✉️ Email support</a>
+    </div>
+    <div style="font-weight:700;font-size:13px;margin-bottom:8px">Frequently asked</div>
+    ${faqs.map(([q,a])=>`<details style="border:1px solid var(--jm-border);border-radius:10px;padding:10px 14px;margin-bottom:8px">
+      <summary style="font-weight:600;font-size:13px;cursor:pointer">${q}</summary>
+      <div style="font-size:12px;color:var(--jm-text-muted);margin-top:8px;line-height:1.6">${a}</div>
+    </details>`).join('')}
+    <div style="font-size:11px;color:var(--jm-text-muted);text-align:center;margin-top:14px">Still stuck? Email <a href="mailto:support@mantravat.cloud">support@mantravat.cloud</a></div>`;
+  showModal('❓ Help & Support', body);
+}
+
+// ── Analytics: aggregate across the teacher's courses (students, completion,
+// attendance, revenue). Loads each course's /analytics endpoint. ───────────
+async function openAnalyticsPage(){
+  showModal('📊 Analytics', `<div id="ana-body" style="min-height:160px"><div style="color:var(--jm-text-muted);padding:14px">Crunching your numbers…</div></div>`);
+  const body=document.getElementById('ana-body'); if(!body) return;
+  let courses=window._teacherCourses||[];
+  if(!courses.length){
+    body.innerHTML=`<div class="empty-state" style="text-align:center;padding:32px"><div class="icon" style="font-size:44px">📊</div><div style="font-weight:600;margin:8px 0">No data yet</div><div style="color:var(--jm-text-muted);font-size:13px;margin-bottom:14px">Once you create courses and enroll students, your analytics will appear here.</div><button onclick="closeAnyModal(); (typeof openWizard==='function'?openWizard():switchTab('courses'))" style="background:linear-gradient(135deg,var(--jm-primary),#a855f7);color:#fff;border:0;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(124,58,237,.35)">＋ Create a course</button></div>`;
+    return;
+  }
+  let totStudents=0, totRevenue=0, pctSum=0, pctCount=0;
+  const perCourse=[];
+  await Promise.all(courses.map(async c=>{
+    try{
+      const a=await api('/courses/'+c.id+'/analytics','GET');
+      const s=a.students||a.student_count||0, rev=a.revenue||0, comp=a.completion_rate||0;
+      totStudents+=s; totRevenue+=rev; if(s){ pctSum+=comp; pctCount++; }
+      perCourse.push({title:c.title, students:s, revenue:rev, completion:comp});
+    }catch(e){ perCourse.push({title:c.title, students:0, revenue:0, completion:0}); }
+  }));
+  const avgComp=pctCount?Math.round(pctSum/pctCount):0;
+  const kpi=(label,val)=>`<div style="flex:1;min-width:120px;background:var(--jm-surface-2,#f5f5f5);border-radius:10px;padding:14px"><div style="font-size:11px;color:var(--jm-text-muted)">${label}</div><div style="font-size:22px;font-weight:800;margin-top:2px">${val}</div></div>`;
+  body.innerHTML=`
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">
+      ${kpi('Courses', courses.length)}
+      ${kpi('Total students', totStudents)}
+      ${kpi('Avg completion', avgComp+'%')}
+      ${kpi('Revenue', '₹'+totRevenue.toLocaleString('en-IN'))}
+    </div>
+    <div style="font-weight:700;font-size:13px;margin-bottom:8px">Per course</div>
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead><tr style="color:var(--jm-text-muted);font-size:11px;text-align:left"><th style="padding:6px 8px">Course</th><th style="padding:6px 8px;text-align:right">Students</th><th style="padding:6px 8px;text-align:right">Done</th><th style="padding:6px 8px;text-align:right">Revenue</th></tr></thead>
+      <tbody>${perCourse.map(p=>`<tr style="border-top:1px solid var(--jm-border)"><td style="padding:8px;font-weight:600">${escHtml(p.title)}</td><td style="padding:8px;text-align:right">${p.students}</td><td style="padding:8px;text-align:right">${p.completion}%</td><td style="padding:8px;text-align:right">₹${(p.revenue||0).toLocaleString('en-IN')}</td></tr>`).join('')}</tbody>
+    </table>`;
+}
 
 // ── AI Knowledge / RAG trainer: paste notes or re-index uploaded docs so the
 // AI tutor can ground answers in this course's own material. ───────────────
@@ -5641,9 +5838,9 @@ function _withButtonLoading(handler){
 // The room itself (liveRoom.html) handles status POSTs, Jitsi WebRTC bridge,
 // attendance polling and pause/end controls. Wrapped in _withButtonLoading so
 // a double-click can't fire two navigations.
-const startLive=_withButtonLoading(async (id)=>{ window.location.href='/liveRoom.html?class='+id; });
-const endLive=_withButtonLoading(async (id)=>{ window.location.href='/liveRoom.html?class='+id; });
-const joinLive=_withButtonLoading(async (id)=>{ window.location.href='/liveRoom.html?class='+id; });
+const startLive=_withButtonLoading(async (id)=>{ window.location.hash='#/m/live/'+id; });
+const endLive=_withButtonLoading(async (id)=>{ window.location.hash='#/m/live/'+id; });
+const joinLive=_withButtonLoading(async (id)=>{ window.location.hash='#/m/live/'+id; });
 
 // ============================================================
 // COURSE-CREATION WIZARD — 4 steps, inline page (no modal):
@@ -6025,7 +6222,7 @@ async function _openMoneyPage(kind){
               <td style="padding:10px"><span class="badge ${b.status==='confirmed'?'badge-green':b.status==='cancelled'?'badge-red':'badge-yellow'}">${b.status||'pending'}</span></td>
               <td style="padding:10px;text-align:right;font-weight:600">${b.amount?fmt(b.amount):'—'}</td>
             </tr>`).join('')}
-            </tbody></table>` : '<div class="empty-state"><div class="icon">📅</div>No bookings yet.</div>'}</div>
+            </tbody></table>` : '<div class="empty-state" style="text-align:center;padding:32px"><div class="icon" style="font-size:44px">📅</div><div style="font-weight:600;margin:8px 0">No bookings yet.</div><div style="color:var(--jm-text-muted);font-size:13px;margin-bottom:14px">Students book your time once a paid course is listed. Get started:</div><button onclick="openEmbed(\'/marketplace.html?embed=1\',\'🛒 Marketplace\')" style="background:linear-gradient(135deg,var(--jm-primary),#a855f7);color:#fff;border:0;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(124,58,237,.35)">🛒 List a course</button></div>'}</div>
         </div>`;
     }
   }catch(e){ body.innerHTML='<div style="color:#b91c1c;padding:20px">'+escHtml(e.message)+'</div>'; }
@@ -6046,7 +6243,7 @@ async function openRecordings(){
     const r=await api('/live-classes/recordings/list','GET');
     const recs=r.recordings||[];
     if(!recs.length){
-      body.innerHTML='<div class="card" style="max-width:600px;margin:40px auto;padding:24px;text-align:center"><div style="font-size:48px">📹</div><div style="font-weight:600;margin-top:10px">No recordings yet</div><div style="color:var(--jm-text-muted);margin-top:6px">Recorded live classes appear here. Teachers can record from inside a live class with the ⏺ Record button.</div></div>';
+      body.innerHTML='<div class="card" style="max-width:600px;margin:40px auto;padding:24px;text-align:center"><div style="font-size:48px">📹</div><div style="font-weight:600;margin-top:10px">No recordings yet</div><div style="color:var(--jm-text-muted);margin-top:6px;margin-bottom:14px">Recorded live classes appear here. Open Studio to record now.</div><button onclick="location.hash=\'#/m/studio\'" style="background:linear-gradient(135deg,var(--jm-primary),#a855f7);color:#fff;border:0;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(124,58,237,.35)">🎥 Open Studio</button></div>';
       return;
     }
     // Group recordings by course, then by topic (chapter) within the course.
@@ -7249,6 +7446,9 @@ function openSettings(){
           </select>
         </div>
       </div>
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--jm-border)">
+        <a href="#/m/settings" style="font-size:13px;font-weight:700;color:var(--jm-primary);text-decoration:none">⚙️ All customization in Settings — colors, branding, fonts, language & integrations →</a>
+      </div>
     </div>
     <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--jm-text-muted);margin:8px 0 10px">Workspace</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:14px;margin-bottom:24px">
@@ -7262,7 +7462,7 @@ function openSettings(){
     <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--jm-text-muted);margin:8px 0 10px">Admin</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:14px;margin-bottom:24px">
       ${tile('#ef4444','🛡','Audit log','Recent admin actions',"toast('See Admin page')")}
-      ${tile('#7c3aed','💰','Commission rate','Platform commission %',"openEmbed('/admin.html','⚙️ Admin')")}
+      ${tile('#7c3aed','💰','Commission rate','Platform commission %',"openEmbed('/admin-os.html?embed=1','🛡️ Platform OS')")}
       ${tile('#ec4899','🔌','n8n / webhooks','Configure automations','openN8nConfig()')}
     </div>`:''}
     <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--jm-text-muted);margin:8px 0 10px">Account</div>
@@ -7694,6 +7894,9 @@ async function _crmSaveAll(){
 }
 function setTheme(mode){
   localStorage.setItem('jm_theme',mode);
+  // Single source of truth: also write the unified Settings store so the change
+  // shows in the Settings module and the satellite apps.
+  if(window.JMSettings) try{ JMSettings.set({dark: mode==='dark'}); }catch(e){}
   // Drive the unified theme system: dark→midnight, light→light. This also
   // re-applies the real CSS variables so the background actually changes.
   if(typeof _crmSave==='function'){ _crmSave({bgTheme: mode==='dark'?'midnight':'light'}); }
@@ -8128,7 +8331,7 @@ async function openWallet(){
             <td style="padding:10px 14px;text-align:right;font-weight:700;color:${t.amount>=0?'#10b981':'#ef4444'}">${t.amount>=0?'+':''}${fmt(t.amount)}</td>
             <td style="padding:10px 14px;text-align:right;color:var(--jm-text-muted)">${fmt(t.balance_after||0)}</td>
           </tr>`).join('')}
-          </tbody></table>`:'<div class="empty-state" style="padding:30px"><div class="icon">💸</div>No transactions yet</div>'}
+          </tbody></table>`:'<div class="empty-state" style="text-align:center;padding:32px"><div class="icon" style="font-size:44px">💸</div><div style="font-weight:600;margin:8px 0">No transactions yet</div><div style="color:var(--jm-text-muted);font-size:13px;margin-bottom:14px">Top up your wallet to unlock paid course purchases & faster checkout.</div><button onclick="if(typeof walletTopupOpen===\'function\')walletTopupOpen();else document.getElementById(\'wlTopupBtn\')?.click();" style="background:linear-gradient(135deg,var(--jm-primary),#a855f7);color:#fff;border:0;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(124,58,237,.35)">💳 Top up wallet</button></div>'}
       </div>
     </div>`;
   }catch(e){ body.innerHTML='<div style="color:#b91c1c;padding:20px">'+escHtml(e.message)+'</div>'; }
@@ -8919,6 +9122,8 @@ function _i18nInstallObserver(){
 function setLang(code){
   if(!JM_LANG_SET.has(code)) code='en';
   localStorage.setItem('jm_lang', code);
+  // Mirror into the unified Settings store (single source of truth).
+  if(window.JMSettings) try{ JMSettings.set({language: code}); }catch(e){}
   document.documentElement.lang=code;
   const sw=document.getElementById('langCurrNative'); if(sw){ const m=JM_LANGS.find(l=>l.c===code); if(m) sw.textContent=m.n; }
   const sl=document.getElementById('st-lang'); if(sl) sl.value=code;
@@ -8993,7 +9198,7 @@ async function _renderBilling(){
             ${inv.status!=='paid'?`<button class="btn-sm btn-primary" onclick="blMarkPaid('${inv.id}')">✓ Paid</button>`:''}
           </td>
         </tr>`).join('')}
-        </tbody></table>`:'<div class="empty-state"><div class="icon">🧾</div>No invoices yet. Click ➕ New invoice to issue your first one.</div>'}</div>
+        </tbody></table>`:'<div class="empty-state" style="text-align:center;padding:32px"><div class="icon" style="font-size:44px">🧾</div><div style="font-weight:600;margin:8px 0">No invoices yet</div><div style="color:var(--jm-text-muted);font-size:13px;margin-bottom:14px">Issue an invoice to a student or org — payments tracked automatically.</div><button onclick="if(typeof openNewInvoice===\'function\')openNewInvoice();else document.getElementById(\'biNewBtn\')?.click();" style="background:linear-gradient(135deg,var(--jm-primary),#a855f7);color:#fff;border:0;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(124,58,237,.35)">➕ New invoice</button></div>'}</div>
     </div>`;
   }catch(e){ body.innerHTML='<div style="color:#b91c1c;padding:20px">'+escHtml(e.message)+'</div>'; }
 }
@@ -9371,7 +9576,7 @@ function calShareEvent(id){
   if(navigator.share){ navigator.share({title:ev.title||'Class invite',url:invite}).catch(()=>{}); }
   else { navigator.clipboard.writeText(invite).then(()=>toast('Invite link copied')).catch(()=>toast(invite)); }
 }
-function calJoin(id){ window.location.href='/liveRoom.html?class='+id; }
+function calJoin(id){ window.location.hash='#/m/live/'+id; }
 
 // ============================================================
 // PROFILE PAGE — basic details + ADDRESS (mandatory email + phone).
@@ -9641,6 +9846,11 @@ loadDashboard();
 </div>
 <script>
 function openEmbed(url,title){
+  // Prefer the unified shell module host (consistent chrome + embed mode).
+  const _MOD={'/studio.html':'studio','/exam-platform.html':'tests','/bhasha-setu.html':'learn','/marketplace.html':'marketplace','/settings.html':'settings','/admin-os.html':'admin'};
+  const _p=String(url||'').split('?')[0];
+  if(_MOD[_p]){ location.hash='#/m/'+_MOD[_p]; return; }
+  // Legacy overlay fallback for any non-module URL.
   document.getElementById('embedTitle').textContent=title||url;
   document.getElementById('embedIframe').src=url;
   document.getElementById('embedOverlay').style.display='flex';
@@ -9656,6 +9866,178 @@ function toggleWidgetMode(){
   localStorage.setItem('wg_mode', onWidgets ? 'classic' : 'widgets');
   location.reload();
 }
+
+/* ── App-shell module host (SPA Phase 2) ──────────────────────────────────────
+   Renders heavy standalone modules INSIDE the shell content area via an iframe
+   (with ?embed=1 so each hides its own back-out chrome). Routed by hash:
+   #/m/studio · #/m/tests · #/m/marketplace · #/m/settings · #/m/admin · #/m/learn.
+   The shell's sidebar / topbar / bottom-nav stay; legacy links to the standalone
+   pages are intercepted and converted to in-shell routes. */
+(function shellModuleHost(){
+  const content = document.querySelector('.content');
+  if (!content) return;
+  const MODULES = {
+    studio:      { src: '/studio.html?embed=1',        title: '🎥 Studio' },
+    tests:       { src: '/exam-platform.html?embed=1', title: '📝 Test Center' },
+    marketplace: { src: '/marketplace.html?embed=1',   title: '🛒 Marketplace' },
+    settings:    { src: '/settings.html?embed=1',      title: '⚙️ Settings' },
+    admin:       { src: '/admin-os.html?embed=1',      title: '🛡️ Platform OS' },
+    learn:       { src: '/bhasha-setu.html?embed=1',   title: '🈯 Learning Hub' },
+  };
+  // Viewport-anchored overlay (fixed): sits below the shell topbar, right of the
+  // sidebar (desktop), above the bottom nav (mobile) — so it never balloons past
+  // the viewport the way an absolute inset:0 did on the scrolling mobile content.
+  const host = document.createElement('div');
+  host.id = 'shellModuleHost';
+  host.style.cssText = 'display:none;position:fixed;z-index:45;background:var(--jm-bg);padding:12px 16px;flex-direction:column';
+  function positionHost(){
+    const tb = document.querySelector('.topbar');
+    const sb = document.querySelector('.sidebar');
+    const bn = document.querySelector('.bottom-nav');
+    const top = tb ? Math.max(0, Math.round(tb.getBoundingClientRect().bottom)) : 0;
+    const sbVisible = sb && getComputedStyle(sb).display !== 'none' && getComputedStyle(sb).transform === 'none' && sb.getBoundingClientRect().left >= 0;
+    const left = sbVisible ? Math.round(sb.getBoundingClientRect().width) : 0;
+    const bnVisible = bn && getComputedStyle(bn).display !== 'none';
+    const bottom = bnVisible ? Math.round(bn.getBoundingClientRect().height) : 0;
+    host.style.top = top + 'px'; host.style.left = left + 'px'; host.style.right = '0'; host.style.bottom = bottom + 'px';
+  }
+  window.addEventListener('resize', function(){ if (host.style.display !== 'none') positionHost(); });
+  // The shell chrome resizes after load (topbar wraps, institute/streak chips load
+  // in), which would leave the host mis-anchored — re-position whenever it changes.
+  if (window.ResizeObserver) {
+    const ro = new ResizeObserver(function(){ if (host.style.display !== 'none') positionHost(); });
+    ['.topbar', '.sidebar', '.bottom-nav'].forEach(function(sel){ const el = document.querySelector(sel); if (el) ro.observe(el); });
+  }
+  host.innerHTML =
+    '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex:0 0 auto">' +
+      '<button onclick="location.hash=\'\'" style="border:1px solid var(--jm-border);background:var(--jm-surface);color:var(--jm-text);padding:7px 12px;border-radius:8px;cursor:pointer;font-weight:700">← Back</button>' +
+      '<b id="shellModuleTitle" style="font-size:15px"></b>' +
+      '<a id="shellModuleOpen" href="#" target="_blank" rel="noopener" style="margin-left:auto;font-size:12px;color:var(--jm-text-muted);text-decoration:none" title="Open full screen">⤢ Full screen</a>' +
+    '</div>' +
+    '<div id="shellModuleInline" style="width:100%;flex:1 1 auto;min-height:0;overflow:auto;background:var(--jm-bg);border-radius:14px;padding:18px 18px;display:none"></div>' +
+    '<iframe id="shellModuleFrame" title="module" style="width:100%;flex:1 1 auto;min-height:0;border:0;border-radius:14px;background:var(--jm-surface);box-shadow:var(--jm-shadow-sm)"></iframe>';
+  content.appendChild(host);
+  const frame = host.querySelector('#shellModuleFrame');
+  const inline = host.querySelector('#shellModuleInline');
+
+  // ── Inline renderers ────────────────────────────────────────────────────────
+  // Modules registered here render DIRECTLY in /app — no iframe, no separate
+  // HTML page loaded over the network. Add new modules to RENDERERS to make
+  // them true in-page sections (the menu still drives them via #/m/<id>).
+  const RENDERERS = {
+    settings: { title: '⚙️ Settings', mount: mountSettingsInline, unmount: null }
+  };
+  function mountSettingsInline(root) {
+    root.innerHTML = (
+      '<div style="max-width:760px;margin:0 auto">' +
+      // (Title already shown in the host header — skip the duplicate <h2>.)
+      '<div style="color:var(--jm-text-muted);font-size:13px;margin-bottom:18px">One place for branding, language, integrations & all customization — applied across the dashboard and the satellite apps.</div>' +
+      // Branding card
+      '<div class="card" style="padding:18px;margin-bottom:14px"><h3 style="margin:0 0 4px;font-size:15px">🎨 Branding</h3><div style="font-size:12px;color:var(--jm-text-muted);margin-bottom:14px">Shown across the platform.</div>' +
+        '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:10px">' +
+          '<div><label style="display:block;font-size:12px;font-weight:700;margin-bottom:4px">Organization name</label><input id="set_orgName" type="text" style="width:100%;padding:9px 12px;border:1.5px solid var(--jm-border);border-radius:8px;background:var(--jm-surface);color:var(--jm-text);font-size:14px" /></div>' +
+          '<div><label style="display:block;font-size:12px;font-weight:700;margin-bottom:4px">App name</label><input id="set_appName" type="text" style="width:100%;padding:9px 12px;border:1.5px solid var(--jm-border);border-radius:8px;background:var(--jm-surface);color:var(--jm-text);font-size:14px" /></div>' +
+        '</div>' +
+        '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">' +
+          '<div><label style="display:block;font-size:12px;font-weight:700;margin-bottom:4px">Primary color</label><div style="display:flex;gap:8px"><input id="set_primary" type="color" style="width:46px;height:40px;padding:2px;border:1.5px solid var(--jm-border);border-radius:8px" /><input id="set_primaryHex" type="text" placeholder="#7c3aed" style="flex:1;padding:9px 12px;border:1.5px solid var(--jm-border);border-radius:8px;background:var(--jm-surface);color:var(--jm-text);font-size:14px" /></div></div>' +
+          '<div><label style="display:block;font-size:12px;font-weight:700;margin-bottom:4px">Accent color</label><div style="display:flex;gap:8px"><input id="set_accent" type="color" style="width:46px;height:40px;padding:2px;border:1.5px solid var(--jm-border);border-radius:8px" /><input id="set_accentHex" type="text" placeholder="#f5a623" style="flex:1;padding:9px 12px;border:1.5px solid var(--jm-border);border-radius:8px;background:var(--jm-surface);color:var(--jm-text);font-size:14px" /></div></div>' +
+        '</div>' +
+        '<label style="display:flex;align-items:center;gap:8px;font-weight:600;margin-top:12px;cursor:pointer"><input id="set_dark" type="checkbox" style="width:18px;height:18px" /> Dark mode by default</label>' +
+      '</div>' +
+      // Localization card
+      '<div class="card" style="padding:18px;margin-bottom:14px"><h3 style="margin:0 0 4px;font-size:15px">🌐 Localization</h3><div style="font-size:12px;color:var(--jm-text-muted);margin-bottom:14px">Default language and text size.</div>' +
+        '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">' +
+          '<div><label style="display:block;font-size:12px;font-weight:700;margin-bottom:4px">Default language</label><select id="set_language" style="width:100%;padding:9px 12px;border:1.5px solid var(--jm-border);border-radius:8px;background:var(--jm-surface);color:var(--jm-text);font-size:14px">' +
+            ['en:English','hi:हिन्दी (Hindi)','bn:বাংলা (Bengali)','ta:தமிழ் (Tamil)','te:తెలుగు (Telugu)','mr:मराठी (Marathi)','gu:ગુજરાતી (Gujarati)','kn:ಕನ್ನಡ (Kannada)','ml:മലയാളം (Malayalam)','pa:ਪੰਜਾਬੀ (Punjabi)','ur:اردو (Urdu)','or:ଓଡ଼ିଆ (Odia)'].map(p=>{const [c,n]=p.split(':');return `<option value="${c}">${n}</option>`;}).join('') +
+          '</select></div>' +
+          '<div><label style="display:block;font-size:12px;font-weight:700;margin-bottom:4px">Text size</label><select id="set_fontScale" style="width:100%;padding:9px 12px;border:1.5px solid var(--jm-border);border-radius:8px;background:var(--jm-surface);color:var(--jm-text);font-size:14px"><option value="0.9">Small</option><option value="1">Normal</option><option value="1.15">Large</option><option value="1.3">Extra large</option></select></div>' +
+        '</div>' +
+      '</div>' +
+      // Integrations card
+      '<div class="card" style="padding:18px;margin-bottom:14px"><h3 style="margin:0 0 4px;font-size:15px">🔗 Integrations</h3><div style="font-size:12px;color:var(--jm-text-muted);margin-bottom:14px">Used by the dashboard, Exam Platform (AI generation) and Bhasha Setu (AI tutor).</div>' +
+        '<div style="display:grid;gap:12px">' +
+          '<div><label style="display:block;font-size:12px;font-weight:700;margin-bottom:4px">n8n / automation webhook</label><input id="set_n8nWebhook" type="url" placeholder="https://your-n8n.example.com/webhook/..." style="width:100%;padding:9px 12px;border:1.5px solid var(--jm-border);border-radius:8px;background:var(--jm-surface);color:var(--jm-text);font-size:14px" /></div>' +
+          '<div><label style="display:block;font-size:12px;font-weight:700;margin-bottom:4px">AI generation endpoint</label><input id="set_aiWebhookUrl" type="url" placeholder="https://your-n8n.example.com/webhook/ai" style="width:100%;padding:9px 12px;border:1.5px solid var(--jm-border);border-radius:8px;background:var(--jm-surface);color:var(--jm-text);font-size:14px" /></div>' +
+          '<div><label style="display:block;font-size:12px;font-weight:700;margin-bottom:4px">AI key <span style="font-weight:400;color:var(--jm-text-muted)">(stored on this device only)</span></label><input id="set_aiWebhookKey" type="password" placeholder="••••••••" style="width:100%;padding:9px 12px;border:1.5px solid var(--jm-border);border-radius:8px;background:var(--jm-surface);color:var(--jm-text);font-size:14px" /></div>' +
+        '</div>' +
+      '</div>' +
+      // Actions
+      '<div style="display:flex;gap:10px;align-items:center;margin-top:14px">' +
+        '<button id="set_saveBtn" style="padding:11px 22px;border:none;border-radius:8px;background:var(--jm-primary);color:#fff;font-weight:700;cursor:pointer">Save settings</button>' +
+        '<button id="set_resetBtn" style="padding:11px 22px;border:1.5px solid var(--jm-border);background:var(--jm-surface);color:var(--jm-text);border-radius:8px;font-weight:700;cursor:pointer">Reset</button>' +
+        '<span id="set_saved" style="font-size:13px;font-weight:700;color:#15803d;opacity:0;transition:opacity .2s">✓ Saved &amp; applied everywhere</span>' +
+      '</div>' +
+      '</div>'
+    );
+    const get = id => root.querySelector('#set_'+id);
+    const s = JMSettings.get();
+    get('orgName').value=s.orgName||''; get('appName').value=s.appName||'';
+    get('primary').value=s.primary; get('primaryHex').value=s.primary;
+    get('accent').value=s.accent; get('accentHex').value=s.accent;
+    get('dark').checked=!!s.dark; get('language').value=s.language||'en';
+    get('fontScale').value=String(s.fontScale||1);
+    get('n8nWebhook').value=s.n8nWebhook||''; get('aiWebhookUrl').value=s.aiWebhookUrl||''; get('aiWebhookKey').value=s.aiWebhookKey||'';
+    // sync color↔hex
+    ['primary','accent'].forEach(k=>{const p=get(k),h=get(k+'Hex');p.addEventListener('input',()=>h.value=p.value);h.addEventListener('input',()=>{if(/^#[0-9a-fA-F]{6}$/.test(h.value))p.value=h.value;});});
+    get('saveBtn').onclick = async () => {
+      JMSettings.set({
+        orgName:get('orgName').value, appName:get('appName').value,
+        primary:get('primaryHex').value||get('primary').value, accent:get('accentHex').value||get('accent').value,
+        dark:get('dark').checked, language:get('language').value, fontScale:parseFloat(get('fontScale').value)||1,
+        n8nWebhook:get('n8nWebhook').value, aiWebhookUrl:get('aiWebhookUrl').value, aiWebhookKey:get('aiWebhookKey').value
+      });
+      const r = await JMSettings.syncToOrg();
+      const msg = get('saved'); msg.textContent = r.ok ? '✓ Saved, applied everywhere & synced to your org' : '✓ Saved & applied everywhere (this device)';
+      msg.style.opacity='1'; setTimeout(()=>msg.style.opacity='0', 2600);
+    };
+    get('resetBtn').onclick = () => { if(confirm('Reset all settings to defaults?')) { JMSettings.set(JMSettings.DEFAULTS); mountSettingsInline(root); } };
+  }
+
+  function route(){
+    const mm = location.hash.match(/^#\/m\/([\w-]+)(?:\/([\w-]+))?/) || [];
+    const mod = mm[1], arg = mm[2];
+    // Prefer the in-page renderer (no iframe, no extra HTML loaded over network).
+    if (mod && RENDERERS[mod]) {
+      host.querySelector('#shellModuleTitle').textContent = RENDERERS[mod].title;
+      host.querySelector('#shellModuleOpen').style.display = 'none';
+      frame.style.display = 'none'; frame.src = 'about:blank'; frame.dataset.mod = '';
+      inline.style.display = 'block';
+      if (inline.dataset.mod !== mod) { RENDERERS[mod].mount(inline); inline.dataset.mod = mod; }
+      host.style.display = 'flex';
+      positionHost(); requestAnimationFrame(positionHost); setTimeout(positionHost, 400);
+      return;
+    }
+    // Fallback: iframe-hosted modules.
+    let entry = null, key = mod;
+    if (mod === 'live' && arg) { entry = { src: '/liveRoom.html?class=' + arg + '&embed=1', title: '📡 Live Class' }; key = 'live/' + arg; }
+    else if (MODULES[mod]) entry = MODULES[mod];
+    if (entry) {
+      inline.style.display = 'none'; inline.innerHTML = ''; inline.dataset.mod = '';
+      frame.style.display = 'block';
+      if (frame.dataset.mod !== key) { frame.src = entry.src; frame.dataset.mod = key; }
+      host.querySelector('#shellModuleTitle').textContent = entry.title;
+      host.querySelector('#shellModuleOpen').style.display = '';
+      host.querySelector('#shellModuleOpen').href = entry.src.split('&embed')[0];
+      host.style.display = 'flex';
+      positionHost();
+      requestAnimationFrame(positionHost);   // after the chrome (bottom-nav) paints
+      setTimeout(positionHost, 400);          // and once more after async layout settles
+    } else {
+      host.style.display = 'none';
+    }
+  }
+  window.addEventListener('hashchange', route);
+  route();
+
+  // Intercept legacy navigations to standalone module pages → in-shell routes.
+  const LINK_MAP = { '/studio.html':'studio', '/exam-platform.html':'tests', '/bhasha-setu.html':'learn', '/marketplace.html':'marketplace', '/settings.html':'settings', '/admin-os.html':'admin' };
+  document.addEventListener('click', function(e){
+    const a = e.target.closest('a[href]');
+    if (!a) return;
+    let path; try { path = new URL(a.href, location.origin).pathname; } catch(_) { return; }
+    if (LINK_MAP[path]) { e.preventDefault(); location.hash = '#/m/' + LINK_MAP[path]; }
+  }, true);
+})();
 </script>
 </body>
 </html>

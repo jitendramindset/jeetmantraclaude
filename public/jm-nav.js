@@ -33,12 +33,11 @@
         { icon: '📍', label: 'Find Teachers', href: '/marketplace.html#teachers' }
       ] },
       { group: 'Workspace', show: !!u, items: [
-        { icon: '📊', label: 'Dashboard', href: '/dashboard.html' },
-        { icon: '🧩', label: 'Widget View', href: '/widgets.html' },
-        { icon: '📝', label: 'Exams', href: '/exam-platform.html' },
-        { icon: '🗣️', label: 'Languages', href: '/bhasha-setu.html' },
-        { icon: '🎬', label: 'Studio', href: '/studio.html', show: isCreator },
-        { icon: '🛡️', label: 'Platform OS', href: '/admin-os.html', show: isAdmin }
+        { icon: '📊', label: 'Dashboard', href: '/app' },
+        { icon: '📝', label: 'Exams', href: '/app#/m/tests' },
+        { icon: '🗣️', label: 'Languages', href: '/app#/m/learn' },
+        { icon: '🎬', label: 'Studio', href: '/app#/m/studio', show: isCreator },
+        { icon: '🛡️', label: 'Platform OS', href: '/app#/m/admin', show: isAdmin }
       ] },
       { group: 'Account', show: !!u, items: [
         { icon: '⚙️', label: 'Settings', href: '/settings.html' },

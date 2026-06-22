@@ -413,8 +413,27 @@ router.put('/settings', authenticateToken, authorizeRole(['admin']), async (req,
       if (existing) await supabaseAdmin.from('platform_settings').update({ value: String(value) }).eq('key', key);
       else await supabaseAdmin.from('platform_settings').insert({ key, value: String(value) });
     }
-    await auditLog(req.user.id, 'settings.update', null, updates);
+    try { require('../services/settings').invalidate(); } catch (_) {} // apply immediately
+    // Don't echo secret values back into the audit log.
+    const SECRET = /pass|secret|token|key/i;
+    const safe = Object.fromEntries(Object.keys(updates).map(k => [k, SECRET.test(k) ? '***' : updates[k]]));
+    await auditLog(req.user.id, 'settings.update', null, safe);
     res.json({ message: 'Settings saved' });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /admin/test-email — send a test email to the signed-in admin using the
+// currently-configured SMTP (admin settings → .env). Lets the admin verify the
+// mapping from the Integrations page.
+router.post('/test-email', authenticateToken, authorizeRole(['admin']), async (req, res) => {
+  try {
+    const { data: me } = await supabaseAdmin.from('jeetmantra_users').select('email, full_name').eq('id', req.user.id).maybeSingle();
+    const to = (me && me.email) || req.user.email;
+    if (!to) return res.json({ sent: false, note: 'Your admin account has no email on file.' });
+    const { sendMail } = require('../services/mailer');
+    const r = await sendMail(to, 'JeetMantra — test email ✓',
+      `<p>Hi ${me?.full_name || 'Admin'},</p><p>This confirms your <b>SMTP integration is working</b>. Sent ${new Date().toLocaleString('en-IN')}.</p>`);
+    res.json({ sent: !!r.sent, to: r.sent ? to : undefined, note: r.sent ? undefined : (r.mode === 'console' ? 'SMTP not configured — set it in Integrations.' : (r.error || 'Send failed.')) });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -597,6 +616,70 @@ router.get('/live-classes', authenticateToken, authorizeRole(['admin']), async (
       host_name: hosts[c.teacher_id || c.host_id]?.full_name || null
     }));
     res.json({ classes, page: Number(page), limit: lim, total: count || 0 });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /admin/migrations/run — runs a named SQL migration file from migrations/.
+// Idempotent: uses DROP POLICY IF EXISTS + CREATE POLICY so safe to re-run.
+router.post('/migrations/run', authenticateToken, authorizeRole(['admin']), async (req, res) => {
+  const { file } = req.body;
+  if (!file || !/^[\w-]+\.sql$/.test(file)) return res.status(400).json({ error: 'Invalid migration file name' });
+  try {
+    const fs = require('fs');
+    const migPath = require('path').join(__dirname, '..', '..', 'migrations', file);
+    if (!fs.existsSync(migPath)) return res.status(404).json({ error: 'Migration file not found' });
+    const sql = fs.readFileSync(migPath, 'utf8')
+      .split('\n').filter(l => !l.trim().startsWith('--') && l.trim()).join('\n');
+
+    // Execute via /pg/query DDL endpoint (service-role key required).
+    const stmts = sql.split(';').map(s => s.trim()).filter(Boolean);
+    const errors = [];
+    const pgUrl = `${process.env.SUPABASE_URL}/pg/query`;
+    const axios = require('axios');
+    for (const stmt of stmts) {
+      try {
+        await axios.post(pgUrl, { query: stmt + ';' }, {
+          headers: { apikey: process.env.SUPABASE_SERVICE_ROLE_KEY, 'Content-Type': 'application/json' }
+        });
+      } catch (e) {
+        const msg = e.response?.data?.message || e.message;
+        errors.push({ stmt: stmt.slice(0, 80), error: msg });
+      }
+    }
+    await auditLog(req.user.id, 'migration_run', null, { file, statements: stmts.length, errors: errors.length });
+    res.json({ ok: true, file, statements: stmts.length, errors });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /admin/backup/trigger — run api-backup.js as a child process (non-blocking)
+router.post('/backup/trigger', authenticateToken, authorizeRole(['admin']), async (req, res) => {
+  try {
+    const { spawn } = require('child_process');
+    const scriptPath = require('path').join(__dirname, '..', '..', 'scripts', 'api-backup.js');
+    const child = spawn(process.execPath, [scriptPath], {
+      detached: true, stdio: 'ignore',
+      env: { ...process.env }
+    });
+    child.unref();
+    await auditLog(req.user.id, 'backup_triggered', null, { pid: child.pid });
+    res.json({ ok: true, message: 'Backup started in background', pid: child.pid });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// GET /admin/backup/list — list local backup files
+router.get('/backup/list', authenticateToken, authorizeRole(['admin']), (req, res) => {
+  try {
+    const fs = require('fs');
+    const backupDir = require('path').join(__dirname, '..', '..', 'backups');
+    if (!fs.existsSync(backupDir)) return res.json({ backups: [] });
+    const files = fs.readdirSync(backupDir)
+      .filter(f => f.startsWith('backup-'))
+      .map(f => {
+        const stat = fs.statSync(require('path').join(backupDir, f));
+        return { name: f, sizeMB: +(stat.size / 1024 / 1024).toFixed(2), createdAt: stat.mtime };
+      })
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    res.json({ backups: files, dir: backupDir });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

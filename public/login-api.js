@@ -133,24 +133,9 @@ function getUserRole() {
  * Redirect to appropriate dashboard based on role
  */
 function redirectToDashboard() {
-  const role = getUserRole();
-  
-  switch (role) {
-    case 'student':
-      window.location.href = '/dashboard.html?role=student';
-      break;
-    case 'teacher':
-      window.location.href = '/dashboard.html?role=teacher';
-      break;
-    case 'partner':
-      window.location.href = '/dashboard.html?role=partner';
-      break;
-    case 'admin':
-      window.location.href = '/admin.html';
-      break;
-    default:
-      window.location.href = '/dashboard.html';
-  }
+  // Single App Shell: every role enters at /app, never a standalone page.
+  const role = getUserRole() || 'student';
+  window.location.href = '/app?role=' + encodeURIComponent(role);
 }
 
 /**
