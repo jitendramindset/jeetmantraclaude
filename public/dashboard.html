@@ -5647,9 +5647,9 @@ function _withButtonLoading(handler){
 // The room itself (liveRoom.html) handles status POSTs, Jitsi WebRTC bridge,
 // attendance polling and pause/end controls. Wrapped in _withButtonLoading so
 // a double-click can't fire two navigations.
-const startLive=_withButtonLoading(async (id)=>{ window.location.href='/liveRoom.html?class='+id; });
-const endLive=_withButtonLoading(async (id)=>{ window.location.href='/liveRoom.html?class='+id; });
-const joinLive=_withButtonLoading(async (id)=>{ window.location.href='/liveRoom.html?class='+id; });
+const startLive=_withButtonLoading(async (id)=>{ window.location.hash='#/m/live/'+id; });
+const endLive=_withButtonLoading(async (id)=>{ window.location.hash='#/m/live/'+id; });
+const joinLive=_withButtonLoading(async (id)=>{ window.location.hash='#/m/live/'+id; });
 
 // ============================================================
 // COURSE-CREATION WIZARD — 4 steps, inline page (no modal):
@@ -9377,7 +9377,7 @@ function calShareEvent(id){
   if(navigator.share){ navigator.share({title:ev.title||'Class invite',url:invite}).catch(()=>{}); }
   else { navigator.clipboard.writeText(invite).then(()=>toast('Invite link copied')).catch(()=>toast(invite)); }
 }
-function calJoin(id){ window.location.href='/liveRoom.html?class='+id; }
+function calJoin(id){ window.location.hash='#/m/live/'+id; }
 
 // ============================================================
 // PROFILE PAGE — basic details + ADDRESS (mandatory email + phone).
@@ -9697,11 +9697,15 @@ function toggleWidgetMode(){
   const frame = host.querySelector('#shellModuleFrame');
 
   function route(){
-    const m = (location.hash.match(/^#\/m\/([\w-]+)/) || [])[1];
-    if (m && MODULES[m]) {
-      if (frame.dataset.mod !== m) { frame.src = MODULES[m].src; frame.dataset.mod = m; }
-      host.querySelector('#shellModuleTitle').textContent = MODULES[m].title;
-      host.querySelector('#shellModuleOpen').href = MODULES[m].src.split('?')[0];
+    const mm = location.hash.match(/^#\/m\/([\w-]+)(?:\/([\w-]+))?/) || [];
+    const mod = mm[1], arg = mm[2];
+    let entry = null, key = mod;
+    if (mod === 'live' && arg) { entry = { src: '/liveRoom.html?class=' + arg + '&embed=1', title: '📡 Live Class' }; key = 'live/' + arg; }
+    else if (MODULES[mod]) entry = MODULES[mod];
+    if (entry) {
+      if (frame.dataset.mod !== key) { frame.src = entry.src; frame.dataset.mod = key; }
+      host.querySelector('#shellModuleTitle').textContent = entry.title;
+      host.querySelector('#shellModuleOpen').href = entry.src.split('&embed')[0];
       host.style.display = 'flex';
     } else {
       host.style.display = 'none';

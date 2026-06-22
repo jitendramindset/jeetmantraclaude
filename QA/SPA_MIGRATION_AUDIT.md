@@ -62,7 +62,7 @@ This preserves every working flow while delivering the single-shell UX increment
 - Verified: `/app?role=teacher` stays on `/app`, renders the Teacher Dashboard shell (sidebar, 22
   nav items, "👨‍🏫 Teacher" badge), no console errors, no login bounce.
 
-### 🟡 Phase 2 — In-shell module host + embed mode (IN PROGRESS, host shipped)
+### ✅ Phase 2 — In-shell module host + embed mode (COMPLETE, live-verified)
 **Done & live-verified:**
 - `dashboard.html`: an in-shell **module host** (`#shellModuleHost`) overlays the content area and
   hosts modules by hash route — `#/m/studio · #/m/tests · #/m/marketplace · #/m/settings ·
@@ -77,10 +77,20 @@ This preserves every working flow while delivering the single-shell UX increment
 - Verified: studio + marketplace + exam-platform load inside the shell; Back restores the
   dashboard; no console errors; shell chrome intact.
 
-**Remaining (per-module embed polish — they already load in-shell):**
-- Add the same `?embed=1` chrome-hide to `exam-platform.html`, `marketplace.html`, `settings.html`,
-  `admin-os.html`, `bhasha-setu.html`, `liveRoom.html` (hide their own back-to-dashboard controls;
-  optionally hide a redundant logo). Wire `liveRoom` as `#/m/live/:classId`.
+**Done — embed mode on all routed modules (live-verified):**
+- `marketplace.html`, `settings.html`, `exam-platform.html`, `admin-os.html`, `liveRoom.html` got
+  a generic embed snippet: `?embed=1` adds `html.embed`, then CSS hides `a[href$="/dashboard.html"]`
+  / `a[href="/app"]` and JS hides any `[onclick]` that navigates to the shell — so no control can
+  nest the iframe. Verified each: embed class set, **0** visible dashboard back-out links/buttons.
+- `liveRoom` wired as a parameterized route `#/m/live/:classId`; the shell's `startLive`/`endLive`/
+  `joinLive`/`calJoin` now set `location.hash='#/m/live/<id>'` instead of a full-page navigation.
+- `bhasha-setu.html` is self-contained (internal `go()` nav, no shell back-out) — loads in-shell
+  as-is, no embed change needed.
+- Verified end-to-end: settings → admin-os switch in-shell via hash, embed mode on, shell sidebar
+  intact, no console errors.
+
+**Phase 2 status: COMPLETE** — all 7 standalone application modules (studio, exam-platform,
+marketplace, settings, admin-os, liveRoom, bhasha-setu) render inside the shell.
 
 ### Phase 3 — Consolidate duplicates
 - `admin.html` → confirm admin-os parity, repoint links to `/app/admin`, delete file.
