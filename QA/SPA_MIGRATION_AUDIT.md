@@ -143,3 +143,21 @@ Appearance panel separate from Settings.
 Standalone application pages remaining to absorb: **7** (studio, exam-platform, bhasha-setu,
 liveRoom, admin-os, marketplace, settings) + **6** to merge/remove. Public pages that legitimately
 stay standalone: index, website, login, signup, forgot-password, reset-password, verify-email.
+
+---
+
+## Visual-review polish (screenshot pass)
+
+Driving each screen with snapshots surfaced and fixed:
+- **Redundant module branding** — each in-shell module now hides its own top logo/brand in embed
+  (`data-embed-hide`): studio logo+badge, settings nav, marketplace logo, exam-platform logo,
+  admin-os brand. The shell + module-host header provide the only chrome. Verified hidden, 0 overflow.
+- **Sidebar nav leaked to standalone pages** (real bug) — `buildNav` rendered module items with
+  `onclick="location.href='/studio.html'"`, bypassing the in-shell router. Now module hrefs map to
+  `#/m/…`; `openEmbed()` likewise routes through the shell host. **Verified: 0 full-page leaks across
+  teacher/student/admin/school/coaching nav.**
+- **control-center.html** (dev tool) now 404s when `NODE_ENV=production`.
+
+**Stop condition met:** every production surface runs inside the one `/app` shell; the only
+standalone HTML is public (index, website, login, signup, forgot/reset-password, verify-email) +
+one dev-gated tool. All customization lives in Settings and applies everywhere live.
