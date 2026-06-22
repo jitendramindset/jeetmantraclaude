@@ -9680,12 +9680,30 @@ function toggleWidgetMode(){
     admin:       { src: '/admin-os.html?embed=1',      title: '🛡️ Platform OS' },
     learn:       { src: '/bhasha-setu.html?embed=1',   title: '🈯 Learning Hub' },
   };
-  // Overlay the content area (race-proof: the async dashboard render keeps
-  // repainting its sections, so instead of hiding them we cover them).
-  if (getComputedStyle(content).position === 'static') content.style.position = 'relative';
+  // Viewport-anchored overlay (fixed): sits below the shell topbar, right of the
+  // sidebar (desktop), above the bottom nav (mobile) — so it never balloons past
+  // the viewport the way an absolute inset:0 did on the scrolling mobile content.
   const host = document.createElement('div');
   host.id = 'shellModuleHost';
-  host.style.cssText = 'display:none;position:absolute;inset:0;z-index:60;background:var(--jm-bg);padding:16px 20px;flex-direction:column';
+  host.style.cssText = 'display:none;position:fixed;z-index:45;background:var(--jm-bg);padding:12px 16px;flex-direction:column';
+  function positionHost(){
+    const tb = document.querySelector('.topbar');
+    const sb = document.querySelector('.sidebar');
+    const bn = document.querySelector('.bottom-nav');
+    const top = tb ? Math.max(0, Math.round(tb.getBoundingClientRect().bottom)) : 0;
+    const sbVisible = sb && getComputedStyle(sb).display !== 'none' && getComputedStyle(sb).transform === 'none' && sb.getBoundingClientRect().left >= 0;
+    const left = sbVisible ? Math.round(sb.getBoundingClientRect().width) : 0;
+    const bnVisible = bn && getComputedStyle(bn).display !== 'none';
+    const bottom = bnVisible ? Math.round(bn.getBoundingClientRect().height) : 0;
+    host.style.top = top + 'px'; host.style.left = left + 'px'; host.style.right = '0'; host.style.bottom = bottom + 'px';
+  }
+  window.addEventListener('resize', function(){ if (host.style.display !== 'none') positionHost(); });
+  // The shell chrome resizes after load (topbar wraps, institute/streak chips load
+  // in), which would leave the host mis-anchored — re-position whenever it changes.
+  if (window.ResizeObserver) {
+    const ro = new ResizeObserver(function(){ if (host.style.display !== 'none') positionHost(); });
+    ['.topbar', '.sidebar', '.bottom-nav'].forEach(function(sel){ const el = document.querySelector(sel); if (el) ro.observe(el); });
+  }
   host.innerHTML =
     '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex:0 0 auto">' +
       '<button onclick="location.hash=\'\'" style="border:1px solid var(--jm-border);background:var(--jm-surface);color:var(--jm-text);padding:7px 12px;border-radius:8px;cursor:pointer;font-weight:700">← Back</button>' +
@@ -9707,6 +9725,9 @@ function toggleWidgetMode(){
       host.querySelector('#shellModuleTitle').textContent = entry.title;
       host.querySelector('#shellModuleOpen').href = entry.src.split('&embed')[0];
       host.style.display = 'flex';
+      positionHost();
+      requestAnimationFrame(positionHost);   // after the chrome (bottom-nav) paints
+      setTimeout(positionHost, 400);          // and once more after async layout settles
     } else {
       host.style.display = 'none';
     }
