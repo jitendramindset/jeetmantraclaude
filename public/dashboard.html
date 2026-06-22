@@ -1329,7 +1329,10 @@ function buildNav(role){
     if(it.action){
       onclick='_navActivate(this);'+it.action; // highlight + close any page, then open — same as section items
     } else if(it.h){
-      onclick=`window.location.href='${it.h}'`;
+      // Module pages render INSIDE the shell via the hash router; other hrefs
+      // navigate normally. (Was a full-page jump to the standalone page.)
+      const _MOD={'/studio.html':'studio','/exam-platform.html':'tests','/bhasha-setu.html':'learn','/marketplace.html':'marketplace','/settings.html':'settings','/admin-os.html':'admin'};
+      onclick = _MOD[it.h] ? `location.hash='#/m/${_MOD[it.h]}'` : `window.location.href='${it.h}'`;
     } else if(it.t==='top'){
       onclick=`navScroll(this,null)`;
     } else {
@@ -9680,6 +9683,11 @@ loadDashboard();
 </div>
 <script>
 function openEmbed(url,title){
+  // Prefer the unified shell module host (consistent chrome + embed mode).
+  const _MOD={'/studio.html':'studio','/exam-platform.html':'tests','/bhasha-setu.html':'learn','/marketplace.html':'marketplace','/settings.html':'settings','/admin-os.html':'admin'};
+  const _p=String(url||'').split('?')[0];
+  if(_MOD[_p]){ location.hash='#/m/'+_MOD[_p]; return; }
+  // Legacy overlay fallback for any non-module URL.
   document.getElementById('embedTitle').textContent=title||url;
   document.getElementById('embedIframe').src=url;
   document.getElementById('embedOverlay').style.display='flex';
