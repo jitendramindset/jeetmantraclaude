@@ -92,7 +92,7 @@ This preserves every working flow while delivering the single-shell UX increment
 **Phase 2 status: COMPLETE** — all 7 standalone application modules (studio, exam-platform,
 marketplace, settings, admin-os, liveRoom, bhasha-setu) render inside the shell.
 
-### 🟡 Phase 3 — Consolidate duplicates (links repointed; files orphaned)
+### ✅ Phase 3 — Consolidate duplicates (links repointed; 5 legacy files deleted)
 **Done — every shell reference to a legacy page now routes in-shell:**
 - `admin.html` (legacy SuperAdmin) → all 3 dashboard refs + `index.html` entry-router repointed to
   the admin-os route (`#/m/admin` / `openEmbed('/admin-os.html?embed=1')`). **`admin.html` now has
@@ -101,12 +101,22 @@ marketplace, settings, admin-os, liveRoom, bhasha-setu) render inside the shell.
   **`widgets.html` now has 0 references.**
 - `index.html` entry router: every role (incl. admin) now lands on `/app`, never a standalone page.
 
-**Orphaned files — ready to delete (0 references, pending go-ahead):**
-`admin.html`, `widgets.html`, `components.html` (dev style gallery), `webhook-test.html` (dev),
-`jeetmantra-enhance.html` (legacy "Print"). `control-center.html` is still linked once as an
-explicit **dev** tool (AI Dev Control Center) — keep as dev-only or remove on request.
-*(Deletion deferred for an explicit go-ahead since these are pre-existing files; git preserves
-history, so removal is reversible.)*
+**DELETED (0 live references — approved):** `admin.html`, `widgets.html`, `components.html`,
+`webhook-test.html`, `jeetmantra-enhance.html` (the last was already inlined into the shell). The
+last live refs were first repointed in `jm-nav.js`, `webhook-handler.js`, `login-api.js` (all → the
+shell / `/app`). `control-center.html` kept as the single explicit **dev** tool.
+
+**public/ HTML is now 16 files** (down from 21): 7 public (index, website, login, signup,
+forgot/reset-password, verify-email) · 1 shell (dashboard.html) · 7 in-shell modules (admin-os,
+bhasha-setu, exam-platform, liveRoom, marketplace, settings, studio) · 1 dev (control-center).
+
+### ✅ UI adjustment — module host viewport anchoring
+The in-shell module overlay used `position:absolute; inset:0`, which ballooned to the full
+(scrolling) content height on mobile (~1010px, running off-screen + behind the bottom nav). Fixed:
+the host is now `position:fixed`, computing top = shell-topbar bottom, left = sidebar width (0 when
+off-canvas), bottom = bottom-nav height; a `ResizeObserver` on the chrome (+ rAF + 400ms recalc)
+re-anchors it as the topbar wraps / chips load. Verified clean at 375 / 600 / 1280 (0 overflow,
+sits between topbar and bottom-nav on mobile, right of the sidebar on desktop).
 
 ### Phase 4 — Global theme & settings
 - One theme system (already partly central via `jm-theme.js`); Settings module owns Theme/Color/
