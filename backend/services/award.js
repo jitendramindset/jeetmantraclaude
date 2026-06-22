@@ -197,6 +197,9 @@ async function writeNotification(userId, n) {
       link: n.link || null,
       status: 'sent'
     });
+    // Recipient ≠ requester, so syncMiddleware never clears their cache — do it
+    // here so the bell/unread count refreshes immediately instead of after TTL.
+    try { require('../middleware/datasync').invalidateUser(userId, ['/api/notifications', '/api/dashboard']); } catch (_) {}
   } catch (_) { /* table absent — silent */ }
 }
 
