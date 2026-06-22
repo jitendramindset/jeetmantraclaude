@@ -95,6 +95,15 @@ app.get(['/app', '/app/*'], (req, res) => {
   res.sendFile(path.join(frontendPath, 'dashboard.html'));
 });
 
+// Dev-only pages — 404 in production so the prod build ships without dev tooling.
+const DEV_ONLY_PAGES = new Set(['/control-center.html']);
+app.use((req, res, next) => {
+  if (process.env.NODE_ENV === 'production' && DEV_ONLY_PAGES.has(req.path)) {
+    return res.status(404).send('Not found');
+  }
+  next();
+});
+
 app.use(express.static(frontendPath));
 
 // LevelDB wiring for ALL /api routes:

@@ -162,8 +162,8 @@ body.focus #focusTop,body.focus #focusBar{display:flex}
 <div id="studioToast"></div>
 
 <div class="topbar">
-  <div class="logo">Jeet<span class="a">Mantra</span> Studio</div>
-  <span class="badge">🎥 Smart Camera</span>
+  <div class="logo" data-embed-hide>Jeet<span class="a">Mantra</span> Studio</div>
+  <span class="badge" data-embed-hide>🎥 Smart Camera</span>
   <!-- User profile chip — filled on load from jm_user -->
   <span id="studioUserChip" style="display:none;background:rgba(124,58,237,.15);color:var(--pri);border-radius:8px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer" onclick="location.href='/app'" title="Back to dashboard"></span>
   <button class="btn" id="btnAdjust" onclick="toggleAdjust()" title="Drag corners on the big preview to fix perspective">✂️ Crop</button>
@@ -2442,6 +2442,9 @@ document.addEventListener('keydown', function(e){
   try{
     if(new URLSearchParams(location.search).get('embed')==='1'){
       document.documentElement.classList.add('embed');
+      var es=document.createElement('style');
+      es.textContent='html.embed [data-embed-hide]{display:none!important}';
+      (document.head||document.documentElement).appendChild(es);
       const ex=document.getElementById('studioExitBtn'); if(ex) ex.style.display='none';
       const chip=document.getElementById('studioUserChip'); if(chip) chip.dataset.embed='1';
     }
