@@ -9751,19 +9751,109 @@ function toggleWidgetMode(){
       '<b id="shellModuleTitle" style="font-size:15px"></b>' +
       '<a id="shellModuleOpen" href="#" target="_blank" rel="noopener" style="margin-left:auto;font-size:12px;color:var(--jm-text-muted);text-decoration:none" title="Open full screen">⤢ Full screen</a>' +
     '</div>' +
+    '<div id="shellModuleInline" style="width:100%;flex:1 1 auto;min-height:0;overflow:auto;background:var(--jm-bg);border-radius:14px;padding:18px 18px;display:none"></div>' +
     '<iframe id="shellModuleFrame" title="module" style="width:100%;flex:1 1 auto;min-height:0;border:0;border-radius:14px;background:var(--jm-surface);box-shadow:var(--jm-shadow-sm)"></iframe>';
   content.appendChild(host);
   const frame = host.querySelector('#shellModuleFrame');
+  const inline = host.querySelector('#shellModuleInline');
+
+  // ── Inline renderers ────────────────────────────────────────────────────────
+  // Modules registered here render DIRECTLY in /app — no iframe, no separate
+  // HTML page loaded over the network. Add new modules to RENDERERS to make
+  // them true in-page sections (the menu still drives them via #/m/<id>).
+  const RENDERERS = {
+    settings: { title: '⚙️ Settings', mount: mountSettingsInline, unmount: null }
+  };
+  function mountSettingsInline(root) {
+    root.innerHTML = (
+      '<div style="max-width:760px;margin:0 auto">' +
+      '<h2 style="font-size:22px;font-weight:800;margin:0 0 4px">⚙️ Settings</h2>' +
+      '<div style="color:var(--jm-text-muted);font-size:13px;margin-bottom:18px">One place for branding, language, integrations & all customization — applied across the dashboard and the satellite apps.</div>' +
+      // Branding card
+      '<div class="card" style="padding:18px;margin-bottom:14px"><h3 style="margin:0 0 4px;font-size:15px">🎨 Branding</h3><div style="font-size:12px;color:var(--jm-text-muted);margin-bottom:14px">Shown across the platform.</div>' +
+        '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:10px">' +
+          '<div><label style="display:block;font-size:12px;font-weight:700;margin-bottom:4px">Organization name</label><input id="set_orgName" type="text" style="width:100%;padding:9px 12px;border:1.5px solid var(--jm-border);border-radius:8px;background:var(--jm-surface);color:var(--jm-text);font-size:14px" /></div>' +
+          '<div><label style="display:block;font-size:12px;font-weight:700;margin-bottom:4px">App name</label><input id="set_appName" type="text" style="width:100%;padding:9px 12px;border:1.5px solid var(--jm-border);border-radius:8px;background:var(--jm-surface);color:var(--jm-text);font-size:14px" /></div>' +
+        '</div>' +
+        '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">' +
+          '<div><label style="display:block;font-size:12px;font-weight:700;margin-bottom:4px">Primary color</label><div style="display:flex;gap:8px"><input id="set_primary" type="color" style="width:46px;height:40px;padding:2px;border:1.5px solid var(--jm-border);border-radius:8px" /><input id="set_primaryHex" type="text" placeholder="#7c3aed" style="flex:1;padding:9px 12px;border:1.5px solid var(--jm-border);border-radius:8px;background:var(--jm-surface);color:var(--jm-text);font-size:14px" /></div></div>' +
+          '<div><label style="display:block;font-size:12px;font-weight:700;margin-bottom:4px">Accent color</label><div style="display:flex;gap:8px"><input id="set_accent" type="color" style="width:46px;height:40px;padding:2px;border:1.5px solid var(--jm-border);border-radius:8px" /><input id="set_accentHex" type="text" placeholder="#f5a623" style="flex:1;padding:9px 12px;border:1.5px solid var(--jm-border);border-radius:8px;background:var(--jm-surface);color:var(--jm-text);font-size:14px" /></div></div>' +
+        '</div>' +
+        '<label style="display:flex;align-items:center;gap:8px;font-weight:600;margin-top:12px;cursor:pointer"><input id="set_dark" type="checkbox" style="width:18px;height:18px" /> Dark mode by default</label>' +
+      '</div>' +
+      // Localization card
+      '<div class="card" style="padding:18px;margin-bottom:14px"><h3 style="margin:0 0 4px;font-size:15px">🌐 Localization</h3><div style="font-size:12px;color:var(--jm-text-muted);margin-bottom:14px">Default language and text size.</div>' +
+        '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">' +
+          '<div><label style="display:block;font-size:12px;font-weight:700;margin-bottom:4px">Default language</label><select id="set_language" style="width:100%;padding:9px 12px;border:1.5px solid var(--jm-border);border-radius:8px;background:var(--jm-surface);color:var(--jm-text);font-size:14px">' +
+            ['en:English','hi:हिन्दी (Hindi)','bn:বাংলা (Bengali)','ta:தமிழ் (Tamil)','te:తెలుగు (Telugu)','mr:मराठी (Marathi)','gu:ગુજરાતી (Gujarati)','kn:ಕನ್ನಡ (Kannada)','ml:മലയാളം (Malayalam)','pa:ਪੰਜਾਬੀ (Punjabi)','ur:اردو (Urdu)','or:ଓଡ଼ିଆ (Odia)'].map(p=>{const [c,n]=p.split(':');return `<option value="${c}">${n}</option>`;}).join('') +
+          '</select></div>' +
+          '<div><label style="display:block;font-size:12px;font-weight:700;margin-bottom:4px">Text size</label><select id="set_fontScale" style="width:100%;padding:9px 12px;border:1.5px solid var(--jm-border);border-radius:8px;background:var(--jm-surface);color:var(--jm-text);font-size:14px"><option value="0.9">Small</option><option value="1">Normal</option><option value="1.15">Large</option><option value="1.3">Extra large</option></select></div>' +
+        '</div>' +
+      '</div>' +
+      // Integrations card
+      '<div class="card" style="padding:18px;margin-bottom:14px"><h3 style="margin:0 0 4px;font-size:15px">🔗 Integrations</h3><div style="font-size:12px;color:var(--jm-text-muted);margin-bottom:14px">Used by the dashboard, Exam Platform (AI generation) and Bhasha Setu (AI tutor).</div>' +
+        '<div style="display:grid;gap:12px">' +
+          '<div><label style="display:block;font-size:12px;font-weight:700;margin-bottom:4px">n8n / automation webhook</label><input id="set_n8nWebhook" type="url" placeholder="https://your-n8n.example.com/webhook/..." style="width:100%;padding:9px 12px;border:1.5px solid var(--jm-border);border-radius:8px;background:var(--jm-surface);color:var(--jm-text);font-size:14px" /></div>' +
+          '<div><label style="display:block;font-size:12px;font-weight:700;margin-bottom:4px">AI generation endpoint</label><input id="set_aiWebhookUrl" type="url" placeholder="https://your-n8n.example.com/webhook/ai" style="width:100%;padding:9px 12px;border:1.5px solid var(--jm-border);border-radius:8px;background:var(--jm-surface);color:var(--jm-text);font-size:14px" /></div>' +
+          '<div><label style="display:block;font-size:12px;font-weight:700;margin-bottom:4px">AI key <span style="font-weight:400;color:var(--jm-text-muted)">(stored on this device only)</span></label><input id="set_aiWebhookKey" type="password" placeholder="••••••••" style="width:100%;padding:9px 12px;border:1.5px solid var(--jm-border);border-radius:8px;background:var(--jm-surface);color:var(--jm-text);font-size:14px" /></div>' +
+        '</div>' +
+      '</div>' +
+      // Actions
+      '<div style="display:flex;gap:10px;align-items:center;margin-top:14px">' +
+        '<button id="set_saveBtn" style="padding:11px 22px;border:none;border-radius:8px;background:var(--jm-primary);color:#fff;font-weight:700;cursor:pointer">Save settings</button>' +
+        '<button id="set_resetBtn" style="padding:11px 22px;border:1.5px solid var(--jm-border);background:var(--jm-surface);color:var(--jm-text);border-radius:8px;font-weight:700;cursor:pointer">Reset</button>' +
+        '<span id="set_saved" style="font-size:13px;font-weight:700;color:#15803d;opacity:0;transition:opacity .2s">✓ Saved &amp; applied everywhere</span>' +
+      '</div>' +
+      '</div>'
+    );
+    const get = id => root.querySelector('#set_'+id);
+    const s = JMSettings.get();
+    get('orgName').value=s.orgName||''; get('appName').value=s.appName||'';
+    get('primary').value=s.primary; get('primaryHex').value=s.primary;
+    get('accent').value=s.accent; get('accentHex').value=s.accent;
+    get('dark').checked=!!s.dark; get('language').value=s.language||'en';
+    get('fontScale').value=String(s.fontScale||1);
+    get('n8nWebhook').value=s.n8nWebhook||''; get('aiWebhookUrl').value=s.aiWebhookUrl||''; get('aiWebhookKey').value=s.aiWebhookKey||'';
+    // sync color↔hex
+    ['primary','accent'].forEach(k=>{const p=get(k),h=get(k+'Hex');p.addEventListener('input',()=>h.value=p.value);h.addEventListener('input',()=>{if(/^#[0-9a-fA-F]{6}$/.test(h.value))p.value=h.value;});});
+    get('saveBtn').onclick = async () => {
+      JMSettings.set({
+        orgName:get('orgName').value, appName:get('appName').value,
+        primary:get('primaryHex').value||get('primary').value, accent:get('accentHex').value||get('accent').value,
+        dark:get('dark').checked, language:get('language').value, fontScale:parseFloat(get('fontScale').value)||1,
+        n8nWebhook:get('n8nWebhook').value, aiWebhookUrl:get('aiWebhookUrl').value, aiWebhookKey:get('aiWebhookKey').value
+      });
+      const r = await JMSettings.syncToOrg();
+      const msg = get('saved'); msg.textContent = r.ok ? '✓ Saved, applied everywhere & synced to your org' : '✓ Saved & applied everywhere (this device)';
+      msg.style.opacity='1'; setTimeout(()=>msg.style.opacity='0', 2600);
+    };
+    get('resetBtn').onclick = () => { if(confirm('Reset all settings to defaults?')) { JMSettings.set(JMSettings.DEFAULTS); mountSettingsInline(root); } };
+  }
 
   function route(){
     const mm = location.hash.match(/^#\/m\/([\w-]+)(?:\/([\w-]+))?/) || [];
     const mod = mm[1], arg = mm[2];
+    // Prefer the in-page renderer (no iframe, no extra HTML loaded over network).
+    if (mod && RENDERERS[mod]) {
+      host.querySelector('#shellModuleTitle').textContent = RENDERERS[mod].title;
+      host.querySelector('#shellModuleOpen').style.display = 'none';
+      frame.style.display = 'none'; frame.src = 'about:blank'; frame.dataset.mod = '';
+      inline.style.display = 'block';
+      if (inline.dataset.mod !== mod) { RENDERERS[mod].mount(inline); inline.dataset.mod = mod; }
+      host.style.display = 'flex';
+      positionHost(); requestAnimationFrame(positionHost); setTimeout(positionHost, 400);
+      return;
+    }
+    // Fallback: iframe-hosted modules.
     let entry = null, key = mod;
     if (mod === 'live' && arg) { entry = { src: '/liveRoom.html?class=' + arg + '&embed=1', title: '📡 Live Class' }; key = 'live/' + arg; }
     else if (MODULES[mod]) entry = MODULES[mod];
     if (entry) {
+      inline.style.display = 'none'; inline.innerHTML = ''; inline.dataset.mod = '';
+      frame.style.display = 'block';
       if (frame.dataset.mod !== key) { frame.src = entry.src; frame.dataset.mod = key; }
       host.querySelector('#shellModuleTitle').textContent = entry.title;
+      host.querySelector('#shellModuleOpen').style.display = '';
       host.querySelector('#shellModuleOpen').href = entry.src.split('&embed')[0];
       host.style.display = 'flex';
       positionHost();
