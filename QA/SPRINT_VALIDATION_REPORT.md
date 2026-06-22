@@ -150,3 +150,47 @@ Browser-driven validation used the **preview** browser (the Bash-launched Playwr
 can't spawn in this sandbox — `spawn UNKNOWN`). `preview_resize` emulates width but reports an
 inflated `window.innerWidth`; true-viewport checks used sized same-origin iframes, which is why
 the login "overflow" resolved to clean.
+
+---
+
+## Continued testing — session 2 (live class + API integration sweep)
+
+Closed the `liveRoom` gap (created a real live class as the teacher and opened
+`liveRoom.html?class=<id>`) and ran a broad API-integration sweep. Three more real bugs found,
+fixed, and live-verified:
+
+### ISSUE-6 (High) — liveRoom deleted a valid session on any 403
+`api()` treated **403 like 401**: a forbidden response cleared `jm_token` and forced re-login. A
+403 (authenticated but not allowed — e.g. a student not enrolled) is not an expired session. Now
+only 401 clears the token + redirects; 403 surfaces a clear "no access" error and keeps the
+session. *(commit `19b901f`)*
+
+### ISSUE-7 (Medium) — liveRoom off-canvas sidebar overflowed 340–360px on mobile
+The chat/attendees slide-over (`position:absolute; transform:translateX(100%)`) leaked past the
+root (`html` overflow-x was visible), so the page could scroll right into the hidden panel. Fixed
+with `position:relative` on body + `html{overflow-x:hidden}`. Re-verified 0 overflow at
+360/768/1280; the slide-over still opens and is fully visible. *(commit `19b901f`)*
+
+### ISSUE-8 (High) — GET /api/notifications 500 on every load (schema drift)
+The notifications table uses `read_at`/`sent_at` (+ channel/provider/status), but
+`routes/notifications.js` queried `is_read`/`created_at` and `services/award.js` inserted
+`icon`/`metadata` — neither column exists. Result: every bell/inbox load 500'd, and award-pipeline
+notifications silently failed to insert. Aligned both to the real schema (matching the correct
+`routes/eduos.js` producer); the read path now maps derived `is_read`/`created_at` aliases.
+Live-verified: GET/unread/?status=unread all 200; insert→read→mark-read→delete round-trip
+201/200/200/200. *(commit `b5a9108`)*
+
+### API integration sweep (teacher, real token) — otherwise healthy
+`/dashboard /calendar /chat/rooms /gamification/summary /live-classes/upcoming /wallet /courses
+/marketplace` → all **200**. Course **create→fetch→delete** round-trip → **201/200/200** (writes
+persist). `/assignments` 400 (wants a `courseId` query param — by design); `/bookings` &
+`/certificates` 404 (no list route at `/` — sub-routes only, not a defect).
+
+### Gap closed
+- **liveRoom** — ✅ validated with a real live class; loads (status "scheduled"), 403/responsive
+  bugs fixed. Remaining open (not defects): visual-regression + Lighthouse (need a CI browser).
+
+### Known minor (not a crash)
+- `/notifications/unread` can serve a stale count briefly after a server-side insert that bypasses
+  the per-user GET cache (60s TTL); the query itself is correct. Worth wiring cache invalidation
+  into the notification producers in a later pass.
