@@ -184,15 +184,18 @@ async function checkAndAwardBadges(userId, ctx) {
 // ── 4. Notification writer --------------------------------------------------
 async function writeNotification(userId, n) {
   try {
+    // Columns must match the live table (channel/status; read_at NULL = unread).
+    // The previous insert used icon/metadata, which don't exist — so every write
+    // silently failed in the catch below and the inbox stayed empty.
     await supabaseAdmin.from('notifications').insert({
       id: uuidv4(),
       user_id: userId,
+      channel: 'in-app',
       type: n.type,
       title: n.title,
       body: n.body || null,
       link: n.link || null,
-      icon: n.icon || null,
-      metadata: n.metadata || null
+      status: 'sent'
     });
   } catch (_) { /* table absent — silent */ }
 }
