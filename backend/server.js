@@ -84,6 +84,17 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Serve frontend files
 const frontendPath = path.join(__dirname, '..', 'public');
+
+// ── Single App Shell ────────────────────────────────────────────────────────
+// /app is the canonical post-login entry. The shell (currently dashboard.html —
+// already role-driven dynamic nav + widget engine + in-page section routing) is
+// served for /app and any /app/* client route so deep links / refreshes work.
+// Standalone module pages (studio/exam-platform/…) still resolve for now and are
+// being migrated to render *inside* this shell; public pages stay standalone.
+app.get(['/app', '/app/*'], (req, res) => {
+  res.sendFile(path.join(frontendPath, 'dashboard.html'));
+});
+
 app.use(express.static(frontendPath));
 
 // LevelDB wiring for ALL /api routes:

@@ -214,7 +214,8 @@ function storeAuth(token, user) {
 }
 
 function redirectToDashboard(role) {
-  const dashUrl = '/dashboard.html?role=' + (role || 'student');
+  // Single App Shell: always enter the app at /app, never a standalone page.
+  const dashUrl = '/app?role=' + (role || 'student');
   setTimeout(() => { window.location.href = dashUrl; }, 800);
 }
 
@@ -389,7 +390,7 @@ const existingUser = localStorage.getItem('jm_user');
 if (existingToken && existingUser) {
   try {
     const u = JSON.parse(existingUser);
-    window.location.href = '/dashboard.html?role=' + u.role;
+    window.location.href = '/app?role=' + u.role;
   } catch {}
 }
 </script>

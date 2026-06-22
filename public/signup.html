@@ -1290,16 +1290,10 @@ async function submitSignup() {
       
       showToast('Account created! Redirecting to dashboard...', 'success');
       setTimeout(() => {
-        const roleRedirects = {
-          'student': '/dashboard.html?role=student',
-          'teacher': '/dashboard.html?role=teacher',
-          'partner': '/dashboard.html?role=partner',
-          'school': '/dashboard.html?role=school',
-          'coaching': '/dashboard.html?role=coaching',
-          'admin': '/admin.html'
-        };
-        const redirect = roleRedirects[signupData.userType] || '/dashboard.html';
-        window.location.href = redirect;
+        // Single App Shell: every role enters at /app (the shell renders the
+        // role-appropriate dashboard); no standalone pages after auth.
+        const role = signupData.userType || 'student';
+        window.location.href = '/app?role=' + encodeURIComponent(role);
       }, 2000);
     } else {
       const err = await response.json();
