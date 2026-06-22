@@ -1183,6 +1183,7 @@ const NAV={
     {i:'🤖',l:'AI Tutor',action:'openAiTutor()'},
     {group:'Progress'},
     {i:'📊',l:'My Results',action:'openMyExternalResults()'},
+    {i:'🎓',l:'Certificates',action:'openCertificatesPage()'},
     {i:'🗓',l:'Attendance',action:'openAttendanceReport()'},
     {i:'🗒️',l:'Notes',t:'notes'},
     {i:'📹',l:'Recordings',action:'openRecordings()'},
@@ -1200,7 +1201,8 @@ const NAV={
     {i:'⚡',l:'Plans',action:'openPlans()'},
     {i:'🛰️',l:'EduOS',action:'openEduOS()'},
     {i:'⚙️',l:'Settings',action:'openSettings()'},
-    {i:'👤',l:'Profile',action:'openProfilePage()'}
+    {i:'👤',l:'Profile',action:'openProfilePage()'},
+    {i:'❓',l:'Help',action:'openHelpPage()'}
   ],
   teacher:[
     {group:'Primary'},
@@ -1218,6 +1220,8 @@ const NAV={
     {i:'🛒',l:'Marketplace',h:'/marketplace.html'},
     {i:'📊',l:'Bookings',action:'openBookings()'},
     {i:'📝',l:'Essay grading',action:'openEssayInbox()'},
+    {i:'👨‍🎓',l:'My Students',action:'openMyStudentsPage()'},
+    {i:'📊',l:'Analytics',action:'openAnalyticsPage()'},
     {i:'🧠',l:'Lesson Planner',action:'openLessonPlanner()'},
     {i:'🤖',l:'AI Assistant',action:'openAiTutor()'},
     {group:'Money'},
@@ -1230,7 +1234,8 @@ const NAV={
     {i:'⚙️',l:'Settings',action:'openSettings()'},
     {i:'👤',l:'Profile',action:'openProfilePage()'},
     {i:'🏫',l:'My Institutions',action:'openMyInstitutions()'},
-    {i:'🛰️',l:'EduOS',action:'openEduOS()'}
+    {i:'🛰️',l:'EduOS',action:'openEduOS()'},
+    {i:'❓',l:'Help',action:'openHelpPage()'}
   ],
   partner:[
     {i:'🏠',l:'Dashboard',t:'top',a:true},
@@ -1243,13 +1248,15 @@ const NAV={
     {i:'⚡',l:'Plans',action:'openPlans()'},
     {i:'🛒',l:'Marketplace',h:'/marketplace.html'},
     {i:'⚙️',l:'Settings',action:'openSettings()'},
-    {i:'👤',l:'Profile',action:'openProfilePage()'}
+    {i:'👤',l:'Profile',action:'openProfilePage()'},
+    {i:'❓',l:'Help',action:'openHelpPage()'}
   ],
   school:[
     {i:'🏠',l:'Dashboard',t:'top',a:true},
     {i:'📚',l:'Available Courses',t:'courses'},
     {i:'👨‍🎓',l:'Students',t:'students'},
     {i:'👨‍🏫',l:'Teachers',t:'teachers'},
+    {i:'📊',l:'Analytics',action:'openAnalyticsPage()'},
     {i:'💳',l:'Payments',t:'payments'},
     {i:'💬',l:'Messages',action:'openMessenger()'},
     {i:'📅',l:'Calendar',action:'openCalendar()'},
@@ -1259,7 +1266,8 @@ const NAV={
     {i:'🧾',l:'Billing',action:'openBilling()'},
     {i:'🛒',l:'Browse Marketplace',h:'/marketplace.html'},
     {i:'⚙️',l:'Settings',action:'openSettings()'},
-    {i:'👤',l:'Profile',action:'openProfilePage()'}
+    {i:'👤',l:'Profile',action:'openProfilePage()'},
+    {i:'❓',l:'Help',action:'openHelpPage()'}
   ],
   parent:[
     {i:'🏠',l:'Dashboard',t:'top',a:true},
@@ -1280,6 +1288,7 @@ const NAV={
     {i:'💰',l:'Earnings',t:'earnings'},
     {i:'📚',l:'Platform Courses',t:'courses'},
     {i:'📝',l:'Exam Builder',h:'/exam-platform.html'},
+    {i:'📊',l:'Analytics',action:'openAnalyticsPage()'},
     {i:'💬',l:'Messages',action:'openMessenger()'},
     {i:'📅',l:'Calendar',action:'openCalendar()'},
     {i:'🛰️',l:'EduOS',action:'openEduOS()'},
@@ -1288,7 +1297,8 @@ const NAV={
     {i:'🧾',l:'Billing',action:'openBilling()'},
     {i:'🛒',l:'Browse Marketplace',h:'/marketplace.html'},
     {i:'⚙️',l:'Settings',action:'openSettings()'},
-    {i:'👤',l:'Profile',action:'openProfilePage()'}
+    {i:'👤',l:'Profile',action:'openProfilePage()'},
+    {i:'❓',l:'Help',action:'openHelpPage()'}
   ],
   admin:[
     {i:'🏠',l:'Dashboard',t:'top',a:true},
@@ -5593,6 +5603,134 @@ async function cpnCreate(){
   }catch(e){ toast(e.message||'Create failed',true); }
 }
 async function cpnDelete(id){ if(!confirm('Delete this coupon?'))return; try{ await api('/payments/coupons/'+id,'DELETE'); toast('Deleted'); cpnRefresh(); }catch(e){ toast(e.message,true); } }
+
+// ── My Certificates: every certificate this user has earned, with verify +
+// share links. Backed by GET /api/certificates/my. ─────────────────────────
+async function openCertificatesPage(){
+  showModal('🎓 My Certificates', `<div id="cert-body" style="min-height:160px"><div style="color:var(--jm-text-muted);padding:14px">Loading your certificates…</div></div>`);
+  const body=document.getElementById('cert-body'); if(!body) return;
+  let list=[];
+  try{ const r=await api('/certificates/my','GET'); list=r.certificates||[]; }
+  catch(e){ body.innerHTML=`<div class="empty-state" style="padding:20px"><div class="icon">⚠️</div>${escHtml(e.message||'Could not load certificates')}</div>`; return; }
+  if(!list.length){
+    body.innerHTML=`<div class="empty-state" style="text-align:center;padding:32px"><div class="icon" style="font-size:44px">🎓</div><div style="font-weight:600;margin:8px 0">No certificates yet</div><div style="color:var(--jm-text-muted);font-size:13px;margin-bottom:14px">Finish a course to earn your first certificate — it's verifiable and shareable with employers.</div><button onclick="closeAnyModal(); document.querySelector('.nav-item[data-nav-key=courses]')?.click()" style="background:linear-gradient(135deg,var(--jm-primary),#a855f7);color:#fff;border:0;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(124,58,237,.35)">📚 Go to my courses</button></div>`;
+    return;
+  }
+  const origin=location.origin;
+  body.innerHTML=list.map(c=>{
+    const issued=c.issued_at?new Date(c.issued_at).toLocaleDateString():'';
+    const title=escHtml(c.course_title||c.title||'Course certificate');
+    const verifyUrl=c.verify_token?`${origin}/api/certificates/verify/${encodeURIComponent(c.verify_token)}`:'';
+    return `<div style="display:flex;align-items:center;gap:12px;padding:14px;border:1px solid var(--jm-border);border-radius:12px;margin-bottom:10px;background:linear-gradient(135deg,var(--jm-primary-tint,#f3eefe),transparent)">
+      <div style="font-size:32px">🎓</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;font-size:14px">${title}</div>
+        <div style="font-size:11px;color:var(--jm-text-muted)">Issued ${issued}${c.certificate_number?' · #'+escHtml(c.certificate_number):''}</div>
+      </div>
+      ${verifyUrl?`<a href="${verifyUrl}" target="_blank" rel="noopener" class="btn-sm btn-outline" style="text-decoration:none">🔗 Verify</a>`:''}
+    </div>`;
+  }).join('');
+}
+
+// ── My Students: aggregate roster across all the teacher's courses. Loads each
+// course's /students endpoint and merges by student. ────────────────────────
+async function openMyStudentsPage(){
+  showModal('👨‍🎓 My Students', `<div id="stu-body" style="min-height:160px"><div style="color:var(--jm-text-muted);padding:14px">Loading your students…</div></div>`);
+  const body=document.getElementById('stu-body'); if(!body) return;
+  let courses=window._teacherCourses||[];
+  if(!courses.length){
+    body.innerHTML=`<div class="empty-state" style="text-align:center;padding:32px"><div class="icon" style="font-size:44px">👨‍🎓</div><div style="font-weight:600;margin:8px 0">No students yet</div><div style="color:var(--jm-text-muted);font-size:13px;margin-bottom:14px">Create a course and share it — enrolled learners will appear here with their progress.</div><button onclick="closeAnyModal(); (typeof openWizard==='function'?openWizard():document.querySelector('.nav-item[data-nav-key=courses]')?.click())" style="background:linear-gradient(135deg,var(--jm-primary),#a855f7);color:#fff;border:0;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(124,58,237,.35)">＋ Create a course</button></div>`;
+    return;
+  }
+  // Merge rosters across courses, keyed by student_id.
+  const byStudent={};
+  await Promise.all(courses.map(async c=>{
+    try{
+      const r=await api('/courses/'+c.id+'/students','GET');
+      (r.students||[]).forEach(s=>{
+        const k=s.student_id||s.email;
+        if(!byStudent[k]) byStudent[k]={name:s.full_name,email:s.email,courses:[],bestPct:0};
+        byStudent[k].courses.push(c.title);
+        byStudent[k].bestPct=Math.max(byStudent[k].bestPct, s.progress_percentage||0);
+      });
+    }catch(e){}
+  }));
+  const students=Object.values(byStudent);
+  if(!students.length){
+    body.innerHTML=`<div class="empty-state" style="text-align:center;padding:32px"><div class="icon" style="font-size:44px">👨‍🎓</div><div style="font-weight:600;margin:8px 0">No enrollments yet</div><div style="color:var(--jm-text-muted);font-size:13px;margin-bottom:14px">Your ${courses.length} course${courses.length>1?'s have':' has'} no enrolled students yet. Share your course link to get learners in.</div><button onclick="closeAnyModal(); document.querySelector('.nav-item[data-nav-key=courses]')?.click()" style="background:linear-gradient(135deg,var(--jm-primary),#a855f7);color:#fff;border:0;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(124,58,237,.35)">📚 View my courses</button></div>`;
+    return;
+  }
+  students.sort((a,b)=>b.bestPct-a.bestPct);
+  body.innerHTML=`<div style="font-size:12px;color:var(--jm-text-muted);margin-bottom:10px">${students.length} student${students.length>1?'s':''} across ${courses.length} course${courses.length>1?'s':''}</div>`+
+    students.map(s=>`<div style="display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--jm-border);border-radius:10px;margin-bottom:8px">
+      <div style="width:34px;height:34px;border-radius:50%;background:var(--jm-primary-tint,#eee);color:var(--jm-primary);display:flex;align-items:center;justify-content:center;font-weight:700">${escHtml((s.name||'?')[0].toUpperCase())}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:600;font-size:13px">${escHtml(s.name||'—')}</div>
+        <div style="font-size:11px;color:var(--jm-text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(s.courses.join(', '))}</div>
+      </div>
+      <div style="text-align:right"><div style="font-weight:700;font-size:13px">${s.bestPct}%</div><div style="font-size:10px;color:var(--jm-text-muted)">progress</div></div>
+    </div>`).join('');
+}
+
+// ── Help & Support: static help center with quick links + contact. No backend
+// dependency — always available to every role. ─────────────────────────────
+function openHelpPage(){
+  const faqs=[
+    ['🚀 Getting started','Pick a role on signup, then use the left sidebar to navigate. Every empty card has a button to create your first item.'],
+    ['💳 Payments & wallet','Top up your wallet from Wallet → Add money. Course purchases and refunds appear in your transaction history.'],
+    ['🎥 Going live','Teachers: open Studio to broadcast. Students join from Live Classes when a teacher is on air.'],
+    ['🌐 Language','Change the interface language from the top bar selector or Settings. Bhasha Setu offers per-line read-aloud in 12 languages.'],
+    ['🔒 Account & privacy','Manage your profile, password, and notification settings from Settings. We never share your data without consent.']
+  ];
+  const body=`
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">
+      <button onclick="closeAnyModal(); openMessenger&&openMessenger('ai')" style="flex:1;min-width:150px;background:linear-gradient(135deg,var(--jm-primary),#a855f7);color:#fff;border:0;padding:14px;border-radius:10px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(124,58,237,.35)">🤖 Ask the AI Assistant</button>
+      <a href="mailto:support@mantravat.cloud" style="flex:1;min-width:150px;text-align:center;background:var(--jm-surface-2,#f5f5f5);color:inherit;border:1px solid var(--jm-border);padding:14px;border-radius:10px;font-weight:700;text-decoration:none">✉️ Email support</a>
+    </div>
+    <div style="font-weight:700;font-size:13px;margin-bottom:8px">Frequently asked</div>
+    ${faqs.map(([q,a])=>`<details style="border:1px solid var(--jm-border);border-radius:10px;padding:10px 14px;margin-bottom:8px">
+      <summary style="font-weight:600;font-size:13px;cursor:pointer">${q}</summary>
+      <div style="font-size:12px;color:var(--jm-text-muted);margin-top:8px;line-height:1.6">${a}</div>
+    </details>`).join('')}
+    <div style="font-size:11px;color:var(--jm-text-muted);text-align:center;margin-top:14px">Still stuck? Email <a href="mailto:support@mantravat.cloud">support@mantravat.cloud</a></div>`;
+  showModal('❓ Help & Support', body);
+}
+
+// ── Analytics: aggregate across the teacher's courses (students, completion,
+// attendance, revenue). Loads each course's /analytics endpoint. ───────────
+async function openAnalyticsPage(){
+  showModal('📊 Analytics', `<div id="ana-body" style="min-height:160px"><div style="color:var(--jm-text-muted);padding:14px">Crunching your numbers…</div></div>`);
+  const body=document.getElementById('ana-body'); if(!body) return;
+  let courses=window._teacherCourses||[];
+  if(!courses.length){
+    body.innerHTML=`<div class="empty-state" style="text-align:center;padding:32px"><div class="icon" style="font-size:44px">📊</div><div style="font-weight:600;margin:8px 0">No data yet</div><div style="color:var(--jm-text-muted);font-size:13px;margin-bottom:14px">Once you create courses and enroll students, your analytics will appear here.</div><button onclick="closeAnyModal(); (typeof openWizard==='function'?openWizard():switchTab('courses'))" style="background:linear-gradient(135deg,var(--jm-primary),#a855f7);color:#fff;border:0;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(124,58,237,.35)">＋ Create a course</button></div>`;
+    return;
+  }
+  let totStudents=0, totRevenue=0, pctSum=0, pctCount=0;
+  const perCourse=[];
+  await Promise.all(courses.map(async c=>{
+    try{
+      const a=await api('/courses/'+c.id+'/analytics','GET');
+      const s=a.students||a.student_count||0, rev=a.revenue||0, comp=a.completion_rate||0;
+      totStudents+=s; totRevenue+=rev; if(s){ pctSum+=comp; pctCount++; }
+      perCourse.push({title:c.title, students:s, revenue:rev, completion:comp});
+    }catch(e){ perCourse.push({title:c.title, students:0, revenue:0, completion:0}); }
+  }));
+  const avgComp=pctCount?Math.round(pctSum/pctCount):0;
+  const kpi=(label,val)=>`<div style="flex:1;min-width:120px;background:var(--jm-surface-2,#f5f5f5);border-radius:10px;padding:14px"><div style="font-size:11px;color:var(--jm-text-muted)">${label}</div><div style="font-size:22px;font-weight:800;margin-top:2px">${val}</div></div>`;
+  body.innerHTML=`
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">
+      ${kpi('Courses', courses.length)}
+      ${kpi('Total students', totStudents)}
+      ${kpi('Avg completion', avgComp+'%')}
+      ${kpi('Revenue', '₹'+totRevenue.toLocaleString('en-IN'))}
+    </div>
+    <div style="font-weight:700;font-size:13px;margin-bottom:8px">Per course</div>
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead><tr style="color:var(--jm-text-muted);font-size:11px;text-align:left"><th style="padding:6px 8px">Course</th><th style="padding:6px 8px;text-align:right">Students</th><th style="padding:6px 8px;text-align:right">Done</th><th style="padding:6px 8px;text-align:right">Revenue</th></tr></thead>
+      <tbody>${perCourse.map(p=>`<tr style="border-top:1px solid var(--jm-border)"><td style="padding:8px;font-weight:600">${escHtml(p.title)}</td><td style="padding:8px;text-align:right">${p.students}</td><td style="padding:8px;text-align:right">${p.completion}%</td><td style="padding:8px;text-align:right">₹${(p.revenue||0).toLocaleString('en-IN')}</td></tr>`).join('')}</tbody>
+    </table>`;
+}
 
 // ── AI Knowledge / RAG trainer: paste notes or re-index uploaded docs so the
 // AI tutor can ground answers in this course's own material. ───────────────
