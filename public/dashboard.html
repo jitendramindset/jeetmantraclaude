@@ -9662,6 +9662,63 @@ function toggleWidgetMode(){
   localStorage.setItem('wg_mode', onWidgets ? 'classic' : 'widgets');
   location.reload();
 }
+
+/* ── App-shell module host (SPA Phase 2) ──────────────────────────────────────
+   Renders heavy standalone modules INSIDE the shell content area via an iframe
+   (with ?embed=1 so each hides its own back-out chrome). Routed by hash:
+   #/m/studio · #/m/tests · #/m/marketplace · #/m/settings · #/m/admin · #/m/learn.
+   The shell's sidebar / topbar / bottom-nav stay; legacy links to the standalone
+   pages are intercepted and converted to in-shell routes. */
+(function shellModuleHost(){
+  const content = document.querySelector('.content');
+  if (!content) return;
+  const MODULES = {
+    studio:      { src: '/studio.html?embed=1',        title: '🎥 Studio' },
+    tests:       { src: '/exam-platform.html?embed=1', title: '📝 Test Center' },
+    marketplace: { src: '/marketplace.html?embed=1',   title: '🛒 Marketplace' },
+    settings:    { src: '/settings.html?embed=1',      title: '⚙️ Settings' },
+    admin:       { src: '/admin-os.html?embed=1',      title: '🛡️ Platform OS' },
+    learn:       { src: '/bhasha-setu.html?embed=1',   title: '🈯 Learning Hub' },
+  };
+  // Overlay the content area (race-proof: the async dashboard render keeps
+  // repainting its sections, so instead of hiding them we cover them).
+  if (getComputedStyle(content).position === 'static') content.style.position = 'relative';
+  const host = document.createElement('div');
+  host.id = 'shellModuleHost';
+  host.style.cssText = 'display:none;position:absolute;inset:0;z-index:60;background:var(--jm-bg);padding:16px 20px;flex-direction:column';
+  host.innerHTML =
+    '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex:0 0 auto">' +
+      '<button onclick="location.hash=\'\'" style="border:1px solid var(--jm-border);background:var(--jm-surface);color:var(--jm-text);padding:7px 12px;border-radius:8px;cursor:pointer;font-weight:700">← Back</button>' +
+      '<b id="shellModuleTitle" style="font-size:15px"></b>' +
+      '<a id="shellModuleOpen" href="#" target="_blank" rel="noopener" style="margin-left:auto;font-size:12px;color:var(--jm-text-muted);text-decoration:none" title="Open full screen">⤢ Full screen</a>' +
+    '</div>' +
+    '<iframe id="shellModuleFrame" title="module" style="width:100%;flex:1 1 auto;min-height:0;border:0;border-radius:14px;background:var(--jm-surface);box-shadow:var(--jm-shadow-sm)"></iframe>';
+  content.appendChild(host);
+  const frame = host.querySelector('#shellModuleFrame');
+
+  function route(){
+    const m = (location.hash.match(/^#\/m\/([\w-]+)/) || [])[1];
+    if (m && MODULES[m]) {
+      if (frame.dataset.mod !== m) { frame.src = MODULES[m].src; frame.dataset.mod = m; }
+      host.querySelector('#shellModuleTitle').textContent = MODULES[m].title;
+      host.querySelector('#shellModuleOpen').href = MODULES[m].src.split('?')[0];
+      host.style.display = 'flex';
+    } else {
+      host.style.display = 'none';
+    }
+  }
+  window.addEventListener('hashchange', route);
+  route();
+
+  // Intercept legacy navigations to standalone module pages → in-shell routes.
+  const LINK_MAP = { '/studio.html':'studio', '/exam-platform.html':'tests', '/bhasha-setu.html':'learn', '/marketplace.html':'marketplace', '/settings.html':'settings', '/admin-os.html':'admin' };
+  document.addEventListener('click', function(e){
+    const a = e.target.closest('a[href]');
+    if (!a) return;
+    let path; try { path = new URL(a.href, location.origin).pathname; } catch(_) { return; }
+    if (LINK_MAP[path]) { e.preventDefault(); location.hash = '#/m/' + LINK_MAP[path]; }
+  }, true);
+})();
 </script>
 </body>
 </html>

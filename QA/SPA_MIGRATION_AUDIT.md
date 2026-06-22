@@ -62,14 +62,25 @@ This preserves every working flow while delivering the single-shell UX increment
 - Verified: `/app?role=teacher` stays on `/app`, renders the Teacher Dashboard shell (sidebar, 22
   nav items, "👨‍🏫 Teacher" badge), no console errors, no login bounce.
 
-### Phase 2 — In-shell module host + embed mode (next)
-- Add a route layer to the shell: `/app#/studio`, `/app#/tests`, `/app#/live/:id`, `/app#/admin`,
-  `/app#/marketplace`, `/app#/settings`. The content area hosts the module in an `<iframe>` with
-  `?embed=1`; each module checks `embed` and hides its own top bar / exit button / duplicate nav so
-  only the shell chrome shows. Start with **studio** (clearest separate workspace), re-verify, then
-  exam-platform, liveRoom, admin-os, marketplace, settings.
-- Rewrite the shell's `location.href='/studio.html'` / `'/exam-platform.html'` / `'/liveRoom.html'`
-  / marketplace links to in-shell route navigation.
+### 🟡 Phase 2 — In-shell module host + embed mode (IN PROGRESS, host shipped)
+**Done & live-verified:**
+- `dashboard.html`: an in-shell **module host** (`#shellModuleHost`) overlays the content area and
+  hosts modules by hash route — `#/m/studio · #/m/tests · #/m/marketplace · #/m/settings ·
+  #/m/admin · #/m/learn` — in an `<iframe src="…?embed=1">`. The shell's top bar, sidebar and
+  bottom nav stay; a "← Back" + module title header sits above the frame. The overlay approach is
+  race-proof against the dashboard's async re-render.
+- **Legacy-link interception**: clicks on `a[href]` to `/studio.html`, `/exam-platform.html`,
+  `/bhasha-setu.html`, `/marketplace.html`, `/settings.html`, `/admin-os.html` are converted to the
+  in-shell hash route (no full-page navigation).
+- **studio.html embed mode**: `?embed=1` hides the studio "← Exit" / user-chip (would leave the
+  shell); the studio workspace toolbar stays. Studio's old Exit now targets `/app`.
+- Verified: studio + marketplace + exam-platform load inside the shell; Back restores the
+  dashboard; no console errors; shell chrome intact.
+
+**Remaining (per-module embed polish — they already load in-shell):**
+- Add the same `?embed=1` chrome-hide to `exam-platform.html`, `marketplace.html`, `settings.html`,
+  `admin-os.html`, `bhasha-setu.html`, `liveRoom.html` (hide their own back-to-dashboard controls;
+  optionally hide a redundant logo). Wire `liveRoom` as `#/m/live/:classId`.
 
 ### Phase 3 — Consolidate duplicates
 - `admin.html` → confirm admin-os parity, repoint links to `/app/admin`, delete file.

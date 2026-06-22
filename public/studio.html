@@ -203,7 +203,7 @@ body.focus #focusTop,body.focus #focusBar{display:flex}
   <button class="btn pri" id="btnEnable" onclick="enableDevices()">🔓 Enable camera &amp; mic</button>
   <button class="btn" id="btnRec" onclick="toggleRecord()">⏺ Record</button>
   <button class="btn" id="btnFocus" onclick="toggleFocus()" title="Clean full-screen teaching board — hides panels (Esc to exit)">🔳 Focus</button>
-  <button class="btn" onclick="location.href='/dashboard.html'">← Exit</button>
+  <button class="btn" id="studioExitBtn" onclick="location.href='/app'">← Exit</button>
 </div>
 <!-- Focus-mode floating bars: only visible in clean teaching mode (body.focus). -->
 <div id="focusTop">
@@ -2434,6 +2434,19 @@ function studioFocusPanels(){ document.body.classList.toggle('panels'); }
 document.addEventListener('keydown', function(e){
   if(e.key==='Escape' && document.body.classList.contains('focus')) toggleFocus();
 });
+
+/* Embed mode: when hosted inside the app shell (/studio.html?embed=1), hide the
+   controls that would navigate OUT of the shell — the shell supplies the back
+   affordance + chrome. Studio's own toolbar stays (it's the module's workspace). */
+(function studioEmbed(){
+  try{
+    if(new URLSearchParams(location.search).get('embed')==='1'){
+      document.documentElement.classList.add('embed');
+      const ex=document.getElementById('studioExitBtn'); if(ex) ex.style.display='none';
+      const chip=document.getElementById('studioUserChip'); if(chip) chip.dataset.embed='1';
+    }
+  }catch(e){}
+})();
 
 /* Collapsible control columns (mobile) — tap a header to show only what you need. */
 function studioToggleCol(btn){
