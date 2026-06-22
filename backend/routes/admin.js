@@ -619,6 +619,38 @@ router.get('/live-classes', authenticateToken, authorizeRole(['admin']), async (
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// POST /admin/migrations/run — runs a named SQL migration file from migrations/.
+// Idempotent: uses DROP POLICY IF EXISTS + CREATE POLICY so safe to re-run.
+router.post('/migrations/run', authenticateToken, authorizeRole(['admin']), async (req, res) => {
+  const { file } = req.body;
+  if (!file || !/^[\w-]+\.sql$/.test(file)) return res.status(400).json({ error: 'Invalid migration file name' });
+  try {
+    const fs = require('fs');
+    const migPath = require('path').join(__dirname, '..', '..', 'migrations', file);
+    if (!fs.existsSync(migPath)) return res.status(404).json({ error: 'Migration file not found' });
+    const sql = fs.readFileSync(migPath, 'utf8')
+      .split('\n').filter(l => !l.trim().startsWith('--') && l.trim()).join('\n');
+
+    // Execute via /pg/query DDL endpoint (service-role key required).
+    const stmts = sql.split(';').map(s => s.trim()).filter(Boolean);
+    const errors = [];
+    const pgUrl = `${process.env.SUPABASE_URL}/pg/query`;
+    const axios = require('axios');
+    for (const stmt of stmts) {
+      try {
+        await axios.post(pgUrl, { query: stmt + ';' }, {
+          headers: { apikey: process.env.SUPABASE_SERVICE_ROLE_KEY, 'Content-Type': 'application/json' }
+        });
+      } catch (e) {
+        const msg = e.response?.data?.message || e.message;
+        errors.push({ stmt: stmt.slice(0, 80), error: msg });
+      }
+    }
+    await auditLog(req.user.id, 'migration_run', null, { file, statements: stmts.length, errors: errors.length });
+    res.json({ ok: true, file, statements: stmts.length, errors });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // POST /admin/backup/trigger — run api-backup.js as a child process (non-blocking)
 router.post('/backup/trigger', authenticateToken, authorizeRole(['admin']), async (req, res) => {
   try {

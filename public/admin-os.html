@@ -595,11 +595,22 @@ async function renderSupport() {
   }
 }
 
-// ───── System / audit log (Sprint 8) ─────
+// ───── System / audit log + migrations (Sprint 8 + hardening) ─────
 async function renderSystem() {
   el('content').innerHTML = `
     <h1 class="page-title">System</h1>
-    <p class="page-sub">Platform audit trail — every privileged action with actor, target and timestamp. Powered by GET /api/admin/audit.</p>
+    <p class="page-sub">Platform audit trail + database migrations. Powered by /api/admin/audit and /api/admin/migrations.</p>
+    <div class="card" style="padding:16px;margin-bottom:16px">
+      <h3 style="margin:0 0 8px;font-size:14px">🗄️ Database migrations</h3>
+      <div style="font-size:11px;color:var(--jm-text-muted);margin-bottom:12px">Run pending SQL migrations against your Supabase instance via the /pg/query endpoint. Idempotent — safe to re-run.</div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <select id="migFile" style="padding:8px 10px;border:1px solid var(--jm-border);border-radius:6px;background:var(--jm-surface);color:inherit;font-size:13px">
+          <option value="001_rls_policies.sql">001_rls_policies.sql — RLS on all tables</option>
+        </select>
+        <button onclick="runMigration()" id="migBtn" style="padding:8px 16px;border:none;border-radius:6px;background:#7c3aed;color:#fff;font-weight:700;cursor:pointer">Run migration</button>
+        <span id="migMsg" style="font-size:13px;font-weight:700"></span>
+      </div>
+    </div>
     <div class="card" style="padding:0;overflow:hidden">
       <table class="list" id="auditTable">
         <thead><tr><th>Action</th><th>Actor</th><th>Target</th><th>When</th></tr></thead>
@@ -907,6 +918,29 @@ async function loadBackupList() {
       </tr>`).join('')}</tbody></table>
       <div style="margin-top:6px;color:var(--jm-text-muted)">Stored in: <code>${esc(r.dir)}</code></div>`;
   } catch (e) { div.textContent = 'Error: ' + e.message; }
+}
+
+async function runMigration() {
+  const file = el('migFile')?.value;
+  if (!file) return;
+  const btn = el('migBtn'); btn.disabled = true; btn.textContent = 'Running…';
+  el('migMsg').textContent = ''; el('migMsg').style.color = 'var(--jm-text-muted)';
+  try {
+    const r = await api('/admin/migrations/run', { method: 'POST', body: JSON.stringify({ file }) });
+    const errs = r.errors || [];
+    if (errs.length) {
+      el('migMsg').textContent = `⚠ ${r.statements} statements, ${errs.length} errors`;
+      el('migMsg').style.color = '#b45309';
+      console.error('[migration errors]', errs);
+    } else {
+      el('migMsg').textContent = `✓ ${r.statements} statements applied`;
+      el('migMsg').style.color = '#16a34a';
+    }
+  } catch (e) {
+    el('migMsg').textContent = 'Error: ' + e.message;
+    el('migMsg').style.color = '#b91c1c';
+  }
+  btn.disabled = false; btn.textContent = 'Run migration';
 }
 
 // ───── Coming-soon placeholder ─────

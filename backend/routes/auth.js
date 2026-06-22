@@ -107,6 +107,23 @@ function ipLimit(perHour) {
   };
 }
 
+// Per-phone OTP rate limit — 5 OTP sends per phone per hour (closes B3).
+// Stacked with ipLimit so both IP and phone must be under threshold.
+const _phoneSendHits = new Map();
+function phoneLimit(perHour) {
+  return (req, res, next) => {
+    const raw = String(req.body?.phone || '').replace(/\D/g, '');
+    const phone = raw.length >= 10 ? raw.slice(-10) : raw;
+    if (!phone) return next(); // invalid phone caught by validation below
+    const now = Date.now(), hourAgo = now - 60 * 60000;
+    const arr = (_phoneSendHits.get(phone) || []).filter(t => t > hourAgo);
+    if (arr.length >= perHour) {
+      return res.status(429).json({ error: 'Too many OTP requests for this number. Try again in 1 hour.' });
+    }
+    arr.push(now); _phoneSendHits.set(phone, arr); next();
+  };
+}
+
 // Per-phone failed-OTP attempt cap. A 6-digit OTP with no cap is brute-forceable
 // (the stored OTP isn't cleared on a wrong guess), so we count failures and
 // invalidate the OTP after OTP_MAX_FAILS wrong tries, forcing a re-request.
@@ -371,23 +388,49 @@ router.post('/refresh', authenticateToken, async (req, res) => {
   res.json({ message: 'Token refreshed', token });
 });
 
-// Google OAuth Login
-router.post('/google-login', async (req, res) => {
-  try {
-    const { email, fullName, googleId, profileImage, role = 'student' } = req.body;
+// GET /auth/config — public endpoint exposing front-end auth configuration.
+// Returns GOOGLE_CLIENT_ID so login.html can init GSI without hardcoding it.
+router.get('/config', (req, res) => {
+  res.json({
+    google_client_id: process.env.GOOGLE_CLIENT_ID || '',
+    otp_enabled: true,
+    email_login: true,
+  });
+});
 
-    if (!email || !googleId) {
-      return res.status(400).json({ error: 'Email and Google ID required' });
+// POST /auth/google-login — verifies a Google ID-token credential issued by
+// Google Identity Services (GSI One Tap / Sign In With Google). The frontend
+// sends { credential: "<id_token>" }; we verify it server-side with
+// google-auth-library so the email/identity cannot be spoofed.
+router.post('/google-login', ipLimit(20), async (req, res) => {
+  try {
+    const { credential } = req.body;
+    if (!credential) return res.status(400).json({ error: 'Google credential (ID token) required' });
+
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    if (!clientId) return res.status(503).json({ error: 'Google login not configured on this server (set GOOGLE_CLIENT_ID)' });
+
+    const { OAuth2Client } = require('google-auth-library');
+    const gClient = new OAuth2Client(clientId);
+    let payload;
+    try {
+      const ticket = await gClient.verifyIdToken({ idToken: credential, audience: clientId });
+      payload = ticket.getPayload();
+    } catch (verifyErr) {
+      return res.status(401).json({ error: 'Invalid or expired Google credential' });
     }
 
-    // Check if user exists
+    const { email, name: fullName, sub: googleId, picture: profileImage, email_verified } = payload;
+    if (!email_verified) return res.status(400).json({ error: 'Google account email is not verified' });
+
+    // Find or create user — Google login always provisions as student on first sign-up.
+    const role = 'student';
     let { data: user } = await supabaseAdmin
       .from('jeetmantra_users')
       .select('*')
       .eq('email', email)
-      .single();
+      .maybeSingle();
 
-    // If user doesn't exist, create new user
     if (!user) {
       const newUserId = uuidv4();
       const { data: newUser, error: insertError } = await supabaseAdmin
@@ -398,41 +441,33 @@ router.post('/google-login', async (req, res) => {
           full_name: fullName || email.split('@')[0],
           user_type: role,
           email_verified: true,
-          password_hash: 'google_auth', // Not used for Google auth
+          password_hash: 'google_auth',
+          profile_image: profileImage || null,
+          google_id: googleId,
           created_at: new Date().toISOString()
         })
         .select()
         .single();
 
-      if (insertError) {
-        return res.status(500).json({ error: 'Failed to create user' });
-      }
+      if (insertError) return res.status(500).json({ error: 'Failed to create user' });
 
       user = newUser;
-      // First Google signup → mirror role into user_roles + auto-provision
-      // personal institute if they're a creator role.
-      await ensureRoleRow(user.id, user.user_type || role, null);
-      await provisionPersonalInstitute(user.id, user.user_type || role);
+      await ensureRoleRow(user.id, role, null);
+      await provisionPersonalInstitute(user.id, role);
     } else {
-      // Existing user: keep verification status current
-      if (!user.email_verified) {
-        await supabaseAdmin
-          .from('jeetmantra_users')
-          .update({ email_verified: true })
-          .eq('id', user.id);
+      // Mark email verified + store google_id if not already
+      const updates = {};
+      if (!user.email_verified) updates.email_verified = true;
+      if (!user.google_id)      updates.google_id = googleId;
+      if (Object.keys(updates).length) {
+        await supabaseAdmin.from('jeetmantra_users').update(updates).eq('id', user.id);
       }
     }
 
     const token = await mintToken(user);
-
     res.json({
       message: 'Google login successful',
-      user: {
-        id: user.id,
-        email: user.email,
-        fullName: user.full_name,
-        role: user.user_type || user.role
-      },
+      user: { id: user.id, email: user.email, fullName: user.full_name, role: user.user_type || user.role },
       token
     });
   } catch (error) {
@@ -441,8 +476,8 @@ router.post('/google-login', async (req, res) => {
   }
 });
 
-// Send OTP to Phone — rate-limited per IP (8/hour) to stop SMS-bombing.
-router.post('/send-otp', ipLimit(8), async (req, res) => {
+// Send OTP to Phone — dual rate-limit: 8/hr per IP + 5/hr per phone number.
+router.post('/send-otp', ipLimit(8), phoneLimit(5), async (req, res) => {
   try {
     const { phone } = req.body;
 
