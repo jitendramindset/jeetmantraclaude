@@ -466,6 +466,14 @@ html[data-theme="dark"]{
     localStorage.setItem('jm_theme', JMSettings.get().dark ? 'dark' : 'light'); // keep legacy mirror in sync
   }
 }catch(e){} })();
+/* The Settings module runs in an in-shell iframe; when it writes jm_settings the
+   shell (a separate same-origin document) gets a `storage` event — re-apply so a
+   colour/theme/font change in Settings reflects in the shell live, no reload. */
+window.addEventListener('storage', function(e){
+  if (e.key === 'jm_settings' && window.JMSettings) {
+    try { JMSettings.applyTheme(); localStorage.setItem('jm_theme', JMSettings.get().dark ? 'dark' : 'light'); } catch(_){}
+  }
+});
 </script>
 <script src="/widget-registry.js"></script>
 </head>

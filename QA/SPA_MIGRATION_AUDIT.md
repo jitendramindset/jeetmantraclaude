@@ -118,9 +118,19 @@ off-canvas), bottom = bottom-nav height; a `ResizeObserver` on the chrome (+ rAF
 re-anchors it as the topbar wraps / chips load. Verified clean at 375 / 600 / 1280 (0 overflow,
 sits between topbar and bottom-nav on mobile, right of the sidebar on desktop).
 
-### Phase 4 — Global theme & settings
-- One theme system (already partly central via `jm-theme.js`); Settings module owns Theme/Color/
-  Font/Language/Accessibility/Layout. Remove any per-page theme toggles once modules are embedded.
+### ✅ Phase 4 — Global theme & settings (COMPLETE, live-verified)
+The Settings module (`/app#/m/settings`, backed by `JMSettings`/`jm_settings`) is now the **single
+source of truth** for all customization — theme/dark, primary+accent colour, font scale, language,
+branding, integrations. Resolved a real split: the shell had its own `jm_theme` store + inline
+Appearance panel separate from Settings.
+- Shell loads `jm-settings.js`; a head bridge seeds `JMSettings` from any legacy `jm_theme`
+  (existing dark choices survive) and keeps both mirrored.
+- Shell `setTheme()`/`setLang()` write **through** `JMSettings` (→ also fans to the satellite apps).
+- A `storage`-event listener re-applies `JMSettings` in the shell when the (in-iframe) Settings
+  module writes — so a colour/theme/font change in Settings reflects **live** in the shell, no reload.
+- Dashboard Configure's inline Appearance card links to the full Settings module.
+- **Verified:** change primary colour inside the Settings iframe → shell `--jm-primary` updates live
+  (#7c3aed→#ff0055) + persists; theme/language sync bidirectionally; no console errors.
 
 ### Phase 5 — Re-audit
 - Full responsive + role + nav sweep of the unified shell (reuse the `e2e/` suite + the live
