@@ -1,0 +1,19 @@
+{
+  "name": "eduos-e2e",
+  "version": "1.0.0",
+  "private": true,
+  "description": "EduOS Playwright E2E suite — auth, role nav, responsive, a11y, security, smoke, API",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "test:smoke": "playwright test specs/smoke.spec.js",
+    "test:api": "playwright test specs/api.spec.js",
+    "report": "playwright show-report ../e2e-report",
+    "install:browsers": "playwright install chromium"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.48.2",
+    "axe-core": "^4.10.0"
+  }
+}
