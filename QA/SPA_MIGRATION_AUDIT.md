@@ -161,3 +161,56 @@ Driving each screen with snapshots surfaced and fixed:
 **Stop condition met:** every production surface runs inside the one `/app` shell; the only
 standalone HTML is public (index, website, login, signup, forgot/reset-password, verify-email) +
 one dev-gated tool. All customization lives in Settings and applies everywhere live.
+
+---
+
+## ✅ True SPA: in-page rendering pattern (renderer registry)
+
+The earlier in-shell host loaded each module via an `<iframe src="/<module>.html?embed=1">`,
+which still fetched the module's HTML over the network. The user asked for a real SPA — modules
+should render from the menu without loading separate HTML files at all.
+
+**Pattern shipped:** a `RENDERERS` registry inside the shell. When `#/m/<id>` is opened, `route()`
+checks the registry first; if a renderer exists, it renders the module DIRECTLY into a
+`#shellModuleInline` div — no iframe, no network request for the module's `.html`. The iframe
+stays available as a fallback for modules not yet inlined (so the migration is gradual + safe).
+
+**Settings is the first inline module:**
+- `mountSettingsInline(root)` builds the full Settings form (branding · colors · dark · language
+  · text size · integrations) and wires it directly to `JMSettings` (same single source of truth).
+- Verified via the live network log: navigating to `#/m/settings` produces **zero requests for
+  `/settings.html`** — the URL stays on `/app` and the form appears in the shell content area.
+- Verified functionally: changing primary colour → `--jm-primary` updates live in the shell;
+  save persists to `jm_settings`; the duplicate "⚙️ Settings" title was dropped (host header
+  already shows it). Mobile and desktop both render cleanly.
+
+**Adding a module to the registry is now a 3-step pattern:**
+1. Write `mountFooInline(root)` — build the module's UI in `root.innerHTML`, wire its handlers.
+2. Add `foo: { title: '…', mount: mountFooInline }` to `RENDERERS`.
+3. The hash route `#/m/foo` and the sidebar's intercepted `/foo.html` clicks both go through
+   inline render automatically — no other changes needed.
+
+Marketplace, admin-os, exam-platform etc. still iframe (the fallback path stays clean) and can
+be ported to the renderer registry the same way when their UI complexity is worth the trade-off
+of inlining into the shell's bundle.
+
+### Per-screen review notes (screenshot-driven)
+- **Mobile dashboard** (375): hamburger + topbar chips + command bar + quick-actions card +
+  KPI cards stack cleanly; bottom nav (Home · Courses · Live · Calendar · Profile) covers the
+  primary destinations. Real "really-needed" prioritization already in place.
+- **Desktop dashboard** (1280): sidebar has 22 items for the teacher role; primary daily tools
+  are visible above the fold; secondary configs (Plans, Wallet, Settings, Profile, EduOS) live
+  below the fold. The dashboard's own `openSettings()` page already consolidates them into a
+  tile menu — which is the "configs as menu items" pattern the user described.
+- **Inline Settings** (mobile + desktop): single-column on mobile, two-column grid on desktop;
+  Branding / Localization / Integrations cards; Save + Reset CTAs. No duplicate brand. Live
+  color change applies to shell instantly.
+
+### What still iframes (and why)
+- **studio** (160KB, WebGL canvas + camera/MediaRecorder pipelines): the runtime isolation is a
+  feature, not noise — embed mode hides its chrome cleanly.
+- **exam-platform** (133KB, test-taking timer + grading engine): same — heavyweight standalone
+  app, the iframe stops state collisions with the shell.
+- **liveRoom** (Jitsi integration), **bhasha-setu** (self-contained language-tutor SPA),
+  **admin-os**, **marketplace**: all iframe with `?embed=1` cleanly; they can be ported to
+  inline render when worth the trade-off.
