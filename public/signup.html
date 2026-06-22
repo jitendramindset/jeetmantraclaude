@@ -439,6 +439,11 @@
 
 <div class="signup-container">
   <div class="signup-header">
+    <!-- Persistent login escape hatch — visible on every step, not just step 4.
+         A row above the welcome line so it never collides with the title on mobile. -->
+    <div style="display:flex;justify-content:flex-end;margin-bottom:6px">
+      <a href="/login.html" style="color:#fff;text-decoration:none;font-weight:700;font-size:13px;padding:6px 14px;border:1.5px solid rgba(255,255,255,.5);border-radius:8px;background:rgba(255,255,255,.1);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)">Already have an account? <u>Login</u></a>
+    </div>
     <h1>🎓 Welcome to JeetMantra</h1>
     <p>Your all-in-one education platform</p>
   </div>
