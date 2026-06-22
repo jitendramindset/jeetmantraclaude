@@ -131,6 +131,33 @@ async function uploadToS3(localPath, filename) {
   }
 }
 
+// ── Backup uploads/ directory (tar + gzip + encrypt) ─────────────────────
+function backupUploads(ts, outDir) {
+  const uploadsDir = path.join(__dirname, '..', 'uploads');
+  if (!fs.existsSync(uploadsDir)) {
+    console.log('[backup] uploads/ directory not found — skipping');
+    return;
+  }
+  const { execSync } = require('child_process');
+  const fname = `uploads-${ts.slice(0, 10)}.tar.gz.enc`;
+  const tmp   = path.join(outDir, `uploads-${ts.slice(0, 10)}.tar.gz`);
+  const out   = path.join(outDir, fname);
+
+  try {
+    execSync(`tar -czf "${tmp}" -C "${path.dirname(uploadsDir)}" uploads`, { stdio: 'inherit' });
+    const buf = fs.readFileSync(tmp);
+    const enc = ENC_KEY !== '0'.repeat(32) ? encrypt(buf) : buf;
+    fs.writeFileSync(out, enc);
+    fs.unlinkSync(tmp);
+    const sizeMB = (enc.length / 1024 / 1024).toFixed(2);
+    console.log(`[backup] uploads saved ${out} (${sizeMB} MB)`);
+    return { fname, outPath: out };
+  } catch (e) {
+    console.error('[backup] uploads backup failed:', e.message);
+    if (fs.existsSync(tmp)) fs.unlinkSync(tmp);
+  }
+}
+
 // ── Main ───────────────────────────────────────────────────────────────────
 async function main() {
   const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
@@ -173,6 +200,10 @@ async function main() {
   }
 
   await uploadToS3(outPath, fname);
+
+  // Backup uploads/ directory (media files)
+  const uploadsResult = backupUploads(ts, outDir);
+  if (uploadsResult) await uploadToS3(uploadsResult.outPath, uploadsResult.fname);
 
   // Prune local backups older than 7 days
   const maxAge = 7 * 24 * 60 * 60 * 1000;

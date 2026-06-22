@@ -606,6 +606,7 @@ async function renderSystem() {
       <div style="display:flex;gap:10px;align-items:center">
         <select id="migFile" style="padding:8px 10px;border:1px solid var(--jm-border);border-radius:6px;background:var(--jm-surface);color:inherit;font-size:13px">
           <option value="001_rls_policies.sql">001_rls_policies.sql — RLS on all tables</option>
+          <option value="002_indexes.sql">002_indexes.sql — Performance indexes (50+ columns)</option>
         </select>
         <button onclick="runMigration()" id="migBtn" style="padding:8px 16px;border:none;border-radius:6px;background:#7c3aed;color:#fff;font-weight:700;cursor:pointer">Run migration</button>
         <span id="migMsg" style="font-size:13px;font-weight:700"></span>
