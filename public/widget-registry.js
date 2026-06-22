@@ -27,7 +27,18 @@
   const fmtMoney = n => '₹' + Number(n || 0).toLocaleString('en-IN');
   const when = t => { try { return new Date(t).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }); } catch { return ''; } };
   const listOf = (d, ...keys) => { for (const k of keys) if (Array.isArray(d?.[k])) return d[k]; return Array.isArray(d) ? d : []; };
-  const empty = msg => `<div class="wg-empty">${esc(msg)}</div>`;
+  // empty(msg) — plain "nothing here" line.
+  // empty(msg, { label, onclick }) — game-screen style: inviting CTA so the user
+  // can act in one tap instead of staring at a passive empty state. Hover/press
+  // styled via .wg-empty-cta (set in widget-styles.css; falls back to inline).
+  const empty = (msg, action) => {
+    if (!action) return `<div class="wg-empty">${esc(msg)}</div>`;
+    const handler = String(action.onclick || '').replace(/"/g, '&quot;');
+    return `<div class="wg-empty wg-empty-cta" style="text-align:center;padding:14px 8px">
+      <div style="font-size:13px;color:var(--jm-text-muted);margin-bottom:10px">${esc(msg)}</div>
+      <button onclick="${handler}" style="background:linear-gradient(135deg,var(--jm-primary),#a855f7);color:#fff;border:0;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(124,58,237,.35);transition:transform .12s,box-shadow .12s" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 14px rgba(124,58,237,.45)'" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 8px rgba(124,58,237,.35)'">${esc(action.label)}</button>
+    </div>`;
+  };
 
   // ── WIDGET LIBRARY ────────────────────────────────────────────────────────
   // Each manifest: id, title, roles[], capability?, category, size, priority,
@@ -78,13 +89,13 @@
       id: 'upcoming-classes', title: 'Upcoming Classes', roles: null, category: 'teaching', size: 'medium', priority: 25,
       aiTriggers: ["today's classes", 'upcoming classes', 'schedule', 'open calendar'],
       dataSource: () => api('/live-classes/upcoming'),
-      render: d => { const c = listOf(d, 'liveClasses', 'classes', 'upcoming', 'items'); if (!c.length) return empty('No upcoming classes.'); return c.slice(0, 5).map(x => `<div class="wg-row"><span class="wg-row-t">${esc(x.title || x.course_title || 'Class')}</span><span class="wg-row-x">${when(x.scheduled_time || x.start_at || x.starts_at)}</span></div>`).join(''); }
+      render: (d, ctx) => { const c = listOf(d, 'liveClasses', 'classes', 'upcoming', 'items'); if (!c.length) return empty('No upcoming classes.', { label: (ctx&&ctx.role==='student')?'🛒 Browse courses':'📡 Schedule a class', onclick: (ctx&&ctx.role==='student')?"location.hash='#/m/marketplace'":"if(typeof openSchedule==='function')openSchedule();else location.hash='#/m/calendar'" }); return c.slice(0, 5).map(x => `<div class="wg-row"><span class="wg-row-t">${esc(x.title || x.course_title || 'Class')}</span><span class="wg-row-x">${when(x.scheduled_time || x.start_at || x.starts_at)}</span></div>`).join(''); }
     },
     {
       id: 'pending-eval', title: 'Pending Evaluation', roles: TEACHING, capability: 'assignment.grade', category: 'teaching', size: 'small', priority: 22,
       aiTriggers: ['pending evaluation', 'grade', 'essays to grade'],
       dataSource: () => api('/teacher/essays/pending'),
-      render: d => { const it = listOf(d, 'items', 'essays'); if (!it.length) return empty('Nothing to grade.'); return `<div class="wg-big">${it.length}</div><div class="wg-sub">submissions awaiting your grade</div><a class="wg-link" href="dashboard.html#grade">Open grading →</a>`; }
+      render: d => { const it = listOf(d, 'items', 'essays'); if (!it.length) return empty('Inbox zero — nothing to grade.', { label: '📝 Create an assignment', onclick: "if(typeof openAssignmentEditor==='function')openAssignmentEditor();else location.hash='#/m/tests'" }); return `<div class="wg-big">${it.length}</div><div class="wg-sub">submissions awaiting your grade</div><a class="wg-link" href="dashboard.html#grade">Open grading →</a>`; }
     },
     {
       id: 'revenue', title: 'Revenue', roles: CREATOR.concat(['institute_owner']), capability: 'payment.read', category: 'finance', size: 'medium', priority: 30,
@@ -114,7 +125,7 @@
       id: 'notifications', title: 'Notifications', roles: null, category: 'social', size: 'small', priority: 45,
       aiTriggers: ['notifications', 'alerts'],
       dataSource: () => api('/notifications/unread'),
-      render: d => { const n = listOf(d, 'notifications'); const total = d?.total ?? n.length; if (!total) return empty('No new notifications.'); return `<div class="wg-big">${total}</div><div class="wg-sub">unread</div>` + n.slice(0, 3).map(x => `<div class="wg-row"><span class="wg-row-t">${esc(x.title || x.message || 'Notification')}</span></div>`).join(''); }
+      render: d => { const n = listOf(d, 'notifications'); const total = d?.total ?? n.length; if (!total) return empty('All caught up — no new notifications.', { label: '🔔 Open notifications', onclick: "if(typeof toggleNotifs==='function')toggleNotifs(event);else location.hash='#/m/notifications'" }); return `<div class="wg-big" style="cursor:pointer" onclick="if(typeof toggleNotifs==='function')toggleNotifs(event)">${total}</div><div class="wg-sub">unread — tap to open</div>` + n.slice(0, 3).map(x => `<div class="wg-row"><span class="wg-row-t">${esc(x.title || x.message || 'Notification')}</span></div>`).join(''); }
     },
     {
       id: 'leaderboard', title: 'Leaderboard', roles: ['student'], category: 'learning', size: 'small', priority: 35,
