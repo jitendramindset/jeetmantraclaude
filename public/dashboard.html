@@ -29,6 +29,8 @@ body{display:flex;min-height:100vh;overflow-x:clip}
 .nav-item:hover{background:rgba(255,255,255,0.05);color:#fff}
 .nav-item.active{background:rgba(124,58,237,0.14);color:var(--jm-primary);border-right:3px solid var(--jm-primary)}
 .nav-item .icon{font-size:18px;width:22px;text-align:center}
+.nav-group-title{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,0.38);font-weight:600;padding:14px 20px 4px;pointer-events:none;user-select:none}
+.nav-group-title:not(:first-child){margin-top:4px;border-top:1px solid rgba(255,255,255,0.06)}
 .sidebar-footer{padding:16px 20px;border-top:1px solid rgba(255,255,255,0.1)}
 .btn-logout{width:100%;background:transparent;border:1.5px solid rgba(255,255,255,0.2);color:#fff;border-radius:var(--jm-radius-sm);padding:10px;cursor:pointer;font-size:13px;font-family:inherit;font-weight:600;transition:all .15s}
 .btn-logout:hover{background:var(--jm-primary);border-color:var(--jm-primary)}
@@ -1196,28 +1198,32 @@ const NAV={
     {i:'👤',l:'Profile',action:'openProfilePage()'}
   ],
   teacher:[
+    {group:'Primary'},
     {i:'🏠',l:'Dashboard',t:'top',a:true},
     {i:'📚',l:'My Courses',t:'courses'},
     {i:'📡',l:'Live Classes',t:'live'},
     {i:'🎥',l:'Studio',h:'/studio.html'},
-    {i:'📝',l:'Exam Builder',h:'/exam-platform.html'},
-    {i:'🈯',l:'Bhasha Setu',h:'/bhasha-setu.html'},
     {i:'📰',l:'Wall',t:'wall'},
     {i:'💬',l:'Messages',action:'openMessenger()'},
     {i:'📅',l:'Calendar',action:'openCalendar()'},
     {i:'📹',l:'Recordings',action:'openRecordings()'},
+    {group:'Tools'},
+    {i:'📝',l:'Exam Builder',h:'/exam-platform.html'},
+    {i:'🈯',l:'Bhasha Setu',h:'/bhasha-setu.html'},
+    {i:'🛒',l:'Marketplace',h:'/marketplace.html'},
     {i:'📊',l:'Bookings',action:'openBookings()'},
-    {i:'💰',l:'Payments',action:'openPayments()'},
-    {i:'🎟',l:'Coupons',action:'openCoupons()'},
-    {i:'🧾',l:'Billing',action:'openBilling()'},
     {i:'📝',l:'Essay grading',action:'openEssayInbox()'},
-    {i:'⚙️',l:'Settings',action:'openSettings()'},
-    {i:'🏫',l:'My Institutions',action:'openMyInstitutions()'},
-    {i:'🛰️',l:'EduOS',action:'openEduOS()'},
+    {group:'Money'},
+    {i:'💰',l:'Payments',action:'openPayments()'},
     {i:'💳',l:'Wallet',action:'openWallet()'},
     {i:'⚡',l:'Plans',action:'openPlans()'},
-    {i:'🛒',l:'Marketplace',h:'/marketplace.html'},
-    {i:'👤',l:'Profile',action:'openProfilePage()'}
+    {i:'🎟',l:'Coupons',action:'openCoupons()'},
+    {i:'🧾',l:'Billing',action:'openBilling()'},
+    {group:'Account & setup'},
+    {i:'⚙️',l:'Settings',action:'openSettings()'},
+    {i:'👤',l:'Profile',action:'openProfilePage()'},
+    {i:'🏫',l:'My Institutions',action:'openMyInstitutions()'},
+    {i:'🛰️',l:'EduOS',action:'openEduOS()'}
   ],
   partner:[
     {i:'🏠',l:'Dashboard',t:'top',a:true},
@@ -1325,6 +1331,9 @@ function fmt(n){return '₹'+Number(n||0).toLocaleString('en-IN');}
 function buildNav(role){
   const items=NAV[role]||NAV.student;
   document.getElementById('navMenu').innerHTML=items.map((it,idx)=>{
+    if(it.group){
+      return `<div class="nav-group-title" aria-hidden="true">${escHtml(it.group)}</div>`;
+    }
     let onclick;
     if(it.action){
       onclick='_navActivate(this);'+it.action; // highlight + close any page, then open — same as section items
