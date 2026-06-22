@@ -25,7 +25,8 @@
       try { user = JSON.parse(localStorage.getItem('jm_user') || 'null'); } catch (e) {}
       if (token && user) {
         var role = user.user_type || user.role || 'student';
-        window.location.replace(role === 'admin' ? '/admin.html' : '/dashboard.html?role=' + role);
+        // Single App Shell: every role enters at /app, never a standalone page.
+        window.location.replace('/app?role=' + role);
       } else {
         window.location.replace('/website.html');
       }

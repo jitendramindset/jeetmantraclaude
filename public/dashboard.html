@@ -533,7 +533,7 @@ html[data-theme="dark"]{
     <!-- For roles still on the classic dashboard: a link to their validated
          widget dashboard (composed from /api/me/contexts). -->
     <div id="wgTryBar" style="display:none;justify-content:flex-end;margin-bottom:10px">
-      <a href="/widgets.html" style="font-size:12px;font-weight:700;background:var(--jm-surface,#fff);border:1px solid var(--jm-border,#ddd);border-radius:8px;padding:6px 12px;color:var(--jm-text-strong,#333);text-decoration:none">🧩 Try the widget dashboard →</a>
+      <a href="#" onclick="toggleWidgetMode();return false" style="font-size:12px;font-weight:700;background:var(--jm-surface,#fff);border:1px solid var(--jm-border,#ddd);border-radius:8px;padding:6px 12px;color:var(--jm-text-strong,#333);text-decoration:none">🧩 Try the widget dashboard →</a>
     </div>
 
     <!-- STUDENT -->
@@ -961,7 +961,7 @@ html[data-theme="dark"]{
             </div>
             <div style="padding:10px 0;display:flex;justify-content:space-between;align-items:center">
               <div><div style="font-weight:600">Full Admin Panel</div><div style="font-size:11px;color:var(--jm-text-muted)">User management, courses, payouts</div></div>
-              <a href="/admin.html" class="btn-sm btn-primary" style="text-decoration:none">Open →</a>
+              <a href="#/m/admin" class="btn-sm btn-primary" style="text-decoration:none">Open →</a>
             </div>
             <div style="padding:10px 0;border-top:1px solid var(--jm-border);display:flex;justify-content:space-between;align-items:center">
               <div><div style="font-weight:600">🛰️ AI Dev Control Center</div><div style="font-size:11px;color:var(--jm-text-muted)">Live audit · module completion · issue backlog</div></div>
@@ -1254,7 +1254,7 @@ const NAV={
     {i:'📅',l:'Calendar',action:'openCalendar()'},
     {i:'⚙️',l:'Settings',action:'openSettings()'},
     {i:'👤',l:'Profile',action:'openProfilePage()'},
-    {i:'🔧',l:'Full Admin Panel',h:'/admin.html'}
+    {i:'🔧',l:'Full Admin Panel',h:'#/m/admin'}
   ],
   corporate_trainer:[
     {i:'🏠',l:'Dashboard',t:'top',a:true},
@@ -7268,7 +7268,7 @@ function openSettings(){
     <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--jm-text-muted);margin:8px 0 10px">Admin</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:14px;margin-bottom:24px">
       ${tile('#ef4444','🛡','Audit log','Recent admin actions',"toast('See Admin page')")}
-      ${tile('#7c3aed','💰','Commission rate','Platform commission %',"openEmbed('/admin.html','⚙️ Admin')")}
+      ${tile('#7c3aed','💰','Commission rate','Platform commission %',"openEmbed('/admin-os.html?embed=1','🛡️ Platform OS')")}
       ${tile('#ec4899','🔌','n8n / webhooks','Configure automations','openN8nConfig()')}
     </div>`:''}
     <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--jm-text-muted);margin:8px 0 10px">Account</div>

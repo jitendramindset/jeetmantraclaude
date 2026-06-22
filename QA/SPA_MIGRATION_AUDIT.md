@@ -92,11 +92,21 @@ This preserves every working flow while delivering the single-shell UX increment
 **Phase 2 status: COMPLETE** — all 7 standalone application modules (studio, exam-platform,
 marketplace, settings, admin-os, liveRoom, bhasha-setu) render inside the shell.
 
-### Phase 3 — Consolidate duplicates
-- `admin.html` → confirm admin-os parity, repoint links to `/app/admin`, delete file.
-- `widgets.html` → merge into `/app/settings` (Appearance/Widgets), delete.
-- `control-center.html`, `components.html`, `webhook-test.html`, `jeetmantra-enhance.html` →
-  move behind a dev-only guard (or delete from `public/`), keep out of the production shell.
+### 🟡 Phase 3 — Consolidate duplicates (links repointed; files orphaned)
+**Done — every shell reference to a legacy page now routes in-shell:**
+- `admin.html` (legacy SuperAdmin) → all 3 dashboard refs + `index.html` entry-router repointed to
+  the admin-os route (`#/m/admin` / `openEmbed('/admin-os.html?embed=1')`). **`admin.html` now has
+  0 references.**
+- `widgets.html` → the "Try the widget dashboard" link now calls the in-page `toggleWidgetMode()`.
+  **`widgets.html` now has 0 references.**
+- `index.html` entry router: every role (incl. admin) now lands on `/app`, never a standalone page.
+
+**Orphaned files — ready to delete (0 references, pending go-ahead):**
+`admin.html`, `widgets.html`, `components.html` (dev style gallery), `webhook-test.html` (dev),
+`jeetmantra-enhance.html` (legacy "Print"). `control-center.html` is still linked once as an
+explicit **dev** tool (AI Dev Control Center) — keep as dev-only or remove on request.
+*(Deletion deferred for an explicit go-ahead since these are pre-existing files; git preserves
+history, so removal is reversible.)*
 
 ### Phase 4 — Global theme & settings
 - One theme system (already partly central via `jm-theme.js`); Settings module owns Theme/Color/
