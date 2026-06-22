@@ -52,6 +52,19 @@ body.focus.panels .col.left{display:block!important;position:fixed;left:0;top:0;
 #focusBar{display:none;position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:420;gap:8px;align-items:center;background:rgba(18,18,26,.92);border:1px solid var(--bd);border-radius:16px;padding:8px 12px;box-shadow:0 10px 34px rgba(0,0,0,.55);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);max-width:96vw;flex-wrap:wrap;justify-content:center}
 body.focus #focusTop,body.focus #focusBar{display:flex}
 #focusBar .btn,#focusTop .btn{min-height:44px}
+/* ── Collapsible control columns on mobile ─────────────────────────────────
+   The board is what matters; the source + setup panels are a lot of buttons on
+   a phone. Each column gets a sticky header that hides/shows its body, and on
+   mobile both start collapsed so Studio opens to a clean board — tap a header
+   to reveal only what you need. Hidden entirely on desktop (space is ample). */
+.col-toggle{display:none}
+@media(max-width:760px){
+  .col-toggle{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;
+    background:var(--panel2);border:1px solid var(--bd);color:var(--txt);font-weight:700;font-size:13px;
+    padding:12px;border-radius:8px;margin:0 0 10px;cursor:pointer;position:sticky;top:0;z-index:6;min-height:44px}
+  .col-toggle .col-arrow{font-size:12px;color:var(--mut)}
+  .col.collapsed>*:not(.col-toggle){display:none}
+}
 /* Smartboard / 4K: scale up controls and type so they stay legible from a distance. */
 @media(min-width:2200px){.main{grid-template-columns:340px 1fr 400px}.btn{font-size:16px;padding:12px 20px}h4{font-size:14px}select,input[type=text]{font-size:15px;padding:11px}.scene .nm{font-size:15px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
@@ -210,6 +223,7 @@ body.focus #focusTop,body.focus #focusBar{display:flex}
 <div class="main">
   <!-- SOURCES -->
   <div class="col left">
+    <button class="col-toggle" type="button" onclick="studioToggleCol(this)" aria-label="Toggle sources panel"><span>📥 Sources &amp; scenes</span><span class="col-arrow">▾</span></button>
     <div id="permBanner" class="banner warn">Click <b>Enable camera &amp; mic</b> to detect devices.</div>
     <h4>📥 Camera</h4>
     <select id="camSelect" onchange="startCamera(this.value)"><option value="">— enable first —</option></select>
@@ -532,6 +546,7 @@ body.focus #focusTop,body.focus #focusBar{display:flex}
   </div>
   <!-- EDITOR -->
   <div class="col right">
+    <button class="col-toggle" type="button" onclick="studioToggleCol(this)" aria-label="Toggle setup panel"><span>⚙ Output &amp; setup</span><span class="col-arrow">▾</span></button>
     <h4>✂️ Perspective</h4>
     <!-- Simple Crop mode -->
     <div style="margin-bottom:8px">
@@ -2419,6 +2434,24 @@ function studioFocusPanels(){ document.body.classList.toggle('panels'); }
 document.addEventListener('keydown', function(e){
   if(e.key==='Escape' && document.body.classList.contains('focus')) toggleFocus();
 });
+
+/* Collapsible control columns (mobile) — tap a header to show only what you need. */
+function studioToggleCol(btn){
+  const col = btn.closest('.col'); if(!col) return;
+  const collapsed = col.classList.toggle('collapsed');
+  const a = btn.querySelector('.col-arrow'); if(a) a.textContent = collapsed ? '▾' : '▴';
+}
+/* On a phone, start both panels collapsed so Studio opens to a clean board. */
+(function studioInitCols(){
+  try{
+    if(window.matchMedia && window.matchMedia('(max-width:760px)').matches){
+      document.querySelectorAll('.col').forEach(col=>{
+        col.classList.add('collapsed');
+        const a = col.querySelector('.col-arrow'); if(a) a.textContent = '▾';
+      });
+    }
+  }catch(e){}
+})();
 </script>
 <script src="/i18n-seed.js?v=4"></script>
 <script src="/i18n-lite.js?v=4" defer></script>

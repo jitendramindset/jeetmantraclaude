@@ -115,16 +115,34 @@ Supabase and round-trip through the API.
 These are **not bugs** — they are surfaces this pass couldn't exercise without extra setup. Each
 has a concrete way to validate it:
 
-| Gap | Why not validated | How to close it |
+| Gap | Status | Note |
 |---|---|---|
-| `liveRoom.html` | redirects to dashboard without a live-class room id | open `liveRoom.html?class=<id>` for a seeded live class |
-| parent / corporate_trainer / content_creator / franchise dashboards | no `*_test@jm.test` accounts seeded | create those test users (they share the one `dashboard.html` engine already validated for 6 roles → low risk) |
-| Visual-regression baselines (Phase 8) | needs a browser that can spawn for screenshot diffs | run the authored `e2e/` Playwright suite in CI (`.github/workflows/e2e.yml`) |
-| Lighthouse perf (Phase 9) | same browser-spawn constraint | run Lighthouse CI against the deployed preview |
+| parent / corporate_trainer / content_creator / franchise dashboards | ✅ **CLOSED** — seeded + validated | created via `/api/auth/signup`; all 4 load real data, no console errors, correct humanized titles/badges (see ISSUE-5) |
+| `liveRoom.html` | open (not a defect) | redirects to dashboard without a live-class room id; open `liveRoom.html?class=<id>` for a seeded live class |
+| Visual-regression baselines (Phase 8) | open (not a defect) | needs a browser that can spawn; run the authored `e2e/` suite in CI (`.github/workflows/e2e.yml`) |
+| Lighthouse perf (Phase 9) | open (not a defect) | run Lighthouse CI against the deployed preview |
 
-**Full-screen re-sweep after the Studio change:** all **23** screen×width combinations
-(login, signup, marketplace, settings, studio, teacher dashboard, admin-os, exam-platform across
-360/768/1280) re-checked → **0 overflows**, no regressions.
+### ISSUE-4 (Medium, UX) — Studio mobile still button-heavy; added hide/unhide panels
+- **Screen:** `studio.html` · **Severity:** Medium · **Width:** ≤760px
+- **Symptom:** even after the Focus mode, the *normal* mobile view stacked both control columns
+  (sources + setup) as a long wall of buttons under the board.
+- **Fix:** made the two control columns **collapsible** — each gets a sticky header
+  (`📥 Sources & scenes`, `⚙ Output & setup`) that toggles its body, and on mobile both **start
+  collapsed** so Studio opens to a clean board; tap a header to reveal only what you need
+  (`studioToggleCol`). Hidden on desktop where space is ample.
+- **Re-verified (live):** both columns start collapsed at 375px (only headers show); toggle
+  expands to 21 controls / re-collapses; overflow 0; no console errors. Screenshot captured.
+
+### ISSUE-5 (Low, polish) — raw role names leaked into dashboard title/badge
+- **Screen:** `dashboard.html` (corporate_trainer, content_creator, parent) · **Severity:** Low
+- **Symptom:** tab title showed `Corporate_trainer Dashboard` (underscore, single-cap); `parent`
+  was missing from `ROLE_LABELS`/`ROLE_CLS` so its badge showed raw lowercase `parent`.
+- **Fix:** added `parent:'👪 Parent'` to `ROLE_LABELS`/`ROLE_CLS`; the tab title now reuses the
+  friendly label (`Corporate Trainer Dashboard`, `Content Creator Dashboard`, `Parent Dashboard`).
+- **Re-verified (live):** all 4 roles show humanized titles + badges.
+
+**Re-sweep after these changes:** 11 combinations (studio ×3 widths + 4 new role dashboards ×2)
+→ **0 overflows**, no regressions. (Earlier full sweep: 23 combos clean.)
 
 ## Environment note
 

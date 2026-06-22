@@ -1294,8 +1294,8 @@ const NAV={
     {i:'👤',l:'Profile',action:'openProfilePage()'}
   ]
 };
-const ROLE_LABELS={student:'🎓 Student',teacher:'👨‍🏫 Teacher',partner:'🤝 Partner',admin:'⚙️ Admin',school:'🏫 School',coaching:'🏆 Coaching',corporate_trainer:'💼 Corporate Trainer',content_creator:'🎬 Content Creator',franchise:'🏢 Franchise'};
-const ROLE_CLS={student:'role-student',teacher:'role-teacher',partner:'role-partner',admin:'role-admin',school:'role-school',coaching:'role-coaching',corporate_trainer:'role-teacher',content_creator:'role-partner',franchise:'role-admin'};
+const ROLE_LABELS={student:'🎓 Student',teacher:'👨‍🏫 Teacher',partner:'🤝 Partner',admin:'⚙️ Admin',school:'🏫 School',coaching:'🏆 Coaching',parent:'👪 Parent',corporate_trainer:'💼 Corporate Trainer',content_creator:'🎬 Content Creator',franchise:'🏢 Franchise'};
+const ROLE_CLS={student:'role-student',teacher:'role-teacher',partner:'role-partner',admin:'role-admin',school:'role-school',coaching:'role-coaching',parent:'role-student',corporate_trainer:'role-teacher',content_creator:'role-partner',franchise:'role-admin'};
 function fmt(n){return '₹'+Number(n||0).toLocaleString('en-IN');}
 function buildNav(role){
   const items=NAV[role]||NAV.student;
@@ -2096,7 +2096,7 @@ async function loadDashboard(){
   document.getElementById('userRoleBadge').className='user-role '+(ROLE_CLS[role]||'role-student');
   document.getElementById('userAvatar').textContent=(currentUser.fullName||'U')[0].toUpperCase();
   document.getElementById('pageTitle').textContent=(ROLE_LABELS[role]||role).replace(/^[^\w]+/,'').trim()+' Dashboard';
-  document.title='JeetMantra — '+role.charAt(0).toUpperCase()+role.slice(1)+' Dashboard';
+  document.title='JeetMantra — '+(ROLE_LABELS[role]||role).replace(/^[^\w]+/,'').trim()+' Dashboard';
   buildNav(role);
   try{
     // Route through api() so X-Active-Institution is sent — the dashboard is the
