@@ -9767,7 +9767,7 @@ function toggleWidgetMode(){
   function mountSettingsInline(root) {
     root.innerHTML = (
       '<div style="max-width:760px;margin:0 auto">' +
-      '<h2 style="font-size:22px;font-weight:800;margin:0 0 4px">⚙️ Settings</h2>' +
+      // (Title already shown in the host header — skip the duplicate <h2>.)
       '<div style="color:var(--jm-text-muted);font-size:13px;margin-bottom:18px">One place for branding, language, integrations & all customization — applied across the dashboard and the satellite apps.</div>' +
       // Branding card
       '<div class="card" style="padding:18px;margin-bottom:14px"><h3 style="margin:0 0 4px;font-size:15px">🎨 Branding</h3><div style="font-size:12px;color:var(--jm-text-muted);margin-bottom:14px">Shown across the platform.</div>' +
