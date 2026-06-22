@@ -450,6 +450,23 @@ html[data-theme="dark"]{
 }
 </style>
 <script src="/jm-theme.js"></script>
+<script src="/jm-settings.js"></script>
+<script>
+/* Unify the customization store: the Settings module (/app#/m/settings) is the
+   single source of truth via JMSettings (jm_settings). Seed it from any legacy
+   jm_theme so existing dark-mode choices survive, then keep both mirrored so a
+   change made anywhere is reflected everywhere. */
+(function(){ try{
+  var raw = localStorage.getItem('jm_settings');
+  var s = raw ? JSON.parse(raw) : {};
+  if (s.dark === undefined && window.JMSettings) {
+    JMSettings.set({ dark: localStorage.getItem('jm_theme') === 'dark' });   // migrate legacy → unified
+  } else if (window.JMSettings) {
+    JMSettings.applyTheme();                                                  // apply Settings colors/font/dark
+    localStorage.setItem('jm_theme', JMSettings.get().dark ? 'dark' : 'light'); // keep legacy mirror in sync
+  }
+}catch(e){} })();
+</script>
 <script src="/widget-registry.js"></script>
 </head>
 <body>
@@ -7255,6 +7272,9 @@ function openSettings(){
           </select>
         </div>
       </div>
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--jm-border)">
+        <a href="#/m/settings" style="font-size:13px;font-weight:700;color:var(--jm-primary);text-decoration:none">⚙️ All customization in Settings — colors, branding, fonts, language & integrations →</a>
+      </div>
     </div>
     <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--jm-text-muted);margin:8px 0 10px">Workspace</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:14px;margin-bottom:24px">
@@ -7700,6 +7720,9 @@ async function _crmSaveAll(){
 }
 function setTheme(mode){
   localStorage.setItem('jm_theme',mode);
+  // Single source of truth: also write the unified Settings store so the change
+  // shows in the Settings module and the satellite apps.
+  if(window.JMSettings) try{ JMSettings.set({dark: mode==='dark'}); }catch(e){}
   // Drive the unified theme system: dark→midnight, light→light. This also
   // re-applies the real CSS variables so the background actually changes.
   if(typeof _crmSave==='function'){ _crmSave({bgTheme: mode==='dark'?'midnight':'light'}); }
@@ -8925,6 +8948,8 @@ function _i18nInstallObserver(){
 function setLang(code){
   if(!JM_LANG_SET.has(code)) code='en';
   localStorage.setItem('jm_lang', code);
+  // Mirror into the unified Settings store (single source of truth).
+  if(window.JMSettings) try{ JMSettings.set({language: code}); }catch(e){}
   document.documentElement.lang=code;
   const sw=document.getElementById('langCurrNative'); if(sw){ const m=JM_LANGS.find(l=>l.c===code); if(m) sw.textContent=m.n; }
   const sl=document.getElementById('st-lang'); if(sl) sl.value=code;

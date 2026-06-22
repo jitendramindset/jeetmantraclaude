@@ -614,7 +614,7 @@ function _teardownRoom() {
 }
 function leaveRoom() {
   _teardownRoom();
-  window.location.href = '/dashboard.html';
+  window.location.href = '/app';
 }
 // Safety net: stop all timers + dispose Jitsi when the page is hidden/unloaded,
 // so polling doesn't keep running in a backgrounded/closed tab.

@@ -138,7 +138,7 @@ class WebhookHandler {
           localStorage.setItem('jm_token', result.token);
           localStorage.setItem('jm_user', JSON.stringify(result.user));
           showToast('Login successful!', 'success');
-          setTimeout(() => window.location.href = '/dashboard.html', 1500);
+          setTimeout(() => window.location.href = '/app', 1500);
         },
         (error) => {
           showToast(`Invalid OTP: ${error}`, 'error');
@@ -156,7 +156,7 @@ class WebhookHandler {
         localStorage.setItem('jm_token', result.token);
         localStorage.setItem('jm_user', JSON.stringify(result.user));
         showToast('Google login successful!', 'success');
-        setTimeout(() => window.location.href = '/dashboard.html', 1500);
+        setTimeout(() => window.location.href = '/app', 1500);
       },
       (error) => {
         showToast(`Google login failed: ${error}`, 'error');
