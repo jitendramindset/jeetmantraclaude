@@ -2492,6 +2492,56 @@ function studioToggleCol(btn){
     }
   }catch(e){}
 })();
+
+/* Theme sync: the Studio is a dark broadcasting workspace, but its accent
+   (buttons, active scene, corners) should match the brand primary the user set
+   in Settings — not a hardcoded purple. Reads jm_settings and live-updates. */
+(function studioBrand(){
+  function apply(){
+    try{
+      const s = JSON.parse(localStorage.getItem('jm_settings')||'{}');
+      if(s && /^#[0-9a-fA-F]{6}$/.test(s.primary||'')){
+        document.documentElement.style.setProperty('--pri', s.primary);
+      }
+    }catch(_){}
+  }
+  apply();
+  window.addEventListener('storage', e=>{ if(e.key==='jm_settings') apply(); });
+})();
+
+/* Collapsible setup sections — each <h4> in the right "Output & setup" column
+   folds its controls into a popover-style accordion so the panel is a tidy list
+   of options instead of a wall. Click a header to open it (others stay as you
+   left them); the section closes again on the next click. */
+(function studioAccordion(){
+  try{
+    const right = document.querySelector('.col.right'); if(!right) return;
+    const heads = [...right.querySelectorAll('h4')];
+    heads.forEach((h, i)=>{
+      // Wrap everything between this h4 and the next into a collapsible body.
+      const body = document.createElement('div');
+      body.className = 'sec-body';
+      let n = h.nextElementSibling;
+      while(n && n.tagName !== 'H4'){ const next = n.nextElementSibling; body.appendChild(n); n = next; }
+      h.after(body);
+      h.classList.add('sec-head');
+      h.style.cursor = 'pointer'; h.style.userSelect = 'none';
+      const arrow = document.createElement('span');
+      arrow.className = 'sec-arrow'; arrow.textContent = '▾';
+      arrow.style.cssText = 'float:right;transition:transform .15s;color:var(--mut)';
+      h.appendChild(arrow);
+      // Start the first section open, the rest collapsed → tidy by default.
+      const open = i === 0;
+      body.style.display = open ? '' : 'none';
+      arrow.style.transform = open ? 'rotate(0deg)' : 'rotate(-90deg)';
+      h.addEventListener('click', ()=>{
+        const show = body.style.display === 'none';
+        body.style.display = show ? '' : 'none';
+        arrow.style.transform = show ? 'rotate(0deg)' : 'rotate(-90deg)';
+      });
+    });
+  }catch(e){}
+})();
 </script>
 <script src="/i18n-seed.js?v=4"></script>
 <script src="/i18n-lite.js?v=4" defer></script>
