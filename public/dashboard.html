@@ -477,6 +477,7 @@ window.addEventListener('storage', function(e){
   }
 });
 </script>
+<script src="/offline-sync.js"></script>
 <script src="/widget-registry.js?v=5"></script>
 </head>
 <body>
@@ -2161,6 +2162,8 @@ async function loadDashboard(){
   document.getElementById('pageTitle').textContent=(ROLE_LABELS[role]||role).replace(/^[^\w]+/,'').trim()+' Dashboard';
   document.title='JeetMantra — '+(ROLE_LABELS[role]||role).replace(/^[^\w]+/,'').trim()+' Dashboard';
   buildNav(role);
+  // If we came back online with writes buffered while offline, replay them now.
+  try{ if(window.JMOffline && navigator.onLine) JMOffline.flush(API); }catch(_){}
   try{
     // Route through api() so X-Active-Institution is sent — the dashboard is the
     // one endpoint that re-scopes everything when the teacher switches institute.
@@ -2852,8 +2855,29 @@ async function api(path,method,body){
   // Honor the active institution stash so backend can scope queries.
   const inst=localStorage.getItem('jm_active_institution');
   if(inst) headers['X-Active-Institution']=inst;
-  const r=await fetch(API+path,{method,headers,body:body?JSON.stringify(body):undefined});
+  const isGet=(!method || String(method).toUpperCase()==='GET');
+  let r;
+  try{
+    r=await fetch(API+path,{method,headers,body:body?JSON.stringify(body):undefined});
+  }catch(netErr){
+    // No connection. Reads come from the last cached copy; writes are buffered
+    // into the outbox and replayed automatically when the network returns.
+    if(window.JMOffline){
+      if(isGet){
+        const cached=JMOffline.readGet(path);
+        if(cached!==undefined){ try{ document.body.classList.add('jmx-offline-on'); }catch(_){}; return cached; }
+        throw new Error('You’re offline and this hasn’t been saved for offline use yet.');
+      } else {
+        JMOffline.enqueue({path,method,body});
+        try{ toast('📴 Saved offline — will sync when you reconnect.'); }catch(_){}
+        return {queued:true, offline:true};
+      }
+    }
+    throw netErr;
+  }
   const j=await r.json().catch(()=>({}));
+  // Cache successful reads so they’re available next time the device is offline.
+  if(r.ok && isGet && window.JMOffline){ try{ JMOffline.cacheGet(path, j); }catch(_){} }
   if(!r.ok){
     // Session expired / invalid token → bounce to login instead of showing a
     // cryptic red "Error: jwt expired" on every panel. Guard against loops.
