@@ -74,6 +74,7 @@ input:focus,select:focus{border-color:var(--jm-primary);box-shadow:0 0 0 3px rgb
 }
 </style>
 <script src="/jm-theme.js"></script>
+<script src="/offline-sync.js"></script>
 <!-- Google Identity Services — loaded async; init deferred until config fetch -->
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -237,10 +238,31 @@ async function doLogin() {
     const data = await res.json();
     if (!res.ok) throw new Error(extractError(data, 'Login failed'));
     storeAuth(data.token, data.user);
+    // Remember a verifier so this account can sign in later with no internet.
+    try { if (window.JMOffline) await JMOffline.rememberCredential(email, password, data.user, data.token); } catch(_){}
     showMsg('✅ Login successful! Redirecting...', 'success');
     redirectToDashboard(data.user.role);
   } catch (e) {
-    showMsg(e.message, 'error');
+    // Network failure (offline / server unreachable) → try a local sign-in
+    // against the cached credential verifier so the user can still reach
+    // their data. A real 401 from the server is NOT a network error and
+    // falls through to the normal error message.
+    const networkDown = (e instanceof TypeError) || !navigator.onLine;
+    if (networkDown && window.JMOffline && JMOffline.hasOfflineProfile(email)) {
+      try {
+        const off = await JMOffline.offlineLogin(email, password);
+        showMsg('📴 Offline mode — showing your saved data. Changes sync when you reconnect.', 'success');
+        redirectToDashboard((off.user && off.user.role) || 'student');
+        document.getElementById('loginLoading').style.display = 'none';
+        return;
+      } catch (offErr) {
+        showMsg(offErr.message, 'error');
+        btn.disabled = false;
+        document.getElementById('loginLoading').style.display = 'none';
+        return;
+      }
+    }
+    showMsg(networkDown ? 'No internet, and no offline profile for this account yet. Connect once to enable offline access.' : e.message, 'error');
     btn.disabled = false;
   }
   document.getElementById('loginLoading').style.display = 'none';
