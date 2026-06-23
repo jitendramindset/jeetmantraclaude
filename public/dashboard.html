@@ -27,7 +27,9 @@ body{display:flex;min-height:100vh;overflow-x:clip}
 .nav-menu{flex:1;overflow-y:auto;padding:12px 0}
 .nav-item{display:flex;align-items:center;gap:12px;padding:12px 20px;cursor:pointer;transition:all .15s;font-size:14px;color:rgba(255,255,255,0.65);font-weight:500}
 .nav-item:hover{background:rgba(255,255,255,0.05);color:#fff}
-.nav-item.active{background:rgba(124,58,237,0.14);color:var(--jm-primary);border-right:3px solid var(--jm-primary)}
+/* Active state follows the THEME primary (was a hardcoded purple tint that
+   ignored a custom brand color set in Settings). */
+.nav-item.active{background:color-mix(in srgb, var(--jm-primary) 16%, transparent);color:var(--jm-primary);border-right:3px solid var(--jm-primary)}
 .nav-item .icon{font-size:18px;width:22px;text-align:center}
 .nav-group-title{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,0.38);font-weight:600;padding:14px 20px 4px;pointer-events:none;user-select:none}
 .nav-group-title:not(:first-child){margin-top:4px;border-top:1px solid rgba(255,255,255,0.06)}
@@ -273,14 +275,16 @@ html[data-theme="dark"]{
 .role-section{display:none}
 .role-section.visible{display:block}
 .loading-state{text-align:center;padding:60px;color:var(--jm-text-muted)}
-/* Top-bar menu button — visible on every width. On desktop it collapses the
-   left rail (top-bar-driven nav); on mobile it opens the sidebar as a drawer. */
+/* Top-bar menu button — visible on every width. On desktop it opens a popup
+   nav menu; on mobile it opens the sidebar as a drawer. */
 .hamburger{display:block;background:none;border:none;color:var(--jm-text);font-size:22px;cursor:pointer;padding:0 4px;line-height:1}
-/* Desktop collapsed state: slide the rail away and reclaim its width. */
-@media(min-width:769px){
-  body.jm-sidebar-collapsed .sidebar{transform:translateX(-100%)}
-  body.jm-sidebar-collapsed .main{margin-left:0}
-}
+/* Popup nav menu (desktop top-bar menu). Themed to the surface so labels are
+   readable (the rail itself is dark; this floats over light/dark content). */
+#navPopup{position:fixed;z-index:120;max-height:82vh;overflow:auto;background:var(--jm-surface);border:1px solid var(--jm-border);border-radius:14px;box-shadow:0 14px 44px rgba(0,0,0,.20);padding:8px;min-width:240px}
+#navPopup .nav-item{color:var(--jm-text);border-radius:8px;padding:11px 14px}
+#navPopup .nav-item:hover{background:color-mix(in srgb, var(--jm-primary) 10%, transparent);color:var(--jm-primary)}
+#navPopup .nav-item.active{background:color-mix(in srgb, var(--jm-primary) 16%, transparent);color:var(--jm-primary);border-right:0}
+#navPopup .nav-group-title{color:var(--jm-text-muted);border-top-color:var(--jm-border)}
 .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:90}
 .course-mini-card{background:var(--jm-surface);border-radius:var(--jm-radius-sm);padding:14px;border:1px solid var(--jm-border);box-shadow:var(--jm-shadow-sm)}
 .course-mini-card .cat{font-size:11px;color:var(--jm-text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.04em}
@@ -2228,10 +2232,28 @@ function toggleSidebar(){
     document.getElementById('sidebar').classList.toggle('open');
     document.getElementById('overlay').classList.toggle('show');
   } else {
-    document.body.classList.toggle('jm-sidebar-collapsed');
-    // The module host is viewport-anchored to the rail width — nudge it to re-measure.
-    try{ window.dispatchEvent(new Event('resize')); }catch(_){}
+    toggleNavPopup();
   }
+}
+// Desktop top-bar menu: a themed popup listing every nav item. Selecting one
+// navigates (the cloned item's own onclick fires) and then closes the popup;
+// clicking outside or pressing Esc closes it too.
+function toggleNavPopup(){
+  let p=document.getElementById('navPopup');
+  if(p){ p.remove(); return; }
+  const nav=document.querySelector('.sidebar .nav-menu'); if(!nav) return;
+  p=document.createElement('div');
+  p.id='navPopup';
+  p.innerHTML=nav.innerHTML;
+  document.body.appendChild(p);
+  const hb=document.querySelector('.hamburger');
+  if(hb){ const r=hb.getBoundingClientRect(); p.style.top=(r.bottom+8)+'px'; p.style.left=Math.max(8,r.left)+'px'; }
+  // Any nav-item click closes the popup (after its own navigation handler runs).
+  p.addEventListener('click',e=>{ if(e.target.closest('.nav-item')) setTimeout(()=>{ const el=document.getElementById('navPopup'); if(el) el.remove(); },0); });
+  // Outside-click + Esc close.
+  const off=ev=>{ if(ev.type==='keydown'&&ev.key!=='Escape') return; const el=document.getElementById('navPopup'); if(!el) { cleanup(); return; } if(ev.type==='keydown'||(!el.contains(ev.target)&&!ev.target.closest('.hamburger'))){ el.remove(); cleanup(); } };
+  function cleanup(){ document.removeEventListener('click',off,true); document.removeEventListener('keydown',off,true); }
+  setTimeout(()=>{ document.addEventListener('click',off,true); document.addEventListener('keydown',off,true); },0);
 }
 function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('overlay').classList.remove('show');}
 // Highlight the sidebar item matching the active module hash (or Dashboard when
