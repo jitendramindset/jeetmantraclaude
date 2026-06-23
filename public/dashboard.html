@@ -273,7 +273,14 @@ html[data-theme="dark"]{
 .role-section{display:none}
 .role-section.visible{display:block}
 .loading-state{text-align:center;padding:60px;color:var(--jm-text-muted)}
-.hamburger{display:none;background:none;border:none;color:var(--jm-text);font-size:22px;cursor:pointer;padding:0 4px}
+/* Top-bar menu button — visible on every width. On desktop it collapses the
+   left rail (top-bar-driven nav); on mobile it opens the sidebar as a drawer. */
+.hamburger{display:block;background:none;border:none;color:var(--jm-text);font-size:22px;cursor:pointer;padding:0 4px;line-height:1}
+/* Desktop collapsed state: slide the rail away and reclaim its width. */
+@media(min-width:769px){
+  body.jm-sidebar-collapsed .sidebar{transform:translateX(-100%)}
+  body.jm-sidebar-collapsed .main{margin-left:0}
+}
 .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:90}
 .course-mini-card{background:var(--jm-surface);border-radius:var(--jm-radius-sm);padding:14px;border:1px solid var(--jm-border);box-shadow:var(--jm-shadow-sm)}
 .course-mini-card .cat{font-size:11px;color:var(--jm-text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.04em}
@@ -2213,8 +2220,33 @@ function debounceSearch(q){
   if(!q.trim())return;
   searchTimer=setTimeout(()=>{openEmbed('/marketplace.html?q='+encodeURIComponent(q),'🛒 Marketplace');},700);
 }
-function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('overlay').classList.toggle('show');}
+// Top-bar menu button. Mobile (≤768px): open/close the off-canvas drawer with a
+// dimming overlay. Desktop: collapse/expand the fixed left rail (the topbar
+// button then drives navigation, content reclaims the width).
+function toggleSidebar(){
+  if(window.matchMedia('(max-width:768px)').matches){
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('overlay').classList.toggle('show');
+  } else {
+    document.body.classList.toggle('jm-sidebar-collapsed');
+    // The module host is viewport-anchored to the rail width — nudge it to re-measure.
+    try{ window.dispatchEvent(new Event('resize')); }catch(_){}
+  }
+}
 function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('overlay').classList.remove('show');}
+// Highlight the sidebar item matching the active module hash (or Dashboard when
+// the hash is cleared) so the rail always reflects where you are.
+function _syncNavActive(mod){
+  const items=[...document.querySelectorAll('.nav-item')];
+  if(mod){
+    const hit=items.find(n=>(n.getAttribute('onclick')||'').includes("'#/m/"+mod+"'"));
+    if(hit){ items.forEach(n=>n.classList.remove('active')); hit.classList.add('active'); }
+    return; // a sub-route with no menu entry (e.g. live/<id>) leaves the rail as-is
+  }
+  items.forEach(n=>n.classList.remove('active'));
+  const dash=items.find(n=>(n.getAttribute('onclick')||'').includes('navScroll(this,null)'))||items[0];
+  if(dash) dash.classList.add('active');
+}
 async function logout(){ try{ if(typeof jmBrainReset==='function') await jmBrainReset(); }catch(e){} localStorage.removeItem('jm_token');localStorage.removeItem('jm_user');window.location.href='/login.html';}
 
 // ============================================================
@@ -10070,6 +10102,10 @@ function toggleWidgetMode(){
   function route(){
     const mm = location.hash.match(/^#\/m\/([\w-]+)(?:\/([\w-]+))?/) || [];
     const mod = mm[1], arg = mm[2];
+    // Keep the sidebar highlight in sync with the open module, and close the
+    // mobile drawer after a navigation so the content is visible.
+    try{ _syncNavActive(mod); }catch(_){}
+    try{ if(window.matchMedia('(max-width:768px)').matches) closeSidebar(); }catch(_){}
     // Prefer the in-page renderer (no iframe, no extra HTML loaded over network).
     if (mod && RENDERERS[mod]) {
       host.querySelector('#shellModuleTitle').textContent = RENDERERS[mod].title;
