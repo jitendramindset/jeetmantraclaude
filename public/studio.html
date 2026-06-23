@@ -958,7 +958,31 @@ function _bindClass(id, title){
   if(b){ if(id){ b.style.display='inline-block'; b.textContent='🔴 Live: '+(title||'class'); } else { b.style.display='none'; } }
   // Default the recording save-target to the class once connected.
   const st=document.getElementById('saveTarget'); if(st && id && st.value==='local') st.value='both';
+  // Start/stop casting the composite to the live room (students see this view).
+  if(id) startStudioCast(id); else stopStudioCast();
 }
+// ── Studio cast: push the composite canvas (#out) to the live room as periodic
+// JPEG frames (~1.5 fps) so students see exactly what's on screen here. A
+// lightweight alternative to a full WebRTC publish.
+let _castTimer=null, _casting=false;
+function startStudioCast(classId){
+  stopStudioCast();
+  const canvas=document.getElementById('out'); if(!canvas) return;
+  _castTimer=setInterval(async ()=>{
+    if(_casting) return;                 // skip if the previous POST is still in flight
+    let frame; try{ frame=canvas.toDataURL('image/jpeg', 0.55); }catch(_){ return; }
+    if(!frame || frame.length<100) return;
+    _casting=true;
+    try{
+      await fetch(API+'/live-classes/'+classId+'/cast',{
+        method:'POST', headers:{'Content-Type':'application/json',Authorization:'Bearer '+TOKEN},
+        body:JSON.stringify({frame})
+      });
+    }catch(_){ /* offline / transient — next tick retries */ }
+    finally{ _casting=false; }
+  }, 650);
+}
+function stopStudioCast(){ if(_castTimer){ clearInterval(_castTimer); _castTimer=null; } }
 async function openTeach(){
   document.getElementById('teachModal').style.display='flex';
   const t=new Date(Date.now()+5*60000); t.setSeconds(0,0);

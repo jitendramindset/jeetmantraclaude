@@ -277,6 +277,9 @@ async function mountJitsi() {
       DEFAULT_REMOTE_DISPLAY_NAME: 'Participant'
     }
   });
+  // Studio cast overlay: if the teacher is broadcasting from Studio, show that
+  // composite on top of the room — it's the "final view" students should see.
+  _startCastViewer(stage);
   _jitsiApi.addListener('readyToClose', () => leaveRoom());
   // Real-time whiteboard: receive stroke/clear messages broadcast by the
   // presenter over Jitsi's data channel and replay them on a read-only board.
@@ -611,7 +614,51 @@ function wbApplyRemote(msg) {
 function _teardownRoom() {
   if (_jitsiApi) { try { _jitsiApi.dispose(); } catch(_){} }
   clearInterval(_pollTimer); clearInterval(_timerInterval); clearInterval(_activePollTimer);
+  _stopCastViewer();
 }
+// ── Studio cast viewer ──────────────────────────────────────────────────────
+// Polls the teacher's latest Studio frame and, while one is flowing, shows it
+// as a full-bleed overlay on the stage (the composite the teacher is sharing).
+// A toggle lets viewers drop back to the raw room (Jitsi tiles) and back.
+let _castTimer=null, _castShown=false;
+function _startCastViewer(stage){
+  _stopCastViewer();
+  let ov=document.getElementById('castOverlay');
+  if(!ov){
+    ov=document.createElement('div');
+    ov.id='castOverlay';
+    ov.style.cssText='position:absolute;inset:0;z-index:30;display:none;background:#000;flex-direction:column';
+    ov.innerHTML=
+      '<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:rgba(0,0,0,.55);color:#fff;font-size:12px;font-weight:700">'+
+        '<span style="display:inline-flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:50%;background:#ef4444;display:inline-block;animation:none"></span>📡 Studio view</span>'+
+        '<button onclick="_toggleCast()" style="margin-left:auto;background:rgba(255,255,255,.15);color:#fff;border:0;border-radius:6px;padding:4px 10px;cursor:pointer;font-weight:700">Show room</button>'+
+      '</div>'+
+      '<img id="castImg" alt="Studio view" style="flex:1;min-height:0;width:100%;object-fit:contain;background:#000" />';
+    (stage||document.getElementById('stage')).appendChild(ov);
+  }
+  const img=ov.querySelector('#castImg');
+  const tick=async ()=>{
+    try{
+      const r=await fetch(API+'/live-classes/'+CLASS_ID+'/cast',{headers:{Authorization:'Bearer '+TOKEN}});
+      if(r.status===200){
+        const j=await r.json();
+        if(j && j.frame){ img.src=j.frame; if(!_castDismissed){ ov.style.display='flex'; _castShown=true; } }
+      } else {
+        // Teacher stopped casting → drop the overlay so the room shows again.
+        ov.style.display='none'; _castShown=false;
+      }
+    }catch(_){ /* transient */ }
+  };
+  tick();
+  _castTimer=setInterval(tick, 800);
+}
+let _castDismissed=false;
+function _toggleCast(){
+  const ov=document.getElementById('castOverlay'); if(!ov) return;
+  if(ov.style.display==='none'){ _castDismissed=false; ov.style.display='flex'; }
+  else { _castDismissed=true; ov.style.display='none'; }
+}
+function _stopCastViewer(){ if(_castTimer){ clearInterval(_castTimer); _castTimer=null; } const ov=document.getElementById('castOverlay'); if(ov) ov.remove(); _castShown=false; }
 function leaveRoom() {
   _teardownRoom();
   window.location.href = '/app';
