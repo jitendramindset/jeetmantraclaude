@@ -5387,7 +5387,8 @@ function msgrOpenAI(){
   thread.innerHTML=`
     <div class="msgr-thread-head">
       <div class="msgr-avatar ai" style="width:34px;height:34px;font-size:16px">🤖</div>
-      <div><div style="font-weight:700;font-size:14px">AI Assistant</div><div style="font-size:11px;color:var(--jm-text-muted)">Pick a course/topic for grounded answers</div></div>
+      <div><div style="font-weight:700;font-size:14px">AI Assistant</div><div style="font-size:11px;color:var(--jm-text-muted)">Ask, or turn on Actions to run things for you</div></div>
+      <label title="When on, the assistant can run real actions for your role — list your courses/students, show analytics, create a course or coupon, schedule a class — by calling the app's own APIs." style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;cursor:pointer;margin-left:auto;white-space:nowrap"><input type="checkbox" id="msgr-agent-mode" checked style="width:auto"> ⚡ Actions</label>
       <div class="scope"><select id="msgr-ai-course" onchange="msgrAiTopics()">${courseOpts}</select><select id="msgr-ai-topic"><option value="">All topics</option></select></div>
     </div>
     <div class="msgr-msgs" id="msgr-msgs"></div>
@@ -5401,8 +5402,11 @@ function msgrRenderAILog(){
   el.innerHTML=_msgr.aiLog.map(m=>{
     if(m.role==='user') return `<div class="msgr-bubble me">${escHtml(m.text)}</div>`;
     const src=(m.sources&&m.sources.length)?`<div class="tm">📎 ${m.sources.map(s=>escHtml(s.title)).join(', ')}</div>`:'';
-    const badge=m.grounded?'<span style="font-size:9px;background:#d1fae5;color:#059669;padding:1px 6px;border-radius:8px">grounded</span> ':'';
-    return `<div class="msgr-bubble them"><div class="who">🤖 AI ${badge}</div>${escHtml(m.text)}${src}</div>`;
+    const badge=m.grounded?'<span style="font-size:9px;background:#d1fae5;color:#059669;padding:1px 6px;border-radius:8px">grounded</span> ':(m.tool?'<span style="font-size:9px;background:#ede9fe;color:#7c3aed;padding:1px 6px;border-radius:8px">action</span> ':'');
+    // Agent results carry a pre-built, trusted HTML detail block; everything
+    // else is escaped plain text.
+    const detail=m.html?`<div style="margin-top:4px">${m.html}</div>`:'';
+    return `<div class="msgr-bubble them"><div class="who">🤖 AI ${badge}</div>${escHtml(m.text)}${detail}${src}</div>`;
   }).join('');
   el.scrollTop=el.scrollHeight;
 }
@@ -5475,6 +5479,50 @@ async function msgrAskAI(text, opts){
   if(opts.speak) vSpeak(String(answer).slice(0,300));
   return answer;
 }
+// ── AGENT mode: the assistant can call the platform's own APIs (scoped to the
+// user's role) and act on the result. Backed by POST /api/ai/agent, which runs
+// the chosen tool through the normal authenticated endpoints (so permissions +
+// validation always apply; money-moving tools are never registered).
+async function msgrAgentSend(text){
+  _msgr.aiLog.push({role:'user',text});
+  _msgr.aiLog.push({role:'ai',text:'…working',pending:true}); msgrRenderAILog();
+  try{
+    const r=await api('/ai/agent','POST',{message:text});
+    _msgr.aiLog.pop();
+    if(r.mode==='tool'){
+      const head=(r.ok?'✅ ':'⚠️ ')+(r.say||(r.ok?'Done.':'That didn’t work.'));
+      const detail=r.ok?msgrFormatAgentResult(r.tool,r.result):escHtml(r.error||'Action failed');
+      _msgr.aiLog.push({role:'ai',text:head, html:detail, tool:r.tool});
+      // A successful write likely changed dashboard data — refresh it quietly.
+      if(r.ok && r.write){ try{ loadDashboard(); }catch(_){} }
+    } else {
+      _msgr.aiLog.push({role:'ai',text:r.text||'How can I help?'});
+    }
+  }catch(e){
+    _msgr.aiLog.pop();
+    _msgr.aiLog.push({role:'ai',text:'⚠️ '+(e.message||'Agent error')});
+  }
+  msgrRenderAILog();
+}
+// Render a tool result into a compact, readable block (falls back to JSON).
+function msgrFormatAgentResult(tool, result){
+  if(result==null) return '';
+  try{
+    // A few friendly shapes; everything else → pretty JSON.
+    if(Array.isArray(result.certificates)) return msgrList(result.certificates.map(c=>'🎓 '+(c.course_title||c.title||'Certificate')));
+    if(Array.isArray(result.students)) return msgrList(result.students.map(s=>'👨‍🎓 '+(s.full_name||s.email||'—')+' · '+(s.progress_percentage||0)+'%'));
+    if(Array.isArray(result.coupons)) return msgrList(result.coupons.map(c=>'🎟 '+c.code+' · '+(c.discount_percent?c.discount_percent+'%':'₹'+(c.discount_flat||0))+' off'));
+    if(Array.isArray(result.notifications)) return msgrList(result.notifications.slice(0,8).map(n=>'🔔 '+(n.title||n.message||'')));
+    if(result.dashboard && result.dashboard.stats) return msgrKv(result.dashboard.stats);
+    if(result.course||result.coupon||result.id||result.liveClass) return '<div style="font-size:12px;color:var(--jm-text-muted)">Created ✓</div>';
+    if(result.balance!==undefined) return '<div style="font-weight:700">₹'+Number(result.balance).toLocaleString('en-IN')+'</div>';
+    if(result.stats) return msgrKv(result.stats);
+  }catch(_){}
+  const s=JSON.stringify(result,null,1);
+  return '<pre style="white-space:pre-wrap;font-size:11px;background:var(--jm-surface-2);padding:8px;border-radius:8px;max-height:200px;overflow:auto;margin:6px 0 0">'+escHtml(s.length>1200?s.slice(0,1200)+'…':s)+'</pre>';
+}
+function msgrList(items){ if(!items||!items.length) return '<div style="font-size:12px;color:var(--jm-text-muted)">Nothing found.</div>'; return '<div style="font-size:12px;margin-top:4px">'+items.slice(0,15).map(i=>'<div style="padding:2px 0">'+escHtml(i)+'</div>').join('')+(items.length>15?'<div style="color:var(--jm-text-muted)">…and '+(items.length-15)+' more</div>':'')+'</div>'; }
+function msgrKv(obj){ return '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px">'+Object.entries(obj).slice(0,8).map(([k,v])=>'<div style="background:var(--jm-surface-2);border-radius:8px;padding:6px 10px"><div style="font-size:10px;color:var(--jm-text-muted)">'+escHtml(k)+'</div><div style="font-weight:700;font-size:14px">'+escHtml(String(v))+'</div></div>').join('')+'</div>'; }
 // Post a plain assistant line into the AI log (e.g. a voice command confirmation).
 function msgrPostAILine(userText, aiText){
   if(userText) _msgr.aiLog.push({role:'user',text:userText});
@@ -5487,7 +5535,9 @@ async function msgrSend(){
   input.value='';
   const a=_msgr.active;
   if(a&&a.type==='ai'){
-    await msgrAskAI(text);
+    const agentOn=(document.getElementById('msgr-agent-mode')||{}).checked;
+    if(agentOn && navigator.onLine) await msgrAgentSend(text);
+    else await msgrAskAI(text);
   } else if(a&&a.type==='room'){
     try{ await api('/chat/rooms/'+a.id+'/messages','POST',{content:text}); await msgrRenderRoom(); }
     catch(e){ toast(e.message,true); }
