@@ -705,7 +705,10 @@ let gl=null, prog=null, tex=null, glCanvas=null, micStream=null, brandImg=null;
 const out=document.getElementById('out'), octx=out.getContext('2d');
 
 // ── Simple Crop mode ────────────────────────────────────────────────────
-let _cropMode=false, _cropRect={x:0,y:0,w:1,h:1};
+let _cropMode=false;
+// Crop is PER-SCENE (like corners) — each scene keeps its own crop rect so
+// switching scenes shows/applies the right one. _crop() lazily initialises it.
+function _crop(){ if(!activeScene) return {x:0,y:0,w:1,h:1}; if(!activeScene.crop) activeScene.crop={x:0,y:0,w:1,h:1}; return activeScene.crop; }
 // ── AR-based source crop: maps a region of the SOURCE to fill the OUTPUT ──
 let _srcCropMode=false, _srcCrop={x:0,y:0,w:1,h:1};
 function toggleCropMode(){
@@ -713,16 +716,16 @@ function toggleCropMode(){
   document.getElementById('btnSimpleCrop').classList.toggle('on',_cropMode);
   _updateCropOverlay();
 }
-function resetCrop(){ _cropRect={x:0,y:0,w:1,h:1}; _updateCropOverlay(); }
+function resetCrop(){ if(activeScene) activeScene.crop={x:0,y:0,w:1,h:1}; _updateCropOverlay(); }
 function _updateCropOverlay(){
   const ov=document.getElementById('cropOverlay');
   if(!_cropMode){ ov.style.display='none'; return; }
-  const rr=outRect();
+  const rr=outRect(); const cr=_crop();
   ov.style.display='block';
-  ov.style.left=(_cropRect.x*rr.width)+'px';
-  ov.style.top=(_cropRect.y*rr.height)+'px';
-  ov.style.width=(_cropRect.w*rr.width)+'px';
-  ov.style.height=(_cropRect.h*rr.height)+'px';
+  ov.style.left=(cr.x*rr.width)+'px';
+  ov.style.top=(cr.y*rr.height)+'px';
+  ov.style.width=(cr.w*rr.width)+'px';
+  ov.style.height=(cr.h*rr.height)+'px';
   ov.style.pointerEvents='none';
   // Use CSS resize for the rectangle — achieved via a transparent inner resize handle
   _attachCropHandles(ov, rr);
@@ -744,7 +747,7 @@ function _attachCropHandles(ov, rr){
     h.addEventListener('pointerdown',e=>{
       e.preventDefault(); e.stopPropagation(); h.setPointerCapture?.(e.pointerId);
       const startX=e.clientX, startY=e.clientY;
-      const orig={...rr, rc:{...(_cropRect)}};
+      const orig={...rr, rc:{..._crop()}};
       const mv=ev=>{
         const dx=(ev.clientX-startX)/orig.width, dy=(ev.clientY-startY)/orig.height;
         const nr={...orig.rc};
@@ -752,12 +755,12 @@ function _attachCropHandles(ov, rr){
         else { nr.w=Math.max(0.05, orig.rc.w+dx); }
         if(cy===0){ nr.y=Math.min(orig.rc.y+dy, orig.rc.y+orig.rc.h-0.05); nr.h=orig.rc.h-(nr.y-orig.rc.y); }
         else { nr.h=Math.max(0.05, orig.rc.h+dy); }
-        _cropRect=nr;
+        const cr=_crop(); cr.x=nr.x; cr.y=nr.y; cr.w=nr.w; cr.h=nr.h;
         const rr2=outRect();
-        ov.style.left=(_cropRect.x*rr2.width)+'px';
-        ov.style.top=(_cropRect.y*rr2.height)+'px';
-        ov.style.width=(_cropRect.w*rr2.width)+'px';
-        ov.style.height=(_cropRect.h*rr2.height)+'px';
+        ov.style.left=(cr.x*rr2.width)+'px';
+        ov.style.top=(cr.y*rr2.height)+'px';
+        ov.style.width=(cr.w*rr2.width)+'px';
+        ov.style.height=(cr.h*rr2.height)+'px';
       };
       const up=()=>{ window.removeEventListener('pointermove',mv); window.removeEventListener('pointerup',up); };
       window.addEventListener('pointermove',mv); window.addEventListener('pointerup',up);
@@ -774,10 +777,11 @@ function _attachCropHandles(ov, rr){
       const rr2=outRect();
       const dx=(ev.clientX-px)/rr2.width, dy=(ev.clientY-py)/rr2.height;
       px=ev.clientX; py=ev.clientY;
-      _cropRect.x=Math.max(0,Math.min(1-_cropRect.w,_cropRect.x+dx));
-      _cropRect.y=Math.max(0,Math.min(1-_cropRect.h,_cropRect.y+dy));
-      ov.style.left=(_cropRect.x*rr2.width)+'px';
-      ov.style.top=(_cropRect.y*rr2.height)+'px';
+      const cr=_crop();
+      cr.x=Math.max(0,Math.min(1-cr.w,cr.x+dx));
+      cr.y=Math.max(0,Math.min(1-cr.h,cr.y+dy));
+      ov.style.left=(cr.x*rr2.width)+'px';
+      ov.style.top=(cr.y*rr2.height)+'px';
     };
     const up=()=>{ window.removeEventListener('pointermove',mv); window.removeEventListener('pointerup',up); };
     window.addEventListener('pointermove',mv); window.addEventListener('pointerup',up);
@@ -835,7 +839,7 @@ function saveTemplate(){
     format: document.getElementById('fmtSelect').value,
     vbgMode: _vbgMode,
     vbgColor: _vbgColor,
-    scenes: scenes.map(s=>({name:s.name,zoom:s.zoom,rotation:s.rotation,corners:s.corners,layers:s.layers||[]}))
+    scenes: scenes.map(s=>({name:s.name,zoom:s.zoom,rotation:s.rotation,corners:s.corners,crop:s.crop,layers:s.layers||[]}))
   };
   localStorage.setItem('jm_studio_tpl_'+name, JSON.stringify(data));
   document.getElementById('tplNameInput').value='';
@@ -868,6 +872,7 @@ function _loadTemplateByKey(key){
         name:s.name||'Scene '+(i+1),
         sourceId:activeScene?.sourceId||Object.keys(sources)[0]||'',
         corners:s.corners||defaultCorners(),
+        crop:s.crop||{x:0,y:0,w:1,h:1},
         zoom:s.zoom||1,
         rotation:s.rotation||0,
         layers:s.layers||[]
@@ -1040,7 +1045,7 @@ async function tGoLive(){
 // ── Scenes ─────────────────────────────────────────────────────────────
 function addScene(sourceId){ const sid=sourceId||activeScene?.sourceId||Object.keys(sources)[0]||''; const sc={id:'sc_'+Date.now(),name:(sources[sid]?.label||'Scene')+' '+(scenes.length+1),sourceId:sid,corners:defaultCorners(),zoom:1,rotation:0}; scenes.push(sc); activeScene=sc; renderScenes(); loadEditor(); }
 function defaultCorners(){ return [{x:0,y:0},{x:1,y:0},{x:1,y:1},{x:0,y:1}]; }
-function switchScene(id){ activeScene=scenes.find(s=>s.id===id); _selLayer=(activeScene&&activeScene.layers&&activeScene.layers[0])?activeScene.layers[0].id:null; renderScenes(); loadEditor(); document.getElementById('srcLabel').textContent=(sources[activeScene?.sourceId]?.label||'Source'); drawCorners(); renderLayerList(); drawLayout(); const isWb=activeScene&&sources[activeScene.sourceId]?.type==='whiteboard'; document.getElementById('wbToolbar').style.display=isWb?'flex':'none'; if(isWb){ wbSetTool(wbTool); _wbUpdatePageNav(sources[activeScene.sourceId]); } }
+function switchScene(id){ activeScene=scenes.find(s=>s.id===id); _selLayer=(activeScene&&activeScene.layers&&activeScene.layers[0])?activeScene.layers[0].id:null; renderScenes(); loadEditor(); document.getElementById('srcLabel').textContent=(sources[activeScene?.sourceId]?.label||'Source'); drawCorners(); _updateCropOverlay(); renderLayerList(); drawLayout(); const isWb=activeScene&&sources[activeScene.sourceId]?.type==='whiteboard'; document.getElementById('wbToolbar').style.display=isWb?'flex':'none'; if(isWb){ wbSetTool(wbTool); _wbUpdatePageNav(sources[activeScene.sourceId]); } }
 function renderScenes(){ document.getElementById('sceneList').innerHTML=scenes.map(s=>{ const ic={video:'🎥',screen:'🖥',whiteboard:'🖍',image:'📄'}[sources[s.sourceId]?.type]||'🎬'; return `<div class="scene ${activeScene?.id===s.id?'active':''}" onclick="switchScene('${s.id}')"><div class="thumb">${ic}</div><div class="nm">${s.name||'Scene'}</div><button class="btn" style="padding:3px 8px" onclick="event.stopPropagation();delScene('${s.id}')">×</button></div>`; }).join('')||'<div class="hint">No scenes yet.</div>'; }
 function delScene(id){ scenes=scenes.filter(s=>s.id!==id); if(activeScene?.id===id) activeScene=scenes[0]||null; renderScenes(); loadEditor(); }
 function updatePreset(k,v){ if(activeScene){ activeScene[k]=v; if(k==='name') renderScenes(); } }
@@ -2325,8 +2330,9 @@ function renderLoop(){ requestAnimationFrame(renderLoop);
   if(srcReady(s)){
     // Apply simple crop clipping if active
     if(_cropMode){
-      const cx2=_cropRect.x*out.width, cy2=_cropRect.y*out.height;
-      const cw2=_cropRect.w*out.width, ch2=_cropRect.h*out.height;
+      const cr=_crop();
+      const cx2=cr.x*out.width, cy2=cr.y*out.height;
+      const cw2=cr.w*out.width, ch2=cr.h*out.height;
       octx.save(); octx.beginPath(); octx.rect(cx2,cy2,cw2,ch2); octx.clip();
     }
     // In adjust mode show the RAW source so corners line up with reality.
