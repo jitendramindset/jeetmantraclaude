@@ -539,16 +539,21 @@ function toggleWhiteboard() {
   const stage = document.getElementById('stage');
   const root = document.createElement('div');
   root.style.cssText = 'position:absolute;inset:0;display:flex;flex-direction:column;background:rgba(255,255,255,.96);z-index:30';
+  const swatches = ['#1a1a25','#e11d48','#2563eb','#16a34a','#f59e0b','#ffffff']
+    .map((c,i)=>`<button class="wbsw" data-c="${c}" onclick="wbPick('${c}')" title="${c}" style="width:24px;height:24px;border-radius:5px;background:${c};border:2px solid ${i===0?'#7c3aed':'#d1d5db'};cursor:pointer;padding:0"></button>`).join('');
   root.innerHTML = `
-    <div style="padding:8px 12px;display:flex;gap:8px;align-items:center;border-bottom:1px solid #e5e3ed;background:#fff;flex-wrap:wrap">
-      <strong style="color:#1a1325;flex:1;min-width:0">🖍 Whiteboard</strong>
-      <input type="color" id="wb-color" value="#7c3aed" style="width:36px;height:32px;padding:0;border:1px solid #ccc;border-radius:4px">
-      <select id="wb-size" style="padding:4px 8px;border:1px solid #ccc;border-radius:4px;color:#1a1325">
-        <option value="2">Thin</option><option value="5" selected>Medium</option><option value="10">Thick</option>
+    <div id="wb-bar" style="padding:8px 12px;display:flex;gap:8px;align-items:center;border-bottom:1px solid #e5e3ed;background:#fff;flex-wrap:wrap">
+      <strong style="color:#1a1325">🖍 Whiteboard</strong>
+      <div style="display:flex;gap:5px">${swatches}</div>
+      <input type="color" id="wb-color" value="#1a1a25" oninput="wbPick(this.value)" style="width:30px;height:30px;padding:0;border:1px solid #ccc;border-radius:5px">
+      <select id="wb-size" style="padding:5px 8px;border:1px solid #ccc;border-radius:5px;color:#1a1325">
+        <option value="2">Thin</option><option value="5" selected>Medium</option><option value="10">Thick</option><option value="18">Marker</option>
       </select>
       <button class="btn" id="wb-mode-pen" style="background:#7c3aed;color:#fff" onclick="wbMode('pen')">✏️ Pen</button>
-      <button class="btn" onclick="wbMode('erase')" style="color:#1a1325;background:#f3f4f6">🧹 Erase</button>
-      <button class="btn" onclick="wbClear()" style="color:#1a1325;background:#f3f4f6">Clear</button>
+      <button class="btn" id="wb-mode-erase" onclick="wbMode('erase')" style="color:#1a1325;background:#f3f4f6">🧹 Erase</button>
+      <button class="btn" onclick="wbUndo()" style="color:#1a1325;background:#f3f4f6">↩ Undo</button>
+      <button class="btn" onclick="wbClear()" style="color:#1a1325;background:#f3f4f6">🗑 Clear</button>
+      <div style="flex:1"></div>
       <button class="btn" onclick="toggleWhiteboard()" style="color:#1a1325;background:#f3f4f6">× Close</button>
     </div>
     <canvas id="wb-canvas" style="flex:1;cursor:crosshair;touch-action:none;background:#fff"></canvas>`;
@@ -565,9 +570,10 @@ function toggleWhiteboard() {
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
   }
   resize(); window.addEventListener('resize', resize);
-  let drawing = false, mode = 'pen', lastP = null;
+  let drawing = false, mode = 'pen', lastP = null, cur = null;
+  const strokes = [];   // each stroke = [segments]; powers Undo + viewer re-sync
   const pt = e => { const r = canvas.getBoundingClientRect(); const t = e.touches?.[0] || e; return { x: t.clientX - r.left, y: t.clientY - r.top }; };
-  function start(e) { if (_wb && _wb.readOnly) return; e.preventDefault(); drawing = true; lastP = pt(e); ctx.beginPath(); ctx.moveTo(lastP.x, lastP.y); }
+  function start(e) { if (_wb && _wb.readOnly) return; e.preventDefault(); drawing = true; lastP = pt(e); cur = []; ctx.beginPath(); ctx.moveTo(lastP.x, lastP.y); }
   function move(e) {
     if (!drawing || (_wb && _wb.readOnly)) return; e.preventDefault();
     const p = pt(e);
@@ -575,19 +581,27 @@ function toggleWhiteboard() {
     const size = mode === 'erase' ? 24 : Number(document.getElementById('wb-size').value);
     ctx.strokeStyle = color; ctx.lineWidth = size;
     ctx.lineTo(p.x, p.y); ctx.stroke();
-    // Broadcast this segment to participants (normalized 0..1 coords).
-    if (lastP) wbBroadcast({ a: 'd', x0: lastP.x / canvas.width, y0: lastP.y / canvas.height, x1: p.x / canvas.width, y1: p.y / canvas.height, c: color, w: size });
+    // Record + broadcast this segment (normalized 0..1 coords).
+    if (lastP) { const seg = { a: 'd', x0: lastP.x / canvas.width, y0: lastP.y / canvas.height, x1: p.x / canvas.width, y1: p.y / canvas.height, c: color, w: size }; if (cur) cur.push(seg); wbBroadcast(seg); }
     lastP = p;
   }
-  function end() { drawing = false; lastP = null; }
+  function end() { if (cur && cur.length) strokes.push(cur); drawing = false; lastP = null; cur = null; }
   canvas.addEventListener('mousedown', start); canvas.addEventListener('mousemove', move);
   canvas.addEventListener('mouseup', end); canvas.addEventListener('mouseleave', end);
   canvas.addEventListener('touchstart', start); canvas.addEventListener('touchmove', move);
   canvas.addEventListener('touchend', end);
-  _wb = { root, canvas, ctx, readOnly: false, setMode: m => { mode = m; document.getElementById('wb-mode-pen').style.background = m === 'pen' ? '#7c3aed' : '#f3f4f6'; document.getElementById('wb-mode-pen').style.color = m === 'pen' ? '#fff' : '#1a1325'; } };
+  function redraw() { ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.lineCap = 'round'; ctx.lineJoin = 'round'; strokes.forEach(st => st.forEach(s => { ctx.strokeStyle = s.c; ctx.lineWidth = s.w; ctx.beginPath(); ctx.moveTo(s.x0 * canvas.width, s.y0 * canvas.height); ctx.lineTo(s.x1 * canvas.width, s.y1 * canvas.height); ctx.stroke(); })); }
+  _wb = { root, canvas, ctx, readOnly: false, strokes, redraw, setMode: m => { mode = m;
+      const pen = document.getElementById('wb-mode-pen'), er = document.getElementById('wb-mode-erase');
+      if (pen) { pen.style.background = m === 'pen' ? '#7c3aed' : '#f3f4f6'; pen.style.color = m === 'pen' ? '#fff' : '#1a1325'; }
+      if (er) { er.style.background = m === 'erase' ? '#7c3aed' : '#f3f4f6'; er.style.color = m === 'erase' ? '#fff' : '#1a1325'; } } };
 }
+// Pick a colour (swatch or picker) → sync the picker + highlight + switch to pen.
+function wbPick(c) { const i = document.getElementById('wb-color'); if (i) i.value = c; document.querySelectorAll('#wb-bar .wbsw').forEach(b => b.style.borderColor = (b.dataset.c === c) ? '#7c3aed' : '#d1d5db'); if (_wb) _wb.setMode('pen'); }
 function wbMode(m) { if (_wb) _wb.setMode(m); }
-function wbClear() { if (!_wb) return; const c = _wb.canvas; _wb.ctx.fillStyle = '#fff'; _wb.ctx.fillRect(0, 0, c.width, c.height); wbBroadcast({ a: 'c' }); }
+function wbClear() { if (!_wb) return; if (_wb.strokes) _wb.strokes.length = 0; const c = _wb.canvas; _wb.ctx.fillStyle = '#fff'; _wb.ctx.fillRect(0, 0, c.width, c.height); wbBroadcast({ a: 'c' }); }
+// Undo the last stroke locally, then re-sync viewers (clear + replay remaining).
+function wbUndo() { if (!_wb || !_wb.strokes || !_wb.strokes.length) return; _wb.strokes.pop(); _wb.redraw(); wbBroadcast({ a: 'c' }); _wb.strokes.forEach(st => st.forEach(s => wbBroadcast(s))); }
 // Broadcast a whiteboard message to all participants over Jitsi's data channel.
 function wbBroadcast(obj) {
   if (!_jitsiApi) return;
