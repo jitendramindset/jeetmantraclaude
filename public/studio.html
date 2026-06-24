@@ -57,13 +57,21 @@ body.focus #focusTop,body.focus #focusBar{display:flex}
    a phone. Each column gets a sticky header that hides/shows its body, and on
    mobile both start collapsed so Studio opens to a clean board — tap a header
    to reveal only what you need. Hidden entirely on desktop (space is ample). */
-.col-toggle{display:none}
+/* Collapsible at every width now. The toggle header is always shown; a collapsed
+   column hides its body. On desktop a collapsed column shrinks to a thin strip
+   (just the toggle) and the stage reclaims the width via a JS grid recompute. */
+.col-toggle{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;
+  background:var(--panel2);border:1px solid var(--bd);color:var(--txt);font-weight:700;font-size:13px;
+  padding:10px 12px;border-radius:8px;margin:0 0 10px;cursor:pointer;min-height:40px}
+.col-toggle .col-arrow{font-size:12px;color:var(--mut)}
+.col.collapsed>*:not(.col-toggle){display:none}
+@media(min-width:761px){
+  .col.collapsed{padding:10px 4px;overflow:hidden}
+  .col.collapsed .col-toggle{justify-content:center;padding:10px 2px}
+  .col.collapsed .col-toggle>span:not(.col-arrow){display:none}
+}
 @media(max-width:760px){
-  .col-toggle{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;
-    background:var(--panel2);border:1px solid var(--bd);color:var(--txt);font-weight:700;font-size:13px;
-    padding:12px;border-radius:8px;margin:0 0 10px;cursor:pointer;position:sticky;top:0;z-index:6;min-height:44px}
-  .col-toggle .col-arrow{font-size:12px;color:var(--mut)}
-  .col.collapsed>*:not(.col-toggle){display:none}
+  .col-toggle{position:sticky;top:0;z-index:6;min-height:44px;padding:12px}
 }
 /* Smartboard / 4K: scale up controls and type so they stay legible from a distance. */
 @media(min-width:2200px){.main{grid-template-columns:340px 1fr 400px}.btn{font-size:16px;padding:12px 20px}h4{font-size:14px}select,input[type=text]{font-size:15px;padding:11px}.scene .nm{font-size:15px}}
@@ -2481,21 +2489,34 @@ document.addEventListener('keydown', function(e){
   }catch(e){}
 })();
 
-/* Collapsible control columns (mobile) — tap a header to show only what you need. */
+/* Collapsible control columns (all widths) — click a header to fold a panel
+   away; on desktop the stage reclaims the freed width. */
 function studioToggleCol(btn){
   const col = btn.closest('.col'); if(!col) return;
   const collapsed = col.classList.toggle('collapsed');
-  const a = btn.querySelector('.col-arrow'); if(a) a.textContent = collapsed ? '▾' : '▴';
+  const a = btn.querySelector('.col-arrow'); if(a) a.textContent = collapsed ? '▸' : '▾';
+  _studioRecalcGrid();
 }
-/* On a phone, start both panels collapsed so Studio opens to a clean board. */
+// Desktop: resize the 3-column grid so collapsed panels become thin strips and
+// the centre stage grows. Mobile keeps its single-column flow.
+function _studioRecalcGrid(){
+  const main=document.querySelector('.main'); if(!main) return;
+  if(window.matchMedia && window.matchMedia('(max-width:760px)').matches){ main.style.gridTemplateColumns=''; return; }
+  const L=document.querySelector('.col.left'), R=document.querySelector('.col.right');
+  const lw=(L&&L.classList.contains('collapsed'))?'46px':'250px';
+  const rw=(R&&R.classList.contains('collapsed'))?'46px':'290px';
+  main.style.gridTemplateColumns=lw+' 1fr '+rw;
+}
+/* Open Studio to a clean, stage-first board: both side panels start collapsed
+   (one click on the header reveals each). */
 (function studioInitCols(){
   try{
-    if(window.matchMedia && window.matchMedia('(max-width:760px)').matches){
-      document.querySelectorAll('.col').forEach(col=>{
-        col.classList.add('collapsed');
-        const a = col.querySelector('.col-arrow'); if(a) a.textContent = '▾';
-      });
-    }
+    document.querySelectorAll('.col').forEach(col=>{
+      col.classList.add('collapsed');
+      const a = col.querySelector('.col-arrow'); if(a) a.textContent = '▸';
+    });
+    _studioRecalcGrid();
+    window.addEventListener('resize', _studioRecalcGrid);
   }catch(e){}
 })();
 
