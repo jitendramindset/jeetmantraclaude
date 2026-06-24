@@ -73,6 +73,22 @@ body.focus #focusTop,body.focus #focusBar{display:flex}
 @media(max-width:760px){
   .col-toggle{position:sticky;top:0;z-index:6;min-height:44px;padding:12px}
 }
+/* Single consolidated controls drawer — replaces the separate left/right rails.
+   Everything lives here, grouped by usage; the stage runs full-width. */
+#studioMenuBtn{font-weight:700}
+#studioDrawer{position:fixed;top:0;left:0;bottom:0;width:min(360px,92vw);background:var(--panel);border-right:1px solid var(--bd);
+  z-index:500;transform:translateX(-100%);transition:transform .22s ease;display:flex;flex-direction:column;box-shadow:8px 0 40px rgba(0,0,0,.55)}
+#studioDrawer.open{transform:none}
+#studioDrawerBackdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:499;display:none}
+#studioDrawerBackdrop.open{display:block}
+#studioDrawerHead{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--bd);font-size:15px;flex:0 0 auto}
+#studioDrawerBody{flex:1;overflow-y:auto;padding:12px 14px}
+.sd-group{margin-bottom:14px}
+.sd-gtitle{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);font-weight:700;margin:6px 2px 8px;position:sticky;top:0;background:var(--panel);padding:4px 0}
+.sd-gbody{display:flex;flex-direction:column;gap:8px}
+.sd-gbody>.btn{width:100%;justify-content:flex-start}
+.sd-gbody select{width:100%}
+body.focus #studioDrawer,body.focus #studioDrawerBackdrop,body.focus #studioMenuBtn{display:none!important}
 /* Smartboard / 4K: scale up controls and type so they stay legible from a distance. */
 @media(min-width:2200px){.main{grid-template-columns:340px 1fr 400px}.btn{font-size:16px;padding:12px 20px}h4{font-size:14px}select,input[type=text]{font-size:15px;padding:11px}.scene .nm{font-size:15px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
@@ -2489,35 +2505,46 @@ document.addEventListener('keydown', function(e){
   }catch(e){}
 })();
 
-/* Collapsible control columns (all widths) — click a header to fold a panel
-   away; on desktop the stage reclaims the freed width. */
-function studioToggleCol(btn){
-  const col = btn.closest('.col'); if(!col) return;
-  const collapsed = col.classList.toggle('collapsed');
-  const a = btn.querySelector('.col-arrow'); if(a) a.textContent = collapsed ? '▸' : '▾';
-  _studioRecalcGrid();
+function studioToggleCol(){}  // legacy no-op (panels are now in the one drawer)
+function studioToggleDrawer(force){
+  const d=document.getElementById('studioDrawer'), b=document.getElementById('studioDrawerBackdrop'); if(!d) return;
+  const open=(force===undefined)?!d.classList.contains('open'):!!force;
+  d.classList.toggle('open',open); if(b) b.classList.toggle('open',open);
 }
-// Desktop: resize the 3-column grid so collapsed panels become thin strips and
-// the centre stage grows. Mobile keeps its single-column flow.
-function _studioRecalcGrid(){
-  const main=document.querySelector('.main'); if(!main) return;
-  if(window.matchMedia && window.matchMedia('(max-width:760px)').matches){ main.style.gridTemplateColumns=''; return; }
-  const L=document.querySelector('.col.left'), R=document.querySelector('.col.right');
-  const lw=(L&&L.classList.contains('collapsed'))?'46px':'250px';
-  const rw=(R&&R.classList.contains('collapsed'))?'46px':'290px';
-  main.style.gridTemplateColumns=lw+' 1fr '+rw;
-}
-/* Open Studio to a clean, stage-first board: both side panels start collapsed
-   (one click on the header reveals each). */
-(function studioInitCols(){
+/* ONE DRAWER: fold the separate left + right rails AND the secondary top-bar
+   actions into a single ☰ Controls drawer, grouped by usage (most-used first).
+   Controls are MOVED (not cloned) so every existing handler stays attached and
+   nothing is duplicated; the stage then runs full-width. */
+(function studioOneDrawer(){
   try{
-    document.querySelectorAll('.col').forEach(col=>{
-      col.classList.add('collapsed');
-      const a = col.querySelector('.col-arrow'); if(a) a.textContent = '▸';
-    });
-    _studioRecalcGrid();
-    window.addEventListener('resize', _studioRecalcGrid);
-  }catch(e){}
+    const topbar=document.querySelector('.topbar'); const main=document.querySelector('.main');
+    const left=document.querySelector('.col.left'); const right=document.querySelector('.col.right');
+    if(!topbar||!main) return;
+    const backdrop=document.createElement('div'); backdrop.id='studioDrawerBackdrop'; backdrop.addEventListener('click',()=>studioToggleDrawer(false));
+    const drawer=document.createElement('div'); drawer.id='studioDrawer';
+    drawer.innerHTML='<div id="studioDrawerHead"><b>🎛 Studio controls</b><button class="btn" style="padding:4px 10px" onclick="studioToggleDrawer(false)">✕</button></div><div id="studioDrawerBody"></div>';
+    document.body.appendChild(backdrop); document.body.appendChild(drawer);
+    const dbody=drawer.querySelector('#studioDrawerBody');
+    const group=(title)=>{ const g=document.createElement('div'); g.className='sd-group'; const t=document.createElement('div'); t.className='sd-gtitle'; t.textContent=title; const c=document.createElement('div'); c.className='sd-gbody'; g.appendChild(t); g.appendChild(c); dbody.appendChild(g); return c; };
+    const moveById=(c,ids)=>ids.forEach(id=>{ const el=document.getElementById(id); if(el) c.appendChild(el); });
+    const moveKids=(c,col)=>{ if(!col) return; [...col.children].forEach(ch=>{ if(!ch.classList.contains('col-toggle')) c.appendChild(ch); }); };
+    // 1) Most-used live actions, top of the drawer.
+    moveById(group('▶ Go live'),['btnEnable','btnRec','btnFocus','btnTeach']);
+    // 2) Sources & scenes (former left rail).
+    moveKids(group('🎬 Sources & scenes'), left);
+    // 3) Adjust — perspective crop, simple crop, layout, AR recrop (former right rail top + top-bar crop/layout).
+    const gAdj=group('🎯 Adjust'); moveById(gAdj,['btnAdjust','btnLayout']); moveKids(gAdj, right);
+    // 4) Output & recording.
+    moveById(group('🎞 Output & recording'),['fmtSelect','fmtBadge','btnRecrop','saveTarget','tplBtnWrap']);
+    // 5) Help.
+    const guide=document.querySelector('[onclick="openGuide()"]'); if(guide){ group('❔ Help').appendChild(guide); }
+    // Retire the now-empty rails; stage goes full-width.
+    if(left) left.style.display='none'; if(right) right.style.display='none';
+    main.style.gridTemplateColumns='1fr';
+    // ☰ entry point at the start of the (now slim) top bar.
+    const menuBtn=document.createElement('button'); menuBtn.className='btn'; menuBtn.id='studioMenuBtn'; menuBtn.innerHTML='☰ Controls'; menuBtn.addEventListener('click',()=>studioToggleDrawer());
+    topbar.insertBefore(menuBtn, topbar.firstChild);
+  }catch(e){ console.warn('studio drawer build failed', e); }
 })();
 
 /* Theme sync: the Studio is a dark broadcasting workspace, but its accent
