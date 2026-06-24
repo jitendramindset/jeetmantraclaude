@@ -121,6 +121,10 @@ body{font-family:-apple-system,'Segoe UI',sans-serif;background:var(--jm-bg);col
 const API = window.location.origin + '/api';
 const params = new URLSearchParams(location.search);
 const CLASS_ID = params.get('class');
+// Course-free "instant" room: ?room=<id>&title=<t> joins a Jitsi room directly,
+// no backend class record needed. Anyone with the link can join.
+const ROOM_ID = params.get('room');
+const ROOM_TITLE = params.get('title') || 'Instant Live Class';
 const TOKEN = localStorage.getItem('jm_token');
 // ── Live polls (Phase 3B). Teacher creates → students vote → tally shows.
 let _activePollId = null;
@@ -190,7 +194,9 @@ const USER = JSON.parse(localStorage.getItem('jm_user') || '{}');
 const ROLE = USER.user_type || USER.role || 'student';
 const IS_TEACHER = ['teacher','partner','school','coaching','admin'].includes(ROLE);
 
-if (!CLASS_ID || !TOKEN) { location.href = '/login.html'; }
+// Instant rooms (?room=) are open to anyone with the link — no login/class
+// required. Course-attached rooms (?class=) still require a signed-in session.
+if (!ROOM_ID && (!CLASS_ID || !TOKEN)) { location.href = '/login.html'; }
 
 let _class = null, _jitsiApi = null, _pollTimer = null, _startedAt = null, _timerInterval = null, _paused = false;
 
@@ -255,7 +261,7 @@ async function mountJitsi() {
   // Stable room name derived from class id so teacher + students collide
   // in the same room. Prefixed to avoid clashes with anything else on
   // meet.jit.si.
-  const roomName = 'jeetmantra-' + CLASS_ID.replace(/[^a-zA-Z0-9]/g, '');
+  const roomName = 'jeetmantra-' + (CLASS_ID || ROOM_ID || '').replace(/[^a-zA-Z0-9]/g, '');
   const displayName = USER.fullName || USER.full_name || USER.email || (IS_TEACHER ? 'Teacher' : 'Student');
   _jitsiApi = new JitsiMeetExternalAPI('meet.jit.si', {
     roomName, parentNode: stage,
@@ -622,6 +628,7 @@ function _teardownRoom() {
 // A toggle lets viewers drop back to the raw room (Jitsi tiles) and back.
 let _castTimer=null, _castShown=false;
 function _startCastViewer(stage){
+  if(!CLASS_ID) return;   // studio-cast needs a backend class; instant rooms use Jitsi directly
   _stopCastViewer();
   let ov=document.getElementById('castOverlay');
   if(!ov){
@@ -724,7 +731,15 @@ function toggleSidebar() {
   document.getElementById('sidebar').classList.toggle('open');
 }
 
-loadClass();
+// Course-free instant room → skip the backend class fetch, just join Jitsi.
+async function initInstantRoom(){
+  document.getElementById('classTitle').textContent = ROOM_TITLE;
+  document.getElementById('classSub').textContent = 'Instant live · share the link to invite anyone';
+  setStatus('live');
+  await mountJitsi();
+  _startedAt = new Date(); startTimer();
+}
+if (ROOM_ID && !CLASS_ID) { initInstantRoom(); } else { loadClass(); }
 window.addEventListener('beforeunload', () => { if (_jitsiApi) { try { _jitsiApi.dispose(); } catch(_){} } });
 </script>
 <script src="/i18n-seed.js?v=4"></script>

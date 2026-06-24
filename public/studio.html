@@ -669,6 +669,13 @@ body.focus #studioDrawer,body.focus #studioDrawerBackdrop,body.focus #studioMenu
   <div style="background:var(--panel);border-radius:12px;max-width:520px;width:100%;max-height:85vh;overflow:auto;padding:18px">
     <div style="display:flex;justify-content:space-between;margin-bottom:6px"><strong>📡 Teach a course — go live</strong><button class="btn" onclick="document.getElementById('teachModal').style.display='none'">×</button></div>
     <div class="hint" style="margin-bottom:10px">Pick a course and a live class. Going live attaches this Studio's recording to that class and marks it live for students.</div>
+    <div style="background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.3);border-radius:10px;padding:12px;margin-bottom:12px">
+      <div style="font-weight:700;margin-bottom:6px">⚡ Instant live class — no course needed</div>
+      <input type="text" id="tInstantTitle" placeholder="Title (e.g. Doubt-clearing session)" style="margin-bottom:8px">
+      <button class="btn pri" style="width:100%" onclick="tInstantLive()">▶ Go live now &amp; copy share link</button>
+      <div class="hint" style="margin-top:6px">Anyone you share the link with can join — works without a course. Saved on this device; syncs when you're back online.</div>
+    </div>
+    <div style="text-align:center;color:var(--mut);font-size:12px;margin:0 0 8px">— or attach it to a course —</div>
     <h4>Course</h4>
     <select id="tCourse" onchange="tLoadClasses(this.value)"><option value="">— pick a course —</option></select>
     <h4>Live class</h4>
@@ -1065,6 +1072,23 @@ async function tCreateClass(){
     await tLoadClasses(courseId);
     tSelectClass(id,title);
   }catch(e){ alert('Couldn\'t create class: '+(e.message||e)); }
+}
+// Course-free instant live: generate a room id + shareable join link, save it
+// locally (works with no connection), copy the link, and open the room. Anyone
+// with the link joins — no course, no backend class record required.
+function tInstantLive(){
+  const title=(document.getElementById('tInstantTitle')||{}).value.trim()||'Instant Live Class';
+  const roomId='inst_'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+  const link=location.origin+'/liveRoom.html?room='+roomId+'&title='+encodeURIComponent(title);
+  // Persist locally so it survives offline; mark unsynced for a future backend sync.
+  try{ const k='jm_live_rooms'; const list=JSON.parse(localStorage.getItem(k)||'[]'); list.push({roomId,title,link,createdAt:Date.now(),synced:false}); localStorage.setItem(k,JSON.stringify(list)); }catch(_){}
+  // Best-effort: if we're online and bound to a teacher session, try to register
+  // the room on the backend; failure is fine (it stays local + syncs later).
+  if(navigator.onLine){ try{ fetch(API+'/live-classes',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+TOKEN},body:JSON.stringify({title,instant:true,roomId,scheduledTime:new Date().toISOString(),duration:60})}).then(()=>{ try{ const k='jm_live_rooms'; const list=JSON.parse(localStorage.getItem(k)||'[]'); const it=list.find(r=>r.roomId===roomId); if(it) it.synced=true; localStorage.setItem(k,JSON.stringify(list)); }catch(_){} }).catch(()=>{}); }catch(_){} }
+  try{ navigator.clipboard.writeText(link); }catch(_){}
+  document.getElementById('teachModal').style.display='none';
+  const ok=confirm('⚡ Live class ready — invite link copied:\n\n'+link+'\n\nOpen the live room now? Share the link so anyone can join.');
+  if(ok) window.open(link,'_blank');
 }
 async function tGoLive(){
   if(!_tSelected){ alert('Select or create a class first.'); return; }
