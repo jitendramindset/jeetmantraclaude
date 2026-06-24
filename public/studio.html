@@ -678,6 +678,11 @@ body.focus #studioDrawer,body.focus #studioDrawerBackdrop,body.focus #studioMenu
       <input type="text" id="tNewTitle" placeholder="Class title (e.g. Trigonometry — Live)">
       <div class="row"><input type="datetime-local" id="tNewTime" style="flex:2"><button class="btn pri" style="flex:1" onclick="tCreateClass()">Create &amp; select</button></div>
     </div>
+    <div style="border-top:1px solid var(--bd);margin:12px 0;padding-top:12px">
+      <h4 style="margin-top:0">🎬 Layout for this live</h4>
+      <select id="tTemplate"><option value="">— keep current studio layout —</option></select>
+      <div class="hint">Pick a saved template to load its scenes, format &amp; crops before going live. Your live camera/screen sources stay as they are.</div>
+    </div>
     <button class="btn pri" id="tGoLive" style="width:100%;padding:11px;margin-top:6px" onclick="tGoLive()" disabled>📡 Go live with selected class</button>
   </div>
 </div>
@@ -1020,6 +1025,14 @@ async function openTeach(){
   try{ const courses=await _loadUserCourses(true);
     document.getElementById('tCourse').innerHTML='<option value="">— pick a course —</option>'+courses.map(c=>`<option value="${c.id}">${_esc(c.title||'Course')}</option>`).join('');
   }catch(e){}
+  // Populate the template picker from saved layouts so the teacher chooses
+  // which template to go live with.
+  const tt=document.getElementById('tTemplate');
+  if(tt){
+    const keys=Object.keys(localStorage).filter(k=>k.startsWith('jm_studio_tpl_'));
+    tt.innerHTML='<option value="">— keep current studio layout —</option>'+
+      keys.map(k=>`<option value="${_esc(k)}">${_esc(k.replace('jm_studio_tpl_',''))}</option>`).join('');
+  }
 }
 async function tLoadClasses(courseId){
   const box=document.getElementById('tClasses'); _tSelected=null; document.getElementById('tGoLive').disabled=true;
@@ -1056,6 +1069,10 @@ async function tCreateClass(){
 async function tGoLive(){
   if(!_tSelected){ alert('Select or create a class first.'); return; }
   try{
+    // If the teacher chose a saved template for this live, load it first so the
+    // scenes/format/crops are applied before we bind + start casting.
+    const tplKey=(document.getElementById('tTemplate')||{}).value;
+    if(tplKey){ try{ _loadTemplateByKey(tplKey); }catch(_){} }
     // Mark the class live (idempotent on the backend) and bind Studio to it.
     await fetch(API+'/live-classes/'+_tSelected.id+'/start',{method:'POST',headers:{Authorization:'Bearer '+TOKEN}}).catch(()=>{});
     await fetch(API+'/live-classes/'+_tSelected.id,{method:'PUT',headers:{'Content-Type':'application/json',Authorization:'Bearer '+TOKEN},body:JSON.stringify({status:'live'})}).catch(()=>{});
