@@ -1715,7 +1715,7 @@ async function _cwLoadTab(tab){
           <div style="width:3px;height:40px;background:${bc};border-radius:2px;flex-shrink:0"></div>
           <div style="flex:1"><div style="font-weight:700">${escHtml(c.title)}</div><div style="font-size:11px;color:var(--jm-text-muted)">${when} · ${c.duration||60}min</div></div>
           <div style="display:flex;gap:6px">
-            ${s==='live'?`<button class="btn-sm btn-primary" onclick="window.open('/liveRoom.html?class=${c.id}','_blank')">▶ Join</button>`:''}
+            ${s==='live'?`<button class="btn-sm btn-primary" onclick="location.hash='#/m/live/${c.id}'">▶ Join</button>`:''}
             ${s==='scheduled'?`<button class="btn-sm btn-outline" onclick="startLive('${c.id}')">▶ Start</button>`:''}
             <span style="font-size:11px;padding:3px 8px;border-radius:99px;background:${bc}22;color:${bc};font-weight:700">${s}</span>
             <button class="btn-sm btn-outline" onclick="openLiveRoster('${c.id}')">👥</button>
@@ -2079,7 +2079,7 @@ function renderTeacherDash(d){
           <div style="width:3px;height:40px;border-radius:2px;background:${badge};flex-shrink:0"></div>
           <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:14px">${escHtml(c.title)}</div><div style="font-size:11px;color:var(--jm-text-muted)">${escHtml(c.courses?.title||'')}</div></div>
           <div style="display:flex;gap:6px">
-            ${s==='live'?`<button class="btn-sm btn-primary" onclick="window.open('/liveRoom.html?class=${c.id}','_blank')">▶ Join</button>`:''}
+            ${s==='live'?`<button class="btn-sm btn-primary" onclick="location.hash='#/m/live/${c.id}'">▶ Join</button>`:''}
             ${s==='scheduled'?`<button class="btn-sm btn-outline" onclick="startLive('${c.id}')">▶ Start</button>`:''}
             <span style="font-size:11px;padding:3px 8px;border-radius:99px;background:${badge}22;color:${badge};font-weight:700">${s}</span>
           </div>
@@ -2676,7 +2676,7 @@ const MODAL_DEFS={
       const r=await api('/live-classes','POST',body);
       // Prefer the in-app room (tracks attendance + recording) as the invite.
       const id=r.liveClass?.id;
-      const invite=id?(location.origin+'/liveRoom.html?class='+id):link;
+      const invite=id?(location.origin+'/app#/m/live/'+id):link;
       try{ await navigator.clipboard.writeText(invite); }catch(e){}
       _lastInvite=invite;
       setTimeout(()=>{ try{ _showInvite(invite, body.title); }catch(e){} }, 200);
@@ -9726,7 +9726,7 @@ function calEventDetail(id){
 }
 function calShareEvent(id){
   const ev=(window._calEventIndex||{})[id]; if(!ev) return;
-  const invite=location.origin+'/liveRoom.html?class='+id;
+  const invite=location.origin+'/app#/m/live/'+id;
   if(navigator.share){ navigator.share({title:ev.title||'Class invite',url:invite}).catch(()=>{}); }
   else { navigator.clipboard.writeText(invite).then(()=>toast('Invite link copied')).catch(()=>toast(invite)); }
 }
@@ -10167,7 +10167,11 @@ function toggleWidgetMode(){
     }
     // Fallback: iframe-hosted modules.
     let entry = null, key = mod;
-    if (mod === 'live' && arg) { entry = { src: '/liveRoom.html?class=' + arg + '&embed=1', title: '📡 Live Class' }; key = 'live/' + arg; }
+    if (mod === 'live' && arg) {
+      // Instant (course-free) rooms use ?room=; course-attached classes use ?class=.
+      const q = arg.indexOf('inst_') === 0 ? ('?room=' + arg) : ('?class=' + arg);
+      entry = { src: '/liveRoom.html' + q + '&embed=1', title: '📡 Live Class' }; key = 'live/' + arg;
+    }
     else if (MODULES[mod]) entry = MODULES[mod];
     if (entry) {
       inline.style.display = 'none'; inline.innerHTML = ''; inline.dataset.mod = '';

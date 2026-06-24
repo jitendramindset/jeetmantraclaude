@@ -1076,19 +1076,27 @@ async function tCreateClass(){
 // Course-free instant live: generate a room id + shareable join link, save it
 // locally (works with no connection), copy the link, and open the room. Anyone
 // with the link joins — no course, no backend class record required.
+// Open a live room WITHOUT leaving the SPA: when embedded in /app, route the
+// shell to #/m/live/<id> (renders the room in-shell); standalone Studio falls
+// back to the /app shell URL. No separate liveRoom.html tab.
+function _studioOpenLive(id){
+  const embed=new URLSearchParams(location.search).get('embed')==='1';
+  if(embed){ try{ window.top.location.hash='#/m/live/'+id; return; }catch(_){} }
+  window.location.href=location.origin+'/app#/m/live/'+id;
+}
 function tInstantLive(){
   const title=(document.getElementById('tInstantTitle')||{}).value.trim()||'Instant Live Class';
   const roomId='inst_'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
-  const link=location.origin+'/liveRoom.html?room='+roomId+'&title='+encodeURIComponent(title);
+  // Shareable in-shell link (renders inside /app — not a standalone html page).
+  const link=location.origin+'/app#/m/live/'+roomId;
   // Persist locally so it survives offline; mark unsynced for a future backend sync.
   try{ const k='jm_live_rooms'; const list=JSON.parse(localStorage.getItem(k)||'[]'); list.push({roomId,title,link,createdAt:Date.now(),synced:false}); localStorage.setItem(k,JSON.stringify(list)); }catch(_){}
-  // Best-effort: if we're online and bound to a teacher session, try to register
-  // the room on the backend; failure is fine (it stays local + syncs later).
+  // Best-effort backend register when online; failure is fine (stays local).
   if(navigator.onLine){ try{ fetch(API+'/live-classes',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+TOKEN},body:JSON.stringify({title,instant:true,roomId,scheduledTime:new Date().toISOString(),duration:60})}).then(()=>{ try{ const k='jm_live_rooms'; const list=JSON.parse(localStorage.getItem(k)||'[]'); const it=list.find(r=>r.roomId===roomId); if(it) it.synced=true; localStorage.setItem(k,JSON.stringify(list)); }catch(_){} }).catch(()=>{}); }catch(_){} }
   try{ navigator.clipboard.writeText(link); }catch(_){}
   document.getElementById('teachModal').style.display='none';
-  const ok=confirm('⚡ Live class ready — invite link copied:\n\n'+link+'\n\nOpen the live room now? Share the link so anyone can join.');
-  if(ok) window.open(link,'_blank');
+  showToast('⚡ Live class started — invite link copied');
+  _studioOpenLive(roomId);
 }
 async function tGoLive(){
   if(!_tSelected){ alert('Select or create a class first.'); return; }
@@ -1102,8 +1110,8 @@ async function tGoLive(){
     await fetch(API+'/live-classes/'+_tSelected.id,{method:'PUT',headers:{'Content-Type':'application/json',Authorization:'Bearer '+TOKEN},body:JSON.stringify({status:'live'})}).catch(()=>{});
     _bindClass(_tSelected.id,_tSelected.title);
     document.getElementById('teachModal').style.display='none';
-    const openRoom=confirm('📡 You\'re live with "'+_tSelected.title+'".\nRecordings now save to this class.\n\nOpen the live room (for students / screen share) in a new tab?');
-    if(openRoom) window.open('/liveRoom.html?class='+_tSelected.id,'_blank');
+    showToast('📡 You\'re live with "'+_tSelected.title+'" — recordings save to this class');
+    _studioOpenLive(_tSelected.id);   // render the room in-shell, not a new html tab
   }catch(e){ alert('Couldn\'t go live: '+(e.message||e)); }
 }
 
