@@ -12,7 +12,10 @@
 <style>
 /* Dashboard-specific styles — uses theme.css design tokens */
 body{display:flex;min-height:100vh;overflow-x:clip}
-.sidebar{width:250px;background:var(--jm-deep);color:#fff;display:flex;flex-direction:column;position:fixed;height:100vh;z-index:100;transition:transform .3s}
+/* The left rail is retired — navigation lives in the top-bar ☰ menu (popup),
+   which clones these items. The element stays in the DOM (hidden) so the popup
+   can read it; the content now uses the full width. */
+.sidebar{width:250px;background:var(--jm-deep);color:#fff;display:none;flex-direction:column;position:fixed;height:100vh;z-index:100;transition:transform .3s}
 .sidebar-logo{position:relative;padding:24px 20px 16px;border-bottom:1px solid rgba(255,255,255,0.1)}
 /* Gradient brand strip on top of the sidebar — adds depth + product feel. */
 .sidebar-logo::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#7c3aed,#a855f7 50%,#ec4899)}
@@ -36,7 +39,7 @@ body{display:flex;min-height:100vh;overflow-x:clip}
 .sidebar-footer{padding:16px 20px;border-top:1px solid rgba(255,255,255,0.1)}
 .btn-logout{width:100%;background:transparent;border:1.5px solid rgba(255,255,255,0.2);color:#fff;border-radius:var(--jm-radius-sm);padding:10px;cursor:pointer;font-size:13px;font-family:inherit;font-weight:600;transition:all .15s}
 .btn-logout:hover{background:var(--jm-primary);border-color:var(--jm-primary)}
-.main{margin-left:250px;flex:1;min-width:0;display:flex;flex-direction:column;min-height:100vh;background:var(--jm-bg)}
+.main{margin-left:0;flex:1;min-width:0;display:flex;flex-direction:column;min-height:100vh;background:var(--jm-bg)}
 .topbar{background:var(--jm-surface);border-bottom:1px solid var(--jm-border);padding:14px 28px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:50;box-shadow:var(--jm-shadow-sm)}
 .topbar h3{font-size:16px;font-weight:700;flex:1;color:var(--jm-text)}
 .search-bar{display:flex;align-items:center;background:var(--jm-surface-2);border:1px solid var(--jm-border);border-radius:var(--jm-radius-sm);padding:8px 14px;gap:8px;flex:1;max-width:320px}
@@ -285,6 +288,11 @@ html[data-theme="dark"]{
 #navPopup .nav-item:hover{background:color-mix(in srgb, var(--jm-primary) 10%, transparent);color:var(--jm-primary)}
 #navPopup .nav-item.active{background:color-mix(in srgb, var(--jm-primary) 16%, transparent);color:var(--jm-primary);border-right:0}
 #navPopup .nav-group-title{color:var(--jm-text-muted);border-top-color:var(--jm-border)}
+#navPopup .np-user{display:flex;align-items:center;gap:10px;padding:6px 10px 10px;border-bottom:1px solid var(--jm-border);margin-bottom:4px}
+#navPopup .np-av{width:34px;height:34px;border-radius:50%;background:color-mix(in srgb, var(--jm-primary) 18%, transparent);color:var(--jm-primary);display:flex;align-items:center;justify-content:center;font-weight:700;flex:0 0 auto}
+#navPopup .np-items{max-height:60vh;overflow:auto}
+#navPopup .np-logout{display:block;width:100%;margin-top:6px;padding:11px 14px;border:0;border-top:1px solid var(--jm-border);background:none;color:#dc2626;font-weight:700;font-size:13px;text-align:left;cursor:pointer;border-radius:0 0 12px 12px}
+#navPopup .np-logout:hover{background:color-mix(in srgb,#dc2626 8%,transparent)}
 .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:90}
 .course-mini-card{background:var(--jm-surface);border-radius:var(--jm-radius-sm);padding:14px;border:1px solid var(--jm-border);box-shadow:var(--jm-shadow-sm)}
 .course-mini-card .cat{font-size:11px;color:var(--jm-text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.04em}
@@ -457,7 +465,7 @@ html[data-theme="dark"]{
    and let the topbar wrap instead of its items overflowing. */
 @media(min-width:769px) and (max-width:1280px){
   .sidebar{width:210px}
-  .main{margin-left:210px}
+  .main{margin-left:0}
   .topbar{flex-wrap:wrap;row-gap:8px}
   .topbar .search-bar{flex:1 1 180px;min-width:0}
 }
@@ -1402,9 +1410,13 @@ function buildNav(role){
 let _currentPage=null;
 function showPage(pageKey, navEl){
   _currentPage=pageKey;
+  if(typeof _exitModule==='function') _exitModule();           // leave any open module overlay
   if(typeof _closeAllPages==='function') _closeAllPages(); // close any takeover page first
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   if(navEl) navEl.classList.add('active');
+  // Also reflect the active state on the real (hidden) rail item so the popup
+  // re-opens with the right highlight, even when the click came from a clone.
+  if(pageKey){ const real=document.querySelector('.sidebar .nav-item[data-nav-key="'+pageKey+'"]'); if(real){ document.querySelectorAll('.sidebar .nav-item').forEach(n=>n.classList.remove('active')); real.classList.add('active'); } }
   const role=(JSON.parse(localStorage.getItem('jm_user')||'{}').user_type)
     ||(JSON.parse(localStorage.getItem('jm_user')||'{}').role)
     ||new URLSearchParams(location.search).get('role')
@@ -1453,6 +1465,7 @@ function _closeAllPages(){
 // like the section items: highlight the clicked item + close any open page,
 // then run their opener. Single source of "how a menu item opens".
 function _navActivate(el){
+  if(typeof _exitModule==='function') _exitModule();           // leave any open module overlay
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   if(el) el.classList.add('active');
   _closeAllPages();
@@ -2227,35 +2240,48 @@ function debounceSearch(q){
 // Top-bar menu button. Mobile (≤768px): open/close the off-canvas drawer with a
 // dimming overlay. Desktop: collapse/expand the fixed left rail (the topbar
 // button then drives navigation, content reclaims the width).
-function toggleSidebar(){
-  if(window.matchMedia('(max-width:768px)').matches){
-    document.getElementById('sidebar').classList.toggle('open');
-    document.getElementById('overlay').classList.toggle('show');
-  } else {
-    toggleNavPopup();
-  }
-}
-// Desktop top-bar menu: a themed popup listing every nav item. Selecting one
-// navigates (the cloned item's own onclick fires) and then closes the popup;
-// clicking outside or pressing Esc closes it too.
+// The ☰ button is the sole navigation entry point now (the left rail is retired).
+// On every width it opens the popup menu.
+function toggleSidebar(){ toggleNavPopup(); }
+// Top-bar menu: a themed popup listing every nav item + the user header and a
+// Logout action (these used to live in the rail's header/footer). Selecting an
+// item navigates and closes the popup; outside-click or Esc closes it too.
 function toggleNavPopup(){
   let p=document.getElementById('navPopup');
   if(p){ p.remove(); return; }
   const nav=document.querySelector('.sidebar .nav-menu'); if(!nav) return;
+  const name=(document.getElementById('userName')||{}).textContent||'';
+  const role=(document.getElementById('userRoleBadge')||{}).textContent||'';
+  const avatar=(document.getElementById('userAvatar')||{}).textContent||'👤';
   p=document.createElement('div');
   p.id='navPopup';
-  p.innerHTML=nav.innerHTML;
+  p.innerHTML=
+    '<div class="np-user"><div class="np-av">'+escHtml(avatar)+'</div>'+
+      '<div style="min-width:0"><div style="font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+escHtml(name)+'</div>'+
+      '<div style="font-size:11px;color:var(--jm-text-muted)">'+escHtml(role)+'</div></div></div>'+
+    '<div class="np-items">'+nav.innerHTML+'</div>'+
+    '<button class="np-logout" onclick="logout()">🚪 Logout</button>';
   document.body.appendChild(p);
   const hb=document.querySelector('.hamburger');
   if(hb){ const r=hb.getBoundingClientRect(); p.style.top=(r.bottom+8)+'px'; p.style.left=Math.max(8,r.left)+'px'; }
-  // Any nav-item click closes the popup (after its own navigation handler runs).
-  p.addEventListener('click',e=>{ if(e.target.closest('.nav-item')) setTimeout(()=>{ const el=document.getElementById('navPopup'); if(el) el.remove(); },0); });
+  // Any nav-item / logout click closes the popup (after its handler runs).
+  p.addEventListener('click',e=>{ if(e.target.closest('.nav-item')||e.target.closest('.np-logout')) setTimeout(()=>{ const el=document.getElementById('navPopup'); if(el) el.remove(); },0); });
   // Outside-click + Esc close.
   const off=ev=>{ if(ev.type==='keydown'&&ev.key!=='Escape') return; const el=document.getElementById('navPopup'); if(!el) { cleanup(); return; } if(ev.type==='keydown'||(!el.contains(ev.target)&&!ev.target.closest('.hamburger'))){ el.remove(); cleanup(); } };
   function cleanup(){ document.removeEventListener('click',off,true); document.removeEventListener('keydown',off,true); }
   setTimeout(()=>{ document.addEventListener('click',off,true); document.addEventListener('keydown',off,true); },0);
 }
-function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('overlay').classList.remove('show');}
+function closeSidebar(){ const el=document.getElementById('navPopup'); if(el) el.remove(); }
+// Hide the in-shell module overlay (Studio/Marketplace/…) and drop its hash so
+// a click on any dashboard section/action actually returns to the dashboard.
+// replaceState (not hash='') avoids re-running the router over the change.
+function _exitModule(){
+  const host=document.getElementById('shellModuleHost');
+  if(host && host.style.display!=='none') host.style.display='none';
+  if(location.hash && location.hash.indexOf('#/m/')===0){
+    try{ history.replaceState(null,'',location.pathname+location.search); }catch(_){ location.hash=''; }
+  }
+}
 // Highlight the sidebar item matching the active module hash (or Dashboard when
 // the hash is cleared) so the rail always reflects where you are.
 function _syncNavActive(mod){
