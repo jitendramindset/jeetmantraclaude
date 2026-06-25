@@ -1,0 +1,92 @@
+/* ============================================================================
+   EduOS — Premium UI layer (additive)
+   ----------------------------------------------------------------------------
+   A shared design-system polish layer: refined motion, depth and micro-
+   interactions applied to the EXISTING component classes (.card, .stat-card,
+   .section, .nav-item, .btn-*, widgets). Purely visual — no layout/structure
+   changes, so it can be dropped onto any page. Honours reduced-motion.
+   ============================================================================ */
+
+:root{
+  /* Motion tokens */
+  --jm-ease: cubic-bezier(.22,.61,.36,1);      /* gentle ease-out */
+  --jm-ease-spring: cubic-bezier(.34,1.56,.64,1); /* subtle overshoot */
+  --jm-dur-1: .14s;  --jm-dur-2: .24s;  --jm-dur-3: .38s;
+  /* Premium layered shadows (soft, multi-stop) */
+  --jm-shadow-soft: 0 1px 2px rgba(16,24,40,.04), 0 4px 12px rgba(16,24,40,.06);
+  --jm-shadow-lift: 0 2px 6px rgba(16,24,40,.06), 0 16px 32px rgba(16,24,40,.12);
+  --jm-ring: 0 0 0 3px color-mix(in srgb, var(--jm-primary) 28%, transparent);
+}
+html[data-theme="dark"]{
+  --jm-shadow-soft: 0 1px 2px rgba(0,0,0,.4), 0 6px 16px rgba(0,0,0,.35);
+  --jm-shadow-lift: 0 2px 8px rgba(0,0,0,.45), 0 20px 40px rgba(0,0,0,.5);
+}
+
+/* ── Cards & widgets: depth + hover lift ───────────────────────────────── */
+.card, .stat-card, .wg-card, .role-section > .section{
+  box-shadow: var(--jm-shadow-soft);
+  transition: transform var(--jm-dur-2) var(--jm-ease),
+              box-shadow var(--jm-dur-2) var(--jm-ease),
+              border-color var(--jm-dur-2) var(--jm-ease);
+  will-change: transform;
+}
+.card:hover, .stat-card:hover, .wg-card:hover{
+  transform: translateY(-3px);
+  box-shadow: var(--jm-shadow-lift);
+  border-color: color-mix(in srgb, var(--jm-primary) 22%, var(--jm-border));
+}
+/* A crisp accent rail that grows on hover — a Linear/Stripe-style cue. */
+.stat-card::after{
+  content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
+  background: var(--sc, var(--jm-primary)); transform: scaleY(0);
+  transform-origin: top; transition: transform var(--jm-dur-2) var(--jm-ease); border-radius:3px;
+}
+.stat-card:hover::after{ transform: scaleY(1); }
+
+/* ── Entrance: cards rise + fade in (staggered, runs once on mount) ─────── */
+@keyframes jmRise{ from{opacity:0; transform: translateY(10px)} to{opacity:1; transform:none} }
+.stat-card, .role-section > .section, .wg-card{
+  animation: jmRise var(--jm-dur-3) var(--jm-ease) both;
+}
+.stat-card:nth-child(2){ animation-delay:.04s } .stat-card:nth-child(3){ animation-delay:.08s }
+.stat-card:nth-child(4){ animation-delay:.12s } .stat-card:nth-child(5){ animation-delay:.16s }
+.stat-card:nth-child(6){ animation-delay:.20s } .stat-card:nth-child(n+7){ animation-delay:.24s }
+
+/* ── Buttons: press + hover micro-interactions ─────────────────────────── */
+.btn-sm, .btn-primary, .btn-outline, .qa, .icon-btn, .hamburger, button.btn{
+  transition: transform var(--jm-dur-1) var(--jm-ease-spring),
+              box-shadow var(--jm-dur-1) var(--jm-ease),
+              filter var(--jm-dur-1) var(--jm-ease);
+}
+.btn-primary:hover, .qa:hover{ transform: translateY(-1px); filter: brightness(1.04); }
+.btn-sm:active, .btn-primary:active, .btn-outline:active, .qa:active, .icon-btn:active{ transform: scale(.96); }
+
+/* ── Nav items: smooth indicator slide ─────────────────────────────────── */
+.nav-item{ transition: background var(--jm-dur-1) var(--jm-ease), color var(--jm-dur-1) var(--jm-ease), padding-left var(--jm-dur-1) var(--jm-ease); }
+.nav-item:hover{ padding-left: 24px; }
+
+/* ── Glass top bar — subtle depth without obscuring content ─────────────── */
+.topbar{ backdrop-filter: saturate(1.2) blur(8px); -webkit-backdrop-filter: saturate(1.2) blur(8px); background: color-mix(in srgb, var(--jm-surface) 86%, transparent); }
+
+/* ── Accessibility: clear focus ring on keyboard nav ───────────────────── */
+a:focus-visible, button:focus-visible, .nav-item:focus-visible, input:focus-visible,
+select:focus-visible, textarea:focus-visible, [role="button"]:focus-visible{
+  outline: none; box-shadow: var(--jm-ring); border-radius: 8px;
+}
+
+/* ── Skeleton shimmer (for loading states; add class .jm-skel) ──────────── */
+@keyframes jmShimmer{ 100%{ background-position: -200% 0 } }
+.jm-skel{
+  background: linear-gradient(90deg, var(--jm-border) 25%, color-mix(in srgb,var(--jm-border) 40%, transparent) 37%, var(--jm-border) 63%);
+  background-size: 200% 100%; animation: jmShimmer 1.4s linear infinite; border-radius: 8px; color: transparent !important;
+}
+
+/* ── Modal / popup entrance ────────────────────────────────────────────── */
+@keyframes jmPop{ from{opacity:0; transform: translateY(8px) scale(.98)} to{opacity:1; transform:none} }
+#jm-generic-modal > div, #navPopup, .msgr{ animation: jmPop var(--jm-dur-2) var(--jm-ease-spring) both; }
+
+/* ── Respect reduced-motion: keep it static + accessible ───────────────── */
+@media (prefers-reduced-motion: reduce){
+  *, *::before, *::after{ animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important; }
+  .card:hover, .stat-card:hover, .wg-card:hover, .btn-primary:hover, .nav-item:hover{ transform:none; }
+}
