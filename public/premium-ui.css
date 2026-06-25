@@ -81,6 +81,24 @@ select:focus-visible, textarea:focus-visible, [role="button"]:focus-visible{
   background-size: 200% 100%; animation: jmShimmer 1.4s linear infinite; border-radius: 8px; color: transparent !important;
 }
 
+/* ── Widget customization (Phase 2) ────────────────────────────────────── */
+.wg-card{ position:relative; }
+/* Per-widget accent bar (set via --wg-accent; transparent by default). */
+.wg-card::before{ content:''; position:absolute; left:0; right:0; top:0; height:3px;
+  background: var(--wg-accent, transparent); border-radius: 12px 12px 0 0;
+  opacity:0; transition: opacity var(--jm-dur-2) var(--jm-ease); }
+.wg-card[style*="--wg-accent"]::before{ opacity:1; }
+.wg-head{ display:flex; align-items:center; gap:6px; }
+.wg-grip{ cursor:grab; color:var(--jm-text-muted,#888); font-size:13px; opacity:.45; transition:opacity var(--jm-dur-1) var(--jm-ease); user-select:none; }
+.wg-head:hover .wg-grip{ opacity:.9; }
+.wg-head[draggable="true"]:active{ cursor:grabbing; }
+.wg-collapsed .wg-body{ display:none; }
+.wg-collapsed{ padding-bottom:6px; }
+.wg-card.wg-dragging{ opacity:.45; transform:scale(.99); }
+.wg-card.wg-dragover{ box-shadow: var(--jm-shadow-lift); border-color: var(--jm-primary, var(--pri,#7c3aed)); }
+.wg-ctrl-color{ position:relative; cursor:pointer; display:inline-flex; align-items:center; }
+.wg-ctrl-color input[type="color"]{ position:absolute; inset:0; opacity:0; cursor:pointer; padding:0; border:0; }
+
 /* ── Modal / popup entrance ────────────────────────────────────────────── */
 @keyframes jmPop{ from{opacity:0; transform: translateY(8px) scale(.98)} to{opacity:1; transform:none} }
 #jm-generic-modal > div, #navPopup, .msgr{ animation: jmPop var(--jm-dur-2) var(--jm-ease-spring) both; }

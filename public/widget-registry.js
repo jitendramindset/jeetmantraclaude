@@ -235,14 +235,34 @@
   function skeleton() { return '<div class="wg-skel"></div><div class="wg-skel w60"></div>'; }
 
   async function renderWidget(w, ctx) {
+    const prefs = ctx.userPrefs || {};
+    const size = (prefs.sizes || {})[w.id] || w.size || 'medium';
+    const collapsed = (prefs.collapsed || []).includes(w.id);
+    const accent = (prefs.accents || {})[w.id] || '';
     const card = document.createElement('section');
-    card.className = 'wg-card wg-' + (w.size || 'medium') + (w._pinned ? ' wg-pinned' : '');
+    card.className = 'wg-card wg-' + size + (w._pinned ? ' wg-pinned' : '') + (collapsed ? ' wg-collapsed' : '');
     card.dataset.widget = w.id;
     card.setAttribute('role', 'region');
     card.setAttribute('aria-label', w.title);
     card.tabIndex = 0;
-    const ctrls = `<span class="wg-ctrls"><button class="wg-ctrl" title="${w._pinned ? 'Unpin' : 'Pin'}" aria-label="Pin widget" onclick="EduOSWidgets.togglePin('${w.id}')">${w._pinned ? '📌' : '📍'}</button><button class="wg-ctrl" title="Hide widget" aria-label="Hide widget" onclick="EduOSWidgets.removeWidget('${w.id}')">✕</button></span>`;
-    card.innerHTML = `<header class="wg-head"><span class="wg-title">${esc(w.title)}</span>${ctrls}</header><div class="wg-body">${skeleton()}</div>`;
+    if (accent) card.style.setProperty('--wg-accent', accent);
+    // Per-widget controls: collapse · resize · accent colour · pin · hide.
+    const ctrls = `<span class="wg-ctrls">`
+      + `<button class="wg-ctrl" title="${collapsed ? 'Expand' : 'Collapse'}" aria-label="Collapse widget" onclick="EduOSWidgets.toggleCollapse('${w.id}')">${collapsed ? '▸' : '▾'}</button>`
+      + `<button class="wg-ctrl" title="Resize" aria-label="Resize widget" onclick="EduOSWidgets.cycleSize('${w.id}')">⤢</button>`
+      + `<label class="wg-ctrl wg-ctrl-color" title="Accent colour" aria-label="Accent colour">🎨<input type="color" value="${accent || '#7c3aed'}" oninput="EduOSWidgets.setAccent('${w.id}',this.value)"></label>`
+      + `<button class="wg-ctrl" title="${w._pinned ? 'Unpin' : 'Pin'}" aria-label="Pin widget" onclick="EduOSWidgets.togglePin('${w.id}')">${w._pinned ? '📌' : '📍'}</button>`
+      + `<button class="wg-ctrl" title="Hide widget" aria-label="Hide widget" onclick="EduOSWidgets.removeWidget('${w.id}')">✕</button>`
+      + `</span>`;
+    card.innerHTML = `<header class="wg-head" title="Drag to reorder"><span class="wg-grip" aria-hidden="true">⠿</span><span class="wg-title">${esc(w.title)}</span>${ctrls}</header><div class="wg-body">${skeleton()}</div>`;
+    // Drag-to-reorder — the header is the handle (so inner controls stay clickable).
+    const head = card.querySelector('.wg-head');
+    head.setAttribute('draggable', 'true');
+    head.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', w.id); e.dataTransfer.effectAllowed = 'move'; card.classList.add('wg-dragging'); });
+    head.addEventListener('dragend', () => card.classList.remove('wg-dragging'));
+    card.addEventListener('dragover', e => { e.preventDefault(); card.classList.add('wg-dragover'); });
+    card.addEventListener('dragleave', () => card.classList.remove('wg-dragover'));
+    card.addEventListener('drop', e => { e.preventDefault(); card.classList.remove('wg-dragover'); const from = e.dataTransfer.getData('text/plain'); if (from) reorder(from, w.id); });
     const body = card.querySelector('.wg-body');
     try {
       const data = w.dataSource ? await w.dataSource(ctx) : null;
@@ -276,8 +296,12 @@
     _ctx.userPrefs.removed = _ctx.userPrefs.removed || [];
     _ctx.userPrefs.pinned = _ctx.userPrefs.pinned || [];
     _ctx.userPrefs.order = _ctx.userPrefs.order || [];
+    _ctx.userPrefs.collapsed = _ctx.userPrefs.collapsed || [];   // header-only widgets
+    _ctx.userPrefs.sizes = _ctx.userPrefs.sizes || {};            // per-widget size override
+    _ctx.userPrefs.accents = _ctx.userPrefs.accents || {};        // per-widget accent colour
     return _ctx.userPrefs;
   }
+  function _card(id){ return _mount && _mount.querySelector('[data-widget="' + id + '"]'); }
   async function persistPrefs() {
     try {
       await fetch(API + '/me/widget-prefs', {
@@ -287,6 +311,34 @@
     } catch (_) {/* best-effort; UI already updated */}
   }
   async function togglePin(id) { const p = ensurePrefs(); const i = p.pinned.indexOf(id); i >= 0 ? p.pinned.splice(i, 1) : p.pinned.push(id); await persistPrefs(); await renderDashboard(_mount, _ctx); }
+  // Collapse / resize / accent — applied in-place (no data refetch) for snappy
+  // feedback, then persisted best-effort.
+  function toggleCollapse(id) {
+    const p = ensurePrefs(); const i = p.collapsed.indexOf(id); const on = i < 0;
+    on ? p.collapsed.push(id) : p.collapsed.splice(i, 1);
+    const card = _card(id); if (card) { card.classList.toggle('wg-collapsed', on); const b = card.querySelector('.wg-ctrl'); if (b) { b.textContent = on ? '▸' : '▾'; b.title = on ? 'Expand' : 'Collapse'; } }
+    persistPrefs();
+  }
+  function cycleSize(id) {
+    const sizes = ['small', 'medium', 'large']; const p = ensurePrefs();
+    const card = _card(id); const cur = p.sizes[id] || (card && (['small','medium','large'].find(s => card.classList.contains('wg-' + s)))) || 'medium';
+    const next = sizes[(sizes.indexOf(cur) + 1) % sizes.length]; p.sizes[id] = next;
+    if (card) { card.classList.remove('wg-small', 'wg-medium', 'wg-large'); card.classList.add('wg-' + next); }
+    persistPrefs();
+  }
+  function setAccent(id, color) {
+    const p = ensurePrefs(); p.accents[id] = color;
+    const card = _card(id); if (card) card.style.setProperty('--wg-accent', color);
+    persistPrefs();
+  }
+  async function reorder(fromId, toId) {
+    if (!fromId || fromId === toId) return;
+    const ids = resolveWidgets(_ctx).map(w => w.id);
+    const from = ids.indexOf(fromId); if (from < 0) return;
+    ids.splice(from, 1);
+    const at = ids.indexOf(toId); ids.splice(at < 0 ? ids.length : at, 0, fromId);
+    const p = ensurePrefs(); p.order = ids; await persistPrefs(); await renderDashboard(_mount, _ctx);
+  }
   async function removeWidget(id) { const p = ensurePrefs(); if (!p.removed.includes(id)) p.removed.push(id); await persistPrefs(); await renderDashboard(_mount, _ctx); }
   async function addWidget(id) { const p = ensurePrefs(); const i = p.removed.indexOf(id); if (i >= 0) p.removed.splice(i, 1); await persistPrefs(); await renderDashboard(_mount, _ctx); }
 
@@ -360,5 +412,5 @@
     try { r.start(); return true; } catch (_) { return false; }
   }
 
-  global.EduOSWidgets = { WIDGETS, resolveWidgets, hiddenWidgets, renderDashboard, boot, getContext, widgetForIntent, handleCommand, listen, togglePin, removeWidget, addWidget, api, esc };
+  global.EduOSWidgets = { WIDGETS, resolveWidgets, hiddenWidgets, renderDashboard, boot, getContext, widgetForIntent, handleCommand, listen, togglePin, removeWidget, addWidget, toggleCollapse, cycleSize, setAccent, reorder, api, esc };
 })(window);
