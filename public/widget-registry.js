@@ -264,12 +264,19 @@
     card.addEventListener('dragleave', () => card.classList.remove('wg-dragover'));
     card.addEventListener('drop', e => { e.preventDefault(); card.classList.remove('wg-dragover'); const from = e.dataTransfer.getData('text/plain'); if (from) reorder(from, w.id); });
     const body = card.querySelector('.wg-body');
-    try {
-      const data = w.dataSource ? await w.dataSource(ctx) : null;
-      body.innerHTML = w.render(data, ctx);
-    } catch (e) {
-      body.innerHTML = empty('Couldn’t load right now.');
+    // Per-widget data load with isolation: one widget failing never breaks the
+    // grid — it shows its own Retry that re-fetches just this widget.
+    async function load() {
+      try {
+        const data = w.dataSource ? await w.dataSource(ctx) : null;
+        body.innerHTML = w.render(data, ctx);
+      } catch (e) {
+        body.innerHTML = (global.JMStates)
+          ? JMStates.retryCard({ msg: 'Couldn’t load this widget.', onRetry: function () { body.innerHTML = skeleton(); load(); } })
+          : empty('Couldn’t load right now.');
+      }
     }
+    await load();
     return card;
   }
 

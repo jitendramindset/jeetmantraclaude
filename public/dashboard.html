@@ -470,7 +470,7 @@ html[data-theme="dark"]{
   .topbar .search-bar{flex:1 1 180px;min-width:0}
 }
 </style>
-<link rel="stylesheet" href="/premium-ui.css?v=3">
+<link rel="stylesheet" href="/premium-ui.css?v=4">
 <script src="/jm-theme.js"></script>
 <script src="/jm-settings.js"></script>
 <script>
@@ -498,7 +498,8 @@ window.addEventListener('storage', function(e){
 });
 </script>
 <script src="/offline-sync.js"></script>
-<script src="/widget-registry.js?v=6"></script>
+<script src="/jm-states.js"></script>
+<script src="/widget-registry.js?v=7"></script>
 </head>
 <body>
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
@@ -2229,7 +2230,29 @@ async function loadDashboard(){
     // EduOS UI polish — applies after the role section renders.
     try{ renderGreeting(); injectQuickActions(); renderNextClassHeader(); renderTodaySchedule(); buildBottomNav(role); _initInstSwitcher(); refreshUnreadBadge(); refreshStudentSummary(); }catch(_){}
   }catch(e){
-    document.getElementById('loadingState').innerHTML='<div class="empty-state"><div class="icon">⚠️</div><div>We couldn\'t load your dashboard.</div><div style="font-size:13px;margin-top:6px;color:var(--jm-text-muted,#888)">Check your connection and try again.</div><button class="btn btn-sm" style="margin-top:14px" onclick="location.reload()">🔄 Retry</button></div>';
+    const ls=document.getElementById('loadingState');
+    // RESILIENCE (Phase 3 / partial-data): the /dashboard aggregate failing must
+    // NOT blank the page. For widget roles, boot the widget grid anyway — each
+    // widget fetches its own data and degrades individually (per-widget retry),
+    // so the dashboard keeps working through backend instability.
+    const WIDGET_ROLES2=['student','teacher'];
+    if(WIDGET_ROLES2.includes(role) && localStorage.getItem('wg_mode')!=='classic' && window.EduOSWidgets){
+      try{
+        if(ls) ls.style.display='none';
+        const bar=document.getElementById('wgModeBar'); if(bar)bar.style.display='flex';
+        const wp=document.getElementById('wgPanel'); if(wp) wp.style.display='block';
+        EduOSWidgets.boot(document.getElementById('wgMount'));
+        try{ renderGreeting(); renderNextClassHeader(); buildBottomNav(role); _initInstSwitcher(); refreshUnreadBadge(); }catch(_){}
+        return;
+      }catch(_){}
+    }
+    // Otherwise: a premium, retryable error state (never a dead/blank page).
+    if(ls){
+      ls.style.display='';
+      ls.innerHTML = (window.JMStates
+        ? JMStates.error({ title:'Couldn’t load your dashboard', msg:'The server didn’t respond — your connection may be unstable. We kept your last data where possible.', onRetry:function(){ ls.textContent='Loading…'; loadDashboard(); }, detail:(e&&e.message)||'' })
+        : '<div class="empty-state"><div class="icon">⚠️</div><div>We couldn\'t load your dashboard.</div><button class="btn btn-sm" style="margin-top:14px" onclick="location.reload()">🔄 Retry</button></div>');
+    }
   }
 }
 let searchTimer=null;
@@ -2937,24 +2960,35 @@ async function api(path,method,body){
   const inst=localStorage.getItem('jm_active_institution');
   if(inst) headers['X-Active-Institution']=inst;
   const isGet=(!method || String(method).toUpperCase()==='GET');
+  // Transient-failure resilience: GET requests retry up to 3× with exponential
+  // backoff on a network error or a 5xx (mitigates backend/Supabase flapping).
+  // Writes are NOT auto-retried — they go through the offline outbox so they
+  // can't be duplicated.
+  const _max = isGet ? 3 : 1;
   let r;
-  try{
-    r=await fetch(API+path,{method,headers,body:body?JSON.stringify(body):undefined});
-  }catch(netErr){
-    // No connection. Reads come from the last cached copy; writes are buffered
-    // into the outbox and replayed automatically when the network returns.
-    if(window.JMOffline){
-      if(isGet){
-        const cached=JMOffline.readGet(path);
-        if(cached!==undefined){ try{ document.body.classList.add('jmx-offline-on'); }catch(_){}; return cached; }
-        throw new Error('You’re offline and this hasn’t been saved for offline use yet.');
-      } else {
-        JMOffline.enqueue({path,method,body});
-        try{ toast('📴 Saved offline — will sync when you reconnect.'); }catch(_){}
-        return {queued:true, offline:true};
+  for(let attempt=0; attempt<_max; attempt++){
+    if(attempt>0) await new Promise(res=>setTimeout(res, 300*Math.pow(2,attempt-1) + Math.random()*150));
+    try{
+      r=await fetch(API+path,{method,headers,body:body?JSON.stringify(body):undefined});
+      if(isGet && r.status>=500 && attempt<_max-1){ continue; }  // transient server error → retry
+      break;
+    }catch(netErr){
+      if(isGet && attempt<_max-1) continue;                       // transient network error → retry
+      // Exhausted retries / offline. Reads fall back to the last cached copy;
+      // writes are buffered into the outbox and replayed on reconnect.
+      if(window.JMOffline){
+        if(isGet){
+          const cached=JMOffline.readGet(path);
+          if(cached!==undefined){ try{ document.body.classList.add('jmx-offline-on'); }catch(_){}; return cached; }
+          throw new Error('You’re offline and this hasn’t been saved for offline use yet.');
+        } else {
+          JMOffline.enqueue({path,method,body});
+          try{ toast('📴 Saved offline — will sync when you reconnect.'); }catch(_){}
+          return {queued:true, offline:true};
+        }
       }
+      throw netErr;
     }
-    throw netErr;
   }
   const j=await r.json().catch(()=>({}));
   // Cache successful reads so they’re available next time the device is offline.

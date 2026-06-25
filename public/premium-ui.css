@@ -103,6 +103,29 @@ select:focus-visible, textarea:focus-visible, [role="button"]:focus-visible{
 @keyframes jmPop{ from{opacity:0; transform: translateY(8px) scale(.98)} to{opacity:1; transform:none} }
 #jm-generic-modal > div, #navPopup, .msgr{ animation: jmPop var(--jm-dur-2) var(--jm-ease-spring) both; }
 
+/* ── Global states (JMStates / Phase 3) ────────────────────────────────── */
+.jm-state{ text-align:center; padding:28px 18px; max-width:420px; margin:0 auto; }
+.jm-state-icon{ font-size:42px; line-height:1; margin-bottom:10px; }
+.jm-state-title{ font-weight:700; font-size:15px; color:var(--jm-text,var(--txt,#e8eaf0)); }
+.jm-state-msg{ font-size:13px; color:var(--jm-text-muted,var(--mut,#9098ac)); margin:6px 0 14px; line-height:1.55; }
+.jm-state-cta{ background:linear-gradient(135deg,var(--jm-primary,var(--pri,#7c3aed)),#a855f7); color:#fff; border:0; padding:10px 22px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; box-shadow:0 2px 8px rgba(124,58,237,.35); transition:transform var(--jm-dur-1) var(--jm-ease-spring),filter var(--jm-dur-1) var(--jm-ease); }
+.jm-state-cta:hover{ transform:translateY(-1px); filter:brightness(1.05); } .jm-state-cta:active{ transform:scale(.96); }
+.jm-state-btn{ background:var(--jm-surface-2,var(--panel2,#1d202b)); color:var(--jm-text,var(--txt,#e8eaf0)); border:1px solid var(--jm-border,var(--bd,#2a2e3c)); padding:9px 16px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
+.jm-state-actions{ display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
+.jm-state-support{ display:inline-block; margin-top:12px; font-size:12px; color:var(--jm-text-muted,var(--mut,#9098ac)); }
+.jm-state-detail{ margin-top:12px; text-align:left; font-size:11px; color:var(--jm-text-muted,var(--mut,#9098ac)); }
+.jm-state-detail pre{ white-space:pre-wrap; background:var(--jm-surface-2,var(--panel2,#1d202b)); padding:8px; border-radius:8px; max-height:140px; overflow:auto; }
+.jm-retry{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; font-size:12px; color:var(--jm-text-muted,var(--mut,#9098ac)); }
+/* Loading overlay + spinner */
+.jm-overlay{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:color-mix(in srgb,var(--jm-surface,var(--panel,#15171f)) 60%, transparent); backdrop-filter:blur(1px); z-index:20; border-radius:inherit; }
+.jm-spinner{ width:28px; height:28px; border-radius:50%; border:3px solid var(--jm-border,var(--bd,#2a2e3c)); border-top-color:var(--jm-primary,var(--pri,#7c3aed)); animation:jmSpin .7s linear infinite; }
+@keyframes jmSpin{ to{ transform:rotate(360deg) } }
+/* Offline banner */
+#jm-offline-banner{ position:fixed; left:50%; top:10px; transform:translateX(-50%) translateY(-120%); z-index:9998;
+  background:#7c2d12; color:#fed7aa; border:1px solid #9a3412; border-radius:999px; padding:8px 18px; font-size:13px; font-weight:600;
+  box-shadow:0 8px 24px rgba(0,0,0,.25); transition:transform var(--jm-dur-2) var(--jm-ease); pointer-events:none; }
+#jm-offline-banner.show{ transform:translateX(-50%) translateY(0); }
+
 /* ── Respect reduced-motion: keep it static + accessible ───────────────── */
 @media (prefers-reduced-motion: reduce){
   *, *::before, *::after{ animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important; }
