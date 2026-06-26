@@ -1,3 +1,29 @@
+/**
+ * payments.js — money-critical: Razorpay checkout, coupons, refunds, receipts.
+ * Mount: /api/payments
+ *
+ * Endpoints:
+ *   POST   /coupons/apply       🔒 — validate+apply a coupon to an amount (preview discount)
+ *   POST   /coupons             🔒 — teacher/owner creates a coupon code
+ *   GET    /coupons             🔒 — list the caller's own coupons
+ *   DELETE /coupons/:id         🔒 — delete a coupon you own
+ *   GET    /config              🌐 — public checkout config (Razorpay keyId, mode, methods)
+ *   POST   /order               🔒 — create Razorpay order (or demo order); re-validates coupon server-side
+ *   POST   /verify              🔒 — verify checkout (HMAC signature); flips status→paid + auto-enrolls
+ *   POST   /webhook             🌐 — Razorpay server webhook (raw body + X-Razorpay-Signature HMAC)
+ *   POST   /:id/refund          🔒 admin — record a refund (audited)
+ *   POST   /                    🔒 — create a generic pending payment row
+ *   GET    /my                  🔒 — caller's payment history
+ *   POST   /webhook/payment     🌐 — legacy non-Razorpay gateway callback (X-JM-Webhook-Secret)
+ *   GET    /:id/receipt         🔒 — printable HTML receipt (owner or admin)
+ *
+ * Notes: money-critical. Discounts are ALWAYS re-validated server-side in /order
+ *   (never trust client). /verify guards: row must exist, belong to caller, be
+ *   pending — prevents IDOR and free re-enroll (esp. demo mode). Coupon redemption
+ *   is idempotent via coupon_redemptions UNIQUE(coupon_code,user_id). /webhook uses
+ *   express.raw() (raw bytes are signed) and is independent of the browser. Refunds
+ *   are admin-only and written to audit_log. RZP_MODE falls back to 'demo' when keys absent.
+ */
 const express = require('express');
 const crypto = require('crypto');
 const { supabase, supabaseAdmin } = require('../config/supabase');

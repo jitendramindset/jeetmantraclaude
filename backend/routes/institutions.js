@@ -3,12 +3,22 @@
  * teachers (and students). Both school and coaching roles can use these:
  * the "institution" is just the user_id of the school/coaching user.
  *
- *   GET    /api/institutions/teachers          — list teachers linked to me
- *   POST   /api/institutions/teachers          — link a teacher by email + subject
- *   DELETE /api/institutions/teachers/:linkId  — unlink
- *   GET    /api/institutions/students          — list students linked to me
- *   POST   /api/institutions/students          — link a student by email + class
- *   GET    /api/institutions/dashboard         — aggregate roster overview
+ * Mount: /api/institutions
+ *
+ *   GET    /teachers          🔒 [school/coaching/admin] — list teachers linked to me
+ *   POST   /teachers          🔒 [school/coaching/admin] — link a teacher by email + subject
+ *   DELETE /teachers/:linkId  🔒 [school/coaching/admin] — unlink a teacher
+ *   GET    /students          🔒 [school/coaching/admin] — list students linked to me
+ *   POST   /students          🔒 [school/coaching/admin] — link a student by email + class
+ *   GET    /dashboard         🔒 [school/coaching/admin] — aggregate roster overview
+ *   POST   /import-csv        🔒 [school/coaching/admin] — bulk import students/teachers from CSV
+ *   GET    /my-institutions   🔒 — institutions this user belongs to (as teacher and/or student)
+ *
+ * Notes: "institution" == the school/coaching user's id (institution_id == req.user.id).
+ * Roster routes are gated to INSTITUTIONS roles; my-institutions is open to any
+ * authed user. supabaseAdmin throughout; user profiles hydrated via separate
+ * lookups (jeetmantra_users.id is VARCHAR — no FK embeds). CSV import auto-creates
+ * accounts with a random password (reset on first login).
  */
 const express = require('express');
 const { supabaseAdmin } = require('../config/supabase');

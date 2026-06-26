@@ -1,3 +1,18 @@
+/**
+ * webhooks.js — unified inbound webhook dispatcher (e.g. from n8n).
+ * Mount: /api/webhooks
+ *
+ * Endpoints:
+ *   POST /api/webhooks   🌐 (secret-gated) — dispatch on `action` to a handler
+ *
+ * Actions: user-signup, user-login, course-create, course-enroll,
+ *   payment-complete, attendance-record, feedback-submit.
+ *
+ * Notes: no JWT — instead gated by verifyWebhookSecret('WEBHOOK_SECRET'), which
+ * requires header X-JM-Webhook-Secret (back-compat X-Webhook-Secret) to match
+ * env WEBHOOK_SECRET. This was previously unauthenticated and could mint
+ * accounts (email_verified:true, placeholder hash) — that hole is now closed.
+ */
 const express = require('express');
 const crypto = require('crypto');
 const { supabaseAdmin } = require('../config/supabase');
@@ -9,6 +24,7 @@ const router = express.Router();
 // Unified webhook endpoint — requires X-JM-Webhook-Secret (or back-compat
 // X-Webhook-Secret) matching env WEBHOOK_SECRET. This used to be unauthenticated
 // and could create accounts (email_verified:true, placeholder hash) — closed.
+// Dispatch on `action` to the matching handler; unknown actions → 400.
 router.post('/', verifyWebhookSecret('WEBHOOK_SECRET', 'webhooks'), async (req, res) => {
   try {
     const { action, data, source } = req.body;

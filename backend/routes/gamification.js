@@ -20,6 +20,7 @@ const { awardForEvent, levelFromXp } = require('../services/award');
 
 const router = express.Router();
 
+// GET /streak — current + longest streak for the caller (defaults if none).
 router.get('/streak', authenticateToken, async (req, res) => {
   try {
     const { data } = await supabaseAdmin.from('study_streaks').select('*').eq('user_id', req.user.id).maybeSingle();
@@ -27,6 +28,7 @@ router.get('/streak', authenticateToken, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// POST /streak/checkin — explicit daily check-in (soft streak bump via award pipeline).
 router.post('/streak/checkin', authenticateToken, async (req, res) => {
   try {
     const result = await awardForEvent({
@@ -39,6 +41,7 @@ router.post('/streak/checkin', authenticateToken, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// GET /xp — total XP + computed level + last 20 ledger rows.
 router.get('/xp', authenticateToken, async (req, res) => {
   try {
     const [{ data: rows }, { data: recent }] = await Promise.all([
@@ -50,6 +53,7 @@ router.get('/xp', authenticateToken, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// GET /badges — all active badges flagged earned/locked for the caller.
 router.get('/badges', authenticateToken, async (req, res) => {
   try {
     const [{ data: all }, { data: earned }] = await Promise.all([

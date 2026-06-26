@@ -1,3 +1,22 @@
+/**
+ * dashboard.js — single role-aware dashboard aggregator.
+ * Mount: /api/dashboard
+ *
+ * Endpoints:
+ *   GET /   🔒 — role-specific dashboard payload (see below)
+ *
+ * Notes: One authenticated endpoint that branches on req.user.role to assemble
+ * the home dashboard:
+ *   - student          → enrollments (+progress), live classes, recorded lectures,
+ *                        homework, skills, reviews, marketplace purchases
+ *   - teacher          → owned courses (institution-scoped via X-Active-Institution),
+ *                        bookings, attendance, live classes, enrollments, earnings +
+ *                        a command-center KPI block (concurrent, each guarded → 0)
+ *   - partner/school/coaching → fetchCreatorData() base + role extras
+ *   - admin            → recent users/courses/payments/listings + platform stats
+ * Queries run concurrently where independent; per-metric failures degrade to 0
+ * rather than failing the whole response.
+ */
 const express = require('express');
 const { supabaseAdmin } = require('../config/supabase');
 const { authenticateToken } = require('../middleware/auth');
@@ -6,6 +25,7 @@ const { countUnread } = require('../services/chatUnread');
 
 const router = express.Router();
 
+// GET /api/dashboard — assemble the role-specific dashboard payload
 router.get('/', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;

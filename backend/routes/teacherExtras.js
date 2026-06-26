@@ -1,14 +1,35 @@
 /**
  * teacherExtras.js — extras for teachers (and other creators) to fully run
  * their classes.
+ * Mount: /api/teacher
  *
- *   GET    /api/teacher/timetable             — events between `from` and `to`
- *                                                (live classes, assignment due
- *                                                dates, scheduled tests)
- *   POST   /api/teacher/live-classes/recurring — expand a recurrence pattern
- *                                                into N rows in one transaction
- *   POST   /api/teacher/attendance/bulk        — mark a list of students at once
- *   POST   /api/teacher/announcement           — broadcast to a course's chat room
+ * Endpoints (all 🔒 JWT; CREATOR_ROLES or a requireCapability gate):
+ *   GET    /timetable                  [CREATOR_ROLES]      — events in [from,to] (live/assignments/tests), institution-scoped
+ *   POST   /live-classes/recurring     [live.schedule]      — expand a recurrence into N live_classes rows
+ *   GET    /attendance/roster/:courseId[CREATOR_ROLES]      — enrollments + existing attendance for a date
+ *   POST   /attendance/bulk-mixed      [attendance.mark]    — mark each student with own status (upsert by date)
+ *   GET    /bookings                   [CREATOR_ROLES]      — bookings for owned courses, hydrated
+ *   GET    /payments                   [CREATOR_ROLES]      — earnings + payments + summary
+ *   POST   /attendance/bulk            [attendance.mark]    — mark all (or a list) present/given status
+ *   GET    /tests/:testId/analytics    [CREATOR_ROLES]      — per-question pass rate + score distribution
+ *   GET    /invoices                   [CREATOR_ROLES]      — invoices + summary
+ *   POST   /invoices                   [invoice.manage]     — create an invoice (sequential number)
+ *   PUT    /invoices/:id               [invoice.manage]     — update status/paidAt/notes
+ *   GET    /invoices/:id/pdf           [CREATOR_ROLES]      — printable invoice HTML
+ *   GET    /calendar                   [CREATOR_ROLES]      — month grid {YYYY-MM-DD:[events]}
+ *   GET    /bookings/:id               [CREATOR_ROLES]      — booking detail + student + payment
+ *   PUT    /bookings/:id               [booking.manage]     — reschedule / change status
+ *   POST   /bookings/:id/cancel        [booking.manage]     — cancel + auto-refund tied payment
+ *   GET    /essays/pending             [CREATOR_ROLES]      — ungraded long-answer responses
+ *   POST   /essays/grade               [assignment.grade]   — score + feedback a long answer
+ *   GET    /export                     [CREATOR_ROLES]      — CSV: attendance | grades | earnings
+ *   POST   /announcement               [student.manage]     — broadcast to course chat room
+ *   GET    /recordings                 [CREATOR_ROLES]      — recordings for owned live classes
+ *
+ * Notes: every course-scoped op re-checks course.teacher_id === req.user.id.
+ * /timetable honors the active institution via resolveInstitution. Write routes
+ * are Joi-validated. Refunds here only flip payment status (production would call
+ * Razorpay's refund API too).
  */
 const express = require('express');
 const { supabaseAdmin } = require('../config/supabase');

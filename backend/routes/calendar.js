@@ -64,6 +64,7 @@ function windowFor(view, fromQ, toQ) {
   return { from, to };
 }
 
+// GET /api/calendar — unified events feed (live classes + assignments + tests), role-scoped.
 router.get('/', authenticateToken, async (req, res) => {
   try {
     const view = (req.query.view || 'agenda').toLowerCase();

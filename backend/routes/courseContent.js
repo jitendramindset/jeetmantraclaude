@@ -1,14 +1,52 @@
 /**
- * courseContent.js — endpoints for rich course content:
- *   - topics            (chapters/units)
- *   - lectures          (recorded videos / scheduled sessions)
- *   - materials         (files, images, pdfs, links, notes)
- *   - tests             (quizzes / exams)
- *   - test_submissions
- *   - cover image upload
+ * courseContent.js — rich course content: topics, lectures, materials, tests,
+ *   questions, sections, sessions, question-bank, proctoring + uploads.
+ * Mount: /api/course-content
  *
- * All write endpoints require an authenticated user. Most require that the
- * caller owns the course (course.teacher_id === req.user.id) or is an admin.
+ * Endpoints:
+ *   POST   /:courseId/cover                          🔒 owner/admin — upload course cover image
+ *   GET    /:courseId/topics                         🔒 — list topics (preview-filtered for non-viewers)
+ *   POST   /:courseId/topics                         🔒 owner/admin — create topic
+ *   PUT    /topics/:id                               🔒 owner/admin — edit topic
+ *   DELETE /topics/:id                               🔒 owner/admin — remove topic
+ *   GET    /:courseId/lectures                       🔒 — list lectures (preview-filtered)
+ *   POST   /:courseId/lectures                       🔒 owner/admin — create lecture (+video upload)
+ *   PUT    /lectures/:id                             🔒 owner/admin — edit lecture
+ *   DELETE /lectures/:id                             🔒 owner/admin — remove lecture
+ *   GET    /:courseId/materials                      🔒 owner/enrolled — list materials
+ *   POST   /:courseId/materials                      🔒 owner/admin — add material (+file upload, RAG index)
+ *   PUT    /materials/:id                            🔒 owner/admin — edit material
+ *   DELETE /materials/:id                            🔒 owner/admin — remove material (+RAG chunks)
+ *   GET    /:courseId/tests                          🔒 owner/enrolled — list tests
+ *   POST   /:courseId/tests                          🔒 test.create owner/admin — create test
+ *   PUT    /tests/:id                                🔒 test.create owner/admin — edit test
+ *   DELETE /tests/:id                                🔒 owner/admin — remove test
+ *   GET    /tests/:testId/questions                  🔒 — list questions (answers stripped for students)
+ *   POST   /tests/:testId/questions                  🔒 test.create owner/admin — add question
+ *   PUT    /questions/:id                            🔒 owner/admin — edit question
+ *   DELETE /questions/:id                            🔒 owner/admin — remove question
+ *   POST   /tests/:testId/session/start             🔒 student — start/resume a test session
+ *   POST   /sessions/:id/submit                      🔒 session-owner — submit + auto-grade
+ *   POST   /tests/:testId/submit                     🔒 — legacy direct submit (records score only)
+ *   GET    /:courseId/preview                        🌐 PUBLIC — title/topics + content counts only
+ *   GET    /:courseId/full                           🔒 — all content (gated; preview items for non-viewers)
+ *   GET    /tests/:testId/sections                   🔒 — list test sections
+ *   POST   /tests/:testId/sections                   🔒 test.create owner/admin — create section
+ *   PUT    /sections/:id                             🔒 owner/admin — edit section
+ *   DELETE /sections/:id                             🔒 owner/admin — remove section
+ *   POST   /questions/upload-image                   🔒 — upload a question image (5 MB)
+ *   POST   /upload                                   🔒 — generic media upload (20 MB)
+ *   GET    /question-bank                            🔒 — caller's reusable bank items
+ *   POST   /question-bank                            🔒 — add bank item
+ *   DELETE /question-bank/:id                        🔒 owner — remove bank item
+ *   POST   /tests/:testId/questions/from-bank/:bankId 🔒 test.create owner/admin — copy bank item into test
+ *   POST   /sessions/:id/proctor-event              🔒 session-owner — log a proctoring event
+ *   GET    /sessions/:id/proctor-events             🔒 student-owner or course owner/admin — proctor timeline
+ *
+ * Notes: All write endpoints require an authenticated user. Most require that
+ * the caller owns the course (course.teacher_id === req.user.id) or is admin;
+ * read endpoints gate paid content via canViewFull (owner/admin/enrolled).
+ * /:courseId/preview is the only public route.
  */
 const express = require('express');
 const multer = require('multer');
@@ -87,6 +125,7 @@ router.post('/:courseId/cover', authenticateToken, upload.single('cover'), async
 });
 
 // ── TOPICS ─────────────────────────────────────────────────────────────
+// GET /api/course-content/:courseId/topics — list topics (preview-filtered for non-viewers)
 router.get('/:courseId/topics', authenticateToken, async (req, res) => {
   const { data, error } = await supabaseAdmin
     .from('course_topics').select('*').eq('course_id', req.params.courseId).order('order_index');
@@ -95,6 +134,7 @@ router.get('/:courseId/topics', authenticateToken, async (req, res) => {
   res.json({ topics: full ? (data || []) : (data || []).filter(t => t.is_preview) });
 });
 
+// POST /api/course-content/:courseId/topics — create a topic (owner/admin)
 router.post('/:courseId/topics', authenticateToken, async (req, res) => {
   const { allowed } = await ownsCourse(req.params.courseId, req.user);
   if (!allowed) return res.status(403).json({ error: 'Not your course' });
@@ -129,6 +169,7 @@ router.put('/topics/:id', authenticateToken, async (req, res) => {
   res.json({ topic: data });
 });
 
+// DELETE /api/course-content/topics/:id — remove a topic (owner/admin)
 router.delete('/topics/:id', authenticateToken, async (req, res) => {
   const { allowed } = await ownsContentItem('course_topics', req.params.id, req.user);
   if (!allowed) return res.status(403).json({ error: 'Not your course' });
@@ -138,6 +179,7 @@ router.delete('/topics/:id', authenticateToken, async (req, res) => {
 });
 
 // ── LECTURES ───────────────────────────────────────────────────────────
+// GET /api/course-content/:courseId/lectures — list lectures (preview-filtered for non-viewers)
 router.get('/:courseId/lectures', authenticateToken, async (req, res) => {
   const { data, error } = await supabaseAdmin
     .from('course_lectures').select('*').eq('course_id', req.params.courseId).order('order_index');
@@ -146,6 +188,7 @@ router.get('/:courseId/lectures', authenticateToken, async (req, res) => {
   res.json({ lectures: full ? (data || []) : (data || []).filter(l => l.is_preview) });
 });
 
+// POST /api/course-content/:courseId/lectures — create a lecture, optional video upload (owner/admin)
 router.post('/:courseId/lectures', authenticateToken, upload.single('video'), async (req, res) => {
   const { allowed } = await ownsCourse(req.params.courseId, req.user);
   if (!allowed) return res.status(403).json({ error: 'Not your course' });
@@ -170,6 +213,7 @@ router.post('/:courseId/lectures', authenticateToken, upload.single('video'), as
   res.status(201).json({ lecture: data });
 });
 
+// PUT /api/course-content/lectures/:id — edit a lecture (owner/admin)
 router.put('/lectures/:id', authenticateToken, async (req, res) => {
   const { allowed } = await ownsContentItem('course_lectures', req.params.id, req.user);
   if (!allowed) return res.status(403).json({ error: 'Not your course' });
@@ -188,6 +232,7 @@ router.put('/lectures/:id', authenticateToken, async (req, res) => {
   res.json({ lecture: data });
 });
 
+// DELETE /api/course-content/lectures/:id — remove a lecture (owner/admin)
 router.delete('/lectures/:id', authenticateToken, async (req, res) => {
   const { allowed } = await ownsContentItem('course_lectures', req.params.id, req.user);
   if (!allowed) return res.status(403).json({ error: 'Not your course' });
@@ -197,6 +242,7 @@ router.delete('/lectures/:id', authenticateToken, async (req, res) => {
 });
 
 // ── MATERIALS (files / links / images) ─────────────────────────────────
+// GET /api/course-content/:courseId/materials — list materials (owners/enrolled only)
 router.get('/:courseId/materials', authenticateToken, async (req, res) => {
   const { data, error } = await supabaseAdmin
     .from('course_materials').select('*').eq('course_id', req.params.courseId).order('created_at', { ascending: false });
@@ -206,6 +252,7 @@ router.get('/:courseId/materials', authenticateToken, async (req, res) => {
   res.json({ materials: full ? (data || []) : [] });
 });
 
+// POST /api/course-content/:courseId/materials — add material, optional file upload + RAG index (owner/admin)
 router.post('/:courseId/materials', authenticateToken, upload.single('file'), async (req, res) => {
   try {
     const { allowed } = await ownsCourse(req.params.courseId, req.user);
@@ -245,6 +292,7 @@ router.post('/:courseId/materials', authenticateToken, upload.single('file'), as
   }
 });
 
+// PUT /api/course-content/materials/:id — edit a material (owner/admin)
 router.put('/materials/:id', authenticateToken, async (req, res) => {
   const { allowed } = await ownsContentItem('course_materials', req.params.id, req.user);
   if (!allowed) return res.status(403).json({ error: 'Not your course' });
@@ -260,6 +308,7 @@ router.put('/materials/:id', authenticateToken, async (req, res) => {
   res.json({ material: data });
 });
 
+// DELETE /api/course-content/materials/:id — remove a material + its RAG chunks (owner/admin)
 router.delete('/materials/:id', authenticateToken, async (req, res) => {
   const { allowed } = await ownsContentItem('course_materials', req.params.id, req.user);
   if (!allowed) return res.status(403).json({ error: 'Not your course' });
@@ -271,6 +320,7 @@ router.delete('/materials/:id', authenticateToken, async (req, res) => {
 });
 
 // ── TESTS ──────────────────────────────────────────────────────────────
+// GET /api/course-content/:courseId/tests — list tests (owners/enrolled only)
 router.get('/:courseId/tests', authenticateToken, async (req, res) => {
   const { data, error } = await supabaseAdmin
     .from('course_tests').select('*').eq('course_id', req.params.courseId).order('created_at', { ascending: false });
@@ -279,6 +329,7 @@ router.get('/:courseId/tests', authenticateToken, async (req, res) => {
   res.json({ tests: full ? (data || []) : [] });
 });
 
+// POST /api/course-content/:courseId/tests — create a test (cap: test.create, owner/admin)
 router.post('/:courseId/tests', authenticateToken, requireCapability('test.create'), async (req, res) => {
   const { allowed } = await ownsCourse(req.params.courseId, req.user);
   if (!allowed) return res.status(403).json({ error: 'Not your course' });
@@ -303,6 +354,7 @@ router.post('/:courseId/tests', authenticateToken, requireCapability('test.creat
   res.status(201).json({ test: data });
 });
 
+// PUT /api/course-content/tests/:id — edit a test (cap: test.create, owner/admin)
 router.put('/tests/:id', authenticateToken, requireCapability('test.create'), async (req, res) => {
   const { allowed } = await ownsContentItem('course_tests', req.params.id, req.user);
   if (!allowed) return res.status(403).json({ error: 'Not your course' });
@@ -324,6 +376,7 @@ router.put('/tests/:id', authenticateToken, requireCapability('test.create'), as
   res.json({ test: data });
 });
 
+// DELETE /api/course-content/tests/:id — remove a test (owner/admin)
 router.delete('/tests/:id', authenticateToken, async (req, res) => {
   const { allowed } = await ownsContentItem('course_tests', req.params.id, req.user);
   if (!allowed) return res.status(403).json({ error: 'Not your course' });
@@ -585,6 +638,7 @@ async function announceTestSubmission(testId, student) {
   } catch (e) { console.warn('announceTestSubmission failed:', e.message); }
 }
 
+// POST /api/course-content/tests/:testId/submit — legacy direct submit (records score only)
 router.post('/tests/:testId/submit', authenticateToken, async (req, res) => {
   const { score } = req.body;
   const { data, error } = await supabaseAdmin.from('test_submissions').insert({
@@ -662,6 +716,7 @@ router.get('/tests/:testId/sections', authenticateToken, async (req, res) => {
   res.json({ sections: data || [] });
 });
 
+// POST /api/course-content/tests/:testId/sections — create a section (cap: test.create, owner/admin)
 router.post('/tests/:testId/sections', authenticateToken, requireCapability('test.create'), async (req, res) => {
   const { data: test } = await supabaseAdmin.from('course_tests').select('course_id').eq('id', req.params.testId).single();
   if (!test) return res.status(404).json({ error: 'Test not found' });
@@ -677,6 +732,7 @@ router.post('/tests/:testId/sections', authenticateToken, requireCapability('tes
   res.status(201).json({ section: data });
 });
 
+// PUT /api/course-content/sections/:id — edit a section (owner/admin)
 router.put('/sections/:id', authenticateToken, async (req, res) => {
   const { data: row } = await supabaseAdmin.from('test_sections').select('id, test_id').eq('id', req.params.id).single();
   if (!row) return res.status(404).json({ error: 'Section not found' });
@@ -694,6 +750,7 @@ router.put('/sections/:id', authenticateToken, async (req, res) => {
   res.json({ section: data });
 });
 
+// DELETE /api/course-content/sections/:id — remove a section (owner/admin)
 router.delete('/sections/:id', authenticateToken, async (req, res) => {
   const { data: row } = await supabaseAdmin.from('test_sections').select('id, test_id').eq('id', req.params.id).single();
   if (!row) return res.status(404).json({ error: 'Section not found' });
@@ -728,6 +785,7 @@ router.post('/upload', authenticateToken, mediaUpload.single('file'), (req, res)
 });
 
 // ── QUESTION BANK: reusable questions belonging to the teacher.
+// GET /api/course-content/question-bank — list the caller's own bank items
 router.get('/question-bank', authenticateToken, async (req, res) => {
   const { data, error } = await supabaseAdmin
     .from('question_bank').select('*').eq('owner_id', req.user.id).order('created_at', { ascending: false });
@@ -735,6 +793,7 @@ router.get('/question-bank', authenticateToken, async (req, res) => {
   res.json({ items: data || [] });
 });
 
+// POST /api/course-content/question-bank — add a reusable bank item (owned by caller)
 router.post('/question-bank', authenticateToken, async (req, res) => {
   const { type, questionText, options, correctAnswer, matchPairs, marks, difficulty, explanation, imageUrl, tags } = req.body;
   if (!questionText) return res.status(400).json({ error: 'questionText required' });
@@ -750,6 +809,7 @@ router.post('/question-bank', authenticateToken, async (req, res) => {
   res.status(201).json({ item: data });
 });
 
+// DELETE /api/course-content/question-bank/:id — remove a bank item (owner only)
 router.delete('/question-bank/:id', authenticateToken, async (req, res) => {
   const { data: row } = await supabaseAdmin.from('question_bank').select('owner_id').eq('id', req.params.id).single();
   if (!row || row.owner_id !== req.user.id) return res.status(403).json({ error: 'Not your bank item' });
@@ -791,6 +851,7 @@ router.post('/sessions/:id/proctor-event', authenticateToken, async (req, res) =
   res.status(201).json({ event: data });
 });
 
+// GET /api/course-content/sessions/:id/proctor-events — fetch proctor timeline (student-owner or course owner/admin)
 router.get('/sessions/:id/proctor-events', authenticateToken, async (req, res) => {
   const { data: session } = await supabaseAdmin.from('test_sessions').select('*, course_tests(course_id)').eq('id', req.params.id).single();
   if (!session) return res.status(404).json({ error: 'Session not found' });

@@ -70,6 +70,7 @@ router.get('/mine', authenticateToken, authorizeRole(CREATOR_ROLES), async (req,
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// Public single resource by id.
 router.get('/:id', async (req, res) => {
   try {
     const { data, error } = await supabaseAdmin.from('resources').select('*').eq('id', req.params.id).single();
@@ -99,6 +100,7 @@ router.get('/:id/availability', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// Create a resource (CREATOR_ROLES via booking.manage); owner=self, auto-tags institution.
 router.post('/', authenticateToken, requireCapability('booking.manage'), validate('resourceCreate'), async (req, res) => {
   try {
     const b = req.validatedData;
@@ -132,6 +134,7 @@ router.post('/', authenticateToken, requireCapability('booking.manage'), validat
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// Update a resource (owner or admin).
 router.put('/:id', authenticateToken, validate('resourceUpdate'), async (req, res) => {
   try {
     const { data: r } = await supabaseAdmin.from('resources').select('owner_id').eq('id', req.params.id).single();
@@ -156,6 +159,7 @@ router.put('/:id', authenticateToken, validate('resourceUpdate'), async (req, re
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// Delete a resource (owner or admin) — soft delete (is_active=false).
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {
     const { data: r } = await supabaseAdmin.from('resources').select('owner_id').eq('id', req.params.id).single();

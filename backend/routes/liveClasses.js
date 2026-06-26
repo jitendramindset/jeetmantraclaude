@@ -1,3 +1,30 @@
+/**
+ * liveClasses.js — scheduling, joining, casting & recording of live classes.
+ * Mount: /api/live-classes
+ *
+ * Endpoints:
+ *   POST   /:classId/cast              🔒 [creator/owner] — teacher pushes a JPEG Studio frame (ephemeral relay)
+ *   GET    /:classId/cast              🔒 — viewer polls the latest frame (204 when not casting/stale)
+ *   POST   /                          🔒 [cap live.schedule, course owner] — schedule a live class
+ *   GET    /course/:courseId          🌐 — list a course's classes split into upcoming/past
+ *   GET    /upcoming                  🔒 — caller's upcoming + currently-live classes (enrolled courses)
+ *   GET    /:classId                  🌐 — single class details (+ course/teacher/attendee count)
+ *   POST   /:classId/join             🔒 [owner/admin/enrolled] — join & receive meeting link
+ *   POST   /:classId/documents        🔒 — upload a class document (multipart)
+ *   PUT    /:classId                  🔒 [creator/owner] — update/reschedule a class
+ *   POST   /:classId/start            🔒 [cap live.start, owner] — mark class live (idempotent)
+ *   POST   /:classId/end              🔒 [cap live.start, owner] — mark class completed (idempotent)
+ *   GET    /:id/attendees             🔒 [owner/admin] — who joined
+ *   POST   /:classId/recording        🔒 [creator/owner] — attach recording (file upload or external URL)
+ *   GET    /recordings/list           🔒 — recordings library (teacher: own courses; student: enrolled)
+ *   POST   /:id/summary               🔒 [owner/admin] — generate/store AI post-class notes
+ *
+ * Notes: uses supabaseAdmin (self-hosted anon key invalid); course/teacher
+ * names hydrated via separate lookups (jeetmantra_users.id is VARCHAR, no FK
+ * embeds). Cast frames are in-memory only (reset on restart, 15s TTL). Join
+ * enforces an enrollment gate; start/end are idempotent. Joining fires the
+ * award pipeline (first join only).
+ */
 const express = require('express');
 const fs = require('fs');
 const path = require('path');

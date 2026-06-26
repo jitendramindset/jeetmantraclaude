@@ -1,5 +1,6 @@
 /**
  * translations.js — persisted, entity-scoped content translations.
+ * Mount: /api/translations  (all 🔒 JWT)
  *
  *   POST   /api/translations/content      — translate-or-fetch one field of an entity
  *   GET    /api/translations/content      — list translations for an entity in a locale

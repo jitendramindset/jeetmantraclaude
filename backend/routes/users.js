@@ -1,3 +1,16 @@
+/**
+ * users.js — authenticated user profile + dashboard stats.
+ * Mount: /api/users
+ *
+ * Endpoints:
+ *   GET  /api/users/profile   🔒 — current user's profile (password_hash stripped)
+ *   PUT  /api/users/profile   🔒 — update profile; unknown form fields ignored, phone/email enforced
+ *   GET  /api/users/stats     🔒 — role-shaped dashboard stats (student / teacher / partner)
+ *
+ * Notes: all routes require JWT (authenticateToken). PUT validates via Joi
+ * ('profileUpdate') then maps only columns that exist on jeetmantra_users; extra
+ * dashboard fields are silently dropped rather than failing the update.
+ */
 const express = require('express');
 const { supabase, supabaseAdmin } = require('../config/supabase');
 const { authenticateToken } = require('../middleware/auth');
@@ -5,7 +18,8 @@ const { validate } = require('../middleware/validation');
 
 const router = express.Router();
 
-// Get user profile
+// Get the authenticated user's profile (password_hash stripped; falls back to
+// token claims if the DB lookup fails).
 router.get('/profile', authenticateToken, async (req, res) => {
   try {
     const { data: user, error } = await supabaseAdmin
@@ -99,7 +113,7 @@ router.put('/profile', authenticateToken, validate('profileUpdate'), async (req,
   }
 });
 
-// Get user dashboard stats
+// Role-shaped dashboard stats (student / teacher / partner).
 router.get('/stats', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;

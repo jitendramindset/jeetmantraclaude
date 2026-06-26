@@ -1,3 +1,24 @@
+/**
+ * marketplace.js — course marketplace: browse, list, and purchase courses.
+ * Mount: /api/marketplace
+ *
+ * Endpoints:
+ *   GET    /                  🌐 public — browse active listings (category/price/level/mode/city/q filters, sort, pagination)
+ *   GET    /facets            🌐 public — distinct filter values (categories, levels, modes, cities, price range)
+ *   GET    /trending          🌐 public — most-purchased active listings (cold-start: newest)
+ *   GET    /my/listings       🔒 auth — seller's own listings
+ *   GET    /my/purchases      🔒 auth — buyer's purchases
+ *   GET    /:id               🌐 public — single listing detail (increments view count)
+ *   POST   /                  🔒 auth [SELLER_ROLES] — create a listing for an owned course
+ *   PUT    /:id               🔒 auth [owner/admin] — update price/status
+ *   DELETE /:id               🔒 auth [owner/admin] — soft-remove (status='removed')
+ *   POST   /:id/purchase      🔒 auth — buy/enrol; paid listings require a verified payment first
+ *
+ * Notes: jeetmantra_users.id is VARCHAR while seller_id is UUID, so no PostgREST
+ * FK embed for sellers — seller {full_name,email} is attached via a batched
+ * lookup (attachSellers). Listing creation gated to SELLER_ROLES (config/roles.js).
+ * Free-text q and city filters are sanitized to prevent PostgREST filter injection.
+ */
 const express = require('express');
 const { supabaseAdmin } = require('../config/supabase');
 const { authenticateToken } = require('../middleware/auth');

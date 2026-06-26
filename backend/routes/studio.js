@@ -6,6 +6,16 @@
  * save/load and a publish hook that links a scene to a course.
  *
  * Mount: /api/studio. All owner-scoped.
+ *
+ * Endpoints (all 🔒 JWT):
+ *   GET    /scenes              — caller's saved scenes (metadata only, no data blob)
+ *   POST   /scenes              — create or update a scene (pass id to update)
+ *   GET    /scenes/:id          — full scene incl. data blob (owner or admin)
+ *   POST   /scenes/:id/publish  — link scene to a course (the §8 publish hook)
+ *   DELETE /scenes/:id          — delete a scene (owner or admin)
+ *
+ * Notes: ownership checked via owner_id on every read/write; admins bypass.
+ * POST /scenes and /publish are Joi-validated ('studioScene' / 'studioPublish').
  */
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');

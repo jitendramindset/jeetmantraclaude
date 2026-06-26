@@ -154,6 +154,7 @@ router.get('/verify/:token', async (req, res) => {
 // ── Templates ─────────────────────────────────────────────────────────────
 // MUST come BEFORE GET /:id, otherwise '/templates' is matched by the literal
 // route as id="templates".
+// GET /api/certificates/templates — list active templates (optional ?type filter)
 router.get('/templates', authenticateToken, async (req, res) => {
   try {
     const { type } = req.query;
@@ -164,6 +165,7 @@ router.get('/templates', authenticateToken, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// POST /api/certificates/templates — admin/INSTITUTION_ROLES create a template
 router.post('/templates', authenticateToken, authorizeRole([...INSTITUTION_ROLES, 'admin']), validate('certificateTemplateCreate'), async (req, res) => {
   try {
     const b = req.validatedData;
@@ -205,6 +207,7 @@ router.get('/:id', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// POST /api/certificates/:id/revoke — admin only; sets revoked_at + reason, audit-logged
 router.post('/:id/revoke', authenticateToken, async (req, res) => {
   try {
     if (req.user.role !== 'admin') return res.status(403).json({ error: 'Admin only' });

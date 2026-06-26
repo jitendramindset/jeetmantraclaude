@@ -7,6 +7,17 @@
  * into /api/calendar.
  *
  * Mount: /api/timetable. Authoring gated by live.schedule (a creator capability).
+ *
+ * Endpoints (all 🔒 JWT):
+ *   GET    /templates                — list templates, optionally ?orgId=
+ *   POST   /templates                [live.schedule] — create a weekly template
+ *   GET    /templates/:id/slots      — the weekly grid (ordered by day + start)
+ *   POST   /templates/:id/slots      [live.schedule] — add a slot
+ *   DELETE /slots/:slotId            [live.schedule] — remove a slot
+ *
+ * Notes: reads are JWT-only; authoring needs the live.schedule capability.
+ * Writes are Joi-validated ('timetableTemplate' / 'timetableSlot'). When the
+ * tables aren't migrated yet, GETs degrade to an empty list rather than erroring.
  */
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');

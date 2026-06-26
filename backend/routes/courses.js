@@ -1,3 +1,29 @@
+/**
+ * courses.js — course catalog: public browse/detail + owner CRUD, students,
+ *   analytics, duplication, reviews and a printable completion certificate.
+ * Mount: /api/courses
+ *
+ * Endpoints:
+ *   GET    /                                 🌐 PUBLIC — list active courses (or ?mine=1 → owner's, token-decoded)
+ *   GET    /slug/:slug                       🌐 PUBLIC — fetch a course by SEO slug
+ *   GET    /search/nearby                    🌐 PUBLIC — location/mode/city search with haversine ranking
+ *   GET    /:id                              🌐 PUBLIC — course detail + teacher + enrolled count
+ *   POST   /                                 🔒 course.create — create a course (institution-scoped)
+ *   PUT    /:id                              🔒 course.edit, owner — update a course
+ *   DELETE /:id                              🔒 course.delete, owner — delete a course
+ *   GET    /:id/students                     🔒 owner/admin — enrolled students + progress + attendance
+ *   GET    /:id/analytics                    🔒 owner/admin — aggregate metrics (students, completion, revenue)
+ *   GET    /:id/students/:studentId/detail   🔒 owner/admin — per-student progress/subs/activity/doubts
+ *   POST   /:id/duplicate                    🔒 CREATOR_ROLES, owner — deep-copy course + content
+ *   GET    /:id/certificate                  🔒 enrolled ≥80% — printable HTML completion certificate
+ *   GET    /:id/reviews                      🌐 PUBLIC — reviews list + average + count
+ *   POST   /:id/reviews                      🔒 enrolled — upsert caller's 1-5 rating/review
+ *
+ * Notes: Public reads use supabaseAdmin and filter is_active where relevant.
+ * Ownership is enforced by comparing courses.teacher_id to req.user.id (admins
+ * bypass on the read/detail endpoints). Writes use requireCapability; create
+ * tags institution_id via resolveInstitution (requireTeacher).
+ */
 const express = require('express');
 const { supabase, supabaseAdmin } = require('../config/supabase');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
@@ -115,7 +141,7 @@ router.get('/search/nearby', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// Get course by ID
+// GET /api/courses/:id — public course detail + teacher info + enrolled count
 router.get('/:id', async (req, res) => {
   try {
     const { data: course, error } = await supabaseAdmin
@@ -634,6 +660,7 @@ router.get('/:id/reviews', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// POST /api/courses/:id/reviews — enrolled student upserts their 1-5 rating/review
 router.post('/:id/reviews', authenticateToken, async (req, res) => {
   try {
     const { rating, review } = req.body || {};

@@ -1,3 +1,18 @@
+/**
+ * enrollments.js — student ↔ course enrollment lifecycle.
+ * Mount: /api/enrollments
+ *
+ * Endpoints:
+ *   GET    /my                              🔒 — caller's own enrollments (+ course summary)
+ *   POST   /                                🔒 — enroll in a course (paid courses require a verified payment)
+ *   GET    /course/:courseId/students       🔒 [course owner] — roster of students in a course
+ *   DELETE /:enrollmentId                    🔒 [owner] — cancel/unenroll (only the owning student)
+ *
+ * Notes: all reads/writes use supabaseAdmin (self-hosted anon key is invalid).
+ * jeetmantra_users.id is VARCHAR so user profiles are hydrated via separate
+ * lookups (no FK embeds). Enrolling fires the award pipeline (XP/streak/badge),
+ * non-blocking.
+ */
 const express = require('express');
 const { supabase, supabaseAdmin } = require('../config/supabase');
 const { authenticateToken } = require('../middleware/auth');

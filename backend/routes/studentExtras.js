@@ -1,5 +1,37 @@
 /**
- * studentExtras.js — student-facing extras:
+ * studentExtras.js — student-facing extras (notes, time tracking, progress,
+ * wishlist, calendar).
+ * Mount: /api/student
+ *
+ * Endpoints (all 🔒 JWT):
+ *   GET    /notes                       — notes, optionally ?courseId=
+ *   POST   /notes                       — create a note (content required)
+ *   PUT    /notes/:id                   — update own note
+ *   DELETE /notes/:id                   — delete own note
+ *   POST   /sessions/start              — begin a time-tracking session
+ *   POST   /sessions/end                — end a session, compute duration
+ *   GET    /time-summary                — total study time in a window
+ *   GET    /activity-daily              — per-day study minutes + streak
+ *   GET    /progress                    — per-course % (lectures vs attendance)
+ *   GET    /test-history                — every test taken
+ *   GET    /submission-history          — every assignment submitted
+ *   GET    /continue-learning           — next lecture per enrolled course
+ *   GET    /attendance-report           — per-course attendance breakdown (teacher may pass ?studentId)
+ *   PUT    /lectures/:lectureId/note     — save private per-lecture note
+ *   POST   /progress/lecture            — mark a lecture complete; recompute % + award XP
+ *   GET    /progress/:courseId          — completed lectures in a course
+ *   GET    /wishlist                    — wishlisted courses (hydrated)
+ *   POST   /wishlist/:courseId          — add to wishlist
+ *   DELETE /wishlist/:courseId          — remove from wishlist
+ *   GET    /compare                     — side-by-side stats for 2-3 ?ids=
+ *   GET    /calendar                    — month grid of live/tests/assignments
+ *   GET    /today                       — today's hub (events + continue-learning)
+ *
+ * Notes: all routes require JWT. Naive Postgres TIMESTAMP values are forced to
+ * UTC (see parseUtc) so IST hosts don't inflate session durations. progress/lecture
+ * is idempotent and fires the Sprint 5 award pipeline (lecture XP + course_completed).
+ *
+ * Domain extras:
  *   - notes      (per course / per lecture)
  *   - sessions   (time tracking)
  *   - progress   (computed from enrollments + attendance)
@@ -13,6 +45,7 @@ const { v4: uuidv4 } = require('uuid');
 const router = express.Router();
 
 // ── NOTES ──────────────────────────────────────────────────────────────
+// List the caller's notes (newest first), optionally filtered by ?courseId=.
 router.get('/notes', authenticateToken, async (req, res) => {
   const { courseId } = req.query;
   let q = supabaseAdmin.from('student_notes').select('*').eq('student_id', req.user.id).order('updated_at', { ascending: false });
@@ -22,6 +55,7 @@ router.get('/notes', authenticateToken, async (req, res) => {
   res.json({ notes: data || [] });
 });
 
+// Create a note (content required; course/lecture refs optional).
 router.post('/notes', authenticateToken, async (req, res) => {
   const { courseId, lectureId, title, content } = req.body;
   if (!content) return res.status(400).json({ error: 'content required' });
@@ -37,6 +71,7 @@ router.post('/notes', authenticateToken, async (req, res) => {
   res.status(201).json({ note: data });
 });
 
+// Update one of the caller's own notes.
 router.put('/notes/:id', authenticateToken, async (req, res) => {
   const { title, content } = req.body;
   const { data, error } = await supabaseAdmin.from('student_notes').update({
@@ -46,6 +81,7 @@ router.put('/notes/:id', authenticateToken, async (req, res) => {
   res.json({ note: data });
 });
 
+// Delete one of the caller's own notes.
 router.delete('/notes/:id', authenticateToken, async (req, res) => {
   const { error } = await supabaseAdmin.from('student_notes').delete().eq('id', req.params.id).eq('student_id', req.user.id);
   if (error) return res.status(400).json({ error: error.message });
@@ -140,6 +176,8 @@ function formatDuration(s) {
 }
 
 // ── PROGRESS (per course) ──────────────────────────────────────────────
+// Per-enrollment progress %: computed from attended/total lectures, falling
+// back to the stored progress_percentage when no lectures exist.
 router.get('/progress', authenticateToken, async (req, res) => {
   const { data: enrollments } = await supabaseAdmin
     .from('enrollments').select('*, courses(id,title,category)').eq('student_id', req.user.id);

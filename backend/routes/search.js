@@ -1,3 +1,19 @@
+/**
+ * search.js — course + unified entity search for the public marketplace.
+ * Mount: /api/search
+ *
+ * Endpoints:
+ *   GET    /                  🌐 — course search (?q=&category=&level=&limit=)
+ *   GET    /suggestions       🌐 — title autocomplete (?q=)
+ *   GET    /semantic          🌐 — vector search, falls back to text when no embeddings/OpenAI key
+ *   POST   /index-course      🔒 admin — upsert a course embedding record for semantic search
+ *   GET    /categories        🌐 — distinct active course categories
+ *   GET    /all               🌐 — unified search across courses/orgs/teachers (?q=&types=&limit=)
+ *
+ * Notes: all read endpoints public. Every user-supplied `q` is passed through
+ *   safeLike()/inline sanitizer to strip PostgREST filter metacharacters (filter
+ *   injection guard). Vector search is stubbed — currently text fallback.
+ */
 const express = require('express');
 const { supabaseAdmin } = require('../config/supabase');
 const { authenticateToken } = require('../middleware/auth');
