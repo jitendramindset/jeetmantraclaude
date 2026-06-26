@@ -8,6 +8,18 @@
    ============================================================================ */
 
 :root{
+  /* ── Design tokens (Phase 4) — the single source of truth ─────────────
+     Colour/radius/shadow tokens live in theme.css; this completes the scale
+     with SPACING, TYPE and MOTION so no component needs hardcoded values. */
+  /* Spacing scale (4px base) */
+  --jm-sp-1:4px; --jm-sp-2:8px; --jm-sp-3:12px; --jm-sp-4:16px; --jm-sp-5:20px;
+  --jm-sp-6:24px; --jm-sp-8:32px; --jm-sp-10:40px; --jm-sp-12:48px;
+  /* Type scale */
+  --jm-fs-1:11px; --jm-fs-2:12px; --jm-fs-3:13px; --jm-fs-4:14px;
+  --jm-fs-5:16px; --jm-fs-6:20px; --jm-fs-7:26px; --jm-fs-8:34px;
+  --jm-lh-tight:1.25; --jm-lh:1.5; --jm-lh-loose:1.7;
+  /* Radius scale (aliases of theme.css where present) */
+  --jm-r-1:6px; --jm-r-2:8px; --jm-r-3:12px; --jm-r-4:16px; --jm-r-pill:999px;
   /* Motion tokens */
   --jm-ease: cubic-bezier(.22,.61,.36,1);      /* gentle ease-out */
   --jm-ease-spring: cubic-bezier(.34,1.56,.64,1); /* subtle overshoot */
