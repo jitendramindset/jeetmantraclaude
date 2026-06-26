@@ -722,4 +722,39 @@ router.get('/backup/list', authenticateToken, authorizeRole(['admin']), (req, re
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ── Widget Management (admin) ──────────────────────────────────────────────
+// Admin is the highest authority for widget policy. The config persists in
+// LevelDB (no DB migration needed; survives restarts on disk) and is also
+// surfaced on /api/me/contexts so every dashboard load picks up the policy.
+// Shape: { global:{[id]:boolean}, byRole:{[role]:{[id]:boolean}}, order:{[role]:[id]}, sizes:{[id]:'small|medium|large|full'} }
+const _widgetCfgKey = 'admin:widget-config';
+async function _readWidgetCfg() {
+  try { const { get } = require('../config/leveldb'); const raw = await get(_widgetCfgKey); return raw ? JSON.parse(raw) : { global:{}, byRole:{}, order:{}, sizes:{} }; }
+  catch (_) { return { global:{}, byRole:{}, order:{}, sizes:{} }; }
+}
+async function _writeWidgetCfg(cfg) {
+  const { put } = require('../config/leveldb'); await put(_widgetCfgKey, JSON.stringify(cfg || {}));
+}
+
+// GET — anyone authenticated; the dashboard reads this to apply admin policy.
+router.get('/widget-config', authenticateToken, async (req, res) => {
+  try { res.json({ config: await _readWidgetCfg() }); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// PUT — admin only; replaces the config.
+router.put('/widget-config', authenticateToken, authorizeRole(['admin']), async (req, res) => {
+  try {
+    const body = req.body || {};
+    const cfg = {
+      global: (body.global && typeof body.global === 'object') ? body.global : {},
+      byRole: (body.byRole && typeof body.byRole === 'object') ? body.byRole : {},
+      order:  (body.order  && typeof body.order  === 'object') ? body.order  : {},
+      sizes:  (body.sizes  && typeof body.sizes  === 'object') ? body.sizes  : {}
+    };
+    await _writeWidgetCfg(cfg);
+    res.json({ ok: true, config: cfg });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 module.exports = router;

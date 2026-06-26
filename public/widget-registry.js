@@ -366,6 +366,23 @@
   async function boot(mountEl) {
     if (!token()) { location.href = '/login.html'; return; }
     const ctx = await getContext();
+    // Admin policy (highest authority): merge the platform-wide widget policy
+    // into ctx.adminWidgets BEFORE rendering, so passesGates() honours it.
+    // global[id]===false → hide from everyone. byRole[<role>][id]===false →
+    // hide for that role. Per-user prefs layer on top of what survives.
+    try {
+      const cfgResp = await api('/admin/widget-config');
+      const cfg = (cfgResp && cfgResp.config) || {};
+      const adminWidgets = {};
+      Object.keys(cfg.global || {}).forEach(id => { if (cfg.global[id] === false) adminWidgets[id] = false; });
+      const myRoles = new Set(ctx.roles || []);
+      Object.keys(cfg.byRole || {}).forEach(role => {
+        if (!myRoles.has(role)) return;
+        const block = cfg.byRole[role] || {};
+        Object.keys(block).forEach(id => { if (block[id] === false) adminWidgets[id] = false; });
+      });
+      ctx.adminWidgets = Object.assign({}, ctx.adminWidgets || {}, adminWidgets);
+    } catch (_) { /* best-effort; defaults remain */ }
     const ids = await renderDashboard(mountEl, ctx);
     return { ctx, rendered: ids };
   }
