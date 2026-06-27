@@ -33,13 +33,6 @@ body::after{content:'';position:absolute;bottom:-200px;left:-160px;width:520px;h
 label{display:block;font-size:13px;color:var(--jm-text-strong);margin-bottom:6px;font-weight:600}
 input,select{width:100%;background:var(--jm-surface);border:1.5px solid var(--jm-border);border-radius:var(--jm-radius-sm);padding:12px 14px;color:var(--jm-text);font-size:14px;outline:none;font-family:inherit;transition:all .15s}
 input:focus,select:focus{border-color:var(--jm-primary);box-shadow:0 0 0 3px rgba(249,115,22,0.12)}
-.role-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
-.role-card{background:var(--jm-surface);border:1.5px solid var(--jm-border);border-radius:var(--jm-radius-sm);padding:12px 8px;text-align:center;cursor:pointer;transition:all .15s}
-.role-card:hover{border-color:var(--jm-primary)}
-.role-card:focus-visible{outline:2px solid var(--jm-primary);outline-offset:2px}
-.role-card.selected{border-color:var(--jm-primary);background:var(--jm-primary-tint)}
-.role-card .icon{font-size:24px;margin-bottom:4px}
-.role-card .label{font-size:11px;color:var(--jm-text-strong);font-weight:600}
 .btn{width:100%;padding:13px;border:none;border-radius:var(--jm-radius-sm);font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s;margin-top:8px}
 .btn-primary{background:var(--jm-primary);color:#fff;box-shadow:0 2px 12px var(--jm-primary-glow)}
 .btn-primary:hover{background:var(--jm-primary-2);box-shadow:0 4px 18px var(--jm-primary-glow)}
@@ -148,15 +141,8 @@ input:focus,select:focus{border-color:var(--jm-primary);box-shadow:0 0 0 3px rgb
       </div>
       <div class="form-group">
         <label>I am a...</label>
-        <div class="role-grid">
-          <div class="role-card selected" onclick="selectRole('student',this)"><div class="icon">🎓</div><div class="label">Student</div></div>
-          <div class="role-card" onclick="selectRole('teacher',this)"><div class="icon">👨‍🏫</div><div class="label">Teacher</div></div>
-          <div class="role-card" onclick="selectRole('partner',this)"><div class="icon">🤝</div><div class="label">Partner</div></div>
-          <div class="role-card" onclick="selectRole('school',this)"><div class="icon">🏫</div><div class="label">School</div></div>
-          <div class="role-card" onclick="selectRole('coaching',this)"><div class="icon">🏆</div><div class="label">Coaching</div></div>
-          <div class="role-card" onclick="selectRole('admin',this)"><div class="icon">⚙️</div><div class="label">Admin</div></div>
-        </div>
-        <input type="hidden" id="selectedRole" value="student">
+        <script src="/ui/widgets/page/RoleGrid.js?v=1"></script>
+        <script>document.write('<style>'+JM.RoleGrid.css()+'</style>'); document.write(JM.RoleGrid({selected:'student'}));</script>
       </div>
       <button class="btn btn-primary" onclick="doSignup()" id="signupBtn">Create Account</button>
       <div class="loading" id="signupLoading">🔐 Creating account...</div>
