@@ -211,6 +211,7 @@
 </style>
 <link rel="stylesheet" href="/premium-ui.css?v=5">
 <script src="/jm-states.js"></script>
+<script src="/ui/widgets/page/Hero.js?v=1"></script>
 </head>
 <body>
 <div class="app" id="app"></div>
@@ -678,11 +679,7 @@ function renderLogin(){
   const c = state.config;
   if(view.sub==='role'){
     app.innerHTML = `
-      <div class="hero">
-        <div class="logo">${escH(c.logo||'📖')}</div>
-        <h1>${escH(c.appName||'Bhasha Setu')}</h1>
-        <p>${escH(c.tagline||'')}</p>
-      </div>
+      ${JM.Hero({logo:escH(c.logo||'📖'),title:escH(c.appName||'Bhasha Setu'),tagline:escH(c.tagline||'')})}
       <div style="text-align:center;margin:-.4em 0 .6em">${langPickerInline()}</div>
       <h2 class="center" style="font-size:1.1em;margin:.4em 0">${t('chooseRole')}</h2>
       <div class="rolepick">
@@ -696,7 +693,7 @@ function renderLogin(){
   }
   if(view.sub==='student'){
     app.innerHTML = `
-      <div class="hero" style="padding-bottom:.4em"><div class="logo">${escH(c.logo||'📖')}</div><h1 style="font-size:1.3em">${t('iAmStudent')}</h1></div>
+      ${JM.Hero({compact:true,logo:escH(c.logo||'📖'),title:t('iAmStudent')})}
       <div class="main" style="padding-top:0">
         <div class="card stack">
           <label class="field"><span>${t('loginId')}</span><input type="text" id="stuId" autocomplete="username" autocapitalize="characters" placeholder="${escA(t('loginId'))}"></label>
@@ -722,7 +719,7 @@ function renderLogin(){
   }
   if(view.sub==='admin'){
     app.innerHTML = `
-      <div class="hero" style="padding-bottom:.4em"><div class="logo">${escH(c.logo||'📖')}</div><h1 style="font-size:1.3em">${t('iAmTeacher')}</h1></div>
+      ${JM.Hero({compact:true,logo:escH(c.logo||'📖'),title:t('iAmTeacher')})}
       <div class="main" style="padding-top:0">
         <div class="card stack">
           <label class="field"><span>${t('adminPass')}</span><input type="password" id="adPass" autocomplete="off" placeholder="${escA(t('adminPass'))}"></label>
