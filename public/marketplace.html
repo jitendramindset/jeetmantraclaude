@@ -132,6 +132,7 @@ select.filter-select{background:var(--jm-surface);border:1.5px solid var(--jm-bo
 <script src="/jm-theme.js"></script>
 <link rel="stylesheet" href="/premium-ui.css?v=5">
 <script src="/jm-states.js"></script>
+<script src="/ui/widgets/page/CourseCard.js?v=1"></script>
 </head>
 <body>
 <nav>
@@ -311,46 +312,42 @@ function getListingIcon(listing){
   return ICONS[cat]||'📚';
 }
 
-function renderCard(listing,owned){
-  const c=listing.courses||{};
-  const seller=listing.jeetmantra_users||listing.seller||{};
-  const cover=c.cover_image?`<img src="${c.cover_image}" loading="lazy" decoding="async" width="300" height="150" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0">`:`<span style="font-size:48px">${getListingIcon(listing)}</span>`;
-  const esc=s=>String(s==null?'':s).replace(/[<>&"]/g,ch=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[ch]));
-  const modeBadge={offline:'🏫 Offline',hybrid:'🔀 Hybrid',online:'💻 Online'}[c.class_mode]||'';
-  const loc=[c.area,c.city].filter(Boolean).join(', ');
-  const timing=c.timing||c.batch_timing||'';
-  const institute=c.institute_name||'';
-  const chips=[
-    institute?`<span class="mp-chip">🏫 ${esc(institute)}</span>`:'',
-    loc?`<span class="mp-chip">📍 ${esc(loc)}</span>`:'',
-    timing?`<span class="mp-chip">🕑 ${esc(timing)}</span>`:'',
-    c.age_group?`<span class="mp-chip">👥 ${esc(c.age_group)}</span>`:'',
-    modeBadge?`<span class="mp-chip">${modeBadge}</span>`:''
+// renderCard — now delegates to JM.CourseCard. Data prep / chip building stays
+// here (state-bound to the listing object); the visual template is in the widget.
+function renderCard(listing, owned) {
+  const c = listing.courses || {};
+  const seller = listing.jeetmantra_users || listing.seller || {};
+  const esc = s => String(s == null ? '' : s).replace(/[<>&"]/g, ch => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[ch]));
+  const cover = c.cover_image
+    ? `<img src="${c.cover_image}" loading="lazy" decoding="async" width="300" height="150" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0">`
+    : `<span style="font-size:48px">${getListingIcon(listing)}</span>`;
+  const modeBadge = {offline:'🏫 Offline',hybrid:'🔀 Hybrid',online:'💻 Online'}[c.class_mode] || '';
+  const loc = [c.area, c.city].filter(Boolean).join(', ');
+  const timing = c.timing || c.batch_timing || '';
+  const institute = c.institute_name || '';
+  const chips = [
+    institute ? `<span class="mp-chip">🏫 ${esc(institute)}</span>` : '',
+    loc       ? `<span class="mp-chip">📍 ${esc(loc)}</span>` : '',
+    timing    ? `<span class="mp-chip">🕑 ${esc(timing)}</span>` : '',
+    c.age_group ? `<span class="mp-chip">👥 ${esc(c.age_group)}</span>` : '',
+    modeBadge ? `<span class="mp-chip">${modeBadge}</span>` : ''
   ].filter(Boolean).join('');
-  const freeTag=c.free_listing?'<span class="mp-chip" style="background:#dcfce7;color:#166534">🎁 Free</span>':'';
-  const demoTag=c.demo_class?'<span class="mp-chip" style="background:#fef3c7;color:#92400e">🎬 Demo class</span>':'';
-  return `<div class="course-card">
-    <div class="course-thumb">
-      ${cover}
-      <span class="course-category">${c.category||'Course'}</span>
-      <span class="course-level">${c.level||''}</span>
-    </div>
-    <div class="course-body">
-      <div class="course-title">${c.title||'Untitled Course'}</div>
-      <div class="course-instructor">👨‍🏫 ${esc(seller.full_name||'Instructor')}</div>
-      ${(chips||freeTag||demoTag)?`<div class="mp-chips">${freeTag}${demoTag}${chips}</div>`:''}
-      <div class="course-meta">
-        <div class="course-price">${c.free_listing?'Free':fmt(listing.price)}</div>
-        <div class="course-rating">⭐ 4.5</div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
-        <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();openPreview('${listing.course_id}','${(c.title||'Course').replace(/'/g,"\\'")}')">👁 Preview</button>
-        <button class="buy-btn ${owned?'owned':''}" style="margin-top:0;padding:8px" onclick="event.stopPropagation();${owned?'':(`openPurchase('${listing.id}')`)}">
-          ${owned?'✅ Enrolled':'Buy Now'}
-        </button>
-      </div>
-    </div>
-  </div>`;
+  return JM.CourseCard({
+    id: listing.course_id,
+    title: c.title || 'Untitled Course',
+    instructor: seller.full_name || 'Instructor',
+    category: c.category || 'Course',
+    level: c.level || '',
+    cover: cover,
+    priceLabel: c.free_listing ? 'Free' : fmt(listing.price),
+    ratingLabel: '⭐ 4.5',
+    chips: chips,
+    freeListing: !!c.free_listing,
+    demoClass: !!c.demo_class,
+    owned: !!owned,
+    onPreview: `openPreview('${listing.course_id}','${(c.title||'Course').replace(/'/g,"\\'")}')`,
+    onBuy:     `openPurchase('${listing.id}')`
+  });
 }
 
 // Preview a course before purchase: title, description, topics list, counts
