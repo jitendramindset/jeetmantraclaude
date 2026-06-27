@@ -503,7 +503,7 @@ window.addEventListener('storage', function(e){
 <!-- Widgets self-register via /widgets/<id>.js — _index.js injects them all. -->
 <script src="/widgets/_index.js?v=3"></script>
 <!-- Layered UI system (atoms → molecules → screens) — JM.Screens.open(id) -->
-<script src="/ui/_boot.js?v=21"></script>
+<script src="/ui/_boot.js?v=22"></script>
 </head>
 <body>
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
@@ -7031,50 +7031,8 @@ function _demoCheckout(order, courseId, courseTitle, amount){
 // centers (as teacher OR student). This page lists all such links and
 // lets the user switch the "active institution" stored on window.
 // ============================================================
-async function openMyInstitutions(){
-  document.getElementById('bookingsPage').classList.add('active');
-  document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
-  document.querySelectorAll('.topbar').forEach(s=>s.style.display='none'); // keep sidebar visible (synced nav)
-  document.getElementById('bk-crumb').textContent='My Institutions';
-  const body=document.getElementById('bk-body');
-  body.innerHTML='<div style="text-align:center;padding:40px;color:#888">Loading…</div>';
-  try{
-    const r=await api('/institutions/my-institutions','GET');
-    const links=r.institutions||r.links||[];
-    if(!links.length){
-      body.innerHTML='<div class="card" style="max-width:600px;margin:40px auto;padding:24px;text-align:center"><div style="font-size:48px">🏫</div><div style="font-weight:600;margin-top:10px">No institutions linked yet</div><div style="color:var(--jm-text-muted);margin-top:6px">A school or coaching center can add you from their dashboard.</div></div>';
-      return;
-    }
-    const active=localStorage.getItem('jm_active_institution')||'';
-    const isAll=!active||active==='all';
-    body.innerHTML=`
-      <div style="max-width:900px;margin:0 auto">
-        <h2 style="margin-bottom:14px">🏫 My Institutions (${links.length})</h2>
-        <div style="color:var(--jm-text-muted);font-size:13px;margin-bottom:18px">You're a member of multiple institutions with a single JeetMantra account. Pick one to scope your dashboard, or "All Institutes" for a combined view.</div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(280px,100%),1fr));gap:14px">
-          <div class="card" style="padding:18px;border:2px solid ${isAll?'var(--jm-primary)':'var(--jm-border)'}">
-            <div style="font-weight:700;font-size:15px;margin-bottom:4px">🌐 All Institutes</div>
-            <div style="font-size:12px;color:var(--jm-text-muted);margin-bottom:10px">Combined view across every institution you belong to.</div>
-            ${isAll
-              ? '<button class="btn-sm btn-primary" disabled>✓ Active</button>'
-              : `<button class="btn-sm btn-outline" onclick="setActiveInstitution('all')">Switch to combined</button>`}
-          </div>
-          ${links.map(i=>{
-            const id=i.institution_id||i.id;
-            const isActive=active===id;
-            return `<div class="card" style="padding:18px;border:2px solid ${isActive?'var(--jm-primary)':'var(--jm-border)'}">
-              <div style="font-weight:700;font-size:15px;margin-bottom:4px">${escHtml(i.name||i.institution_name||'Institution')}</div>
-              <div style="font-size:12px;color:var(--jm-text-muted);margin-bottom:10px">${escHtml(i.type||i.institution_type||'school')} · Role: ${escHtml(i.role||i.member_role||'member')}</div>
-              ${i.subject?`<div style="font-size:12px;margin-bottom:10px"><span class="badge badge-muted">${escHtml(i.subject)}</span></div>`:''}
-              ${isActive
-                ? '<button class="btn-sm btn-primary" disabled>✓ Active</button>'
-                : `<button class="btn-sm btn-outline" onclick="setActiveInstitution('${id}')">Switch to this</button>`}
-            </div>`;
-          }).join('')}
-        </div>
-      </div>`;
-  }catch(e){ body.innerHTML='<div style="color:#b91c1c;padding:20px">'+escHtml(e.message)+'</div>'; }
-}
+// openMyInstitutions — thin delegator. Real screen: /ui/screens/MyInstitutions.js (takeover via #bookingsPage).
+async function openMyInstitutions(){ if(window.JM&&JM.Screens) return JM.Screens.open('my-institutions'); }
 function setActiveInstitution(id){
   localStorage.setItem('jm_active_institution', id);
   toast('✓ Active institution switched');
