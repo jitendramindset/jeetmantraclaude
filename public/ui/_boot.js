@@ -29,21 +29,21 @@
     'SectionHeader', 'ModalShell', 'Tabs'
   ];
   var MOLECULES = ['KPIGrid', 'ListSection', 'ActionToolbar', 'TakeoverPage'];
-  var MODELS = ['Wallet', 'Certificates', 'WidgetAdmin', 'Analytics', 'MyStudents', 'Downloads', 'Recordings', 'AttendanceReport', 'Gamification', 'AiKey', 'MyExternalResults', 'LiveRoster', 'AttendanceLog'];
+  var MODELS = ['Wallet', 'Certificates', 'WidgetAdmin', 'Analytics', 'MyStudents', 'Downloads', 'Recordings', 'AttendanceReport', 'Gamification', 'AiKey', 'MyExternalResults', 'LiveRoster', 'AttendanceLog', 'Wall'];
   var CONTROLLERS = ['Wallet'];
-  var SCREENS = ['Help', 'WidgetAdmin', 'Wallet', 'Certificates', 'Analytics', 'MyStudents', 'Downloads', 'Recordings', 'AttendanceReport', 'Gamification', 'AiKey', 'MyExternalResults', 'LiveRoster', 'AttendanceLog'];
+  var SCREENS = ['Help', 'WidgetAdmin', 'Wallet', 'Certificates', 'Analytics', 'MyStudents', 'Downloads', 'Recordings', 'AttendanceReport', 'Gamification', 'AiKey', 'MyExternalResults', 'LiveRoster', 'AttendanceLog', 'Wall'];
 
   function inject(folder, names) {
     names.forEach(function (n) {
       var s = document.createElement('script');
-      s.src = '/ui/' + folder + '/' + n + '.js?v=9';
+      s.src = '/ui/' + folder + '/' + n + '.js?v=10';
       s.async = false; // preserve order
       document.head.appendChild(s);
     });
   }
   // Registry must exist before screens self-register.
   var reg = document.createElement('script');
-  reg.src = '/ui/registry/screens.js?v=9';
+  reg.src = '/ui/registry/screens.js?v=10';
   reg.async = false;
   document.head.appendChild(reg);
 

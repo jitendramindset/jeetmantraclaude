@@ -503,7 +503,7 @@ window.addEventListener('storage', function(e){
 <!-- Widgets self-register via /widgets/<id>.js — _index.js injects them all. -->
 <script src="/widgets/_index.js?v=3"></script>
 <!-- Layered UI system (atoms → molecules → screens) — JM.Screens.open(id) -->
-<script src="/ui/_boot.js?v=9"></script>
+<script src="/ui/_boot.js?v=10"></script>
 </head>
 <body>
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
@@ -4404,24 +4404,8 @@ async function sendChat(){
 }
 
 // ── ACTIVITY WALL ──────────────────────────────────────────────────────
-async function openWall(scope, id){
-  openModal('wallView');
-  const body=document.getElementById('wall-body');
-  if(!body) return;
-  try{
-    const path=scope==='course'?('/activity/course/'+id):'/activity/me';
-    const r=await api(path,'GET');
-    if(!r.feed?.length){ body.innerHTML='<div style="text-align:center;padding:30px;color:var(--jm-text-muted)">No activity yet.</div>'; return; }
-    body.innerHTML=r.feed.map(e=>`
-      <div style="padding:12px;border-bottom:1px solid var(--jm-border);display:flex;gap:12px">
-        <div style="font-size:20px">${e.message?.split(' ')[0]||'•'}</div>
-        <div style="flex:1">
-          <div style="font-size:13px">${e.message||e.event_type}</div>
-          <div style="font-size:11px;color:var(--jm-text-muted);margin-top:2px">${e.actor_name?e.actor_name+' · ':''}${new Date(e.created_at).toLocaleString()}</div>
-        </div>
-      </div>`).join('');
-  }catch(e){ body.innerHTML='<div style="color:#b91c1c">'+e.message+'</div>'; }
-}
+// openWall — now a thin delegator. Real screen: /ui/screens/Wall.js
+async function openWall(scope, id){ if(window.JM&&JM.Screens) return JM.Screens.open('wall',{scope,id}); }
 
 // ── TEACHER TIMETABLE — week view of all upcoming classes/assignments/tests
 let _ttWeekOffset=0;
