@@ -131,32 +131,39 @@
     <button class="icon-btn" title="Admin" onclick="window.location.href='/app'">👤</button>
   </div>
 
-  <!-- SIDEBAR -->
-  <div class="sidebar">
-    <div class="nav-group-title">Platform</div>
-    <div class="nav-item active" data-section="overview"><span class="ic">📊</span>Overview</div>
-    <div class="nav-item" data-section="tenants"><span class="ic">🏫</span>Tenants &amp; Institutes</div>
-    <div class="nav-item" data-section="people"><span class="ic">👥</span>People</div>
-    <div class="nav-item" data-section="catalog"><span class="ic">📚</span>Catalog</div>
-
-    <div class="nav-group-title">Operations</div>
-    <div class="nav-item" data-section="live"><span class="ic">📡</span>Live &amp; Recordings</div>
-    <div class="nav-item" data-section="revenue"><span class="ic">💳</span>Revenue</div>
-    <div class="nav-item" data-section="bookings"><span class="ic">🎟️</span>Bookings &amp; Venues</div>
-    <div class="nav-item" data-section="growth"><span class="ic">📈</span>Growth &amp; CRM</div>
-    <div class="nav-item" data-section="support"><span class="ic">🎧</span>Support<span class="badge" id="badge-support" style="display:none">0</span></div>
-
-    <div class="nav-group-title">Intelligence</div>
-    <div class="nav-item" data-section="automations"><span class="ic">🤖</span>Automations</div>
-    <div class="nav-item" data-section="aitrans"><span class="ic">🧠</span>AI &amp; Translations</div>
-    <div class="nav-item" data-section="analytics"><span class="ic">📉</span>Analytics</div>
-
-    <div class="nav-group-title">Org</div>
-    <div class="nav-item" data-section="franchise"><span class="ic">🌐</span>Franchise</div>
-    <div class="nav-item" data-section="widgets"><span class="ic">🧩</span>Widgets</div>
-    <div class="nav-item" data-section="integrations"><span class="ic">🔌</span>Integrations</div>
-    <div class="nav-item" data-section="system"><span class="ic">⚙️</span>System</div>
-  </div>
+  <!-- SIDEBAR — JM.Sidebar widget (reuses admin-os's existing CSS classes) -->
+  <script src="/ui/widgets/page/Sidebar.js?v=1"></script>
+  <script>
+    document.write(JM.Sidebar({
+      classNames: { root: 'sidebar', groupTitle: 'nav-group-title', item: 'nav-item', ic: 'ic', badge: 'badge' },
+      groups: [
+        { title: 'Platform', items: [
+          { id: 'overview', icon: '📊', label: 'Overview', active: true },
+          { id: 'tenants',  icon: '🏫', label: 'Tenants & Institutes' },
+          { id: 'people',   icon: '👥', label: 'People' },
+          { id: 'catalog',  icon: '📚', label: 'Catalog' }
+        ]},
+        { title: 'Operations', items: [
+          { id: 'live',     icon: '📡', label: 'Live & Recordings' },
+          { id: 'revenue',  icon: '💳', label: 'Revenue' },
+          { id: 'bookings', icon: '🎟️', label: 'Bookings & Venues' },
+          { id: 'growth',   icon: '📈', label: 'Growth & CRM' },
+          { id: 'support',  icon: '🎧', label: 'Support', badgeId: 'badge-support' }
+        ]},
+        { title: 'Intelligence', items: [
+          { id: 'automations', icon: '🤖', label: 'Automations' },
+          { id: 'aitrans',     icon: '🧠', label: 'AI & Translations' },
+          { id: 'analytics',   icon: '📉', label: 'Analytics' }
+        ]},
+        { title: 'Org', items: [
+          { id: 'franchise',    icon: '🌐', label: 'Franchise' },
+          { id: 'widgets',      icon: '🧩', label: 'Widgets' },
+          { id: 'integrations', icon: '🔌', label: 'Integrations' },
+          { id: 'system',       icon: '⚙️', label: 'System' }
+        ]}
+      ]
+    }));
+  </script>
 
   <!-- CONTENT -->
   <div class="content" id="content"></div>
