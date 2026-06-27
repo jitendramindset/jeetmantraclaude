@@ -155,6 +155,7 @@ body.focus #studioDrawer,body.focus #studioDrawerBackdrop,body.focus #studioMenu
 </style>
 <link rel="stylesheet" href="/premium-ui.css?v=5">
 <script src="/jm-states.js"></script>
+<script src="/ui/widgets/page/SceneTile.js?v=1"></script>
 </head>
 <body>
 <h1 style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden">JeetMantra Studio — Smart Camera &amp; Recording</h1>
@@ -1123,7 +1124,18 @@ async function tGoLive(){
 function addScene(sourceId){ const sid=sourceId||activeScene?.sourceId||Object.keys(sources)[0]||''; const sc={id:'sc_'+Date.now(),name:(sources[sid]?.label||'Scene')+' '+(scenes.length+1),sourceId:sid,corners:defaultCorners(),zoom:1,rotation:0}; scenes.push(sc); activeScene=sc; renderScenes(); loadEditor(); }
 function defaultCorners(){ return [{x:0,y:0},{x:1,y:0},{x:1,y:1},{x:0,y:1}]; }
 function switchScene(id){ activeScene=scenes.find(s=>s.id===id); _selLayer=(activeScene&&activeScene.layers&&activeScene.layers[0])?activeScene.layers[0].id:null; renderScenes(); loadEditor(); document.getElementById('srcLabel').textContent=(sources[activeScene?.sourceId]?.label||'Source'); drawCorners(); _updateCropOverlay(); renderLayerList(); drawLayout(); const isWb=activeScene&&sources[activeScene.sourceId]?.type==='whiteboard'; document.getElementById('wbToolbar').style.display=isWb?'flex':'none'; if(isWb){ wbSetTool(wbTool); _wbUpdatePageNav(sources[activeScene.sourceId]); } }
-function renderScenes(){ document.getElementById('sceneList').innerHTML=scenes.map(s=>{ const ic={video:'🎥',screen:'🖥',whiteboard:'🖍',image:'📄'}[sources[s.sourceId]?.type]||'🎬'; return `<div class="scene ${activeScene?.id===s.id?'active':''}" onclick="switchScene('${s.id}')"><div class="thumb">${ic}</div><div class="nm">${s.name||'Scene'}</div><button class="btn" style="padding:3px 8px" onclick="event.stopPropagation();delScene('${s.id}')">×</button></div>`; }).join('')||'<div class="hint">No scenes yet.</div>'; }
+function renderScenes(){
+  document.getElementById('sceneList').innerHTML = scenes.map(s => {
+    const ic = {video:'🎥',screen:'🖥',whiteboard:'🖍',image:'📄'}[sources[s.sourceId]?.type] || '🎬';
+    return JM.SceneTile({
+      thumb: ic,
+      name: s.name || 'Scene',
+      active: activeScene?.id === s.id,
+      onClick: `switchScene('${s.id}')`,
+      actions: [{ label: '×', onClick: `delScene('${s.id}')` }]
+    });
+  }).join('') || '<div class="hint">No scenes yet.</div>';
+}
 function delScene(id){ scenes=scenes.filter(s=>s.id!==id); if(activeScene?.id===id) activeScene=scenes[0]||null; renderScenes(); loadEditor(); }
 function updatePreset(k,v){ if(activeScene){ activeScene[k]=v; if(k==='name') renderScenes(); } }
 function loadEditor(){ const tb=document.getElementById('wbToolbar'); if(!activeScene){ if(tb) tb.style.display='none'; return; } document.getElementById('presetName').value=activeScene.name||''; document.getElementById('zoom').value=activeScene.zoom||1; document.getElementById('rot').value=activeScene.rotation||0; drawCorners(); const srcType=sources[activeScene.sourceId]?.type; if(tb) tb.style.display=srcType==='whiteboard'?'flex':'none'; }
