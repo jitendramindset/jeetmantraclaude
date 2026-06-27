@@ -43,6 +43,14 @@
 @media(prefers-reduced-motion:reduce){.wg-card,.wg-skel{animation:none!important}}
 /* W5 — wide tiers: re-flow into MORE columns rather than widening cards. */
 @media(min-width:1700px){.wg-grid{grid-template-columns:repeat(6,1fr)}.wg-large{grid-column:span 3}.wg-medium{grid-column:span 2}}
+/* 4K / smartboard 2200+: more density still — 8 columns. (P1 WIDGET_AUDIT gap) */
+@media(min-width:2200px){.wg-grid{grid-template-columns:repeat(8,1fr)}.wg-large{grid-column:span 4}.wg-medium{grid-column:span 2}}
+@media(min-width:3200px){.wg-grid{grid-template-columns:repeat(10,1fr)}.wg-large{grid-column:span 4}.wg-medium{grid-column:span 2}}
+/* Favorite star adornment + overflow menu styling. */
+.wg-card.wg-favorite{box-shadow:0 0 0 1px #f59e0b inset,var(--jm-shadow,0 1px 3px rgba(0,0,0,.06))}
+.wg-ctrl-more summary::-webkit-details-marker{display:none}
+.wg-ctrl-more[open] > summary{background:var(--jm-primary-tint,rgba(124,58,237,.12));border-radius:6px}
+.wg-more-item:hover{background:var(--jm-primary-tint,rgba(124,58,237,.08))}
 /* Smartboard / large touch — bigger targets + type; controls always shown
    (no hover on touch). */
 @media(min-width:1280px) and (pointer:coarse){

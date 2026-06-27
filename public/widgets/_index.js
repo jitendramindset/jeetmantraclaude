@@ -24,7 +24,7 @@
   ];
   FILES.forEach(function (id) {
     var s = document.createElement('script');
-    s.src = '/widgets/' + id + '.js?v=2';
+    s.src = '/widgets/' + id + '.js?v=3';
     s.async = false; // preserve registration order
     document.head.appendChild(s);
   });

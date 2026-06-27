@@ -79,6 +79,9 @@
     if (w.capability && !isAdmin && !caps.has(w.capability)) return false;
     if (adminCfg && adminCfg[w.id] === false) return false;
     if (!ignoreRemoved && (ctx.userPrefs?.removed || []).includes(w.id)) return false;
+    // P1 gap closure: archived widgets are filtered out of the main grid.
+    // They survive in ctx.userPrefs.archived and surface via an Archive tray.
+    if (!ignoreRemoved && (ctx.userPrefs?.archived || []).includes(w.id)) return false;
     return true;
   }
 
@@ -110,20 +113,29 @@
     const size = (prefs.sizes || {})[w.id] || w.size || 'medium';
     const collapsed = (prefs.collapsed || []).includes(w.id);
     const accent = (prefs.accents || {})[w.id] || '';
+    const favorited = (prefs.favorites || []).includes(w.id);
     const card = document.createElement('section');
-    card.className = 'wg-card wg-' + size + (w._pinned ? ' wg-pinned' : '') + (collapsed ? ' wg-collapsed' : '');
+    card.className = 'wg-card wg-' + size + (w._pinned ? ' wg-pinned' : '') + (collapsed ? ' wg-collapsed' : '') + (favorited ? ' wg-favorite' : '');
     card.dataset.widget = w.id;
     card.setAttribute('role', 'region');
     card.setAttribute('aria-label', w.title);
     card.tabIndex = 0;
     if (accent) card.style.setProperty('--wg-accent', accent);
-    // Per-widget controls: collapse · resize · accent colour · pin · hide.
+    // P1 gap closure: Action overflow — when more than 5 controls would render,
+    // primary actions stay visible and the rest fold into a "More …" menu.
+    // For now we keep the 5 primary inline (collapse/resize/accent/pin/hide) and
+    // surface favorite + archive in a "..." menu so the header stays clean.
     const ctrls = `<span class="wg-ctrls">`
       + `<button class="wg-ctrl" title="${collapsed ? 'Expand' : 'Collapse'}" aria-label="Collapse widget" onclick="EduOSWidgets.toggleCollapse('${w.id}')">${collapsed ? '▸' : '▾'}</button>`
       + `<button class="wg-ctrl" title="Resize" aria-label="Resize widget" onclick="EduOSWidgets.cycleSize('${w.id}')">⤢</button>`
       + `<label class="wg-ctrl wg-ctrl-color" title="Accent colour" aria-label="Accent colour">🎨<input type="color" value="${accent || '#7c3aed'}" oninput="EduOSWidgets.setAccent('${w.id}',this.value)"></label>`
       + `<button class="wg-ctrl" title="${w._pinned ? 'Unpin' : 'Pin'}" aria-label="Pin widget" onclick="EduOSWidgets.togglePin('${w.id}')">${w._pinned ? '📌' : '📍'}</button>`
-      + `<button class="wg-ctrl" title="Hide widget" aria-label="Hide widget" onclick="EduOSWidgets.removeWidget('${w.id}')">✕</button>`
+      + `<button class="wg-ctrl" data-wg-action="favorite" title="${favorited ? 'Unfavorite' : 'Favorite'}" aria-label="Favorite widget" onclick="EduOSWidgets.toggleFavorite('${w.id}')">${favorited ? '⭐' : '☆'}</button>`
+      + `<details class="wg-ctrl wg-ctrl-more" style="display:inline-block;position:relative"><summary title="More" aria-label="More actions" style="cursor:pointer;list-style:none">⋯</summary>`
+      +   `<div class="wg-more-menu" style="position:absolute;right:0;top:100%;background:var(--jm-surface,#fff);border:1px solid var(--jm-border,#e5e7eb);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:6px;z-index:10;min-width:140px;display:flex;flex-direction:column;gap:2px">`
+      +     `<button class="wg-more-item" style="background:none;border:0;padding:6px 10px;text-align:left;font-size:12px;border-radius:6px;cursor:pointer" onclick="EduOSWidgets.toggleArchive('${w.id}');this.closest('details').open=false">🗄 Archive</button>`
+      +     `<button class="wg-more-item" style="background:none;border:0;padding:6px 10px;text-align:left;font-size:12px;border-radius:6px;cursor:pointer" onclick="EduOSWidgets.removeWidget('${w.id}');this.closest('details').open=false">✕ Hide</button>`
+      +   `</div></details>`
       + `</span>`;
     card.innerHTML = `<header class="wg-head" title="Drag to reorder"><span class="wg-grip" aria-hidden="true">⠿</span><span class="wg-title">${esc(w.title)}</span>${ctrls}</header><div class="wg-body">${skeleton()}</div>`;
     // Drag-to-reorder — the header is the handle (so inner controls stay clickable).
@@ -148,6 +160,24 @@
       }
     }
     await load();
+    // P1 gap closure: per-widget refresh frequency. A manifest can declare
+    // refreshMs:30000 to auto-poll. Interval is owned by the card so it's
+    // cleared automatically when the card is replaced by renderDashboard.
+    if (w.refreshMs && Number(w.refreshMs) > 1000) {
+      const handle = setInterval(load, Number(w.refreshMs));
+      card._jmRefresh = handle;
+      // Stop polling when the card LEAVES the DOM after first being mounted.
+      // The card is detached at renderWidget-time (it's appended later by
+      // renderDashboard), so we wait until it's mounted before watching for
+      // removal — otherwise the observer fires once and kills the interval.
+      let wasMounted = false;
+      const obs = new MutationObserver(() => {
+        const inDom = document.body.contains(card);
+        if (inDom) { wasMounted = true; return; }
+        if (wasMounted) { clearInterval(handle); obs.disconnect(); }
+      });
+      obs.observe(document.body, { childList: true, subtree: true });
+    }
     return card;
   }
 
@@ -177,6 +207,12 @@
     _ctx.userPrefs.collapsed = _ctx.userPrefs.collapsed || [];   // header-only widgets
     _ctx.userPrefs.sizes = _ctx.userPrefs.sizes || {};            // per-widget size override
     _ctx.userPrefs.accents = _ctx.userPrefs.accents || {};        // per-widget accent colour
+    // P1 gap closure (per WIDGET_AUDIT.md): favorites + archived are separate
+    // from pinned/removed. Favorite = "star" (visual only, never auto-hidden);
+    // archive = soft-removed (gone from grid but kept in a separate Archive tray
+    // — distinct from Hide which means "I don't want this right now").
+    _ctx.userPrefs.favorites = _ctx.userPrefs.favorites || [];
+    _ctx.userPrefs.archived = _ctx.userPrefs.archived || [];
     return _ctx.userPrefs;
   }
   function _card(id){ return _mount && _mount.querySelector('[data-widget="' + id + '"]'); }
@@ -198,10 +234,19 @@
     persistPrefs();
   }
   function cycleSize(id) {
-    const sizes = ['small', 'medium', 'large']; const p = ensurePrefs();
-    const card = _card(id); const cur = p.sizes[id] || (card && (['small','medium','large'].find(s => card.classList.contains('wg-' + s)))) || 'medium';
-    const next = sizes[(sizes.indexOf(cur) + 1) % sizes.length]; p.sizes[id] = next;
-    if (card) { card.classList.remove('wg-small', 'wg-medium', 'wg-large'); card.classList.add('wg-' + next); }
+    // P1 gap closure: add explicit 'full' (row-spanning) size to the rotation.
+    // A widget's manifest can opt out via supportedSizes:[…] (checked here).
+    const ALL = ['small', 'medium', 'large', 'full'];
+    const p = ensurePrefs();
+    const card = _card(id);
+    const w = WIDGETS.find(x => x.id === id);
+    const allowed = (w && Array.isArray(w.supportedSizes) && w.supportedSizes.length) ? w.supportedSizes : ALL;
+    const cur = p.sizes[id] || (card && ALL.find(s => card.classList.contains('wg-' + s))) || 'medium';
+    // Find next size in the allowed list, starting from cur+1.
+    const idx = allowed.indexOf(cur);
+    const next = allowed[(idx + 1) % allowed.length];
+    p.sizes[id] = next;
+    if (card) { ALL.forEach(s => card.classList.remove('wg-' + s)); card.classList.add('wg-' + next); }
     persistPrefs();
   }
   function setAccent(id, color) {
@@ -219,6 +264,25 @@
   }
   async function removeWidget(id) { const p = ensurePrefs(); if (!p.removed.includes(id)) p.removed.push(id); await persistPrefs(); await renderDashboard(_mount, _ctx); }
   async function addWidget(id) { const p = ensurePrefs(); const i = p.removed.indexOf(id); if (i >= 0) p.removed.splice(i, 1); await persistPrefs(); await renderDashboard(_mount, _ctx); }
+  // P1 gap closure: Favorite & Archive (separate from pin/hide per WIDGET_AUDIT.md).
+  // Favorite = visual star — no effect on visibility or order (Pin already covers sorting).
+  // Archive = soft-remove — disappears from grid; can be brought back from an Archive tray.
+  function toggleFavorite(id) {
+    const p = ensurePrefs(); const i = p.favorites.indexOf(id); const on = i < 0;
+    on ? p.favorites.push(id) : p.favorites.splice(i, 1);
+    const card = _card(id); if (card) {
+      card.classList.toggle('wg-favorite', on);
+      const btn = card.querySelector('[data-wg-action="favorite"]');
+      if (btn) { btn.textContent = on ? '⭐' : '☆'; btn.title = on ? 'Unfavorite' : 'Favorite'; }
+    }
+    persistPrefs();
+  }
+  async function toggleArchive(id) {
+    const p = ensurePrefs(); const i = p.archived.indexOf(id); const on = i < 0;
+    on ? p.archived.push(id) : p.archived.splice(i, 1);
+    await persistPrefs();
+    await renderDashboard(_mount, _ctx);
+  }
 
   // ── BOOT — resolve context, then compose ────────────────────────────────────
   async function getContext() {
@@ -321,5 +385,5 @@
     try { r.start(); return true; } catch (_) { return false; }
   }
 
-  global.EduOSWidgets = { WIDGETS, register, _lib: _LIB, resolveWidgets, hiddenWidgets, renderDashboard, boot, getContext, widgetForIntent, handleCommand, listen, togglePin, removeWidget, addWidget, toggleCollapse, cycleSize, setAccent, reorder, api, esc };
+  global.EduOSWidgets = { WIDGETS, register, _lib: _LIB, resolveWidgets, hiddenWidgets, renderDashboard, boot, getContext, widgetForIntent, handleCommand, listen, togglePin, removeWidget, addWidget, toggleCollapse, cycleSize, setAccent, reorder, toggleFavorite, toggleArchive, api, esc };
 })(window);
