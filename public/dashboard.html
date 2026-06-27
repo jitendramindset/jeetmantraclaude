@@ -503,7 +503,7 @@ window.addEventListener('storage', function(e){
 <!-- Widgets self-register via /widgets/<id>.js — _index.js injects them all. -->
 <script src="/widgets/_index.js?v=3"></script>
 <!-- Layered UI system (atoms → molecules → screens) — JM.Screens.open(id) -->
-<script src="/ui/_boot.js?v=12"></script>
+<script src="/ui/_boot.js?v=13"></script>
 </head>
 <body>
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
@@ -6293,42 +6293,9 @@ async function openTestAnalytics(testId, testTitle){ if(window.JM&&JM.Screens) r
 // teacher's courses. Each row shows the question, the student's answer,
 // max marks; teacher enters score + feedback (or clicks ✨ AI grade).
 // ============================================================
-async function openEssayInbox(){
-  document.getElementById('bookingsPage').classList.add('active');
-  document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
-  document.querySelectorAll('.topbar').forEach(s=>s.style.display='none'); // keep sidebar visible (synced nav)
-  document.getElementById('bk-crumb').textContent='Essay grading';
-  const body=document.getElementById('bk-body');
-  body.innerHTML='<div style="text-align:center;padding:40px;color:#888">Loading…</div>';
-  try{
-    const r=await api('/teacher/essays/pending','GET');
-    const items=r.items||[];
-    if(!items.length){
-      body.innerHTML='<div class="card" style="max-width:600px;margin:40px auto;padding:24px;text-align:center"><div style="font-size:48px">📝</div><div style="font-weight:600;margin-top:10px">No pending essays</div><div style="color:var(--jm-text-muted);margin-top:6px">All long-answer responses have been graded.</div></div>';
-      return;
-    }
-    body.innerHTML=`<div style="max-width:900px;margin:0 auto"><h2 style="margin-bottom:14px">📝 Pending essays (${items.length})</h2>${
-      items.map((it,i)=>`<div class="card" style="margin-bottom:14px;padding:18px">
-        <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:12px;color:var(--jm-text-muted)">
-          <span>${escHtml(it.test?.title||'Test')}</span>
-          <span>Submitted ${it.submitted_at?new Date(it.submitted_at).toLocaleString():''}</span>
-        </div>
-        <div style="font-weight:600;margin-bottom:6px">Q. ${escHtml(it.question_text)}</div>
-        <div style="font-size:13px;background:var(--jm-bg);padding:10px;border-radius:6px;border-left:3px solid var(--jm-primary);margin-bottom:10px;white-space:pre-wrap">${escHtml(it.answer||'')}</div>
-        <div class="grid-2">
-          <div class="form-row"><label>Score (out of ${it.max_marks})</label><input id="eg-s-${i}" type="number" min="0" max="${it.max_marks}" value="0"></div>
-          <div class="form-row"><label>Feedback</label><input id="eg-f-${i}" placeholder="Optional comments"></div>
-        </div>
-        <div style="display:flex;gap:8px">
-          <button class="btn-sm btn-primary" onclick="essayGrade('${it.session_id}','${it.question_id}',${i})">💾 Save grade</button>
-          <button class="btn-sm btn-outline" onclick="essayAiGrade('${it.session_id}','${it.question_id}',${i},'${escHtml(it.question_text||'').replace(/'/g,'&#39;')}',${it.max_marks})">✨ AI grade</button>
-        </div>
-      </div>`).join('')
-    }</div>`;
-    // Stash items for the AI grade handler to read the answer
-    window._essayItems=items;
-  }catch(e){ body.innerHTML='<div style="color:#b91c1c;padding:20px">'+escHtml(e.message)+'</div>'; }
-}
+// openEssayInbox — now a thin delegator. Real screen: /ui/screens/EssayInbox.js (takeover).
+// essayGrade() and essayAiGrade() helpers below stay (legacy onclick handlers in the rendered cards).
+async function openEssayInbox(){ if(window.JM&&JM.Screens) return JM.Screens.open('essay-inbox'); }
 async function essayGrade(sessionId, questionId, i){
   try{
     const score=Number(document.getElementById('eg-s-'+i).value)||0;
