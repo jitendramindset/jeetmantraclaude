@@ -503,7 +503,7 @@ window.addEventListener('storage', function(e){
 <!-- Widgets self-register via /widgets/<id>.js — _index.js injects them all. -->
 <script src="/widgets/_index.js?v=3"></script>
 <!-- Layered UI system (atoms → molecules → screens) — JM.Screens.open(id) -->
-<script src="/ui/_boot.js?v=20"></script>
+<script src="/ui/_boot.js?v=21"></script>
 </head>
 <body>
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
@@ -5464,22 +5464,11 @@ async function openChatRoom(roomId, title){ await openMessenger(); msgrOpenRoom(
 // ══════════════════════════════════════════════════════════════════════
 let _nearGeo={lat:null,lng:null};
 let _nearSelected=new Set();
+// openNearbySearch — thin delegator. Real screen: /ui/screens/NearbySearch.js (modal).
+// Side effect: resets _nearSelected so a fresh selection set is used per open (matches inline behaviour).
 function openNearbySearch(){
-  _nearSelected=new Set();
-  showModal('📍 Find Classes Near You', `
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
-      <input id="near-city" placeholder="City (e.g. Jaipur)" style="flex:1;min-width:120px;padding:8px 12px;border:1.5px solid var(--jm-border);border-radius:8px;background:var(--jm-surface);color:inherit">
-      <input id="near-q" placeholder="Subject / keyword" style="flex:1;min-width:120px;padding:8px 12px;border:1.5px solid var(--jm-border);border-radius:8px;background:var(--jm-surface);color:inherit">
-    </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
-      <select id="near-mode" style="padding:7px 10px;border:1.5px solid var(--jm-border);border-radius:8px;background:var(--jm-surface);color:inherit"><option value="">Any mode</option><option value="offline">Offline</option><option value="hybrid">Hybrid</option><option value="online">Online</option></select>
-      <select id="near-radius" style="padding:7px 10px;border:1.5px solid var(--jm-border);border-radius:8px;background:var(--jm-surface);color:inherit"><option value="10">≤10 km</option><option value="25">≤25 km</option><option value="50" selected>≤50 km</option><option value="200">≤200 km</option></select>
-      <button class="btn-sm btn-outline" onclick="nearUseLocation()">📍 Use my location</button>
-      <button class="btn-sm btn-primary" onclick="runNearbySearch()" style="margin-left:auto">🔍 Search</button>
-    </div>
-    <div id="near-geo-status" style="font-size:11px;color:var(--jm-text-muted);margin-bottom:8px"></div>
-    <div id="near-results" style="min-height:120px"><div class="empty-state"><div class="icon">📍</div>Set a city or use your location, then Search.</div></div>
-    <div id="near-footer"></div>`);
+  _nearSelected = new Set();
+  if(window.JM && JM.Screens) return JM.Screens.open('nearby-search');
 }
 function nearUseLocation(){
   const st=document.getElementById('near-geo-status');
