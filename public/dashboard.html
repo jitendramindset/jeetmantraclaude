@@ -503,7 +503,7 @@ window.addEventListener('storage', function(e){
 <!-- Widgets self-register via /widgets/<id>.js — _index.js injects them all. -->
 <script src="/widgets/_index.js?v=3"></script>
 <!-- Layered UI system (atoms → molecules → screens) — JM.Screens.open(id) -->
-<script src="/ui/_boot.js?v=8"></script>
+<script src="/ui/_boot.js?v=9"></script>
 </head>
 <body>
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
@@ -4050,49 +4050,11 @@ function openSubmitAssignment(aid){
   openModal('submitAssignment',{assignmentId:aid});
 }
 
-// ── Teacher: view live class roster
-async function openLiveRoster(classId){
-  _modalCtx={classId};
-  openModal('liveClassRoster');
-  const body=document.getElementById('lcr-body');
-  if(!body) return;
-  try{
-    const r=await api('/live-classes/'+classId+'/attendees','GET');
-    if(!r.attendees?.length){
-      body.innerHTML='<div style="text-align:center;padding:24px;color:var(--jm-text-muted)">No one has joined yet.</div>';
-      return;
-    }
-    body.innerHTML=`
-      <div style="margin-bottom:10px;font-size:13px;color:var(--jm-text-muted)">${r.class?.title} · <strong>${r.attendees.length}</strong> joined</div>
-      ${r.attendees.map(a=>`
-        <div style="display:flex;justify-content:space-between;padding:10px;border-bottom:1px solid var(--jm-border)">
-          <div><div style="font-weight:600">${a.full_name||a.email||a.student_id.slice(0,8)}</div><div style="font-size:11px;color:var(--jm-text-muted)">${a.email||''}</div></div>
-          <div style="font-size:11px;color:var(--jm-text-muted)">Joined ${new Date(a.joined_at).toLocaleTimeString()}</div>
-        </div>`).join('')}`;
-  }catch(e){ body.innerHTML='<div style="color:#b91c1c">Error: '+escHtml(e.message)+'</div>'; }
-}
+// openLiveRoster — now a thin delegator. Real screen: /ui/screens/LiveRoster.js
+async function openLiveRoster(classId){ if(window.JM&&JM.Screens) return JM.Screens.open('live-roster',{classId}); }
 
-// ── Attendance log per course (teacher: everyone; student: just self)
-async function openAttendanceLog(courseId, courseTitle){
-  _modalCtx={courseId};
-  openModal('attendanceLog');
-  const body=document.getElementById('al-body');
-  if(!body) return;
-  try{
-    const r=await api('/attendance/log/'+courseId,'GET');
-    const s=r.summary||{};
-    body.innerHTML=`
-      <div style="background:var(--jm-primary-tint);padding:14px;border-radius:8px;margin-bottom:14px;font-size:13px">
-        <div style="font-weight:700;margin-bottom:4px">${courseTitle||'Course'}</div>
-        <div>${s.total||0} records · ${s.present||0} present · ${s.absent||0} absent · ${s.late||0} late · <strong>${s.percentage||0}%</strong> overall</div>
-      </div>
-      ${(r.log||[]).length ? r.log.map(row=>`
-        <div style="display:flex;justify-content:space-between;padding:8px 10px;border-bottom:1px solid var(--jm-border)">
-          <div><strong>${row.student_name||'You'}</strong><div style="font-size:11px;color:var(--jm-text-muted)">${new Date(row.date).toLocaleDateString()}</div></div>
-          <span class="badge ${row.status==='present'?'badge-green':row.status==='late'?'badge-yellow':'badge-red'}">${row.status}</span>
-        </div>`).join('') : '<div style="color:var(--jm-text-muted);text-align:center;padding:20px">No attendance records yet.</div>'}`;
-  }catch(e){ body.innerHTML='<div style="color:#b91c1c">Error: '+escHtml(e.message)+'</div>'; }
-}
+// openAttendanceLog — now a thin delegator. Real screen: /ui/screens/AttendanceLog.js
+async function openAttendanceLog(courseId, courseTitle){ if(window.JM&&JM.Screens) return JM.Screens.open('attendance-log',{courseId,courseTitle}); }
 
 // ── Teacher: open Edit Course modal ────────────────────────────────────
 // openModal() overwrites _modalCtx with its second arg (or {}), so always
