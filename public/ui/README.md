@@ -1,130 +1,151 @@
-# EduOS Widget-Driven UI Architecture
+# EduOS UI — Layered MVC Widget Architecture
 
-> The screen is dumb. The widget owns the experience. The admin owns the policy.
+> Screens compose molecules. Molecules compose atoms. Models fetch data.
+> Controllers handle actions. Admin owns policy. The user owns customization.
 
 ---
 
-## Folder layout
+## Layers (top-down)
 
 ```
-/public
-  /ui                      ← single source for the new UI architecture
-    /screens               ← thin screens. ONE job: pick widgets, render them.
-    /widgets               ← thin re-exports of /widgets/<id>.js for screens
-    /layouts               ← grid/list/responsive layout primitives
-    /themes                ← theme tokens + per-theme overrides
-    /animations            ← reusable motion definitions
-    /components            ← shared atoms (Button, Input, Avatar…)
-    /registry              ← the WidgetRegistry — resolves which widgets show
-  /widgets                 ← canonical widget definitions (manifest pattern)
-    <widget-id>.js         ← one file per widget; self-contained manifest
+┌──────────────────────────────────────────────────────────────────┐
+│  SCREENS         /ui/screens/<Name>.js                           │
+│  ─ each screen registers itself with ScreenRegistry              │
+│  ─ a screen is JUST a composition of widgets + a model           │
+├──────────────────────────────────────────────────────────────────┤
+│  WIDGETS         /widgets/<id>.js (dashboard cards, 23 of them)  │
+│                  /ui/widgets/molecules/ (List, KPIGrid, …)       │
+│                  /ui/widgets/atoms/    (Card, Button, Row, …)    │
+├──────────────────────────────────────────────────────────────────┤
+│  MODELS          /ui/models/<Name>.js                            │
+│  ─ pure data fetchers; one place to know the API URL + shape     │
+├──────────────────────────────────────────────────────────────────┤
+│  CONTROLLERS     /ui/controllers/<Name>.js                       │
+│  ─ action dispatch + mutations; no DOM, no rendering             │
+├──────────────────────────────────────────────────────────────────┤
+│  REGISTRY        /ui/registry/screens.js (the screen index)      │
+│  REGISTRY        /widget-registry.js     (the widget engine)     │
+├──────────────────────────────────────────────────────────────────┤
+│  THEMES + MOTION /ui/themes/, /ui/animations/                    │
+│  TOKENS          premium-ui.css :root variables                  │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
-## The contract a screen follows
+## Folder map
 
 ```
-Authenticate User
-       ↓
-Load Role + Permissions  (existing /me/contexts)
-       ↓
-Load Enabled Widgets     (admin defaults ⊕ user prefs ⊕ role gates)
-       ↓
-Render Widgets           (grid/responsive; widgets fetch their own data)
+/public/ui/
+  ├── README.md                       ← this file
+  ├── EXTRACTION_CATALOG.md           ← every screen + extraction status
+  ├── widgets/
+  │   ├── atoms/                      ← smallest reusable pieces
+  │   │   ├── Button.js               ← JM.Button({label, kind, onClick, icon})
+  │   │   ├── Card.js                 ← JM.Card({title, body, accent, padding})
+  │   │   ├── KPI.js                  ← JM.KPI({label, value, sub, accent})
+  │   │   ├── Row.js                  ← JM.Row({title, sub, right, onClick})
+  │   │   ├── Badge.js                ← JM.Badge({text, kind})
+  │   │   ├── EmptyState.js           ← JM.EmptyState({icon, title, msg, cta})
+  │   │   ├── Avatar.js               ← JM.Avatar({name, src, size})
+  │   │   ├── SectionHeader.js        ← JM.SectionHeader({title, action})
+  │   │   ├── ModalShell.js           ← JM.ModalShell({title, body, footer})
+  │   │   └── Tabs.js                 ← JM.Tabs({tabs, active, onChange})
+  │   └── molecules/                  ← compositions of atoms
+  │       ├── KPIGrid.js              ← JM.KPIGrid([{label, value}])
+  │       ├── ListSection.js          ← KPI/Row list + empty state
+  │       └── ActionToolbar.js        ← responsive button row → overflow menu
+  ├── screens/                        ← composed screen widgets
+  │   ├── Wallet.js                   ← uses model + atoms
+  │   ├── Help.js
+  │   ├── WidgetAdmin.js
+  │   └── Certificates.js
+  ├── models/                         ← data fetchers (one per domain)
+  │   ├── Wallet.js                   ← Wallet.fetch() → balance + tx list
+  │   ├── Certificates.js
+  │   └── Analytics.js
+  ├── controllers/                    ← action handlers (no DOM)
+  │   └── Wallet.js                   ← Wallet.topUp(amount), .refund(tx)
+  ├── registry/
+  │   └── screens.js                  ← global JM.Screens registry
+  ├── themes/                         ← per-theme overrides (alongside premium-ui.css)
+  ├── animations/                     ← reusable motion definitions
+  └── layouts/                        ← responsive grid primitives
 ```
 
-A screen contains **no business UI** of its own. If a screen needs a card,
-chart, list or action — it asks the registry for the matching widget.
+## The atom contract
 
-## Widget manifest
-
-Every widget is a manifest object (currently defined inline in
-`widget-registry.js`; new widgets should be added to `/widgets/<id>.js`). All
-fields are optional except `id`, `title`, `render`:
+Every atom is a pure function on `props`:
 
 ```js
-{
-  id: 'my-courses',           // unique key (kebab-case)
-  title: 'My Courses',
-  category: 'teaching',       // ops | learning | teaching | finance | social
-  size: 'medium',             // small | medium | large | full
-
-  // Visibility & policy ---------------------------------------------------
-  roles: ['teacher','admin'], // null = everyone; admin always overrides
-  capability: 'course.edit',  // optional fine-grained capability gate
-  priority: 18,               // lower = higher up by default
-
-  // Data fetching --------------------------------------------------------
-  dataSource: ctx => api('/courses/mine'),
-
-  // Render & states ------------------------------------------------------
-  render: (data, ctx) => '<html string or DOM>',
-  // (skeleton + retry are handled by the engine — see jm-states.js)
-
-  // Customization (already supported per-user via userPrefs) -------------
-  // pin · hide · collapse · resize · accent colour · drag-reorder
-}
+// /ui/widgets/atoms/Button.js
+window.JM = window.JM || {};
+JM.Button = function (props) {
+  var p = props || {};
+  var kind = p.kind || 'primary';                  // primary | secondary | ghost | danger
+  var icon = p.icon ? p.icon + ' ' : '';
+  var onClick = p.onClick ? ' onclick="' + p.onClick + '"' : '';
+  return '<button class="jm-btn jm-btn--' + kind + '"' + onClick + '>'
+    + icon + JM.esc(p.label || '') + '</button>';
+};
 ```
 
-## The three-layer policy
+Properties layer cleanly:
+- **data** (`label`, `value`, `items`)
+- **style** (`kind`, `accent`, `size`)
+- **action** (`onClick`, `href`)
+- **animation** (`enter`, `hover`)
+- **theme** (`theme` override that picks a token set)
 
-A widget is visible only if it passes ALL three:
+## The screen contract
 
-1. **Admin policy** (highest authority): `adminWidgets[id] !== false` AND
-   `adminRoleConfig[role][id] !== false`. Admin can globally disable a widget,
-   or disable it for a specific role.
-2. **Role/capability gate**: the widget's `roles` array (or `null` = all) and
-   optional `capability` check via the caller's `capabilities` set.
-3. **User preference**: the user hasn't hidden the widget. (Per-user pin /
-   order / collapse / size / accent are layered on top of this — see
-   `prefs.removed/pinned/order/sizes/collapsed/accents` in
-   `widget-registry.js`.)
+```js
+// /ui/screens/Wallet.js
+JM.Screens.register({
+  id: 'wallet',
+  title: 'My Wallet',
+  model: JM.Models.Wallet,                        // fetches data
+  controller: JM.Controllers.Wallet,              // handles actions
+  render: function (data, ctx) {
+    return JM.ModalShell({
+      title: '💳 Wallet',
+      body: JM.KPIGrid([
+        { label: 'Balance',     value: '₹' + data.balance, accent: '#7c3aed' },
+        { label: 'This month',  value: data.txCount }
+      ]) + JM.ListSection({
+        items: data.transactions,
+        empty: { icon: '💸', title: 'No transactions yet', cta: { label: '💳 Top up', onClick: 'JM.Screens.action("wallet.topup")' } }
+      })
+    });
+  }
+});
+```
 
-Admin > Role > User. Admin can force a widget on or off regardless of role
-defaults; user prefs apply only to widgets the admin allows.
+A screen opens via `JM.Screens.open('wallet')` — the registry calls
+`model.fetch(ctx)` then `render(data, ctx)`. Loading/empty/error are handled
+by the shell using `JMStates`.
 
-## Admin Widget Management
+## How widgets and screens differ
 
-Admin reaches it at `/app#/m/admin` → **Widget Management** (or the in-shell
-Settings → Widgets). For each widget, the admin sees:
+| Aspect | Widget (`/widgets/<id>.js`) | Screen (`/ui/screens/<Name>.js`) |
+|---|---|---|
+| Surface | a CARD on a dashboard grid | a FULL panel / modal / page |
+| Renders inside | `EduOSWidgets.renderDashboard` | `JM.Screens.open` |
+| Identity | `id` in `EduOSWidgets.WIDGETS` | `id` in `JM.Screens` |
+| Examples | streak, revenue, my-courses | Wallet, Certificates, Analytics |
 
-- **☑ Enabled globally** (master kill-switch)
-- **Per-role checkboxes**: Student, Teacher, Coach, Parent, Institute,
-  School, Partner, Admin
-- **Default size** + **default position** (priority drag)
-- Save → persisted via `PUT /api/admin/widget-config`. The next dashboard
-  load applies the new policy to every user of that role.
+## Admin policy stays the highest authority
+
+The admin policy (LevelDB-backed `PUT /api/admin/widget-config`) already
+covers dashboard widgets. The screen registry takes the same policy shape
+(`global[id]`, `byRole[role][id]`), so admin can disable a *screen* the
+same way they disable a *widget*. Phase-2 user customisation
+(pin/collapse/resize/colour/reorder) applies inside dashboards.
 
 ## Responsive rule (mobile-first)
 
-Every widget has an inline render budget. When space is tight:
+The `ActionToolbar` molecule auto-collapses extra buttons into a `…`
+overflow menu when space is tight. The same rule already powers the
+Studio drawer and dashboard `☰`. Use it everywhere.
 
-- Side-panel/secondary actions collapse into a `…` overflow menu (existing
-  studio drawer + dashboard `☰` already follow this rule).
-- The main content (chart, list, KPI) stays full-width.
-- Buttons drop to compact mode (icon-only with `aria-label`).
-- The widget engine flips `wg-small/medium/large` based on viewport when
-  the user has not set an explicit size override.
+## Extraction progress
 
-## What this turn delivered
-
-| Item | State |
-|---|---|
-| `/ui/*` + `/widgets/` folder structure | ✅ scaffolded |
-| Architecture doc (this file) | ✅ |
-| Admin Widget Management UI + endpoint | ✅ shipped (see `ui/screens/admin-widgets.md`) |
-| Per-user customization (pin/collapse/resize/accent/reorder) | ✅ shipped earlier (Phase 2) |
-| Existing 10 widgets still working | ✅ zero regressions |
-
-## What still needs doing (queued)
-
-1. **Extract** each widget from `widget-registry.js` into its own
-   `/widgets/<id>.js` file (12 widgets × careful test each).
-2. Add **`/ui/screens/dashboard.js`** as the new thin-screen example that
-   reads from the registry and renders.
-3. Build the **/ui/components** atoms (currently we inline-style; an atomic
-   set lets every widget share `<JMCard>`, `<JMButton>` etc.).
-4. Wire role-specific **default dashboards** explicitly into admin config
-   so each role has a curated set out of the box.
-
-This refactor is intentionally incremental — each extracted widget gets a
-live test before moving to the next so we never break the dashboard.
+See `EXTRACTION_CATALOG.md` for the live status of every screen.

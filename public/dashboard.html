@@ -502,6 +502,8 @@ window.addEventListener('storage', function(e){
 <script src="/widget-registry.js?v=9"></script>
 <!-- Widgets self-register via /widgets/<id>.js — _index.js injects them all. -->
 <script src="/widgets/_index.js?v=1"></script>
+<!-- Layered UI system (atoms → molecules → screens) — JM.Screens.open(id) -->
+<script src="/ui/_boot.js?v=1"></script>
 </head>
 <body>
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
@@ -1335,7 +1337,7 @@ const NAV={
     {i:'⚙️',l:'Settings',action:'openSettings()'},
     {i:'👤',l:'Profile',action:'openProfilePage()'},
     {i:'🔧',l:'Full Admin Panel',h:'#/m/admin'},
-    {i:'🎛',l:'Widget Management',action:'openWidgetAdmin()'},
+    {i:'🎛',l:'Widget Management',action:"JM.Screens.open('widget-admin')"},
     {i:'❓',l:'Help',action:'openHelpPage()'}
   ],
   corporate_trainer:[
