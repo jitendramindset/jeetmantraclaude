@@ -503,7 +503,7 @@ window.addEventListener('storage', function(e){
 <!-- Widgets self-register via /widgets/<id>.js — _index.js injects them all. -->
 <script src="/widgets/_index.js?v=1"></script>
 <!-- Layered UI system (atoms → molecules → screens) — JM.Screens.open(id) -->
-<script src="/ui/_boot.js?v=5"></script>
+<script src="/ui/_boot.js?v=6"></script>
 </head>
 <body>
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
@@ -5449,31 +5449,8 @@ async function refreshStudentSummary(){
 }
 // Sprint 5: minimal panel showing streak / XP / badges. Reuses showModal()
 // rather than building a dedicated page — Sprint 6 can promote to a section.
-async function openGamificationPanel(){
-  showModal('🏆 Your progress', '<div id="gam-body" style="min-height:240px"><div style="color:var(--jm-text-muted);padding:20px;text-align:center">Loading…</div></div>');
-  try{
-    const [s, xp, b]=await Promise.all([
-      api('/gamification/streak','GET').catch(()=>({streak:{current_streak:0,longest_streak:0}})),
-      api('/gamification/xp','GET').catch(()=>({total:0,level:1,recent:[]})),
-      api('/gamification/badges','GET').catch(()=>({badges:[],earnedCount:0,totalCount:0}))
-    ]);
-    const body=document.getElementById('gam-body'); if(!body) return;
-    const st=s.streak||{};
-    const earned=(b.badges||[]).filter(x=>x.earned);
-    const locked=(b.badges||[]).filter(x=>!x.earned);
-    body.innerHTML=`
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
-        <div style="background:linear-gradient(135deg,#f97316,#ef4444);color:#fff;border-radius:12px;padding:14px"><div style="font-size:11px;opacity:.85;text-transform:uppercase">Streak</div><div style="font-size:26px;font-weight:800;line-height:1">🔥 ${st.current_streak||0}</div><div style="font-size:11px;opacity:.85;margin-top:2px">Longest: ${st.longest_streak||0} days</div></div>
-        <div style="background:linear-gradient(135deg,#7c3aed,#ec4899);color:#fff;border-radius:12px;padding:14px"><div style="font-size:11px;opacity:.85;text-transform:uppercase">XP · Level ${xp.level||1}</div><div style="font-size:26px;font-weight:800;line-height:1">⭐ ${(xp.total||0).toLocaleString()}</div><div style="font-size:11px;opacity:.85;margin-top:2px">Next level: ${(xp.nextLevelAt||100).toLocaleString()}</div></div>
-      </div>
-      <div style="font-weight:700;margin-bottom:6px">🏅 Badges (${b.earnedCount}/${b.totalCount})</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:8px">
-        ${earned.map(x=>`<div title="${escHtml(x.description||'')}" style="text-align:center;padding:8px;background:var(--jm-surface-2);border-radius:10px;border:1.5px solid #f59e0b"><div style="font-size:26px">${escHtml(x.icon||'🏆')}</div><div style="font-size:10px;font-weight:700;margin-top:2px">${escHtml(x.title)}</div></div>`).join('')}
-        ${locked.slice(0,12).map(x=>`<div title="Locked: ${escHtml(x.description||'')}" style="text-align:center;padding:8px;background:var(--jm-surface-2);border-radius:10px;opacity:.4;filter:grayscale(1)"><div style="font-size:26px">${escHtml(x.icon||'🔒')}</div><div style="font-size:10px;margin-top:2px">${escHtml(x.title)}</div></div>`).join('')}
-      </div>
-      ${earned.length===0?'<div style="text-align:center;color:var(--jm-text-muted);font-size:12px;margin-top:14px">Submit an assignment or join a class to earn your first badge.</div>':''}`;
-  }catch(e){ const b=document.getElementById('gam-body'); if(b) b.innerHTML='<div style="color:#b91c1c;padding:16px">'+escHtml(e.message||'Could not load progress')+'</div>'; }
-}
+// openGamificationPanel — now a thin delegator. Real screen: /ui/screens/Gamification.js
+async function openGamificationPanel(){ if(window.JM&&JM.Screens) return JM.Screens.open('gamification'); }
 async function msgrLoadConvos(){
   const list=document.getElementById('msgr-convos'); if(!list) return;
   let rooms=[];

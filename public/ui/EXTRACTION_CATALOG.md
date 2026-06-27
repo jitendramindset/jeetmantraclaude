@@ -2,97 +2,110 @@
 
 > Live status of every screen / dashboard renderer / inline panel in the codebase. ✅ extracted to `/ui/screens/`. ⏳ still inline in `dashboard.html`. — = not applicable / planned.
 
-## Surface types (architecture finding)
+## Surfaces
 
-After Wave 1+2, we discovered the dashboard has **two surface types**:
+The dashboard has TWO surface types — the registry now supports both:
 
-1. **Modal** — `showModal(title, html)` — short, contextual; `JM.ModalShell` fits perfectly.
-2. **Takeover-page** — `document.getElementById('bookingsPage').classList.add('active')` — full-screen with own breadcrumb; reuses the `bookingsPage` (or `calendarPage`, `configurePage`) DOM element.
-
-The MVC layered system supports modals today. The takeover-page molecule
-(`JM.TakeoverPage`) is queued for Wave 3 so screens like Wallet, Bookings,
-Calendar, Recordings can extract without changing UX.
+| Surface | When | Engine | Atom/Molecule |
+|---|---|---|---|
+| `surface: 'modal'` (default) | Short contextual screens | `showModal()` → `#jm-generic-modal` | `JM.ModalShell` |
+| `surface: 'takeover'` | Full-screen with own breadcrumb | `#bookingsPage.active` | `JM.TakeoverPage` |
 
 ## Foundation
 
 | Layer | Files | Status |
 |---|---|---|
-| Atoms | Button · Card · KPI · Row · Badge · EmptyState · Avatar · SectionHeader · ModalShell · Tabs | ✅ 10 / 10 |
-| Molecules | KPIGrid · ListSection · ActionToolbar | ✅ 3 / 3 (TakeoverPage queued) |
-| Registry | `JM.Screens` (register, open, action, handle) | ✅ |
-| Loader | `/ui/_boot.js` injects atoms → molecules → models → controllers → screens | ✅ |
+| Atoms | Button · Card · KPI · Row · Badge · EmptyState · Avatar · SectionHeader · ModalShell · Tabs | ✅ 10/10 |
+| Molecules | KPIGrid · ListSection · ActionToolbar · **TakeoverPage** | ✅ 4/4 |
+| Registry | `JM.Screens.register({surface, model, render})` — modal + takeover modes | ✅ |
+| Loader | `/ui/_boot.js?v=N` injects all layers; cache-buster pinned to `?v=N` per release | ✅ |
 
-## Screens extracted
+## Screens extracted (11 total)
 
-### Wave 1 — modal screens
+### Wave 1 — modal
+| # | Screen | File | Model |
+|---|---|---|---|
+| 1 | Help & Support | `Help.js` | — (static) |
+| 2 | My Certificates | `Certificates.js` | `Certificates.js` |
+| 3 | Widget Management (admin) | `WidgetAdmin.js` | `WidgetAdmin.js` |
+
+### Wave 2 — modal
+| # | Screen | File | Model |
+|---|---|---|---|
+| 4 | Analytics | `Analytics.js` | `Analytics.js` |
+| 5 | My Students | `MyStudents.js` | `MyStudents.js` |
+| 6 | Offline Downloads | `Downloads.js` | `Downloads.js` |
+
+### Wave 3 — takeover-page
+| # | Screen | File | Model |
+|---|---|---|---|
+| 7 | My Wallet | `Wallet.js` (rewritten as takeover) | `Wallet.js` |
+| 8 | Class Recordings | `Recordings.js` | `Recordings.js` |
+| 9 | Attendance Report | `AttendanceReport.js` | `AttendanceReport.js` |
+
+### Wave 4 — modal (in progress)
 | # | Screen | File | Model | Notes |
 |---|---|---|---|---|
-| 1 | Help & Support | `/ui/screens/Help.js` | — (static) | FAQ accordion + Ask-AI + Email CTAs |
-| 2 | My Wallet | `/ui/screens/Wallet.js` | `Wallet.js` | ⚠️ Modal version. Live `openWallet` is a takeover-page; alternative modal view via `JM.Screens.open('wallet')`. |
-| 3 | My Certificates | `/ui/screens/Certificates.js` | `Certificates.js` | Rows with verify links |
-| 4 | Widget Management (admin) | `/ui/screens/WidgetAdmin.js` | `WidgetAdmin.js` | Widget × role matrix |
+| 10 | Your Progress (gamification) | `Gamification.js` | `Gamification.js` | Streak / XP / badges; 3 concurrent fetches |
+| 11 | (next) Help (existing wave 1) | | | |
 
-### Wave 2 — modal screens (this turn)
-| # | Screen | File | Model | Inline replaced? |
-|---|---|---|---|---|
-| 5 | Analytics | `/ui/screens/Analytics.js` | `Analytics.js` | ✅ `openAnalyticsPage` → delegator |
-| 6 | My Students | `/ui/screens/MyStudents.js` | `MyStudents.js` | ✅ `openMyStudentsPage` → delegator |
-| 7 | Offline Downloads | `/ui/screens/Downloads.js` | `Downloads.js` | ✅ `openDownloads` → delegator |
+## Queued — Wave 4 cont. (modal screens)
+- `openMyExternalResults()` (33 lines) — custom modal (own DOM), needs route through showModal or kept custom
+- `openAiKey()` (22 lines) — AI key entry form
+- `openLangPicker()` (29 lines) — language picker, custom modal styling (skip or rebuild)
+- `openCertificate(courseId)` (7 lines) — single-cert view (different from list)
+- `openCsvImport()` (8 lines), `openCmdK()` (5 lines) — already thin wrappers, lower value
 
-## Queued — Wave 3 (takeover-page screens; need `JM.TakeoverPage` molecule)
-- `openWallet()` — replaces `bookingsPage` DOM with wallet view
-- `openBookings()` / `openPayments()` (use `_openMoneyPage`)
-- `openRecordings()` — bookings-page based
-- `openAttendanceReport()` — bookings-page based
-- `openCalendar()` — uses `calendarPage`
+## Queued — Wave 5 (takeover-page screens)
+- `openBookings()` / `openPayments()` — via `_openMoneyPage(kind)` (handles many "kind" types: bookings/payments/payouts/coupons/plans/billing). Needs unified extraction.
+- `openCalendar()` — depends on `_renderCalendar` with `_calRef`/`_calView` state — complex.
+- `openEssayInbox()`, `openTestAnalytics(id, title)` — takeover-page subsystems
+- `openConfigure(courseId)` — heavyweight teacher tool
 
-## Queued — Wave 4 (interactive panels, custom modals)
-- `openMyExternalResults()` — custom DOM (own modal)
+## Queued — Wave 6 (interactive panels & drawers, custom modals)
 - `openMessenger()` — drawer-based
-- `openAiTutor()`, `openLessonPlanner()`, `openEssayInbox()`
+- `openAiTutor()`, `openLessonPlanner()`
 - `openCourseHub()`, `openCourseStudents()`, `openEditCourse()`
 - `openGradeSubmission()`, `openSubmitAssignment()`
-- `openGamificationPanel()`, `openLangPicker()`, `openCmdK()`
-- `openCsvImport()`, `openCRMConfig()`, `openAiKey()`
+- `openCRMConfig()` (207 lines — significant)
 - `openForumThread()`, `openCourseChat()`, `openDmWith()`
-- `openLiveRoster()`, `openBookingDetail()`, `openConfigure()`
-- `openCertificate(courseId)` — single-cert view (different from list)
+- `openLiveRoster()`, `openBookingDetail()`
 
-## Queued — Wave 5 (role dashboard renderers)
+## Queued — Wave 7 (role dashboard renderers)
 - `renderStudentDash`, `renderTeacherDash`, `renderPartnerDash`,
   `renderAdminDash`, `renderSchoolDash`, `renderCoachingDash`,
   `renderParentDash`, `renderCorporateTrainerDash`,
-  `renderContentCreatorDash`, `renderFranchiseDash`
-- `renderCreatorBlock` (shared partial)
-- `renderContinueLearning`, `renderNextClassHeader`, `renderGreeting`,
-  `renderProfile`, `renderEduOSTab`
+  `renderContentCreatorDash`, `renderFranchiseDash`,
+  `renderCreatorBlock`, `renderContinueLearning`,
+  `renderNextClassHeader`, `renderGreeting`, `renderProfile`, `renderEduOSTab`
 
 ## Progress
 
-| Metric | Wave 1 | Wave 2 | Target |
+| Metric | Wave 1 | Wave 2 | Wave 3 | Wave 4 (now) | Target |
+|---|---|---|---|---|---|
+| Atoms | 10 | 10 | 10 | 10 | 10 |
+| Molecules | 3 | 3 | **4** | 4 | 4-6 |
+| Models | 3 | 6 | 8 | **9** | ~25 |
+| Controllers | 1 | 1 | 1 | 1 | ~10-15 |
+| Screens extracted | 4 | 7 | 10 | **11** | ~60 |
+| Inline `open*()` collapsed | 3 | 6 | 9 | **10** | ~50 |
+| Coverage | ~7% | ~12% | ~17% | **~18%** | 100% |
+
+## Lessons learned (each wave)
+
+1. **Cache-buster discipline.** Bump _boot.js AND the inject `?v=N` in lockstep — old screen files served from cache produced silent registration mismatch (W3).
+2. **Two surface kinds.** Original assumption "everything is modal" was wrong; introduced `TakeoverPage` molecule + `surface:'takeover'` flag (W3).
+3. **Atoms own their display.** Don't pre-render HTML inside data passed to `JM.KPI` — atom escapes it. Pass raw values (W3 wallet refcode bug).
+4. **Back-compat via delegators.** Keep the old `openXyz()` function name as a one-line shim; every onclick=, hash route, and external caller stays valid.
+
+## Path to "fully completed"
+
+The remaining ~50 screens fall into three groups by effort:
+
+| Group | Count | Effort each | Approach |
 |---|---|---|---|
-| Atoms | 10 | 10 | 10 |
-| Molecules | 3 | 3 (+TakeoverPage queued) | 4+ |
-| Models | 3 | **6** | ~25 |
-| Controllers | 1 | 1 | ~15 |
-| Screens extracted | 4 | **7** | ~60 |
-| Inline open* replaced with delegators | 3 | **6** | ~50 |
-| Coverage | ~7% | **~12%** | 100% |
+| Simple modals/takeovers | ~20 | ~5-7 min | Same Wave 2/3 pattern; batch 3-5 per turn |
+| Complex modals (state-heavy) | ~15 | ~15-25 min | Need a controller layer for interaction state |
+| Role dashboards | ~10 | ~30+ min | Re-architecting into widget composition |
 
-## The mechanical pattern (proven 2 waves)
-
-```js
-// /ui/models/<Name>.js
-JM.Models.<Name> = { fetch: async ctx => { ... } };
-
-// /ui/screens/<Name>.js  ← view is pure composition
-JM.Screens.register({
-  id: '<id>', title, model: JM.Models.<Name>,
-  render: data => JM.ModalShell({ body: JM.KPIGrid(...) + JM.ListSection(...) })
-});
-
-// /ui/_boot.js  → add to MODELS + SCREENS arrays
-// dashboard.html → inline body becomes one-line delegator to JM.Screens.open('<id>')
-```
-
-Each extraction is **~30 lines new** + **30-50 lines removed** from `dashboard.html`. Net: smaller, layered, testable.
+The mechanical pattern is now proven and reproducible. Full completion is incremental — each future wave commits independently and back-compat preserves every old call site.
