@@ -64,55 +64,7 @@
       overflow-y: auto;
     }
 
-    /* ==================== PROGRESS STEPS ==================== */
-    .progress-steps {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 40px;
-      justify-content: space-between;
-    }
-
-    .step {
-      flex: 1;
-      text-align: center;
-    }
-
-    .step-number {
-      display: inline-block;
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      background: var(--border);
-      color: var(--text-light);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      margin-bottom: 8px;
-      transition: all 0.3s;
-    }
-
-    .step.active .step-number {
-      background: var(--primary);
-      color: white;
-      transform: scale(1.1);
-    }
-
-    .step.completed .step-number {
-      background: var(--success);
-      color: white;
-    }
-
-    .step-label {
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--text-light);
-      text-transform: uppercase;
-    }
-
-    .step.active .step-label {
-      color: var(--primary);
-    }
+    /* PROGRESS STEPS — owned by /ui/widgets/page/ProgressSteps.js */
 
     /* ==================== FORM SECTIONS ==================== */
     .form-section {
@@ -451,25 +403,20 @@
   </div>
 
   <div class="signup-content">
-    <!-- PROGRESS STEPS -->
-    <div class="progress-steps">
-      <div class="step active" id="step-1">
-        <div class="step-number">1</div>
-        <div class="step-label">AI Setup</div>
-      </div>
-      <div class="step" id="step-2">
-        <div class="step-number">2</div>
-        <div class="step-label">Account</div>
-      </div>
-      <div class="step" id="step-3">
-        <div class="step-number">3</div>
-        <div class="step-label">Profile</div>
-      </div>
-      <div class="step" id="step-4">
-        <div class="step-number">4</div>
-        <div class="step-label">Verify</div>
-      </div>
-    </div>
+    <!-- PROGRESS STEPS — JM.ProgressSteps widget -->
+    <script src="/ui/widgets/page/ProgressSteps.js?v=1"></script>
+    <script>
+      document.write('<style>'+JM.ProgressSteps.css()+'</style>');
+      document.write(JM.ProgressSteps({
+        steps: [
+          { id: 1, label: 'AI Setup' },
+          { id: 2, label: 'Account' },
+          { id: 3, label: 'Profile' },
+          { id: 4, label: 'Verify' }
+        ],
+        active: 1
+      }));
+    </script>
 
     <!-- STEP 1: AI PROVIDER & API KEY -->
     <div class="form-section active" id="section-1">
@@ -910,18 +857,10 @@ let signupData = {
 let currentStep = 1;
 
 // ==================== STEP NAVIGATION ====================
+// Visual state is owned by JM.ProgressSteps widget — delegate to its setActive().
 function updateSteps() {
-  for (let i = 1; i <= 4; i++) {
-    const step = document.getElementById(`step-${i}`);
-    if (i < currentStep) {
-      step.classList.remove('active');
-      step.classList.add('completed');
-    } else if (i === currentStep) {
-      step.classList.add('active');
-      step.classList.remove('completed');
-    } else {
-      step.classList.remove('active', 'completed');
-    }
+  if (window.JM && JM.ProgressSteps && JM.ProgressSteps.setActive) {
+    JM.ProgressSteps.setActive(currentStep);
   }
 }
 
