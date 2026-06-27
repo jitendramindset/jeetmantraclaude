@@ -285,6 +285,7 @@
 </style>
 <link rel="stylesheet" href="/premium-ui.css?v=5">
 <script src="/jm-states.js"></script>
+<script src="/ui/widgets/page/QuestionCard.js?v=1"></script>
 </head>
 <body>
 
@@ -2041,20 +2042,15 @@ function showStudentQ(idx) {
   } else {
     ansHTML = `<textarea class="text-answer" placeholder="Write your answer here..." oninput="state.answers[${idx}]=this.value;updateNavProgress()" onpaste="checkPaste(event)">${state.answers[idx]||''}</textarea>`;
   }
-  document.getElementById('exam-questions').innerHTML = `
-    <div class="q-card">
-      <div class="q-card-head">
-        <div class="q-n">Q${idx+1}</div>
-        <div class="q-text-body">${renderMathText(q.text)}</div>
-        <span class="q-marks">+${q.marks} mark${q.marks>1?'s':''}</span>
-      </div>
-      <div style="display:flex;gap:5px;margin-bottom:12px">
-        <span class="info-pill blue">${q.subject}</span>
-        <span class="info-pill purple">${q.type.toUpperCase()}</span>
-        <span class="info-pill" style="background:rgba(255,255,255,0.04);color:var(--muted)">${q.diff}</span>
-      </div>
-      ${ansHTML}
-    </div>`;
+  document.getElementById('exam-questions').innerHTML = JM.QuestionCard({
+    index: idx,
+    text: renderMathText(q.text),
+    marks: q.marks,
+    subject: q.subject,
+    type: q.type,
+    difficulty: q.diff,
+    answerHtml: ansHTML
+  });
   document.getElementById('btn-prev').disabled = idx === 0;
   document.getElementById('btn-next').style.display = idx === qs.length-1 ? 'none' : 'inline-flex';
 }
