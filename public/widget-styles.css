@@ -77,6 +77,15 @@
 @keyframes wgSlide{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:none}}
 @keyframes wgFade{from{opacity:0}to{opacity:1}}
 @keyframes wgScale{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}
+/* P3 final: widget groups (opt-in via manifest w.group). */
+.wg-group{margin-bottom:18px}
+.wg-group-head{display:flex;align-items:center;gap:8px;padding:8px 4px 6px;cursor:pointer;user-select:none;border-bottom:1px solid var(--jm-border,#e5e7eb);margin-bottom:10px}
+.wg-group-toggle{background:none;border:0;font-size:13px;color:var(--jm-text-muted,#6b7280);padding:2px 4px;cursor:pointer;border-radius:4px}
+.wg-group-toggle:hover{background:var(--jm-primary-tint,rgba(124,58,237,.12))}
+.wg-group-title{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--jm-text-strong,var(--jm-text,#1a1325));flex:1}
+.wg-group-count{font-size:11px;font-weight:600;color:var(--jm-text-muted,#6b7280);background:var(--jm-surface-2,#f3f4f6);padding:2px 8px;border-radius:10px}
+.wg-group-body{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(220px,100%),1fr));gap:12px}
+.wg-group.wg-group-collapsed .wg-group-body{display:none}
 /* Smartboard / large touch — bigger targets + type; controls always shown
    (no hover on touch). */
 @media(min-width:1280px) and (pointer:coarse){

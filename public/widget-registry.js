@@ -205,7 +205,35 @@
     mountEl.classList.toggle('wg-density-compact', density === 'compact');
     mountEl.innerHTML = '';
     const cards = await Promise.all(widgets.map(w => renderWidget(w, ctx)));
-    cards.forEach(c => mountEl.appendChild(c));
+    // P3 final: opt-in groups. If no widget declares `group`, render flat grid (legacy).
+    // Otherwise bucket by group name, emit a collapsible <section> per group.
+    const declaresAnyGroup = widgets.some(w => w.group);
+    if (!declaresAnyGroup) {
+      cards.forEach(c => mountEl.appendChild(c));
+    } else {
+      const collapsedGroups = (ctx.userPrefs && ctx.userPrefs.collapsedGroups) || [];
+      const buckets = new Map();
+      widgets.forEach((w, i) => {
+        const g = w.group || 'General';
+        if (!buckets.has(g)) buckets.set(g, []);
+        buckets.get(g).push(cards[i]);
+      });
+      buckets.forEach((cardsForGroup, groupId) => {
+        const isCollapsed = collapsedGroups.includes(groupId);
+        const section = document.createElement('section');
+        section.className = 'wg-group' + (isCollapsed ? ' wg-group-collapsed' : '');
+        section.dataset.group = groupId;
+        section.innerHTML = '<header class="wg-group-head" onclick="EduOSWidgets.toggleGroup(\'' + esc(groupId).replace(/'/g, '\\\'') + '\')">'
+          + '<button class="wg-group-toggle" aria-label="Toggle group">' + (isCollapsed ? '▸' : '▾') + '</button>'
+          + '<span class="wg-group-title">' + esc(groupId) + '</span>'
+          + '<span class="wg-group-count">' + cardsForGroup.length + '</span>'
+          + '</header>'
+          + '<div class="wg-group-body wg-grid"></div>';
+        const body = section.querySelector('.wg-group-body');
+        cardsForGroup.forEach(c => body.appendChild(c));
+        mountEl.appendChild(section);
+      });
+    }
     // "Add widget" tray for anything the user hid.
     const hidden = hiddenWidgets(ctx);
     const tray = document.getElementById('wgAddTray');
@@ -240,6 +268,11 @@
     // titles {id: 'My custom title'} for user-edited names.
     _ctx.userPrefs.typeSize = _ctx.userPrefs.typeSize || {};
     _ctx.userPrefs.titles = _ctx.userPrefs.titles || {};
+    // P3 final closure: widget groups + saved layouts. collapsedGroups is
+    // an array of group-ids the user has folded. savedLayouts is a map of
+    // {layoutName: <userPrefs snapshot>}.
+    _ctx.userPrefs.collapsedGroups = _ctx.userPrefs.collapsedGroups || [];
+    _ctx.userPrefs.savedLayouts = _ctx.userPrefs.savedLayouts || {};
     return _ctx.userPrefs;
   }
   function _card(id){ return _mount && _mount.querySelector('[data-widget="' + id + '"]'); }
@@ -353,6 +386,66 @@
     persistPrefs();
   }
   // P3 gap closure: user-editable widget titles. Renamed name persists; reset to '' restores manifest title.
+  // P3 final closure: widget groups. A widget declares group:'Money' in its
+  // manifest to land in the "Money" section; widgets without a group go to
+  // the implicit "" bucket. If no widget declares any group, the engine
+  // renders a single flat grid (current behaviour).
+  function toggleGroup(groupId) {
+    const p = ensurePrefs(); const i = p.collapsedGroups.indexOf(groupId); const on = i < 0;
+    on ? p.collapsedGroups.push(groupId) : p.collapsedGroups.splice(i, 1);
+    // Toggle in-place — no full re-render.
+    if (_mount) {
+      const sec = _mount.querySelector('.wg-group[data-group="' + CSS.escape(groupId) + '"]');
+      if (sec) {
+        sec.classList.toggle('wg-group-collapsed', on);
+        const btn = sec.querySelector('.wg-group-toggle');
+        if (btn) btn.textContent = on ? '▸' : '▾';
+      }
+    }
+    persistPrefs();
+  }
+  // P3 final closure: layout save/load/reset/export/import.
+  async function saveLayout(name) {
+    if (!name) return;
+    const p = ensurePrefs();
+    // Snapshot prefs EXCEPT savedLayouts itself (avoid recursion).
+    const { savedLayouts, ...snap } = p;
+    p.savedLayouts[name] = JSON.parse(JSON.stringify(snap));
+    await persistPrefs();
+    return name;
+  }
+  async function loadLayout(name) {
+    const p = ensurePrefs();
+    const snap = p.savedLayouts[name];
+    if (!snap) return false;
+    // Keep savedLayouts; restore everything else from the snapshot.
+    const layouts = p.savedLayouts;
+    _ctx.userPrefs = Object.assign({}, snap, { savedLayouts: layouts });
+    await persistPrefs();
+    await renderDashboard(_mount, _ctx);
+    return true;
+  }
+  async function resetLayout() {
+    // Keep savedLayouts so the user can still recover; clear everything else.
+    const layouts = (_ctx.userPrefs && _ctx.userPrefs.savedLayouts) || {};
+    _ctx.userPrefs = { savedLayouts: layouts };
+    await persistPrefs();
+    await renderDashboard(_mount, _ctx);
+  }
+  function exportLayout() {
+    const p = ensurePrefs();
+    return JSON.stringify(p, null, 2);
+  }
+  async function importLayout(json) {
+    let parsed = null;
+    try { parsed = (typeof json === 'string') ? JSON.parse(json) : json; }
+    catch (e) { throw new Error('Invalid layout JSON: ' + e.message); }
+    if (!parsed || typeof parsed !== 'object') throw new Error('Layout must be an object');
+    _ctx.userPrefs = parsed;
+    await persistPrefs();
+    await renderDashboard(_mount, _ctx);
+    return true;
+  }
   function setTitle(id, newTitle) {
     const p = ensurePrefs();
     const clean = String(newTitle || '').trim().slice(0, 80);
@@ -500,5 +593,5 @@
     titleEl.addEventListener('keydown', keys);
   }
 
-  global.EduOSWidgets = { WIDGETS, register, _lib: _LIB, resolveWidgets, hiddenWidgets, renderDashboard, boot, getContext, widgetForIntent, handleCommand, listen, togglePin, removeWidget, addWidget, toggleCollapse, cycleSize, setAccent, reorder, toggleFavorite, toggleArchive, setDensity, setTheme, toggleSection, cycleTypeSize, setTitle, _editTitle, api, esc };
+  global.EduOSWidgets = { WIDGETS, register, _lib: _LIB, resolveWidgets, hiddenWidgets, renderDashboard, boot, getContext, widgetForIntent, handleCommand, listen, togglePin, removeWidget, addWidget, toggleCollapse, cycleSize, setAccent, reorder, toggleFavorite, toggleArchive, setDensity, setTheme, toggleSection, cycleTypeSize, setTitle, _editTitle, toggleGroup, saveLayout, loadLayout, resetLayout, exportLayout, importLayout, api, esc };
 })(window);
