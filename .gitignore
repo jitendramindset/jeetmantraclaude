@@ -47,6 +47,11 @@ backups/
 # Jupyter auto-generated checkpoints
 .ipynb_checkpoints/
 
+# Local scratchpad files used by audit/dev scripts (never committed)
+scratchpad-*.json
+scratchpad-*.txt
+scratchpad-*.err
+
 # Local-only editor/agent settings (keep launch.json, ignore personal settings)
 .claude/settings.local.json
 
