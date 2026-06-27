@@ -7,7 +7,7 @@
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#7c3aed">
 <link rel="stylesheet" href="theme.css">
-<link rel="stylesheet" href="widget-styles.css">
+<link rel="stylesheet" href="widget-styles.css?v=2">
 <script>if('serviceWorker' in navigator) window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));</script>
 <style>
 /* Dashboard-specific styles — uses theme.css design tokens */
@@ -499,7 +499,7 @@ window.addEventListener('storage', function(e){
 </script>
 <script src="/offline-sync.js"></script>
 <script src="/jm-states.js"></script>
-<script src="/widget-registry.js?v=11"></script>
+<script src="/widget-registry.js?v=12"></script>
 <!-- Widgets self-register via /widgets/<id>.js — _index.js injects them all. -->
 <script src="/widgets/_index.js?v=3"></script>
 <!-- Layered UI system (atoms → molecules → screens) — JM.Screens.open(id) -->

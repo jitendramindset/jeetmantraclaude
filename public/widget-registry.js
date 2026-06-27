@@ -114,8 +114,12 @@
     const collapsed = (prefs.collapsed || []).includes(w.id);
     const accent = (prefs.accents || {})[w.id] || '';
     const favorited = (prefs.favorites || []).includes(w.id);
+    // P2: per-widget theme override (light|dark|auto). Auto = inherit page theme.
+    const theme = (prefs.themes || {})[w.id] || '';
+    // P2: track hidden sections (consumer widgets honor via ctx.hiddenSections).
+    const hiddenSections = (prefs.hiddenSections || {})[w.id] || [];
     const card = document.createElement('section');
-    card.className = 'wg-card wg-' + size + (w._pinned ? ' wg-pinned' : '') + (collapsed ? ' wg-collapsed' : '') + (favorited ? ' wg-favorite' : '');
+    card.className = 'wg-card wg-' + size + (w._pinned ? ' wg-pinned' : '') + (collapsed ? ' wg-collapsed' : '') + (favorited ? ' wg-favorite' : '') + (theme ? ' wg-theme-' + theme : '');
     card.dataset.widget = w.id;
     card.setAttribute('role', 'region');
     card.setAttribute('aria-label', w.title);
@@ -152,7 +156,10 @@
     async function load() {
       try {
         const data = w.dataSource ? await w.dataSource(ctx) : null;
-        body.innerHTML = w.render(data, ctx);
+        // P2: pass per-widget hidden-section list as ctx.hiddenSections so the
+        // widget's render() can opt-out of sections the user turned off.
+        const widgetCtx = Object.assign({}, ctx, { hiddenSections: hiddenSections });
+        body.innerHTML = w.render(data, widgetCtx);
       } catch (e) {
         body.innerHTML = (global.JMStates)
           ? JMStates.retryCard({ msg: 'Couldn’t load this widget.', onRetry: function () { body.innerHTML = skeleton(); load(); } })
@@ -186,6 +193,9 @@
   async function renderDashboard(mountEl, ctx) {
     _mount = mountEl; _ctx = ctx;
     const widgets = resolveWidgets(ctx);
+    // P2: apply grid-wide density class from prefs (compact|comfortable).
+    const density = (ctx.userPrefs && ctx.userPrefs.density) || 'comfortable';
+    mountEl.classList.toggle('wg-density-compact', density === 'compact');
     mountEl.innerHTML = '';
     const cards = await Promise.all(widgets.map(w => renderWidget(w, ctx)));
     cards.forEach(c => mountEl.appendChild(c));
@@ -213,6 +223,12 @@
     // — distinct from Hide which means "I don't want this right now").
     _ctx.userPrefs.favorites = _ctx.userPrefs.favorites || [];
     _ctx.userPrefs.archived = _ctx.userPrefs.archived || [];
+    // P2 gap closure: density (compact|comfortable) is grid-wide; themes is
+    // per-widget {id: 'light'|'dark'|'auto'}; hiddenSections is per-widget
+    // {id: [sectionId,...]} for widgets that declare opt-in sections.
+    _ctx.userPrefs.density = _ctx.userPrefs.density || 'comfortable';
+    _ctx.userPrefs.themes = _ctx.userPrefs.themes || {};
+    _ctx.userPrefs.hiddenSections = _ctx.userPrefs.hiddenSections || {};
     return _ctx.userPrefs;
   }
   function _card(id){ return _mount && _mount.querySelector('[data-widget="' + id + '"]'); }
@@ -280,6 +296,37 @@
   async function toggleArchive(id) {
     const p = ensurePrefs(); const i = p.archived.indexOf(id); const on = i < 0;
     on ? p.archived.push(id) : p.archived.splice(i, 1);
+    await persistPrefs();
+    await renderDashboard(_mount, _ctx);
+  }
+  // P2 gap closure: density (grid-wide) toggles tighter spacing/typography.
+  function setDensity(mode) {
+    const p = ensurePrefs(); p.density = (mode === 'compact') ? 'compact' : 'comfortable';
+    if (_mount) {
+      _mount.classList.toggle('wg-density-compact', p.density === 'compact');
+    }
+    persistPrefs();
+  }
+  // P2 gap closure: per-widget theme override (light | dark | auto).
+  function setTheme(id, mode) {
+    const p = ensurePrefs();
+    if (!mode || mode === 'auto') { delete p.themes[id]; } else { p.themes[id] = mode; }
+    const card = _card(id);
+    if (card) {
+      card.classList.remove('wg-theme-light', 'wg-theme-dark');
+      if (p.themes[id]) card.classList.add('wg-theme-' + p.themes[id]);
+    }
+    persistPrefs();
+  }
+  // P2 gap closure: section-level show/hide for widgets that declare
+  // sections in their manifest. Hidden sections are removed from the
+  // rendered body on the next renderWidget pass.
+  async function toggleSection(widgetId, sectionId) {
+    const p = ensurePrefs();
+    p.hiddenSections[widgetId] = p.hiddenSections[widgetId] || [];
+    const list = p.hiddenSections[widgetId];
+    const i = list.indexOf(sectionId);
+    if (i >= 0) list.splice(i, 1); else list.push(sectionId);
     await persistPrefs();
     await renderDashboard(_mount, _ctx);
   }
@@ -385,5 +432,5 @@
     try { r.start(); return true; } catch (_) { return false; }
   }
 
-  global.EduOSWidgets = { WIDGETS, register, _lib: _LIB, resolveWidgets, hiddenWidgets, renderDashboard, boot, getContext, widgetForIntent, handleCommand, listen, togglePin, removeWidget, addWidget, toggleCollapse, cycleSize, setAccent, reorder, toggleFavorite, toggleArchive, api, esc };
+  global.EduOSWidgets = { WIDGETS, register, _lib: _LIB, resolveWidgets, hiddenWidgets, renderDashboard, boot, getContext, widgetForIntent, handleCommand, listen, togglePin, removeWidget, addWidget, toggleCollapse, cycleSize, setAccent, reorder, toggleFavorite, toggleArchive, setDensity, setTheme, toggleSection, api, esc };
 })(window);

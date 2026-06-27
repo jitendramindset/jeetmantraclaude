@@ -51,6 +51,19 @@
 .wg-ctrl-more summary::-webkit-details-marker{display:none}
 .wg-ctrl-more[open] > summary{background:var(--jm-primary-tint,rgba(124,58,237,.12));border-radius:6px}
 .wg-more-item:hover{background:var(--jm-primary-tint,rgba(124,58,237,.08))}
+/* P2: density toggle (grid-wide compact). Tighter padding + smaller type. */
+.wg-density-compact .wg-card{padding:10px 12px}
+.wg-density-compact .wg-head{margin-bottom:6px}
+.wg-density-compact .wg-title{font-size:12px}
+.wg-density-compact .wg-body{font-size:12px}
+.wg-density-compact .wg-big{font-size:22px}
+.wg-density-compact .wg-row{padding:5px 0}
+/* P2: per-widget theme override (light|dark). Forces local CSS-var overrides
+   so a single widget can flip independently of the page theme. */
+.wg-card.wg-theme-light{--jm-surface:#fff;--jm-bg:#f8f7fc;--jm-text:#1a1325;--jm-text-muted:#6b6783;--jm-border:#e5e3ed;background:var(--jm-surface)}
+.wg-card.wg-theme-dark{--jm-surface:#1a1325;--jm-bg:#0f0d1c;--jm-text:#f5f3ff;--jm-text-muted:#a8a3c4;--jm-border:#332b4d;background:var(--jm-surface);color:var(--jm-text)}
+.wg-card.wg-theme-dark .wg-title{color:var(--jm-text)}
+.wg-card.wg-theme-dark .wg-sub{color:var(--jm-text-muted)}
 /* Smartboard / large touch — bigger targets + type; controls always shown
    (no hover on touch). */
 @media(min-width:1280px) and (pointer:coarse){
