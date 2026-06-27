@@ -503,7 +503,7 @@ window.addEventListener('storage', function(e){
 <!-- Widgets self-register via /widgets/<id>.js — _index.js injects them all. -->
 <script src="/widgets/_index.js?v=3"></script>
 <!-- Layered UI system (atoms → molecules → screens) — JM.Screens.open(id) -->
-<script src="/ui/_boot.js?v=15"></script>
+<script src="/ui/_boot.js?v=16"></script>
 </head>
 <body>
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
@@ -4118,25 +4118,9 @@ async function openCourseStudents(courseId, title){
 // openStudentDetail — now a thin delegator. Real screen: /ui/screens/StudentDetail.js
 async function openStudentDetail(courseId, studentId){ if(window.JM&&JM.Screens) return JM.Screens.open('student-detail',{courseId,studentId}); }
 
-// ── Admin: n8n addon config ────────────────────────────────────────────
-async function openN8nConfig(){
-  openModal('n8nConfig');
-  const body=document.getElementById('n8n-body');
-  if(!body)return;
-  try{
-    const cfg=await api('/n8n/config','GET');
-    body.innerHTML=`
-      <div class="form-row"><label>Webhook URL</label><input id="m-n8n-url" placeholder="https://your-n8n.com/webhook/jeetmantra" value="${cfg.url||''}"></div>
-      <div class="form-row"><label>Secret (header X-N8N-Secret)</label><input id="m-n8n-secret" placeholder="${cfg.hasSecret?'(set — overwrite to change)':'optional'}"></div>
-      <div class="form-row"><label>Status</label><div style="font-size:13px"><span class="badge ${cfg.enabled?'badge-green':'badge-muted'}">${cfg.enabled?'Enabled':'Disabled'}</span>${cfg.source?' <span class="badge badge-muted">source: '+cfg.source+'</span>':''}</div></div>
-      <div style="display:flex;gap:8px;margin-top:14px">
-        <button class="btn-sm btn-primary" onclick="saveN8nConfig(true)">Save & Enable</button>
-        <button class="btn-sm btn-outline" onclick="saveN8nConfig(false)">Save & Disable</button>
-        <button class="btn-sm btn-outline" onclick="testN8n()">🔔 Send Test Event</button>
-      </div>
-      <div id="n8n-result" style="margin-top:12px;font-size:13px"></div>`;
-  }catch(e){ body.innerHTML='<div style="color:#b91c1c">Error: '+escHtml(e.message)+'</div>'; }
-}
+// openN8nConfig — now a thin delegator. Real screen: /ui/screens/N8nConfig.js
+// saveN8nConfig() and testN8n() helpers below stay (read #m-n8n-url + #m-n8n-secret from the rendered form).
+async function openN8nConfig(){ if(window.JM&&JM.Screens) return JM.Screens.open('n8n-config'); }
 async function saveN8nConfig(enabled){
   try{
     const url=val('m-n8n-url');
