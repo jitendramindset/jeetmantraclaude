@@ -34,10 +34,15 @@
   }
 
   // Open a registered screen. ctx defaults to {role from jm_user}.
+  // Open a registered screen. ctx defaults to {role from jm_user}.
+  // Surface mode: def.surface === 'takeover' uses JM.TakeoverPage (full-screen),
+  // anything else uses showModal (default — backward compatible).
   async function open(id, ctx) {
     var def = registry[id];
     if (!def) { console.warn('JM.Screens.open: unknown screen', id); return; }
-    if (typeof showModal !== 'function') { console.warn('showModal missing'); return; }
+    var isTakeover = def.surface === 'takeover';
+    if (!isTakeover && typeof showModal !== 'function') { console.warn('showModal missing'); return; }
+    if (isTakeover && !(window.JM && JM.TakeoverPage)) { console.warn('JM.TakeoverPage missing'); return; }
     ctx = ctx || {};
     if (!ctx.role) {
       try { ctx.role = JSON.parse(localStorage.getItem('jm_user') || '{}').role || 'student'; } catch (_) { ctx.role = 'student'; }
@@ -46,19 +51,30 @@
     if (def.id !== 'widget-admin') {
       var pol = await loadAdminPolicy();
       if (!visibleForRole(pol, def.id, ctx.role)) {
-        showModal(def.title || 'Unavailable',
-          (window.JMStates ? JMStates.empty({ icon: '🔒', title: 'Disabled by admin', msg: 'This screen has been turned off for your role.' })
-            : '<div style="padding:20px;text-align:center">Disabled by admin.</div>'));
+        var msg = (window.JMStates ? JMStates.empty({ icon: '🔒', title: 'Disabled by admin', msg: 'This screen has been turned off for your role.' })
+          : '<div style="padding:20px;text-align:center">Disabled by admin.</div>');
+        if (isTakeover) JM.TakeoverPage.open({ crumb: def.title || 'Unavailable', bodyHtml: msg });
+        else showModal(def.title || 'Unavailable', msg);
         return;
       }
     }
-    // Open with a skeleton, then load model + render.
+    var data = null;
+    if (isTakeover) {
+      JM.TakeoverPage.open({ crumb: def.crumb || (def.title || '').replace(/^\W+\s*/, ''), bodyHtml: '' });
+      JM.TakeoverPage.loading();
+      try {
+        if (def.model && typeof def.model.fetch === 'function') data = await def.model.fetch(ctx);
+        JM.TakeoverPage.setBody(def.render(data, ctx) || '');
+      } catch (e) { JM.TakeoverPage.error(e.message); }
+      if (typeof def.afterMount === 'function') try { def.afterMount(data, ctx, document.getElementById('bk-body')); } catch (e) {}
+      return;
+    }
+    // Modal path (original behaviour).
     var bodyId = 'jms-' + def.id + '-body';
     showModal(def.title || '', '<div id="' + bodyId + '" style="min-height:160px">'
       + (window.JMStates ? JMStates.skeleton({ lines: 4 }) : '<div style="padding:14px;color:var(--jm-text-muted)">Loading…</div>') + '</div>');
     var body = document.getElementById(bodyId);
     if (!body) return;
-    var data = null;
     try {
       if (def.model && typeof def.model.fetch === 'function') data = await def.model.fetch(ctx);
       body.innerHTML = def.render(data, ctx) || '';
@@ -67,7 +83,6 @@
         ? JMStates.error({ title: 'Couldn’t load', msg: e.message || 'The screen failed to load.', onRetry: function () { open(id, ctx); }, detail: e.message })
         : '<div style="padding:20px;text-align:center;color:#dc2626">⚠️ ' + (e.message || 'Error') + '</div>');
     }
-    // After paint, the screen can hydrate (attach handlers, run animations).
     if (typeof def.afterMount === 'function') try { def.afterMount(data, ctx, body); } catch (e) {}
   }
 

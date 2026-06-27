@@ -503,7 +503,7 @@ window.addEventListener('storage', function(e){
 <!-- Widgets self-register via /widgets/<id>.js — _index.js injects them all. -->
 <script src="/widgets/_index.js?v=1"></script>
 <!-- Layered UI system (atoms → molecules → screens) — JM.Screens.open(id) -->
-<script src="/ui/_boot.js?v=2"></script>
+<script src="/ui/_boot.js?v=5"></script>
 </head>
 <body>
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
@@ -6324,46 +6324,8 @@ async function _openMoneyPage(kind){
 // ── RECORDINGS LIBRARY — past live classes that have a recording. Student
 // and teacher both see this (scoped server-side). Opens a full page with
 // inline video players.
-async function openRecordings(){
-  _closeAllPages();
-  document.getElementById('bookingsPage').classList.add('active');
-  document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
-  document.querySelectorAll('.topbar').forEach(s=>s.style.display='none'); // keep sidebar visible
-  document.getElementById('bk-crumb').textContent='Recordings';
-  const body=document.getElementById('bk-body');
-  body.innerHTML='<div style="text-align:center;padding:40px;color:#888">Loading…</div>';
-  try{
-    const r=await api('/live-classes/recordings/list','GET');
-    const recs=r.recordings||[];
-    if(!recs.length){
-      body.innerHTML='<div class="card" style="max-width:600px;margin:40px auto;padding:24px;text-align:center"><div style="font-size:48px">📹</div><div style="font-weight:600;margin-top:10px">No recordings yet</div><div style="color:var(--jm-text-muted);margin-top:6px;margin-bottom:14px">Recorded live classes appear here. Open Studio to record now.</div><button onclick="location.hash=\'#/m/studio\'" style="background:linear-gradient(135deg,var(--jm-primary),#a855f7);color:#fff;border:0;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(124,58,237,.35)">🎥 Open Studio</button></div>';
-      return;
-    }
-    // Group recordings by course, then by topic (chapter) within the course.
-    const byCourse={};
-    recs.forEach(rc=>{ const c=rc.course_title||'Course'; (byCourse[c]=byCourse[c]||[]).push(rc); });
-    const card=rc=>`<div class="card" style="padding:14px">
-        <video src="${escHtml(rc.recording_url)}" controls preload="metadata" style="width:100%;border-radius:8px;background:#000;max-height:200px"></video>
-        <div style="font-weight:600;margin-top:8px">${escHtml(rc.title||'Live Class')}</div>
-        <div style="font-size:12px;color:var(--jm-text-muted)">${rc.topic_title?'📁 '+escHtml(rc.topic_title)+' · ':''}${rc.recording_uploaded_at?new Date(rc.recording_uploaded_at).toLocaleString():''}</div>
-        <a href="${escHtml(rc.recording_url)}" download class="btn-sm btn-outline" style="text-decoration:none;margin-top:8px;display:inline-block">⬇ Download</a>
-      </div>`;
-    body.innerHTML=`<div style="max-width:1180px;margin:0 auto">
-      <h2 style="margin-bottom:14px">📹 Class Recordings (${recs.length})</h2>
-      ${Object.keys(byCourse).sort().map(course=>{
-        const list=byCourse[course];
-        // sub-group by topic
-        const byTopic={}; list.forEach(rc=>{ const t=rc.topic_title||'General'; (byTopic[t]=byTopic[t]||[]).push(rc); });
-        return `<div style="margin-bottom:22px">
-          <div style="font-weight:800;font-size:15px;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--jm-primary)">📚 ${escHtml(course)}</div>
-          ${Object.keys(byTopic).sort().map(topic=>`
-            <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--jm-text-muted);margin:10px 0 8px">📁 ${escHtml(topic)} <span style="opacity:.6">(${byTopic[topic].length})</span></div>
-            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(320px,100%),1fr));gap:16px">${byTopic[topic].map(card).join('')}</div>`).join('')}
-        </div>`;
-      }).join('')}
-    </div>`;
-  }catch(e){ body.innerHTML='<div style="color:#b91c1c;padding:20px">'+escHtml(e.message)+'</div>'; }
-}
+// openRecordings — now a thin delegator. Real screen: /ui/screens/Recordings.js (takeover-page).
+async function openRecordings(){ if(typeof _closeAllPages==='function') _closeAllPages(); if(window.JM&&JM.Screens) return JM.Screens.open('recordings'); }
 
 // ── Course archive / duplicate (teacher) ──────────────────────────────
 async function duplicateCourse(id){
@@ -6455,28 +6417,8 @@ async function _lpGenerate(){
 }
 
 // ── Attendance report card (student) ───────────────────────────────────
-async function openAttendanceReport(){
-  document.getElementById('bookingsPage').classList.add('active');
-  document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
-  document.querySelectorAll('.topbar').forEach(s=>s.style.display='none'); // keep sidebar visible (synced nav)
-  document.getElementById('bk-crumb').textContent='Attendance report';
-  const body=document.getElementById('bk-body');
-  body.innerHTML='<div style="text-align:center;padding:40px;color:#888">Loading…</div>';
-  try{
-    const r=await api('/student/attendance-report','GET');
-    const rep=r.report||[]; const o=r.overall||{};
-    body.innerHTML=`<div style="max-width:800px;margin:0 auto">
-      <h2 style="margin-bottom:14px">🗓 Attendance report</h2>
-      <div class="stats-grid" style="margin-bottom:18px">
-        <div class="stat-card"><div class="label">Overall</div><div class="value">${o.percentage||0}%</div><div class="sub">${o.present||0}/${o.total||0} present</div></div>
-      </div>
-      ${rep.length?`<div class="card"><table style="width:100%;border-collapse:collapse">
-        <thead><tr style="text-align:left;color:var(--jm-text-muted);font-size:12px;border-bottom:1px solid var(--jm-border)"><th style="padding:8px">Course</th><th style="padding:8px;text-align:center">Present</th><th style="padding:8px;text-align:center">Absent</th><th style="padding:8px;text-align:center">Late</th><th style="padding:8px;text-align:center">%</th></tr></thead><tbody>
-        ${rep.map(c=>{const col=c.percentage>=75?'#10b981':c.percentage>=50?'#f59e0b':'#ef4444';return `<tr style="border-bottom:1px solid var(--jm-border)"><td style="padding:8px">${escHtml(c.course_title)}</td><td style="padding:8px;text-align:center">${c.present}</td><td style="padding:8px;text-align:center">${c.absent}</td><td style="padding:8px;text-align:center">${c.late}</td><td style="padding:8px;text-align:center"><span style="padding:3px 10px;border-radius:99px;background:${col};color:#fff;font-weight:600;font-size:12px">${c.percentage}%</span></td></tr>`;}).join('')}
-        </tbody></table></div>`:'<div class="empty-state"><div class="icon">🗓</div>No attendance records yet.</div>'}
-    </div>`;
-  }catch(e){ body.innerHTML='<div style="color:#b91c1c;padding:20px">'+escHtml(e.message)+'</div>'; }
-}
+// openAttendanceReport — now a thin delegator. Real screen: /ui/screens/AttendanceReport.js (takeover).
+async function openAttendanceReport(){ if(window.JM&&JM.Screens) return JM.Screens.open('attendance-report'); }
 
 // ============================================================
 // TEST ANALYTICS — per-question pass rate + score distribution for a test
@@ -8374,50 +8316,8 @@ async function uploadOCR(form){
 // ============================================================
 // WALLET — balance + topup + transactions list. Phase 2B.
 // ============================================================
-async function openWallet(){
-  document.getElementById('bookingsPage').classList.add('active');
-  document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
-  document.querySelectorAll('.topbar').forEach(s=>s.style.display='none'); // keep sidebar visible (synced nav)
-  document.getElementById('bk-crumb').textContent='Wallet';
-  const body=document.getElementById('bk-body');
-  body.innerHTML='<div style="text-align:center;padding:40px;color:#888">Loading…</div>';
-  try{
-    const r=await api('/wallet','GET');
-    const refCode=await api('/wallet/referrals/my-code','GET').catch(()=>({code:'—'}));
-    body.innerHTML=`<div style="max-width:900px;margin:0 auto">
-      <h2 style="margin-bottom:14px">💰 My Wallet</h2>
-      <div class="stats-grid" style="margin-bottom:18px">
-        <div class="stat-card" style="--sc:#10b981"><div class="label">Balance</div><div class="value">${fmt(r.balance||0)}</div><div class="sub">Available</div></div>
-        <div class="stat-card" style="--sc:#7c3aed"><div class="label">Your referral code</div><div class="value" style="font-size:18px;font-family:monospace">${escHtml(refCode.code||'—')}</div><div class="sub">Share to earn ₹100</div></div>
-        <div class="stat-card" style="--sc:#f59e0b"><div class="label">Transactions</div><div class="value">${(r.transactions||[]).length}</div><div class="sub">Last 30</div></div>
-      </div>
-      <div class="card" style="padding:18px;margin-bottom:14px">
-        <div style="font-weight:700;margin-bottom:10px">Add money</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          ${[100,500,1000,2000,5000].map(a=>`<button class="btn-sm btn-outline" onclick="walletTopup(${a})">+ ₹${a}</button>`).join('')}
-          <button class="btn-sm btn-primary" onclick="walletTopup(null)">Custom amount</button>
-        </div>
-      </div>
-      <div class="card" style="padding:18px;margin-bottom:14px">
-        <div style="font-weight:700;margin-bottom:10px">Apply a referral code</div>
-        <div style="display:flex;gap:6px"><input id="ref-code-in" placeholder="e.g. JMABC123" style="flex:1;padding:10px;border:1.5px solid var(--jm-border);border-radius:6px"><button class="btn-sm btn-primary" onclick="applyReferral()">Apply</button></div>
-      </div>
-      <div class="card" style="padding:0;overflow:hidden">
-        <div style="padding:14px 16px;font-weight:700;border-bottom:1px solid var(--jm-border)">Recent transactions</div>
-        ${(r.transactions||[]).length?`<table style="width:100%;border-collapse:collapse">
-          <thead><tr style="font-size:11px;color:var(--jm-text-muted);text-transform:uppercase;border-bottom:1px solid var(--jm-border)"><th style="text-align:left;padding:10px 14px">Date</th><th style="text-align:left;padding:10px 14px">Type</th><th style="text-align:left;padding:10px 14px">Notes</th><th style="text-align:right;padding:10px 14px">Amount</th><th style="text-align:right;padding:10px 14px">Balance</th></tr></thead><tbody>
-          ${r.transactions.map(t=>`<tr style="border-bottom:1px solid var(--jm-border);font-size:13px">
-            <td style="padding:10px 14px">${new Date(t.created_at).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</td>
-            <td style="padding:10px 14px"><span class="badge ${t.amount>=0?'badge-green':'badge-red'}">${escHtml(t.type)}</span></td>
-            <td style="padding:10px 14px;color:var(--jm-text-muted)">${escHtml(t.notes||'—')}</td>
-            <td style="padding:10px 14px;text-align:right;font-weight:700;color:${t.amount>=0?'#10b981':'#ef4444'}">${t.amount>=0?'+':''}${fmt(t.amount)}</td>
-            <td style="padding:10px 14px;text-align:right;color:var(--jm-text-muted)">${fmt(t.balance_after||0)}</td>
-          </tr>`).join('')}
-          </tbody></table>`:'<div class="empty-state" style="text-align:center;padding:32px"><div class="icon" style="font-size:44px">💸</div><div style="font-weight:600;margin:8px 0">No transactions yet</div><div style="color:var(--jm-text-muted);font-size:13px;margin-bottom:14px">Top up your wallet to unlock paid course purchases & faster checkout.</div><button onclick="if(typeof walletTopupOpen===\'function\')walletTopupOpen();else document.getElementById(\'wlTopupBtn\')?.click();" style="background:linear-gradient(135deg,var(--jm-primary),#a855f7);color:#fff;border:0;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(124,58,237,.35)">💳 Top up wallet</button></div>'}
-      </div>
-    </div>`;
-  }catch(e){ body.innerHTML='<div style="color:#b91c1c;padding:20px">'+escHtml(e.message)+'</div>'; }
-}
+// openWallet — now a thin delegator. Real screen: /ui/screens/Wallet.js (takeover-page surface).
+async function openWallet(){ if(window.JM&&JM.Screens) return JM.Screens.open('wallet'); }
 async function walletTopup(presetAmount){
   let amount=presetAmount;
   if(amount==null){ amount=Number(prompt('Top-up amount (min ₹50):','500')); }
