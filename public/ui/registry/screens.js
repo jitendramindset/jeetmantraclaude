@@ -60,13 +60,21 @@
     }
     var data = null;
     if (isTakeover) {
-      JM.TakeoverPage.open({ crumb: def.crumb || (def.title || '').replace(/^\W+\s*/, ''), bodyHtml: '' });
-      JM.TakeoverPage.loading();
+      // Per-screen target ids let screens like ProfilePage reuse a pre-existing
+      // takeover DOM scaffold (e.g. #profilePage + #pf-body) instead of the default bookingsPage.
+      var pageId  = def.pageId  || 'bookingsPage';
+      var bodyId  = def.bodyId  || 'bk-body';
+      var crumbId = def.crumbId || 'bk-crumb';
+      JM.TakeoverPage.open({
+        crumb: def.crumb || (def.title || '').replace(/^\W+\s*/, ''),
+        bodyHtml: '', pageId: pageId, bodyId: bodyId, crumbId: crumbId
+      });
+      JM.TakeoverPage.loading(undefined, bodyId);
       try {
         if (def.model && typeof def.model.fetch === 'function') data = await def.model.fetch(ctx);
-        JM.TakeoverPage.setBody(def.render(data, ctx) || '');
-      } catch (e) { JM.TakeoverPage.error(e.message); }
-      if (typeof def.afterMount === 'function') try { def.afterMount(data, ctx, document.getElementById('bk-body')); } catch (e) {}
+        JM.TakeoverPage.setBody(def.render(data, ctx) || '', bodyId);
+      } catch (e) { JM.TakeoverPage.error(e.message, bodyId); }
+      if (typeof def.afterMount === 'function') try { def.afterMount(data, ctx, document.getElementById(bodyId)); } catch (e) {}
       return;
     }
     // Modal path (original behaviour).

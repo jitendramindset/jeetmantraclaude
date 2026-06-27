@@ -503,7 +503,7 @@ window.addEventListener('storage', function(e){
 <!-- Widgets self-register via /widgets/<id>.js — _index.js injects them all. -->
 <script src="/widgets/_index.js?v=3"></script>
 <!-- Layered UI system (atoms → molecules → screens) — JM.Screens.open(id) -->
-<script src="/ui/_boot.js?v=18"></script>
+<script src="/ui/_boot.js?v=19"></script>
 </head>
 <body>
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
@@ -9176,68 +9176,9 @@ function calJoin(id){ window.location.hash='#/m/live/'+id; }
 // Replaces the old updateProfile modal with a full inline page so address
 // fields and the photo upload have proper room.
 // ============================================================
-async function openProfilePage(){
-  document.getElementById('profilePage').classList.add('active');
-  document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
-  document.querySelectorAll('.topbar').forEach(s=>s.style.display='none'); // keep sidebar visible (synced nav)
-  const body=document.getElementById('pf-body');
-  body.innerHTML='<div style="text-align:center;padding:40px;color:#888">Loading…</div>';
-  try{
-    const r=await api('/users/profile','GET');
-    const u=r.user||r||{};
-    body.innerHTML=`<div style="max-width:760px;margin:0 auto">
-      <div class="card" style="padding:20px;margin-bottom:14px">
-        <h2 style="margin-bottom:14px">👤 Your profile</h2>
-        <div style="display:flex;gap:14px;align-items:center;margin-bottom:18px;flex-wrap:wrap">
-          ${u.profile_image?`<img src="${escHtml(u.profile_image)}" style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:2px solid var(--jm-border)">`:'<div style="width:72px;height:72px;border-radius:50%;background:var(--jm-primary-tint);display:flex;align-items:center;justify-content:center;font-size:28px">👤</div>'}
-          <div><div style="font-weight:700;font-size:16px">${escHtml(u.full_name||'')}</div><div style="font-size:12px;color:var(--jm-text-muted)">${escHtml(u.user_type||u.role||'')}</div></div>
-          <div style="margin-left:auto"><input type="file" id="pf-photo" accept="image/*" onchange="pfUploadPhoto(this)" style="font-size:12px"></div>
-        </div>
-        <div class="grid-2">
-          <div class="form-row"><label>Full name</label><input id="pf-name" value="${escHtml(u.full_name||'')}"></div>
-          <div class="form-row"><label>Date of birth</label><input id="pf-dob" type="date" value="${u.date_of_birth||''}"></div>
-        </div>
-        <div class="grid-2">
-          <div class="form-row"><label>Email <span style="color:#ef4444">*</span></label><input id="pf-email" type="email" value="${escHtml(u.email||'')}" required></div>
-          <div class="form-row"><label>Mobile <span style="color:#ef4444">*</span></label><input id="pf-phone" type="tel" value="${escHtml(u.phone||'')}" required></div>
-        </div>
-        <div class="form-row"><label>Bio</label><textarea id="pf-bio" rows="3" placeholder="A short bio">${escHtml(u.bio||'')}</textarea></div>
-        <h3 style="font-size:14px;margin:14px 0 8px;color:var(--jm-text-muted);text-transform:uppercase;letter-spacing:.05em">Address</h3>
-        <div class="form-row"><label>Street</label><input id="pf-street" value="${escHtml(u.street||'')}"></div>
-        <div class="grid-2">
-          <div class="form-row"><label>City</label><input id="pf-city" value="${escHtml(u.city||'')}"></div>
-          <div class="form-row"><label>State / region</label><input id="pf-state" value="${escHtml(u.state_region||'')}"></div>
-        </div>
-        <div class="grid-2">
-          <div class="form-row"><label>Postal code</label><input id="pf-postal" value="${escHtml(u.postal_code||'')}"></div>
-          <div class="form-row"><label>Country</label><input id="pf-country" value="${escHtml(u.country||'India')}"></div>
-        </div>
-        <div class="grid-2"><div class="form-row"><label>Alternate contact no.</label><input id="pf-altphone" value="${escHtml(u.alt_phone||'')}" placeholder="optional second number"></div><div class="form-row"></div></div>
-        <h3 style="font-size:14px;margin:14px 0 8px;color:var(--jm-text-muted);text-transform:uppercase;letter-spacing:.05em">Professional</h3>
-        <div class="form-row"><label>Education / qualifications</label><textarea id="pf-education" rows="2" placeholder="e.g. M.Sc Physics, B.Ed · IIT Delhi">${escHtml(u.education||'')}</textarea></div>
-        <div class="form-row"><label>Experience</label><textarea id="pf-experience" rows="2" placeholder="e.g. 8 years teaching JEE/NEET physics">${escHtml(u.experience||'')}</textarea></div>
-        <h3 style="font-size:14px;margin:14px 0 8px;color:var(--jm-text-muted);text-transform:uppercase;letter-spacing:.05em">Social &amp; links</h3>
-        <div class="grid-2">
-          <div class="form-row"><label>🎥 YouTube</label><input id="pf-youtube" value="${escHtml(u.youtube_url||'')}" placeholder="https://youtube.com/@channel"></div>
-          <div class="form-row"><label>🔗 Website</label><input id="pf-website" value="${escHtml(u.website_url||'')}" placeholder="https://…"></div>
-        </div>
-        <div class="grid-2">
-          <div class="form-row"><label>💼 LinkedIn</label><input id="pf-linkedin" value="${escHtml(u.linkedin_url||'')}" placeholder="https://linkedin.com/in/…"></div>
-          <div class="form-row"><label>📸 Instagram</label><input id="pf-instagram" value="${escHtml(u.instagram_url||'')}" placeholder="https://instagram.com/…"></div>
-        </div>
-        <div class="grid-2">
-          <div class="form-row"><label>𝕏 Twitter / X</label><input id="pf-twitter" value="${escHtml(u.twitter_url||'')}" placeholder="https://x.com/…"></div>
-          <div class="form-row"></div>
-        </div>
-        <div id="pf-msg" class="msg" style="margin:10px 0"></div>
-        <div style="display:flex;gap:8px;margin-top:10px">
-          <button class="btn-sm btn-outline" onclick="closeProfilePage()">Cancel</button>
-          <button class="btn-sm btn-primary" onclick="pfSave()">💾 Save profile</button>
-        </div>
-      </div>
-    </div>`;
-  }catch(e){ body.innerHTML='<div style="color:#b91c1c;padding:20px">'+escHtml(e.message)+'</div>'; }
-}
+// openProfilePage — now a thin delegator. Real screen: /ui/screens/Profile.js
+// (takeover via pre-existing #profilePage). pfSave + pfUploadPhoto helpers below stay.
+async function openProfilePage(){ if(window.JM&&JM.Screens) return JM.Screens.open('profile-page'); }
 function closeProfilePage(){
   document.getElementById('profilePage').classList.remove('active');
   document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='');
