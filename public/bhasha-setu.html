@@ -212,6 +212,7 @@
 <link rel="stylesheet" href="/premium-ui.css?v=5">
 <script src="/jm-states.js"></script>
 <script src="/ui/widgets/page/Hero.js?v=1"></script>
+<script src="/ui/widgets/page/RolePicker.js?v=1"></script>
 </head>
 <body>
 <div class="app" id="app"></div>
@@ -682,10 +683,10 @@ function renderLogin(){
       ${JM.Hero({logo:escH(c.logo||'📖'),title:escH(c.appName||'Bhasha Setu'),tagline:escH(c.tagline||'')})}
       <div style="text-align:center;margin:-.4em 0 .6em">${langPickerInline()}</div>
       <h2 class="center" style="font-size:1.1em;margin:.4em 0">${t('chooseRole')}</h2>
-      <div class="rolepick">
-        <button class="rolecard" id="goStudent"><span class="ri">🧑‍🎓</span><span><b>${t('iAmStudent')}</b><span class="muted">${t('studentSub')}</span></span></button>
-        <button class="rolecard" id="goTeacher"><span class="ri">🧑‍🏫</span><span><b>${t('iAmTeacher')}</b><span class="muted">${t('teacherSub')}</span></span></button>
-      </div>`;
+      ${JM.RolePicker({roles:[
+        { id: 'goStudent', icon: '🧑‍🎓', title: t('iAmStudent'), sub: t('studentSub') },
+        { id: 'goTeacher', icon: '🧑‍🏫', title: t('iAmTeacher'), sub: t('teacherSub') }
+      ]})}`;
     wireLangPickerInline();
     $('#goStudent').onclick = ()=>go('login',{sub:'student'});
     $('#goTeacher').onclick = ()=>go('login',{sub:'admin'});

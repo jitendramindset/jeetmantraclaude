@@ -44,6 +44,9 @@ backups/
 # Backups / scratch
 *.bak
 
+# Jupyter auto-generated checkpoints
+.ipynb_checkpoints/
+
 # Local-only editor/agent settings (keep launch.json, ignore personal settings)
 .claude/settings.local.json
 

@@ -286,6 +286,7 @@
 <link rel="stylesheet" href="/premium-ui.css?v=5">
 <script src="/jm-states.js"></script>
 <script src="/ui/widgets/page/QuestionCard.js?v=1"></script>
+<script src="/ui/widgets/page/Timer.js?v=1"></script>
 </head>
 <body>
 
@@ -2079,13 +2080,14 @@ function confirmSubmit() {
 }
 
 // ==================== TIMER ====================
+// Display formatting owned by JM.Timer widget; state + interval stay here.
 function startTimer() {
   if (state.timerInterval) clearInterval(state.timerInterval);
   state.timerInterval = setInterval(() => {
     state.timeLeft--;
-    const m = Math.floor(state.timeLeft/60), s = state.timeLeft%60;
     const d = document.getElementById('exam-timer');
-    d.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    d.textContent = (window.JM && JM.Timer) ? JM.Timer.format(state.timeLeft)
+      : `${String(Math.floor(state.timeLeft/60)).padStart(2,'0')}:${String(state.timeLeft%60).padStart(2,'0')}`;
     d.className = 'timer-display' + (state.timeLeft<=60?' danger':state.timeLeft<=300?' warn':'');
     if (state.timeLeft===300) { sendWebhook('timer_warning',{minutesLeft:5}); logEvent('timer_warning',{minutesLeft:5}); }
     if (state.timeLeft<=0) { clearInterval(state.timerInterval); submitExam(); }

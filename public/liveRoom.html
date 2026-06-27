@@ -62,6 +62,7 @@ body{font-family:-apple-system,'Segoe UI',sans-serif;background:var(--jm-bg);col
 <script src="/jm-theme.js"></script>
 <script src="/jm-states.js"></script>
 <link rel="stylesheet" href="/premium-ui.css?v=5">
+<script src="/ui/widgets/page/StatusBadge.js?v=1"></script>
 </head>
 <body>
 <div class="live-topbar">
@@ -74,7 +75,7 @@ body{font-family:-apple-system,'Segoe UI',sans-serif;background:var(--jm-bg);col
     <div class="title" id="classTitle">Loading…</div>
     <div class="sub" id="classSub">—</div>
   </div>
-  <span class="badge" id="statusBadge">scheduled</span>
+  <span id="statusBadgeWrap"><span class="badge scheduled" id="statusBadge">scheduled</span></span>
   <span id="timer" style="font-family:monospace;color:var(--jm-text-muted);font-size:13px">00:00</span>
   <div class="controls" id="teacherControls" style="display:none">
     <button class="btn primary" id="btnStart" onclick="startClass()">▶ Start Class</button>
@@ -223,9 +224,14 @@ async function api(path, method, body) {
 }
 
 function setStatus(s) {
-  const b = document.getElementById('statusBadge');
-  b.className = 'badge ' + s;
-  b.textContent = s;
+  // Visual rendering owned by JM.StatusBadge widget; preserves existing #statusBadge id for callers.
+  const wrap = document.getElementById('statusBadgeWrap');
+  if (wrap && window.JM && JM.StatusBadge) {
+    wrap.innerHTML = JM.StatusBadge(s, { id: 'statusBadge' });
+  } else {
+    const b = document.getElementById('statusBadge');
+    if (b) { b.className = 'badge ' + s; b.textContent = s; }
+  }
 }
 
 function fmtTime(secs) {
