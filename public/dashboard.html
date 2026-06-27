@@ -503,7 +503,7 @@ window.addEventListener('storage', function(e){
 <!-- Widgets self-register via /widgets/<id>.js — _index.js injects them all. -->
 <script src="/widgets/_index.js?v=3"></script>
 <!-- Layered UI system (atoms → molecules → screens) — JM.Screens.open(id) -->
-<script src="/ui/_boot.js?v=16"></script>
+<script src="/ui/_boot.js?v=17"></script>
 </head>
 <body>
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
@@ -5540,44 +5540,10 @@ async function nearEnrollSelected(){
 }
 
 // ── COUPONS: teachers create discount codes for their courses + see/list them.
-async function openCoupons(){
-  showModal('🎟 Discount Coupons', `<div id="cpn-body" style="min-height:160px"><div style="color:var(--jm-text-muted);padding:14px">Loading…</div></div>`);
-  await cpnRefresh();
-}
-async function cpnRefresh(){
-  const body=document.getElementById('cpn-body'); if(!body) return;
-  let list=[];
-  try{ const r=await api('/payments/coupons','GET'); list=r.coupons||[]; }catch(e){}
-  const courses=(window._teacherCourses||[]).map(c=>`<option value="${c.id}">${escHtml(c.title)}</option>`).join('');
-  const rows=list.length?list.map(c=>{
-    const disc=c.discount_percent?c.discount_percent+'% off':(c.discount_flat?'₹'+c.discount_flat+' off':'—');
-    const used=`${c.used_count||0}/${c.max_uses||100} used`;
-    const exp=c.expires_at?'· exp '+new Date(c.expires_at).toLocaleDateString():'';
-    return `<div style="display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--jm-border);border-radius:10px;margin-bottom:8px">
-      <div style="font-family:monospace;font-weight:800;font-size:15px;background:var(--jm-primary-tint);color:var(--jm-primary);padding:4px 10px;border-radius:6px">${escHtml(c.code)}</div>
-      <div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px">${disc} · ${escHtml(c.course_title||'All courses')}</div><div style="font-size:11px;color:var(--jm-text-muted)">${used} ${exp}</div></div>
-      <button class="btn-sm btn-outline" onclick="cpnDelete('${c.id}')" title="Delete" style="color:#b91c1c">🗑</button>
-    </div>`;
-  }).join(''):'<div class="empty-state" style="text-align:center;padding:32px"><div class="icon" style="font-size:44px">🎟</div><div style="font-weight:600;margin:8px 0">No coupons yet</div><div style="color:var(--jm-text-muted);font-size:13px;margin-bottom:14px">Give learners a discount nudge — coupons drive enrollment by ~20%.</div><button onclick="document.getElementById(\'cpnCode\')?.focus({preventScroll:false}); document.getElementById(\'cpnCode\')?.scrollIntoView({behavior:\'smooth\',block:\'center\'})" style="background:linear-gradient(135deg,var(--jm-primary),#a855f7);color:#fff;border:0;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(124,58,237,.35)">🎟 Create first coupon</button></div>';
-  body.innerHTML=`
-    <div style="border:1px solid var(--jm-border);border-radius:10px;padding:14px;margin-bottom:16px">
-      <div style="font-weight:700;font-size:13px;margin-bottom:10px">Create a coupon</div>
-      <div class="grid-2">
-        <div class="form-row"><label>Code</label><input id="cpn-code" placeholder="WELCOME20" style="text-transform:uppercase"></div>
-        <div class="form-row"><label>Applies to</label><select id="cpn-course"><option value="">All my courses</option>${courses}</select></div>
-      </div>
-      <div class="grid-2">
-        <div class="form-row"><label>Discount %</label><input id="cpn-pct" type="number" min="0" max="100" placeholder="e.g. 20"></div>
-        <div class="form-row"><label>OR Flat ₹ off</label><input id="cpn-flat" type="number" min="0" placeholder="e.g. 100"></div>
-      </div>
-      <div class="grid-2">
-        <div class="form-row"><label>Max uses</label><input id="cpn-max" type="number" min="1" value="100"></div>
-        <div class="form-row"><label>Expires (optional)</label><input id="cpn-exp" type="date"></div>
-      </div>
-      <button class="btn-sm btn-primary" onclick="cpnCreate()">＋ Create coupon</button>
-    </div>
-    <div style="font-weight:700;font-size:13px;margin-bottom:8px">Your coupons</div>${rows}`;
-}
+// openCoupons — now a thin delegator. Real screen: /ui/screens/Coupons.js
+// cpnRefresh() reopens the screen (re-fetches), preserving back-compat with cpnCreate/cpnDelete handlers.
+async function openCoupons(){ if(window.JM&&JM.Screens) return JM.Screens.open('coupons'); }
+async function cpnRefresh(){ if(window.JM&&JM.Screens) return JM.Screens.open('coupons'); }
 async function cpnCreate(){
   const code=val('cpn-code').trim().toUpperCase();
   if(!code){ toast('Enter a coupon code',true); return; }
