@@ -52,149 +52,20 @@
   // SELLERS = roles that list/sell on the marketplace.
   const SELLERS = ['teacher', 'partner', 'coaching', 'school', 'content_creator', 'corporate_trainer', 'franchise'];
 
-  const WIDGETS = [
-    {
-      id: 'quick-actions', title: 'Quick Actions', roles: null, category: 'ops', size: 'full', priority: 5,
-      render: (_, ctx) => {
-        const has = c => (ctx.capabilities || []).includes(c) || (ctx.roles || []).includes('admin');
-        const A = [
-          has('course.create') && ['＋ New course', 'dashboard.html#create'],
-          has('live.schedule') && ['📡 Schedule class', 'dashboard.html#live'],
-          has('attendance.mark') && ['✓ Take attendance', 'dashboard.html#attendance'],
-          ['🛒 Browse marketplace', 'marketplace.html'],
-          ['🤖 Ask AI', 'dashboard.html#ai']
-        ].filter(Boolean);
-        return `<div class="wg-actions">${A.map(([l, h]) => `<a class="wg-action" href="${h}">${esc(l)}</a>`).join('')}</div>`;
-      }
-    },
-    {
-      id: 'streak', title: 'Learning Streak', roles: ['student'], category: 'learning', size: 'small', priority: 10,
-      aiTriggers: ['streak', 'my streak'],
-      dataSource: () => api('/gamification/streak'),
-      render: d => { const s = d?.streak || {}; return `<div class="wg-big">${pct(s.current_streak)}🔥</div><div class="wg-sub">day streak · longest ${pct(s.longest_streak)} · ${pct(s.total_days)} active days</div>`; }
-    },
-    {
-      id: 'continue-learning', title: 'Continue Learning', roles: ['student'], category: 'learning', size: 'medium', priority: 15,
-      aiTriggers: ['continue learning', 'resume', 'my courses'],
-      dataSource: () => api('/student/continue-learning'),
-      render: d => { const it = listOf(d, 'items'); if (!it.length) return empty('No courses in progress yet.', { label: '🛒 Browse marketplace', onclick: "location.hash='#/m/marketplace'" }); return it.slice(0, 4).map(c => `<a class="wg-row" href="dashboard.html"><span class="wg-row-t">${esc(c.title || c.course_title || c.course_id)}</span><span class="wg-bar"><i style="width:${pct(c.progress)}%"></i></span><span class="wg-row-x">${pct(c.progress)}%</span></a>`).join(''); }
-    },
-    {
-      id: 'assignments-due', title: 'Assignments Due', roles: ['student'], category: 'learning', size: 'small', priority: 20,
-      aiTriggers: ['assignments', 'homework', 'due'],
-      dataSource: () => api('/assignments/my'),
-      render: d => { const a = listOf(d, 'assignments').filter(x => !x.submitted && !x.submission); if (!a.length) return empty('All caught up 🎉'); return a.slice(0, 5).map(x => `<div class="wg-row"><span class="wg-row-t">${esc(x.title || 'Assignment')}</span><span class="wg-row-x">${x.due_date ? when(x.due_date) : ''}</span></div>`).join(''); }
-    },
-    {
-      id: 'upcoming-classes', title: 'Upcoming Classes', roles: null, category: 'teaching', size: 'medium', priority: 25,
-      aiTriggers: ["today's classes", 'upcoming classes', 'schedule', 'open calendar'],
-      dataSource: () => api('/live-classes/upcoming'),
-      render: (d, ctx) => { const c = listOf(d, 'liveClasses', 'classes', 'upcoming', 'items'); const isStudent = (ctx && (ctx.roles||[]).includes('student')); if (!c.length) return empty('No upcoming classes.', { label: isStudent?'🛒 Browse courses':'📡 Schedule a class', onclick: isStudent?"location.hash='#/m/marketplace'":"if(typeof openSchedule==='function')openSchedule();else location.hash='#/m/calendar'" }); return c.slice(0, 5).map(x => `<div class="wg-row"><span class="wg-row-t">${esc(x.title || x.course_title || 'Class')}</span><span class="wg-row-x">${when(x.scheduled_time || x.start_at || x.starts_at)}</span></div>`).join(''); }
-    },
-    {
-      id: 'pending-eval', title: 'Pending Evaluation', roles: TEACHING, capability: 'assignment.grade', category: 'teaching', size: 'small', priority: 22,
-      aiTriggers: ['pending evaluation', 'grade', 'essays to grade'],
-      dataSource: () => api('/teacher/essays/pending'),
-      render: d => { const it = listOf(d, 'items', 'essays'); if (!it.length) return empty('Inbox zero — nothing to grade.', { label: '📝 Create an assignment', onclick: "if(typeof openAssignmentEditor==='function')openAssignmentEditor();else location.hash='#/m/tests'" }); return `<div class="wg-big">${it.length}</div><div class="wg-sub">submissions awaiting your grade</div><a class="wg-link" href="dashboard.html#grade">Open grading →</a>`; }
-    },
-    {
-      id: 'revenue', title: 'Revenue', roles: CREATOR.concat(['institute_owner']), capability: 'payment.read', category: 'finance', size: 'medium', priority: 30,
-      aiTriggers: ['revenue', 'earnings', 'income', 'show revenue'],
-      dataSource: () => api('/teacher/payments'),
-      render: d => { const p = listOf(d, 'payments'); const done = p.filter(x => x.status === 'completed'); const total = done.reduce((s, x) => s + (Number(x.amount) || 0), 0); return `<div class="wg-big">${fmtMoney(d?.total ?? total)}</div><div class="wg-sub">${done.length} completed payment${done.length !== 1 ? 's' : ''}</div><a class="wg-link" href="dashboard.html#payments">View payouts →</a>`; }
-    },
-    {
-      id: 'my-courses', title: 'My Courses', roles: CREATOR, capability: 'course.edit', category: 'teaching', size: 'medium', priority: 18,
-      aiTriggers: ['my courses', 'manage courses', 'course list'],
-      dataSource: () => api('/courses?mine=1'),
-      render: d => { const c = listOf(d, 'courses'); if (!c.length) return empty('No courses yet — create your first.', { label: '➕ Create a course', onclick: "if(typeof openCourseCreator==='function')openCourseCreator();else location.hash='#create'" }); return c.slice(0, 4).map(x => `<a class="wg-row" href="dashboard.html#course"><span class="wg-row-t">${esc(x.title || 'Course')}</span><span class="wg-row-x">${x.is_active === false ? 'draft' : (x.category || '')}</span></a>`).join('') + (c.length > 4 ? `<a class="wg-link" href="dashboard.html#courses">+${c.length - 4} more →</a>` : ''); }
-    },
-    {
-      id: 'my-listings', title: 'Marketplace Sales', roles: SELLERS, category: 'finance', size: 'small', priority: 38,
-      aiTriggers: ['my listings', 'marketplace sales', 'my sales'],
-      dataSource: () => api('/marketplace/my/listings'),
-      render: d => { const l = listOf(d, 'listings'); if (!l.length) return empty('No listings yet — turn a course into income.', { label: '🛒 List a course', onclick: "location.hash='#/m/marketplace'" }); const active = l.filter(x => x.status === 'active' || !x.status).length; return `<div class="wg-big">${l.length}</div><div class="wg-sub">listing${l.length !== 1 ? 's' : ''} · ${active} active</div><a class="wg-link" href="marketplace.html">Manage listings →</a>`; }
-    },
-    {
-      id: 'recommended', title: 'Recommended', roles: ['student', 'guest'], category: 'learning', size: 'large', priority: 40,
-      aiTriggers: ['recommended', 'trending courses'],
-      dataSource: () => api('/marketplace/trending?limit=6'),
-      render: d => { const l = listOf(d, 'listings'); if (!l.length) return empty('No recommendations yet.'); return `<div class="wg-cards">${l.slice(0, 6).map(x => { const c = x.courses || {}; return `<a class="wg-mini" href="marketplace.html"><div class="wg-mini-t">${esc(c.title || 'Course')}</div><div class="wg-mini-x">${c.category || ''} · ${x.price ? fmtMoney(x.price) : 'Free'}</div></a>`; }).join('')}</div>`; }
-    },
-    {
-      id: 'notifications', title: 'Notifications', roles: null, category: 'social', size: 'small', priority: 45,
-      aiTriggers: ['notifications', 'alerts'],
-      dataSource: () => api('/notifications/unread'),
-      render: d => { const n = listOf(d, 'notifications'); const total = d?.total ?? n.length; if (!total) return empty('All caught up — no new notifications.', { label: '🔔 Open notifications', onclick: "if(typeof toggleNotifs==='function')toggleNotifs(event);else location.hash='#/m/notifications'" }); return `<div class="wg-big" style="cursor:pointer" onclick="if(typeof toggleNotifs==='function')toggleNotifs(event)">${total}</div><div class="wg-sub">unread — tap to open</div>` + n.slice(0, 3).map(x => `<div class="wg-row"><span class="wg-row-t">${esc(x.title || x.message || 'Notification')}</span></div>`).join(''); }
-    },
-    {
-      id: 'leaderboard', title: 'Leaderboard', roles: ['student'], category: 'learning', size: 'small', priority: 35,
-      aiTriggers: ['leaderboard', 'rank', 'my rank'],
-      dataSource: () => api('/gamification/summary'),
-      render: d => { const s = d?.summary || d || {}; const xp = s.xp ?? s.total_xp ?? 0; const lvl = s.level ?? 1; return `<div class="wg-big">Lv ${pct(lvl)}</div><div class="wg-sub">${pct(xp)} XP${s.rank ? ' · rank #' + pct(s.rank) : ''}</div>`; }
-    },
-    {
-      id: 'certificates', title: 'My Certificates', roles: ['student'], category: 'learning', size: 'small', priority: 55,
-      aiTriggers: ['certificates', 'my certificates'],
-      dataSource: () => api('/certificates/my'),
-      render: d => { const c = listOf(d, 'certificates'); if (!c.length) return empty('Earn your first certificate by completing a course.', { label: '📚 Resume learning', onclick: "location.hash='#/m/marketplace'" }); return `<div class="wg-big">${c.length}</div><div class="wg-sub">earned</div>` + c.slice(0, 3).map(x => `<div class="wg-row"><span class="wg-row-t">${esc(x.course_title || x.title || 'Certificate')}</span></div>`).join(''); }
-    },
-    {
-      id: 'messages', title: 'Messages', roles: null, category: 'social', size: 'small', priority: 46,
-      aiTriggers: ['messages', 'unread messages', 'chat'],
-      dataSource: () => api('/chat/unread'),
-      render: d => { const total = d?.total ?? d?.unread ?? (listOf(d, 'rooms', 'threads').length); if (!total) return empty('No unread messages.'); return `<div class="wg-big">${pct(total)}</div><div class="wg-sub">unread · <a class="wg-link" href="dashboard.html#messages">Open inbox →</a></div>`; }
-    },
-    {
-      id: 'attendance-pending', title: 'Attendance', roles: TEACHING, capability: 'attendance.mark', category: 'teaching', size: 'small', priority: 24,
-      aiTriggers: ['attendance', 'take attendance', 'mark attendance'],
-      render: () => `<div class="wg-sub">Mark today's roster across your batches.</div><a class="wg-action" style="margin-top:10px" href="dashboard.html#attendance">✓ Take attendance</a>`
-    },
-    {
-      id: 'weak-students', title: 'Students Needing Help', roles: TEACHING, capability: 'analytics.read', category: 'teaching', size: 'small', priority: 28,
-      aiTriggers: ['weak students', 'at risk', 'students needing help'],
-      render: () => `<div class="wg-sub">Spot low-progress / low-attendance students from course analytics.</div><a class="wg-action" style="margin-top:10px" href="dashboard.html#analytics">📉 Open analytics</a>`
-    },
-    {
-      id: 'timetable', title: 'Timetable', roles: ORG_ADMIN, capability: 'live.schedule', category: 'ops', size: 'medium', priority: 26,
-      aiTriggers: ['timetable', 'class schedule', 'weekly schedule'],
-      dataSource: () => api('/timetable/templates'),
-      render: d => { const t = listOf(d, 'templates'); if (!t.length) return empty('No timetable templates yet.', { label: '📅 Create timetable', onclick: "location.hash='#timetable'" }); return t.slice(0, 4).map(x => `<div class="wg-row"><span class="wg-row-t">${esc(x.name || 'Timetable')}</span></div>`).join('') + `<a class="wg-link" href="dashboard.html#timetable">Manage →</a>`; }
-    },
-    {
-      id: 'admissions', title: 'Admissions', roles: ORG_ADMIN, capability: 'admissions.manage', category: 'ops', size: 'small', priority: 32,
-      aiTriggers: ['admissions', 'new admissions', 'enrollment intake'],
-      dataSource: () => api('/eduos/admissions'),
-      render: d => { const a = listOf(d, 'admissions', 'items'); return `<div class="wg-big">${a.length}</div><div class="wg-sub">recent admissions · <a class="wg-link" href="dashboard.html#admissions">Manage →</a></div>`; }
-    },
-    {
-      id: 'fees', title: 'Fees', roles: ORG_ADMIN, capability: 'billing.manage', category: 'finance', size: 'small', priority: 34,
-      aiTriggers: ['fees', 'fee invoices', 'pending fees'],
-      dataSource: () => api('/eduos/fees/invoices'),
-      render: d => { const inv = listOf(d, 'invoices', 'items'); const due = inv.filter(x => x.status !== 'paid'); return `<div class="wg-big">${due.length}</div><div class="wg-sub">unpaid invoices · <a class="wg-link" href="dashboard.html#fees">Collect →</a></div>`; }
-    },
-    {
-      id: 'bookings', title: 'Bookings', roles: SPORTS, capability: 'booking.manage', category: 'ops', size: 'medium', priority: 30,
-      aiTriggers: ['bookings', 'court bookings', 'slot bookings'],
-      dataSource: () => api('/bookings/received'),
-      render: d => { const b = listOf(d, 'bookings', 'items'); if (!b.length) return empty('No bookings yet.', { label: '📅 Book a resource', onclick: "location.hash='#bookings'" }); return b.slice(0, 5).map(x => `<div class="wg-row"><span class="wg-row-t">${esc(x.resource?.title || x.resource_type || 'Booking')}</span><span class="wg-row-x">${when(x.start_at)}</span></div>`).join(''); }
-    },
-    {
-      id: 'children', title: 'My Children', roles: ['parent'], category: 'learning', size: 'medium', priority: 12,
-      aiTriggers: ['my children', 'my child', 'kids'],
-      dataSource: () => api('/parent/children'),
-      render: d => { const ch = listOf(d, 'children', 'students', 'items'); if (!ch.length) return empty('Link a child to see their progress.', { label: '👪 Link child', onclick: "location.hash='#link-child'" }); return ch.slice(0, 4).map(c => `<a class="wg-row" href="dashboard.html#child"><span class="wg-row-t">${esc(c.full_name || c.name || 'Child')}</span><span class="wg-row-x">${c.class || c.grade || ''}</span></a>`).join(''); }
-    },
-    {
-      id: 'network', title: 'Network', roles: ['partner', 'franchise'], category: 'finance', size: 'small', priority: 36,
-      aiTriggers: ['network', 'branches', 'franchise'],
-      render: () => `<div class="wg-sub">Track branches, network revenue and per-branch KPIs.</div><a class="wg-action" style="margin-top:10px" href="dashboard.html#network">🌐 Open network</a>`
-    },
-    {
-      id: 'ai-tutor', title: 'AI Copilot', roles: null, category: 'ai', size: 'small', priority: 60,
-      render: () => `<div class="wg-sub">Ask anything — "show revenue", "today's classes", "create course".</div><a class="wg-action" style="margin-top:10px" href="dashboard.html#ai">🤖 Open Copilot</a>`
-    }
-  ];
+  // ── Widget library helpers exposed to external /widgets/<id>.js files.
+  // Each extracted widget file destructures from EduOSWidgets._lib and then
+  // calls EduOSWidgets.register({...}) to add itself to WIDGETS.
+  const _LIB = { esc, pct, api, fmtMoney, when, listOf, empty,
+                 CREATOR, ORG_ADMIN, SPORTS, TEACHING, SELLERS };
+  function register(w) {
+    if (!w || !w.id) return;
+    // De-dupe: a re-load of the same id replaces the previous manifest.
+    const i = WIDGETS.findIndex(x => x.id === w.id);
+    if (i >= 0) WIDGETS[i] = w; else WIDGETS.push(w);
+  }
+
+  // WIDGETS is populated by /widgets/<id>.js files via register(). See /widgets/_README.md.
+  let WIDGETS = [];
 
   // ── RESOLVER (audit §1) ─────────────────────────────────────────────────────
   // passesGates: role ∩ + capability + admin-config. `ignoreRemoved` lets the
@@ -363,8 +234,22 @@
     } catch (_) { return { roles: [], capabilities: [] }; }
   }
 
+  // Wait for /widgets/<id>.js files (loaded async by _index.js) to finish
+  // self-registering. Polls every 30ms; gives up after ~1.5s so a missing file
+  // never blocks boot. The first widget(s) usually arrive within a frame or two.
+  async function _waitForWidgets(expectedMin) {
+    const target = Math.max(expectedMin || 0, 0);
+    const deadline = Date.now() + 1500;
+    while (WIDGETS.length < target && Date.now() < deadline) {
+      await new Promise(r => setTimeout(r, 30));
+    }
+  }
+
   async function boot(mountEl) {
     if (!token()) { location.href = '/login.html'; return; }
+    // Widgets self-register from /widgets/<id>.js. Wait briefly so we don't
+    // render against an empty registry on fast machines.
+    await _waitForWidgets(10);
     const ctx = await getContext();
     // Admin policy (highest authority): merge the platform-wide widget policy
     // into ctx.adminWidgets BEFORE rendering, so passesGates() honours it.
@@ -436,5 +321,5 @@
     try { r.start(); return true; } catch (_) { return false; }
   }
 
-  global.EduOSWidgets = { WIDGETS, resolveWidgets, hiddenWidgets, renderDashboard, boot, getContext, widgetForIntent, handleCommand, listen, togglePin, removeWidget, addWidget, toggleCollapse, cycleSize, setAccent, reorder, api, esc };
+  global.EduOSWidgets = { WIDGETS, register, _lib: _LIB, resolveWidgets, hiddenWidgets, renderDashboard, boot, getContext, widgetForIntent, handleCommand, listen, togglePin, removeWidget, addWidget, toggleCollapse, cycleSize, setAccent, reorder, api, esc };
 })(window);

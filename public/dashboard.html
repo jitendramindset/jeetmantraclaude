@@ -499,7 +499,9 @@ window.addEventListener('storage', function(e){
 </script>
 <script src="/offline-sync.js"></script>
 <script src="/jm-states.js"></script>
-<script src="/widget-registry.js?v=8"></script>
+<script src="/widget-registry.js?v=9"></script>
+<!-- Widgets self-register via /widgets/<id>.js — _index.js injects them all. -->
+<script src="/widgets/_index.js?v=1"></script>
 </head>
 <body>
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
