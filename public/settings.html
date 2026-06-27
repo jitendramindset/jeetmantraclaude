@@ -7,9 +7,6 @@
 <link rel="stylesheet" href="theme.css">
 <script src="/jm-settings.js"></script>
 <style>
-nav{background:var(--jm-surface);border-bottom:1px solid var(--jm-border);padding:14px 28px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:40;box-shadow:var(--jm-shadow-sm)}
-nav .logo{font-size:20px;font-weight:800;text-decoration:none;color:var(--jm-text);letter-spacing:-.02em}
-nav .logo b{color:var(--jm-primary)}
 .wrap{max-width:760px;margin:0 auto;padding:28px 24px 80px}
 h1{font-size:26px;font-weight:800;letter-spacing:-.02em;margin-bottom:4px}
 .sub{color:var(--jm-text-muted);font-size:14px;margin-bottom:24px}
@@ -37,11 +34,11 @@ h1{font-size:26px;font-weight:800;letter-spacing:-.02em;margin-bottom:4px}
 <script src="/jm-states.js"></script>
 </head>
 <body>
-<nav data-embed-hide>
-  <a href="/" class="logo">Jeet<b>Mantra</b></a>
-  <div style="flex:1"></div>
-  <a href="/dashboard.html" style="font-size:13px;font-weight:600;color:var(--jm-text-strong);text-decoration:none">← Dashboard</a>
-</nav>
+<script src="/ui/widgets/page/PageNav.js?v=1"></script>
+<script>
+document.write('<style>'+JM.PageNav.css()+'</style>');
+document.write(JM.PageNav({ actions: [{ label: '← Dashboard', href: '/dashboard.html' }] }));
+</script>
 
 <div class="wrap">
   <h1>⚙️ Settings</h1>
