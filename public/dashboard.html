@@ -5802,31 +5802,8 @@ async function cpnDelete(id){ if(!confirm('Delete this coupon?'))return; try{ aw
 
 // ── My Certificates: every certificate this user has earned, with verify +
 // share links. Backed by GET /api/certificates/my. ─────────────────────────
-async function openCertificatesPage(){
-  showModal('🎓 My Certificates', `<div id="cert-body" style="min-height:160px"><div style="color:var(--jm-text-muted);padding:14px">Loading your certificates…</div></div>`);
-  const body=document.getElementById('cert-body'); if(!body) return;
-  let list=[];
-  try{ const r=await api('/certificates/my','GET'); list=r.certificates||[]; }
-  catch(e){ body.innerHTML=`<div class="empty-state" style="padding:20px"><div class="icon">⚠️</div>${escHtml(e.message||'Could not load certificates')}</div>`; return; }
-  if(!list.length){
-    body.innerHTML=`<div class="empty-state" style="text-align:center;padding:32px"><div class="icon" style="font-size:44px">🎓</div><div style="font-weight:600;margin:8px 0">No certificates yet</div><div style="color:var(--jm-text-muted);font-size:13px;margin-bottom:14px">Finish a course to earn your first certificate — it's verifiable and shareable with employers.</div><button onclick="closeAnyModal(); document.querySelector('.nav-item[data-nav-key=courses]')?.click()" style="background:linear-gradient(135deg,var(--jm-primary),#a855f7);color:#fff;border:0;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(124,58,237,.35)">📚 Go to my courses</button></div>`;
-    return;
-  }
-  const origin=location.origin;
-  body.innerHTML=list.map(c=>{
-    const issued=c.issued_at?new Date(c.issued_at).toLocaleDateString():'';
-    const title=escHtml(c.course_title||c.title||'Course certificate');
-    const verifyUrl=c.verify_token?`${origin}/api/certificates/verify/${encodeURIComponent(c.verify_token)}`:'';
-    return `<div style="display:flex;align-items:center;gap:12px;padding:14px;border:1px solid var(--jm-border);border-radius:12px;margin-bottom:10px;background:linear-gradient(135deg,var(--jm-primary-tint,#f3eefe),transparent)">
-      <div style="font-size:32px">🎓</div>
-      <div style="flex:1;min-width:0">
-        <div style="font-weight:700;font-size:14px">${title}</div>
-        <div style="font-size:11px;color:var(--jm-text-muted)">Issued ${issued}${c.certificate_number?' · #'+escHtml(c.certificate_number):''}</div>
-      </div>
-      ${verifyUrl?`<a href="${verifyUrl}" target="_blank" rel="noopener" class="btn-sm btn-outline" style="text-decoration:none">🔗 Verify</a>`:''}
-    </div>`;
-  }).join('');
-}
+// openCertificatesPage — now a thin delegator. Real screen: /ui/screens/Certificates.js
+async function openCertificatesPage(){ if(window.JM&&JM.Screens) return JM.Screens.open('certificates'); }
 
 // ── My Students: aggregate roster across all the teacher's courses. Loads each
 // course's /students endpoint and merges by student. ────────────────────────
@@ -5870,27 +5847,8 @@ async function openMyStudentsPage(){
 
 // ── Help & Support: static help center with quick links + contact. No backend
 // dependency — always available to every role. ─────────────────────────────
-function openHelpPage(){
-  const faqs=[
-    ['🚀 Getting started','Pick a role on signup, then use the left sidebar to navigate. Every empty card has a button to create your first item.'],
-    ['💳 Payments & wallet','Top up your wallet from Wallet → Add money. Course purchases and refunds appear in your transaction history.'],
-    ['🎥 Going live','Teachers: open Studio to broadcast. Students join from Live Classes when a teacher is on air.'],
-    ['🌐 Language','Change the interface language from the top bar selector or Settings. Bhasha Setu offers per-line read-aloud in 12 languages.'],
-    ['🔒 Account & privacy','Manage your profile, password, and notification settings from Settings. We never share your data without consent.']
-  ];
-  const body=`
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">
-      <button onclick="closeAnyModal(); openMessenger&&openMessenger('ai')" style="flex:1;min-width:150px;background:linear-gradient(135deg,var(--jm-primary),#a855f7);color:#fff;border:0;padding:14px;border-radius:10px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(124,58,237,.35)">🤖 Ask the AI Assistant</button>
-      <a href="mailto:support@mantravat.cloud" style="flex:1;min-width:150px;text-align:center;background:var(--jm-surface-2,#f5f5f5);color:inherit;border:1px solid var(--jm-border);padding:14px;border-radius:10px;font-weight:700;text-decoration:none">✉️ Email support</a>
-    </div>
-    <div style="font-weight:700;font-size:13px;margin-bottom:8px">Frequently asked</div>
-    ${faqs.map(([q,a])=>`<details style="border:1px solid var(--jm-border);border-radius:10px;padding:10px 14px;margin-bottom:8px">
-      <summary style="font-weight:600;font-size:13px;cursor:pointer">${q}</summary>
-      <div style="font-size:12px;color:var(--jm-text-muted);margin-top:8px;line-height:1.6">${a}</div>
-    </details>`).join('')}
-    <div style="font-size:11px;color:var(--jm-text-muted);text-align:center;margin-top:14px">Still stuck? Email <a href="mailto:support@mantravat.cloud">support@mantravat.cloud</a></div>`;
-  showModal('❓ Help & Support', body);
-}
+// openHelpPage — now a thin delegator. Real screen: /ui/screens/Help.js
+function openHelpPage(){ if(window.JM&&JM.Screens) return JM.Screens.open('help'); }
 
 // ── Analytics: aggregate across the teacher's courses (students, completion,
 // attendance, revenue). Loads each course's /analytics endpoint. ───────────
@@ -5898,59 +5856,8 @@ function openHelpPage(){
 // Highest-authority screen for widget policy. Lists every registered widget,
 // lets admin enable/disable globally and per-role, persists via admin endpoint.
 // User customization (pin/collapse/resize/colour/order) layers ON TOP of this.
-async function openWidgetAdmin(){
-  showModal('🎛 Widget Management', '<div id="wa-body" style="min-height:240px">'+(window.JMStates?JMStates.skeleton({lines:5}):'<div style="padding:14px;color:var(--jm-text-muted)">Loading widget catalog…</div>')+'</div>');
-  const body=document.getElementById('wa-body'); if(!body) return;
-  // Pull the live widget catalog + current admin config in parallel.
-  let widgets=[], cfg={global:{},byRole:{},order:{},sizes:{}};
-  try{
-    widgets = (window.EduOSWidgets && EduOSWidgets.WIDGETS) ? EduOSWidgets.WIDGETS : [];
-    const r = await api('/admin/widget-config','GET'); cfg = r.config || cfg;
-  }catch(e){ if(window.JMStates){ body.innerHTML=JMStates.error({title:'Couldn’t load widget catalog',msg:e.message,onRetry:openWidgetAdmin,detail:e.message}); } else { body.innerHTML='<div class="empty-state"><div class="icon">⚠️</div>'+escHtml(e.message)+'</div>'; } return; }
-  // Eight roles per the architecture brief.
-  const ROLES=['student','teacher','coach','parent','institute','school','partner','admin'];
-  // Helpers — admin can override visibility per-role + globally.
-  function isGlobalOn(id){ return cfg.global[id]!==false; }
-  function isRoleOn(id,role){ const r=cfg.byRole[role]||{}; return r[id]!==false; }
-  // Build the matrix: rows = widgets, columns = global toggle + 8 roles.
-  const hdr = '<tr><th style="text-align:left;padding:8px;font-weight:700;font-size:11px;text-transform:uppercase;color:var(--jm-text-muted)">Widget</th><th style="padding:8px;font-size:11px;text-transform:uppercase;color:var(--jm-text-muted)">Global</th>'+ROLES.map(r=>`<th style="padding:8px;font-size:11px;text-transform:uppercase;color:var(--jm-text-muted)">${r[0].toUpperCase()+r.slice(1)}</th>`).join('')+'</tr>';
-  const rows = widgets.map(w=>{
-    const roleHint = w.roles ? `<span style="font-size:11px;color:var(--jm-text-muted)">${w.roles.join(', ')}</span>` : `<span style="font-size:11px;color:var(--jm-success,#16a34a)">all roles</span>`;
-    const globalChk = `<input type="checkbox" data-w="${w.id}" data-scope="global" ${isGlobalOn(w.id)?'checked':''} style="width:18px;height:18px;cursor:pointer" aria-label="Enable ${w.title} globally">`;
-    const roleChks = ROLES.map(r=>`<input type="checkbox" data-w="${w.id}" data-scope="role" data-role="${r}" ${isRoleOn(w.id,r)?'checked':''} style="width:18px;height:18px;cursor:pointer" aria-label="Enable ${w.title} for ${r}">`).join('</td><td style="text-align:center;padding:6px">');
-    return `<tr style="border-top:1px solid var(--jm-border)">
-      <td style="padding:10px 8px"><div style="font-weight:700;font-size:13px">${escHtml(w.title)}</div><div style="font-size:11px;color:var(--jm-text-muted)">${escHtml(w.id)} · ${roleHint}</div></td>
-      <td style="text-align:center;padding:6px">${globalChk}</td>
-      <td style="text-align:center;padding:6px">${roleChks}</td>
-    </tr>`;
-  }).join('');
-  body.innerHTML = `
-    <div style="margin-bottom:12px;color:var(--jm-text-muted);font-size:13px">Highest-authority policy. Unchecking <strong>Global</strong> hides a widget everywhere; per-role boxes restrict it for that role. Users can still pin/collapse/resize/recolour widgets they can see.</div>
-    <div style="overflow:auto;border:1px solid var(--jm-border);border-radius:10px;max-height:60vh">
-      <table id="wa-grid" style="width:100%;border-collapse:collapse;font-size:13px"><thead style="position:sticky;top:0;background:var(--jm-surface)">${hdr}</thead><tbody>${rows||'<tr><td colspan="10" style="padding:20px;text-align:center;color:var(--jm-text-muted)">No widgets registered.</td></tr>'}</tbody></table>
-    </div>
-    <div style="display:flex;gap:10px;align-items:center;margin-top:14px">
-      <button class="btn-sm btn-primary" onclick="_saveWidgetAdmin()">💾 Save policy</button>
-      <button class="btn-sm btn-outline" onclick="openWidgetAdmin()">↻ Reload</button>
-      <span id="wa-status" style="font-size:12px;color:var(--jm-text-muted);margin-left:auto"></span>
-    </div>`;
-}
-async function _saveWidgetAdmin(){
-  const grid=document.getElementById('wa-grid'); if(!grid) return;
-  const cfg={global:{},byRole:{},order:{},sizes:{}};
-  grid.querySelectorAll('input[type=checkbox]').forEach(cb=>{
-    const id=cb.dataset.w; if(!id) return;
-    if(cb.dataset.scope==='global'){ if(!cb.checked) cfg.global[id]=false; }
-    else if(cb.dataset.scope==='role'){ const role=cb.dataset.role; if(!cb.checked){ cfg.byRole[role]=cfg.byRole[role]||{}; cfg.byRole[role][id]=false; } }
-  });
-  const s=document.getElementById('wa-status'); if(s){ s.style.color='var(--jm-text-muted)'; s.textContent='Saving…'; }
-  try{
-    await api('/admin/widget-config','PUT',cfg);
-    if(s){ s.style.color='var(--jm-success,#16a34a)'; s.textContent='✓ Saved · takes effect on next dashboard load'; }
-  }catch(e){
-    if(s){ s.style.color='#dc2626'; s.textContent='⚠️ '+(e.message||'Save failed'); }
-  }
-}
+// openWidgetAdmin — now a thin delegator. Real screen: /ui/screens/WidgetAdmin.js
+async function openWidgetAdmin(){ if(window.JM&&JM.Screens) return JM.Screens.open('widget-admin'); }
 
 async function openAnalyticsPage(){
   showModal('📊 Analytics', `<div id="ana-body" style="min-height:160px"><div style="color:var(--jm-text-muted);padding:14px">Crunching your numbers…</div></div>`);
