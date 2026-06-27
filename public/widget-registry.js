@@ -118,11 +118,17 @@
     const theme = (prefs.themes || {})[w.id] || '';
     // P2: track hidden sections (consumer widgets honor via ctx.hiddenSections).
     const hiddenSections = (prefs.hiddenSections || {})[w.id] || [];
+    // P3: user-edited title overrides the manifest title; typeSize cycles type.
+    const userTitle = (prefs.titles || {})[w.id] || '';
+    const displayTitle = userTitle || w.title;
+    const typeSize = (prefs.typeSize || {})[w.id] || '';
+    // P3: animation type (manifest w.animation: 'slide'|'fade'|'scale'); default = grid's wgUp.
+    const animClass = w.animation ? ' wg-anim-' + w.animation : '';
     const card = document.createElement('section');
-    card.className = 'wg-card wg-' + size + (w._pinned ? ' wg-pinned' : '') + (collapsed ? ' wg-collapsed' : '') + (favorited ? ' wg-favorite' : '') + (theme ? ' wg-theme-' + theme : '');
+    card.className = 'wg-card wg-' + size + (w._pinned ? ' wg-pinned' : '') + (collapsed ? ' wg-collapsed' : '') + (favorited ? ' wg-favorite' : '') + (theme ? ' wg-theme-' + theme : '') + (typeSize ? ' wg-type-' + typeSize : '') + animClass;
     card.dataset.widget = w.id;
     card.setAttribute('role', 'region');
-    card.setAttribute('aria-label', w.title);
+    card.setAttribute('aria-label', displayTitle);
     card.tabIndex = 0;
     if (accent) card.style.setProperty('--wg-accent', accent);
     // P1 gap closure: Action overflow — when more than 5 controls would render,
@@ -137,11 +143,12 @@
       + `<button class="wg-ctrl" data-wg-action="favorite" title="${favorited ? 'Unfavorite' : 'Favorite'}" aria-label="Favorite widget" onclick="EduOSWidgets.toggleFavorite('${w.id}')">${favorited ? '⭐' : '☆'}</button>`
       + `<details class="wg-ctrl wg-ctrl-more" style="display:inline-block;position:relative"><summary title="More" aria-label="More actions" style="cursor:pointer;list-style:none">⋯</summary>`
       +   `<div class="wg-more-menu" style="position:absolute;right:0;top:100%;background:var(--jm-surface,#fff);border:1px solid var(--jm-border,#e5e7eb);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:6px;z-index:10;min-width:140px;display:flex;flex-direction:column;gap:2px">`
+      +     `<button class="wg-more-item" style="background:none;border:0;padding:6px 10px;text-align:left;font-size:12px;border-radius:6px;cursor:pointer" onclick="EduOSWidgets.cycleTypeSize('${w.id}');this.closest('details').open=false">🔤 Type size</button>`
       +     `<button class="wg-more-item" style="background:none;border:0;padding:6px 10px;text-align:left;font-size:12px;border-radius:6px;cursor:pointer" onclick="EduOSWidgets.toggleArchive('${w.id}');this.closest('details').open=false">🗄 Archive</button>`
       +     `<button class="wg-more-item" style="background:none;border:0;padding:6px 10px;text-align:left;font-size:12px;border-radius:6px;cursor:pointer" onclick="EduOSWidgets.removeWidget('${w.id}');this.closest('details').open=false">✕ Hide</button>`
       +   `</div></details>`
       + `</span>`;
-    card.innerHTML = `<header class="wg-head" title="Drag to reorder"><span class="wg-grip" aria-hidden="true">⠿</span><span class="wg-title">${esc(w.title)}</span>${ctrls}</header><div class="wg-body">${skeleton()}</div>`;
+    card.innerHTML = `<header class="wg-head" title="Drag to reorder"><span class="wg-grip" aria-hidden="true">⠿</span><span class="wg-title" title="Double-click to rename" ondblclick="EduOSWidgets._editTitle(event,'${w.id}')">${esc(displayTitle)}</span>${ctrls}</header><div class="wg-body">${skeleton()}</div>`;
     // Drag-to-reorder — the header is the handle (so inner controls stay clickable).
     const head = card.querySelector('.wg-head');
     head.setAttribute('draggable', 'true');
@@ -229,6 +236,10 @@
     _ctx.userPrefs.density = _ctx.userPrefs.density || 'comfortable';
     _ctx.userPrefs.themes = _ctx.userPrefs.themes || {};
     _ctx.userPrefs.hiddenSections = _ctx.userPrefs.hiddenSections || {};
+    // P3 gap closure: typeSize {id: 'sm'|'md'|'lg'|'xl'} per widget;
+    // titles {id: 'My custom title'} for user-edited names.
+    _ctx.userPrefs.typeSize = _ctx.userPrefs.typeSize || {};
+    _ctx.userPrefs.titles = _ctx.userPrefs.titles || {};
     return _ctx.userPrefs;
   }
   function _card(id){ return _mount && _mount.querySelector('[data-widget="' + id + '"]'); }
@@ -329,6 +340,30 @@
     if (i >= 0) list.splice(i, 1); else list.push(sectionId);
     await persistPrefs();
     await renderDashboard(_mount, _ctx);
+  }
+  // P3 gap closure: typography size cycle (sm | md | lg | xl). Applied via class.
+  function cycleTypeSize(id) {
+    const STEPS = ['sm', 'md', 'lg', 'xl'];
+    const p = ensurePrefs();
+    const cur = p.typeSize[id] || 'md';
+    const next = STEPS[(STEPS.indexOf(cur) + 1) % STEPS.length];
+    p.typeSize[id] = next;
+    const card = _card(id);
+    if (card) { STEPS.forEach(s => card.classList.remove('wg-type-' + s)); card.classList.add('wg-type-' + next); }
+    persistPrefs();
+  }
+  // P3 gap closure: user-editable widget titles. Renamed name persists; reset to '' restores manifest title.
+  function setTitle(id, newTitle) {
+    const p = ensurePrefs();
+    const clean = String(newTitle || '').trim().slice(0, 80);
+    if (!clean) { delete p.titles[id]; } else { p.titles[id] = clean; }
+    const card = _card(id);
+    const titleEl = card && card.querySelector('.wg-title');
+    if (titleEl) {
+      const w = WIDGETS.find(x => x.id === id);
+      titleEl.textContent = clean || (w && w.title) || id;
+    }
+    persistPrefs();
   }
 
   // ── BOOT — resolve context, then compose ────────────────────────────────────
@@ -432,5 +467,38 @@
     try { r.start(); return true; } catch (_) { return false; }
   }
 
-  global.EduOSWidgets = { WIDGETS, register, _lib: _LIB, resolveWidgets, hiddenWidgets, renderDashboard, boot, getContext, widgetForIntent, handleCommand, listen, togglePin, removeWidget, addWidget, toggleCollapse, cycleSize, setAccent, reorder, toggleFavorite, toggleArchive, setDensity, setTheme, toggleSection, api, esc };
+  // P3: in-place title editor. Replaces the title with a contentEditable span,
+  // commits on blur or Enter, cancels on Esc.
+  function _editTitle(ev, widgetId) {
+    if (ev) { ev.stopPropagation(); ev.preventDefault?.(); }
+    const card = _card(widgetId);
+    const titleEl = card && card.querySelector('.wg-title');
+    if (!titleEl || titleEl.dataset.editing === '1') return;
+    titleEl.dataset.editing = '1';
+    const original = titleEl.textContent;
+    titleEl.contentEditable = 'true';
+    titleEl.style.outline = '2px solid var(--jm-primary,#7c3aed)';
+    titleEl.style.borderRadius = '4px';
+    titleEl.style.padding = '0 4px';
+    titleEl.focus();
+    // Select all text.
+    const sel = window.getSelection(); const range = document.createRange();
+    range.selectNodeContents(titleEl); sel.removeAllRanges(); sel.addRange(range);
+    const commit = () => {
+      titleEl.contentEditable = 'false';
+      titleEl.style.outline = ''; titleEl.style.padding = '';
+      titleEl.removeAttribute('data-editing');
+      setTitle(widgetId, titleEl.textContent);
+      titleEl.removeEventListener('blur', commit);
+      titleEl.removeEventListener('keydown', keys);
+    };
+    const keys = (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); titleEl.blur(); }
+      if (e.key === 'Escape') { titleEl.textContent = original; titleEl.blur(); }
+    };
+    titleEl.addEventListener('blur', commit);
+    titleEl.addEventListener('keydown', keys);
+  }
+
+  global.EduOSWidgets = { WIDGETS, register, _lib: _LIB, resolveWidgets, hiddenWidgets, renderDashboard, boot, getContext, widgetForIntent, handleCommand, listen, togglePin, removeWidget, addWidget, toggleCollapse, cycleSize, setAccent, reorder, toggleFavorite, toggleArchive, setDensity, setTheme, toggleSection, cycleTypeSize, setTitle, _editTitle, api, esc };
 })(window);

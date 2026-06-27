@@ -22,7 +22,9 @@ JM.RoleGrid = function (opts) {
   // Inline click handler — toggles .selected class + writes value to the hidden input.
   var pick = "(function(el,v){document.querySelectorAll('.jm-role-card').forEach(function(c){c.classList.remove('selected')});el.classList.add('selected');var h=document.getElementById('" + hiddenId + "');if(h)h.value=v;var role=v" + onChange + "}).call(null,this,'%V%')";
   var tiles = roles.map(function (r) {
-    return '<div class="jm-role-card' + (r.value === sel ? ' selected' : '') + '" role="button" tabindex="0" onclick="' + pick.replace('%V%', r.value) + '" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();this.click();}">'
+    // Escape any apostrophe in the role value so the embedded onclick string stays parseable.
+    var safeVal = String(r.value).replace(/'/g, "\\'");
+    return '<div class="jm-role-card' + (r.value === sel ? ' selected' : '') + '" role="button" tabindex="0" onclick="' + pick.replace('%V%', safeVal) + '" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();this.click();}">'
       + '<div class="icon">' + r.icon + '</div>'
       + '<div class="label">' + r.label + '</div>'
       + '</div>';

@@ -64,6 +64,19 @@
 .wg-card.wg-theme-dark{--jm-surface:#1a1325;--jm-bg:#0f0d1c;--jm-text:#f5f3ff;--jm-text-muted:#a8a3c4;--jm-border:#332b4d;background:var(--jm-surface);color:var(--jm-text)}
 .wg-card.wg-theme-dark .wg-title{color:var(--jm-text)}
 .wg-card.wg-theme-dark .wg-sub{color:var(--jm-text-muted)}
+/* P3: typography size override per widget (sm | md | lg | xl). */
+.wg-card.wg-type-sm{font-size:11px}.wg-card.wg-type-sm .wg-title{font-size:11px}.wg-card.wg-type-sm .wg-big{font-size:22px}
+.wg-card.wg-type-md{font-size:13px}.wg-card.wg-type-md .wg-title{font-size:13px}.wg-card.wg-type-md .wg-big{font-size:28px}
+.wg-card.wg-type-lg{font-size:15px}.wg-card.wg-type-lg .wg-title{font-size:15px}.wg-card.wg-type-lg .wg-big{font-size:34px}
+.wg-card.wg-type-xl{font-size:18px}.wg-card.wg-type-xl .wg-title{font-size:18px}.wg-card.wg-type-xl .wg-big{font-size:42px}
+/* P3: title double-click affordance + animation variants. */
+.wg-title[contenteditable=true]{cursor:text;background:var(--jm-surface,#fff)}
+.wg-card.wg-anim-slide{animation:wgSlide .35s ease both}
+.wg-card.wg-anim-fade{animation:wgFade .35s ease both}
+.wg-card.wg-anim-scale{animation:wgScale .35s cubic-bezier(.2,.9,.3,1.05) both}
+@keyframes wgSlide{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:none}}
+@keyframes wgFade{from{opacity:0}to{opacity:1}}
+@keyframes wgScale{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}
 /* Smartboard / large touch — bigger targets + type; controls always shown
    (no hover on touch). */
 @media(min-width:1280px) and (pointer:coarse){

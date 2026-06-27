@@ -19,14 +19,17 @@
 window.JM = window.JM || {};
 JM.SceneTile = function (o) {
   o = o || {};
+  // Escape double-quotes in any JS expression embedded into an onclick="" attribute,
+  // so callers can pass JSON-stringified args without breaking the attribute parser.
+  var esc = function (s) { return String(s || '').replace(/"/g, '&quot;'); };
   var idAttr = o.id ? ' id="' + o.id + '"' : '';
   var actions = (o.actions || []).map(function (a) {
     var pad = a.compact ? '3px 6px' : '3px 8px';
     var ttl = a.title ? ' title="' + a.title.replace(/"/g, '&quot;') + '"' : '';
-    return '<button class="btn" style="padding:' + pad + '"' + ttl + ' onclick="event.stopPropagation();' + (a.onClick || '') + '">' + a.label + '</button>';
+    return '<button class="btn" style="padding:' + pad + '"' + ttl + ' onclick="event.stopPropagation();' + esc(a.onClick) + '">' + a.label + '</button>';
   }).join('');
   var sub = o.sub ? '<div style="font-size:10px;color:var(--mut)">' + o.sub + '</div>' : '';
-  return '<div class="scene' + (o.active ? ' active' : '') + '"' + idAttr + ' onclick="' + (o.onClick || '') + '">'
+  return '<div class="scene' + (o.active ? ' active' : '') + '"' + idAttr + ' onclick="' + esc(o.onClick) + '">'
     + '<div class="thumb">' + (o.thumb || '🎬') + '</div>'
     + '<div class="nm">' + (o.name || '') + sub + '</div>'
     + actions

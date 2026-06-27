@@ -18,7 +18,10 @@
  *
  * Used by: liveRoom.html (Attendees/Chat/Polls); reusable on any page tabbing pattern.
  */
+(function () {
 window.JM = window.JM || {};
+// Module-scoped helper so we don't leak `idCap` to window.
+function idCap(s) { return String(s).charAt(0).toUpperCase() + String(s).slice(1); }
 JM.TabBar = function (opts) {
   opts = opts || {};
   var tabs = opts.tabs || [];
@@ -57,4 +60,4 @@ JM.TabBar.show = function (id, opts) {
   var t = document.getElementById(prefix + idCap(id));
   if (t) t.style.display = '';
 };
-function idCap(s) { return String(s).charAt(0).toUpperCase() + String(s).slice(1); }
+})(); // close IIFE — idCap stays private to TabBar module
