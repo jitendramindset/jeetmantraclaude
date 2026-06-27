@@ -503,7 +503,7 @@ window.addEventListener('storage', function(e){
 <!-- Widgets self-register via /widgets/<id>.js — _index.js injects them all. -->
 <script src="/widgets/_index.js?v=3"></script>
 <!-- Layered UI system (atoms → molecules → screens) — JM.Screens.open(id) -->
-<script src="/ui/_boot.js?v=10"></script>
+<script src="/ui/_boot.js?v=11"></script>
 </head>
 <body>
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
@@ -4414,51 +4414,9 @@ function _weekStart(offset){
   d.setDate(d.getDate()-dow+(offset*7));
   d.setHours(0,0,0,0); return d;
 }
-async function openTimetable(weekOffset){
-  _ttWeekOffset=weekOffset||0;
-  openModal('timetable');
-  await _renderTimetable();
-}
-async function _renderTimetable(){
-  const body=document.getElementById('tt-body');
-  if(!body) return;
-  body.innerHTML='Loading…';
-  const start=_weekStart(_ttWeekOffset);
-  const end=new Date(start); end.setDate(end.getDate()+7);
-  try{
-    const r=await api('/teacher/timetable?from='+start.toISOString()+'&to='+end.toISOString(),'GET');
-    const days=Array.from({length:7},(_,i)=>{const d=new Date(start);d.setDate(d.getDate()+i);return d;});
-    const byDay={}; days.forEach(d=>byDay[d.toDateString()]=[]);
-    (r.events||[]).forEach(e=>{
-      const k=new Date(e.start).toDateString();
-      if(byDay[k]) byDay[k].push(e);
-    });
-    const ICON={live:'📡',assignment:'📝',test:'✏️'};
-    body.innerHTML=`
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-        <button class="btn-sm btn-outline" onclick="openTimetable(${_ttWeekOffset-1})">← Prev</button>
-        <div style="font-weight:700">${start.toLocaleDateString()} — ${new Date(end-1).toLocaleDateString()}</div>
-        <div style="display:flex;gap:6px">
-          <button class="btn-sm btn-outline" onclick="openTimetable(0)">Today</button>
-          <button class="btn-sm btn-outline" onclick="openTimetable(${_ttWeekOffset+1})">Next →</button>
-        </div>
-      </div>
-      <div style="font-size:11px;color:var(--jm-text-muted);margin-bottom:10px">${(r.events||[]).length} total events this week</div>
-      ${days.map(d=>{
-        const k=d.toDateString();
-        const items=byDay[k]||[];
-        const isToday=d.toDateString()===new Date().toDateString();
-        return `<div style="margin-bottom:14px">
-          <div style="font-weight:700;font-size:13px;padding:6px 10px;background:${isToday?'var(--jm-primary-tint)':'var(--jm-surface-2)'};border-radius:6px">${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()]} · ${d.toLocaleDateString()}${isToday?' · Today':''}</div>
-          ${items.length ? items.map(e=>`
-            <div style="display:flex;justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--jm-border);align-items:center">
-              <div><div>${ICON[e.type]||'•'} <strong>${e.title}</strong></div><div style="font-size:11px;color:var(--jm-text-muted)">${new Date(e.start).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}${e.duration?' · '+e.duration+' min':''}${e.course_title?' · '+e.course_title:''}</div></div>
-              <span class="badge ${e.type==='live'?'badge-blue':e.type==='assignment'?'badge-yellow':'badge-green'}">${e.type}${e.status?' '+e.status:''}</span>
-            </div>`).join('') : '<div style="padding:8px 12px;color:var(--jm-text-muted);font-size:12px">Nothing scheduled.</div>'}
-        </div>`;
-      }).join('')}`;
-  }catch(e){ body.innerHTML='<div style="color:#b91c1c">Error: '+escHtml(e.message)+'</div>'; }
-}
+// openTimetable — now a thin delegator. Real screen: /ui/screens/Timetable.js
+// Prev/Next/Today buttons in the rendered widget call back to this with new offset.
+async function openTimetable(weekOffset){ if(window.JM&&JM.Screens) return JM.Screens.open('timetable',{weekOffset:weekOffset||0}); }
 
 // ── TEACHER ANNOUNCEMENT — open announcement modal for a course
 function openAnnouncement(courseId, title){
