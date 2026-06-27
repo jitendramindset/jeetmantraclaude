@@ -503,7 +503,7 @@ window.addEventListener('storage', function(e){
 <!-- Widgets self-register via /widgets/<id>.js — _index.js injects them all. -->
 <script src="/widgets/_index.js?v=3"></script>
 <!-- Layered UI system (atoms → molecules → screens) — JM.Screens.open(id) -->
-<script src="/ui/_boot.js?v=6"></script>
+<script src="/ui/_boot.js?v=7"></script>
 </head>
 <body>
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
@@ -4288,29 +4288,9 @@ async function loadInstitutionStudents(){
 }
 
 // ── AI KEY SETTINGS — open/save/clear personal AI provider + key ───────
-async function openAiKey(){
-  openModal('aiKey');
-  const body=document.getElementById('aikey-body');
-  if(!body) return;
-  try{
-    const [status, usage]=await Promise.all([api('/ai/key','GET'), api('/ai/usage','GET')]);
-    const used=usage.todayCalls||0, lim=usage.freeLimit||5;
-    body.innerHTML=`
-      <div style="background:var(--jm-primary-tint);padding:12px;border-radius:8px;margin-bottom:14px;font-size:13px">
-        <strong>Today's usage:</strong> ${used} / ${lim} calls on the FREE plan${status.hasKey?' <span class="badge badge-green">your own key — unlimited</span>':''}
-      </div>
-      <div class="form-row"><label>Provider</label><select id="m-aiprov">
-        <option value="">— pick one —</option>
-        ${['openai','anthropic','gemini','openrouter'].map(p=>`<option value="${p}" ${status.provider===p?'selected':''}>${p}</option>`).join('')}
-      </select></div>
-      <div class="form-row"><label>API Key</label><input id="m-aikey" type="password" placeholder="${status.hasKey?'(set — type to overwrite)':'sk-…'}"></div>
-      <div style="display:flex;gap:8px;margin-top:10px">
-        <button class="btn-sm btn-primary" onclick="saveAiKey()">Save Key</button>
-        <button class="btn-sm btn-outline" onclick="clearAiKey()">Remove Key</button>
-      </div>
-      <div style="font-size:12px;color:var(--jm-text-muted);margin-top:10px">Your key is encrypted at rest. Without your own key the platform falls back to ${lim} shared-quota calls per day.</div>`;
-  }catch(e){ body.innerHTML='<div style="color:#b91c1c">Error: '+escHtml(e.message)+'</div>'; }
-}
+// openAiKey — now a thin delegator. Real screen: /ui/screens/AiKey.js
+// saveAiKey() and clearAiKey() below stay (legacy onclick handlers in the modal).
+async function openAiKey(){ if(window.JM&&JM.Screens) return JM.Screens.open('ai-key'); }
 async function saveAiKey(){
   const provider=val('m-aiprov');
   const apiKey=val('m-aikey');
