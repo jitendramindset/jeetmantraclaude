@@ -17,7 +17,7 @@ The dashboard has TWO surface types — the registry now supports both:
 |---|---|---|
 | Atoms | Button · Card · KPI · Row · Badge · EmptyState · Avatar · SectionHeader · ModalShell · Tabs | ✅ 10/10 |
 | Molecules | KPIGrid · ListSection · ActionToolbar · TakeoverPage | ✅ 4/4 |
-| **Page widgets** | **AuthShell · PageNav · RoleGrid · CourseCard · ProgressSteps · Sidebar** | ✅ **6/6** |
+| **Page widgets** | **AuthShell · PageNav · RoleGrid · CourseCard · ProgressSteps · Sidebar · TabBar · QuestionCard · Hero · SceneTile** | ✅ **10/10** |
 | Registry | `JM.Screens.register({surface, model, render})` — modal + takeover modes | ✅ |
 | Loader | `/ui/_boot.js?v=N` injects all layers; cache-buster pinned to `?v=N` per release | ✅ |
 
@@ -35,14 +35,14 @@ The dashboard has TWO surface types — the registry now supports both:
 | `marketplace.html` | 712 (was 717) | ✅ card converted | CourseCard |
 | `signup.html` | 1336 (was 1345) | ✅ steps converted | ProgressSteps |
 | `admin-os.html` | 1010 (was 1012) | ✅ sidebar converted | Sidebar |
+| `liveRoom.html` | 760 (was 776) | ✅ tabs converted | TabBar |
+| `exam-platform.html` | 2480 (was 2485) | ✅ question card converted | QuestionCard |
+| `bhasha-setu.html` | 1490 (was 1495) | ✅ hero converted (3 places) | Hero |
+| `studio.html` | 2655 (was 2661) | ✅ scene tile converted | SceneTile |
 | `index.html` | 38 | — (loading spinner, minimal) | — |
 | `control-center.html` | 187 | — (dev-tool dark theme, separate system) | — |
-| `website.html` | 1009 | ⏳ React/Babel (own architecture) | — |
-| `liveRoom.html` | 776 | ⏳ Jitsi-driven, dark theme — minor extractions | — |
-| `bhasha-setu.html` | 1495 | ⏳ self-contained language-learning shell | — |
-| `exam-platform.html` | 2485 | ⏳ exam-taking subsystem | — |
-| `studio.html` | 2661 | ⏳ broadcast studio (MediaStream-heavy) | — |
-| `dashboard.html` | 10010 | ⏳ ongoing per Wave 1-7 catalog | (all atoms/molecules) |
+| `website.html` | 1009 | ⏳ React/JSX subsystem — needs separate JSX widget kit | — |
+| `dashboard.html` | 10010 | ⏳ ongoing per Wave 1-7 catalog | (all atoms/molecules + 11 screens extracted) |
 
 ## Screens extracted (11 total)
 
