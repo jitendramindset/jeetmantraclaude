@@ -503,7 +503,7 @@ window.addEventListener('storage', function(e){
 <!-- Widgets self-register via /widgets/<id>.js — _index.js injects them all. -->
 <script src="/widgets/_index.js?v=3"></script>
 <!-- Layered UI system (atoms → molecules → screens) — JM.Screens.open(id) -->
-<script src="/ui/_boot.js?v=19"></script>
+<script src="/ui/_boot.js?v=20"></script>
 </head>
 <body>
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
@@ -7098,81 +7098,8 @@ function setActiveInstitution(id){
 // Mirrors the MantraCRM "Settings" card grid: each option is a coloured
 // tile so the page reads as a real product, not a checklist of links.
 // ============================================================
-function openSettings(){
-  document.getElementById('settingsPage').classList.add('active');
-  document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
-  document.querySelectorAll('.topbar').forEach(s=>s.style.display='none'); // keep sidebar visible (synced nav)
-  const lang=localStorage.getItem('jm_lang')||'en';
-  const theme=localStorage.getItem('jm_theme')||'light';
-  const role=(JSON.parse(localStorage.getItem('jm_user')||'{}').user_type)||(JSON.parse(localStorage.getItem('jm_user')||'{}').role)||'student';
-  const isAdmin = role==='admin';
-  const tile=(c,icon,title,desc,action)=>`
-    <div class="card" onclick="${action}" style="cursor:pointer;padding:18px;position:relative;overflow:hidden;border-top:3px solid ${c};transition:transform .15s,box-shadow .15s" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 20px rgba(15,23,42,.08)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
-      <div style="font-size:28px;margin-bottom:8px">${icon}</div>
-      <div style="font-weight:700;font-size:14px;margin-bottom:4px;color:var(--jm-text)">${title}</div>
-      <div style="font-size:12px;color:var(--jm-text-muted);line-height:1.4">${desc}</div>
-    </div>`;
-  document.getElementById('st-body').innerHTML=`<div style="max-width:1180px;margin:0 auto">
-    <h2 style="margin-bottom:6px">⚙️ Settings</h2>
-    <div style="color:var(--jm-text-muted);font-size:13px;margin-bottom:18px">Personal preferences and workspace configuration</div>
-    <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--jm-text-muted);margin:8px 0 10px">Personal</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:14px;margin-bottom:24px">
-      ${tile('#7c3aed','👤','Profile','Name · contact · address · photo','openProfilePage()')}
-      ${tile('#0ea5e9','🏫','My Institutions','Manage school / coaching links','openMyInstitutions()')}
-      ${tile('#10b981','🤖','AI assistant key','Configure provider (OpenAI / Anthropic / Gemini)','openAiKey()')}
-      ${tile('#ec4899','💳','Payments &amp; coupons','Razorpay status · coupon codes · refunds','openPayments()')}
-    </div>
-    <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--jm-text-muted);margin:8px 0 10px">Appearance &amp; language</div>
-    <div class="card" style="padding:18px;margin-bottom:24px">
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:18px;align-items:end">
-        <div class="form-row" style="margin:0">
-          <label>🌐 Language</label>
-          <select id="st-lang" onchange="setLang(this.value)">
-            ${JM_LANGS.map(l=>`<option value="${l.c}" ${lang===l.c?'selected':''}>🇮🇳 ${l.n}</option>`).join('')}
-          </select>
-        </div>
-        <div class="form-row" style="margin:0">
-          <label>🎨 Theme</label>
-          <select id="st-theme" onchange="setTheme(this.value)">
-            <option value="light" ${theme==='light'?'selected':''}>☀ Light</option>
-            <option value="dark"  ${theme==='dark' ?'selected':''}>🌙 Dark</option>
-          </select>
-        </div>
-        <div class="form-row" style="margin:0">
-          <label>💱 Currency</label>
-          <select id="st-currency" onchange="localStorage.setItem('jm_currency',this.value);toast('Currency set — applies on next reload')">
-            <option ${(localStorage.getItem('jm_currency')||'INR')==='INR'?'selected':''} value="INR">₹ INR — Indian Rupee</option>
-            <option ${(localStorage.getItem('jm_currency')||'INR')==='USD'?'selected':''} value="USD">$ USD — US Dollar</option>
-            <option ${(localStorage.getItem('jm_currency')||'INR')==='EUR'?'selected':''} value="EUR">€ EUR — Euro</option>
-          </select>
-        </div>
-      </div>
-      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--jm-border)">
-        <a href="#/m/settings" style="font-size:13px;font-weight:700;color:var(--jm-primary);text-decoration:none">⚙️ All customization in Settings — colors, branding, fonts, language & integrations →</a>
-      </div>
-    </div>
-    <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--jm-text-muted);margin:8px 0 10px">Workspace</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:14px;margin-bottom:24px">
-      ${tile('#f97316','🏢','CRM configuration','Company · invoice format · branding · logo','openCRMConfig()')}
-      ${tile('#f59e0b','🧾','Billing &amp; invoices','Issue invoices · mark paid · PDF','openBilling()')}
-      ${tile('#7c3aed','📅','Calendar','Month view of classes, tests, assignments','openCalendar()')}
-      ${tile('#0ea5e9','📹','Recordings','Browse past live-class recordings','openRecordings()')}
-      ${tile('#10b981','📊','Test analytics','Per-question pass rate · score distribution',"toast('Open a test from Configure → 📊 Analytics')")}
-    </div>
-    ${isAdmin?`
-    <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--jm-text-muted);margin:8px 0 10px">Admin</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:14px;margin-bottom:24px">
-      ${tile('#ef4444','🛡','Audit log','Recent admin actions',"toast('See Admin page')")}
-      ${tile('#7c3aed','💰','Commission rate','Platform commission %',"openEmbed('/admin-os.html?embed=1','🛡️ Platform OS')")}
-      ${tile('#ec4899','🔌','n8n / webhooks','Configure automations','openN8nConfig()')}
-    </div>`:''}
-    <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--jm-text-muted);margin:8px 0 10px">Account</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:14px">
-      ${tile('#0ea5e9','🔑','Change password','Send a reset link to your email','stChangePassword()')}
-      ${tile('#ef4444','🚪','Log out','End your session on this device','logout()')}
-    </div>
-  </div>`;
-}
+// openSettings — now a thin delegator. Real screen: /ui/screens/Settings.js (takeover via #settingsPage).
+function openSettings(){ if(window.JM&&JM.Screens) return JM.Screens.open('settings'); }
 function closeSettings(){
   document.getElementById('settingsPage').classList.remove('active');
   document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='');
