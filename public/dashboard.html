@@ -503,7 +503,7 @@ window.addEventListener('storage', function(e){
 <!-- Widgets self-register via /widgets/<id>.js — _index.js injects them all. -->
 <script src="/widgets/_index.js?v=3"></script>
 <!-- Layered UI system (atoms → molecules → screens) — JM.Screens.open(id) -->
-<script src="/ui/_boot.js?v=7"></script>
+<script src="/ui/_boot.js?v=8"></script>
 </head>
 <body>
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
@@ -9231,40 +9231,8 @@ const _calColor=t=>t==='live'?'#7c3aed':t==='test'?'#ef4444':'#0ea5e9';
 const _iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 // 📊 My Results — shows exam-platform attempts (localStorage) + bhasha-setu sessions,
 // alongside server-side test history. Lightweight modal; no new page.
-function openMyExternalResults(){
-  const exams = JSON.parse(localStorage.getItem('jm_exam_results')||'[]');
-  const bhasha = JSON.parse(localStorage.getItem('jm_bhasha_progress')||'[]');
-  const fmt = ts => { try { return new Date(ts).toLocaleString(); } catch(e){ return '—'; } };
-  const examRows = exams.length ? exams.map(r=>`<tr>
-    <td style="padding:6px 8px">${fmt(r.ts)}</td>
-    <td style="padding:6px 8px">${(r.topic||r.subject||'—').replace(/[<>&]/g,'')}</td>
-    <td style="padding:6px 8px;text-align:right">${r.score}/${r.total}</td>
-    <td style="padding:6px 8px;text-align:right"><b style="color:${r.pct>=70?'#16a34a':r.pct>=50?'#d97706':'#dc2626'}">${r.pct}%</b></td>
-    <td style="padding:6px 8px">${r.grade}</td></tr>`).join('') : '<tr><td colspan="5" style="padding:14px;text-align:center;color:var(--jm-text-muted)">No exam attempts yet. Open Take Exam to start.</td></tr>';
-  const bhashaRows = bhasha.length ? bhasha.slice(0,30).map(r=>`<tr>
-    <td style="padding:6px 8px">${fmt(r.ts)}</td>
-    <td style="padding:6px 8px">${(r.title||r.topic||'—').replace(/[<>&]/g,'')}</td>
-    <td style="padding:6px 8px">${(r.lang||'').toUpperCase()}</td>
-    <td style="padding:6px 8px;text-align:right">${r.turns||0} turns</td></tr>`).join('') : '<tr><td colspan="4" style="padding:14px;text-align:center;color:var(--jm-text-muted)">No language practice yet. Open Bhasha Setu to begin.</td></tr>';
-  const html = `<div id="jmResModal" style="position:fixed;inset:0;background:rgba(15,23,42,.55);backdrop-filter:blur(4px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px" onclick="if(event.target===this)this.remove()">
-    <div style="background:var(--jm-surface,#fff);border-radius:16px;max-width:820px;width:100%;max-height:86vh;overflow:auto;box-shadow:0 24px 60px rgba(0,0,0,.3);border:1px solid var(--jm-border,#e5e7eb)">
-      <div style="padding:18px 22px;border-bottom:1px solid var(--jm-border,#e5e7eb);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:var(--jm-surface,#fff)">
-        <div><h3 style="margin:0;font-size:17px;color:var(--jm-text,#111)">📊 My Results &amp; Progress</h3><div style="font-size:12px;color:var(--jm-text-muted,#666);margin-top:2px">${exams.length} exam${exams.length!==1?'s':''} · ${bhasha.length} language session${bhasha.length!==1?'s':''}</div></div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <a href="/exam-platform.html" class="btn-sm btn-outline" style="display:inline-block">🧪 Take Exam</a>
-          <a href="/bhasha-setu.html" class="btn-sm btn-outline" style="display:inline-block">🈯 Bhasha Setu</a>
-          <button onclick="document.getElementById('jmResModal').remove()" style="border:none;background:transparent;font-size:22px;cursor:pointer;color:var(--jm-text-muted,#888)">✕</button>
-        </div>
-      </div>
-      <div style="padding:18px 22px">
-        <div style="font-size:13px;font-weight:700;margin-bottom:8px;color:#7c3aed">🧪 Exam Attempts</div>
-        <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:18px"><thead><tr style="background:var(--jm-surface-2,#f6f3ff)"><th style="padding:8px;text-align:left;color:var(--jm-text-muted,#666);font-size:11px;text-transform:uppercase">When</th><th style="padding:8px;text-align:left;color:var(--jm-text-muted,#666);font-size:11px;text-transform:uppercase">Topic</th><th style="padding:8px;text-align:right;color:var(--jm-text-muted,#666);font-size:11px;text-transform:uppercase">Score</th><th style="padding:8px;text-align:right;color:var(--jm-text-muted,#666);font-size:11px;text-transform:uppercase">%</th><th style="padding:8px;text-align:left;color:var(--jm-text-muted,#666);font-size:11px;text-transform:uppercase">Grade</th></tr></thead><tbody>${examRows}</tbody></table></div>
-        <div style="font-size:13px;font-weight:700;margin-bottom:8px;color:#16a34a">🈯 Language Practice (Bhasha Setu)</div>
-        <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px"><thead><tr style="background:var(--jm-surface-2,#f0fdf4)"><th style="padding:8px;text-align:left;color:var(--jm-text-muted,#666);font-size:11px;text-transform:uppercase">When</th><th style="padding:8px;text-align:left;color:var(--jm-text-muted,#666);font-size:11px;text-transform:uppercase">Lesson</th><th style="padding:8px;text-align:left;color:var(--jm-text-muted,#666);font-size:11px;text-transform:uppercase">Lang</th><th style="padding:8px;text-align:right;color:var(--jm-text-muted,#666);font-size:11px;text-transform:uppercase">Activity</th></tr></thead><tbody>${bhashaRows}</tbody></table></div>
-      </div>
-    </div></div>`;
-  const wrap = document.createElement('div'); wrap.innerHTML = html; document.body.appendChild(wrap.firstElementChild);
-}
+// openMyExternalResults — now a thin delegator. Real screen: /ui/screens/MyExternalResults.js
+function openMyExternalResults(){ if(window.JM&&JM.Screens) return JM.Screens.open('my-external-results'); }
 
 async function openCalendar(){
   _closeAllPages();
