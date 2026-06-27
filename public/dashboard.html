@@ -503,7 +503,7 @@ window.addEventListener('storage', function(e){
 <!-- Widgets self-register via /widgets/<id>.js — _index.js injects them all. -->
 <script src="/widgets/_index.js?v=3"></script>
 <!-- Layered UI system (atoms → molecules → screens) — JM.Screens.open(id) -->
-<script src="/ui/_boot.js?v=17"></script>
+<script src="/ui/_boot.js?v=18"></script>
 </head>
 <body>
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
@@ -8035,43 +8035,9 @@ async function applyReferral(){
 // ============================================================
 // SaaS PLANS page — Free / Basic / Pro / Enterprise.
 // ============================================================
-async function openPlans(){
-  document.getElementById('bookingsPage').classList.add('active');
-  document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
-  document.querySelectorAll('.topbar').forEach(s=>s.style.display='none'); // keep sidebar visible (synced nav)
-  document.getElementById('bk-crumb').textContent='Plans';
-  const body=document.getElementById('bk-body');
-  body.innerHTML='<div style="text-align:center;padding:40px;color:#888">Loading…</div>';
-  try{
-    const [r,cur]=await Promise.all([
-      api('/wallet/plans','GET'),
-      api('/wallet/subscription','GET').catch(()=>({subscription:null}))
-    ]);
-    const plans=r.plans||[];
-    const current=cur.subscription;
-    const planColor={free:'#94a3b8',basic:'#0ea5e9',pro:'#7c3aed',enterprise:'#10b981'};
-    body.innerHTML=`<div style="max-width:1180px;margin:0 auto">
-      <h2 style="margin-bottom:6px">⚡ SaaS plans</h2>
-      <div style="color:var(--jm-text-muted);font-size:13px;margin-bottom:18px">Scale your institute with the right plan. Switch any time.</div>
-      ${current?`<div class="card" style="padding:14px;margin-bottom:18px;display:flex;align-items:center;gap:10px;background:var(--jm-primary-tint)"><span style="font-size:22px">✅</span><div><div style="font-weight:700">Current plan: ${escHtml(current.plan_code||current.plan_name||'')}</div><div style="font-size:12px;color:var(--jm-text-muted)">Active until ${current.expires_at?new Date(current.expires_at).toLocaleDateString('en-IN'):'—'}</div></div></div>`:''}
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr));gap:14px">
-        ${plans.map(p=>{
-          const isCurrent=current && current.plan_code===p.code;
-          const c=planColor[p.code]||'#7c3aed';
-          return `<div class="card" style="padding:22px;border-top:4px solid ${c};position:relative;${isCurrent?'box-shadow:0 0 0 2px '+c:''}">
-            ${p.code==='pro'?'<div style="position:absolute;top:-10px;right:14px;background:'+c+';color:#fff;padding:3px 10px;border-radius:99px;font-size:10px;font-weight:800;letter-spacing:.05em">MOST POPULAR</div>':''}
-            <div style="font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:${c};margin-bottom:4px">${escHtml(p.name)}</div>
-            <div style="font-size:32px;font-weight:800;letter-spacing:-.02em">${p.price_monthly==0?'Free':'₹'+p.price_monthly}<span style="font-size:13px;color:var(--jm-text-muted);font-weight:500">/mo</span></div>
-            <div style="font-size:11px;color:var(--jm-text-muted);margin-bottom:14px">${p.price_yearly?'or ₹'+p.price_yearly+' / yr (save '+Math.round((1-p.price_yearly/(p.price_monthly*12))*100)+'%)':''}</div>
-            <ul style="list-style:none;padding:0;margin:0 0 16px;font-size:13px">
-              ${(p.features||[]).map(f=>`<li style="padding:4px 0;display:flex;gap:8px"><span style="color:${c}">✓</span>${escHtml(f)}</li>`).join('')}
-            </ul>
-            ${isCurrent?`<button class="btn-sm btn-outline" style="width:100%" disabled>Current plan</button>`:`<button class="btn-sm btn-primary" style="width:100%;background:linear-gradient(135deg,${c},color-mix(in oklab,${c},#a855f7 30%))" onclick="subscribe('${p.code}','monthly')">Choose ${escHtml(p.name)}</button>`}
-          </div>`;
-        }).join('')}
-      </div>
-    </div>`;
-  }catch(e){ body.innerHTML='<div style="color:#b91c1c;padding:20px">'+escHtml(e.message)+'</div>'; }
+// openPlans — now a thin delegator. Real screen: /ui/screens/Plans.js (takeover).
+// subscribe(planCode, billingPeriod) handler below stays.
+async function openPlans(){ if(window.JM&&JM.Screens) return JM.Screens.open('plans');
 }
 async function subscribe(planCode, billingPeriod){
   if(!confirm('Subscribe to '+planCode+' ('+billingPeriod+')? In demo mode this activates instantly.')) return;
