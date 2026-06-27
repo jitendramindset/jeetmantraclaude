@@ -18,11 +18,13 @@
     'upcoming-classes','pending-eval','revenue','my-courses','my-listings',
     'recommended','notifications','leaderboard','certificates','messages',
     'attendance-pending','weak-students','timetable','admissions','fees',
-    'bookings','children','network','ai-tutor'
+    'bookings','children','network','ai-tutor',
+    // 4 new universal widgets (spec-completion):
+    'profile','calendar','activity-feed','teachers'
   ];
   FILES.forEach(function (id) {
     var s = document.createElement('script');
-    s.src = '/widgets/' + id + '.js?v=1';
+    s.src = '/widgets/' + id + '.js?v=2';
     s.async = false; // preserve registration order
     document.head.appendChild(s);
   });
