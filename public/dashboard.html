@@ -503,7 +503,7 @@ window.addEventListener('storage', function(e){
 <!-- Widgets self-register via /widgets/<id>.js — _index.js injects them all. -->
 <script src="/widgets/_index.js?v=3"></script>
 <!-- Layered UI system (atoms → molecules → screens) — JM.Screens.open(id) -->
-<script src="/ui/_boot.js?v=11"></script>
+<script src="/ui/_boot.js?v=12"></script>
 </head>
 <body>
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
@@ -6285,55 +6285,8 @@ async function openAttendanceReport(){ if(window.JM&&JM.Screens) return JM.Scree
 // TEST ANALYTICS — per-question pass rate + score distribution for a test
 // (opens via 📊 button next to each test row in Configure → Tests).
 // ============================================================
-async function openTestAnalytics(testId, testTitle){
-  document.getElementById('bookingsPage').classList.add('active');
-  document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
-  document.querySelectorAll('.topbar').forEach(s=>s.style.display='none'); // keep sidebar visible (synced nav)
-  document.getElementById('bk-crumb').textContent='Analytics — '+(testTitle||'Test');
-  const body=document.getElementById('bk-body');
-  body.innerHTML='<div style="text-align:center;padding:40px;color:#888">Loading…</div>';
-  try{
-    const r=await api('/teacher/tests/'+testId+'/analytics','GET');
-    const dist=r.score_distribution||[];
-    const maxBucket=Math.max(1,...dist.map(d=>d.count));
-    body.innerHTML=`
-      <div style="max-width:1180px;margin:0 auto">
-        <h2 style="margin-bottom:14px">📊 ${escHtml(r.test?.title||'Test')} — analytics</h2>
-        <div class="stats-grid" style="margin-bottom:18px">
-          <div class="stat-card"><div class="label">Attempts</div><div class="value">${r.totalAttempts||0}</div></div>
-          <div class="stat-card"><div class="label">Mean score</div><div class="value">${r.mean_score||0}</div><div class="sub">of ${r.test?.total_marks||100}</div></div>
-          <div class="stat-card"><div class="label">Questions</div><div class="value">${(r.per_question||[]).length}</div></div>
-        </div>
-        <div class="card" style="margin-bottom:18px"><div style="font-weight:700;margin-bottom:10px">Score distribution</div>
-          <div style="display:flex;align-items:flex-end;gap:10px;height:160px">
-            ${dist.map(d=>`<div style="flex:1;text-align:center;display:flex;flex-direction:column;justify-content:flex-end">
-              <div style="background:var(--jm-primary);height:${(d.count/maxBucket)*120}px;border-radius:6px 6px 0 0;min-height:2px"></div>
-              <div style="font-size:11px;margin-top:4px;font-weight:600">${d.count}</div>
-              <div style="font-size:10px;color:var(--jm-text-muted)">${d.range}</div>
-            </div>`).join('')}
-          </div>
-        </div>
-        <div class="card">
-          <div style="font-weight:700;margin-bottom:10px">Per-question performance</div>
-          <table style="width:100%;border-collapse:collapse">
-            <thead><tr style="text-align:left;color:var(--jm-text-muted);font-size:12px;border-bottom:1px solid var(--jm-border)">
-              <th style="padding:8px">#</th><th style="padding:8px">Question</th><th style="padding:8px;text-align:center">Type</th><th style="padding:8px;text-align:center">Pass rate</th><th style="padding:8px">Top wrong answer</th>
-            </tr></thead><tbody>
-            ${(r.per_question||[]).map((q,i)=>{
-              const color=q.pass_rate>=70?'#10b981':q.pass_rate>=40?'#f59e0b':'#ef4444';
-              return `<tr style="border-bottom:1px solid var(--jm-border)">
-                <td style="padding:8px;color:var(--jm-text-muted)">${i+1}</td>
-                <td style="padding:8px">${escHtml(q.question_text.slice(0,80))}</td>
-                <td style="padding:8px;text-align:center"><span class="badge badge-muted">${q.type}</span></td>
-                <td style="padding:8px;text-align:center"><div style="display:inline-block;padding:3px 10px;border-radius:99px;background:${color};color:#fff;font-weight:600;font-size:12px">${q.pass_rate}%</div><div style="font-size:10px;color:var(--jm-text-muted);margin-top:2px">${q.correct}/${q.attempted}</div></td>
-                <td style="padding:8px;font-size:12px">${q.top_wrong_answer?escHtml(q.top_wrong_answer.value.slice(0,40))+' <span style="color:var(--jm-text-muted)">('+q.top_wrong_answer.count+'×)</span>':'—'}</td>
-              </tr>`;
-            }).join('')}
-            </tbody></table>
-        </div>
-      </div>`;
-  }catch(e){ body.innerHTML='<div style="color:#b91c1c;padding:20px">'+escHtml(e.message)+'</div>'; }
-}
+// openTestAnalytics — now a thin delegator. Real screen: /ui/screens/TestAnalytics.js (takeover).
+async function openTestAnalytics(testId, testTitle){ if(window.JM&&JM.Screens) return JM.Screens.open('test-analytics',{testId,testTitle}); }
 
 // ============================================================
 // ESSAY GRADING INBOX — pending long-answer responses across all the
