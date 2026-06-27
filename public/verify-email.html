@@ -1,8 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8"><title>Verify Email — JeetMantra</title>
-<style>body{font-family:-apple-system,sans-serif;background:linear-gradient(135deg,#7c3aed,#a855f7);min-height:100vh;display:flex;align-items:center;justify-content:center;color:#1a1325}.card{background:#fff;border-radius:16px;padding:36px;max-width:420px;text-align:center}h1{font-size:24px;margin-bottom:10px}a{color:#7c3aed}</style></head>
-<body><div class="card"><div id="ic" style="font-size:48px;margin-bottom:14px">⏳</div><h1 id="t">Verifying…</h1><div id="m" style="color:#6b6783;font-size:14px;margin-top:6px"></div><div style="margin-top:18px"><a href="/login.html">Go to login →</a></div></div>
+<script src="/ui/widgets/page/AuthShell.js?v=1"></script>
+<script>document.write('<style>'+JM.AuthShell.css()+'</style>');</script>
+</head>
+<body>
+<script>
+document.write(JM.AuthShell({
+  body: '<div style="text-align:center">'
+      + '<div id="ic" style="font-size:48px;margin-bottom:14px">⏳</div>'
+      + '<h1 id="t" class="jm-auth-title" style="margin-bottom:10px">Verifying…</h1>'
+      + '<div id="m" style="color:var(--jm-text-muted);font-size:14px;margin-top:6px"></div>'
+      + '</div>',
+  footer: '<a href="/login.html">Go to login →</a>'
+}));
+</script>
 <script>
 const token=new URLSearchParams(location.search).get('token');
 (async()=>{
@@ -14,6 +26,7 @@ const token=new URLSearchParams(location.search).get('token');
     else { document.getElementById('ic').textContent='⚠️'; document.getElementById('t').textContent='Verification failed'; document.getElementById('m').textContent=j.error||''; }
   }catch(e){ document.getElementById('ic').textContent='⚠️'; document.getElementById('t').textContent='Network error'; }
 })();
-</script><script src="/i18n-seed.js?v=4"></script>
+</script>
+<script src="/i18n-seed.js?v=4"></script>
 <script src="/i18n-lite.js?v=4" defer></script>
 </body></html>
