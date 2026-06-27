@@ -503,7 +503,7 @@ window.addEventListener('storage', function(e){
 <!-- Widgets self-register via /widgets/<id>.js — _index.js injects them all. -->
 <script src="/widgets/_index.js?v=1"></script>
 <!-- Layered UI system (atoms → molecules → screens) — JM.Screens.open(id) -->
-<script src="/ui/_boot.js?v=1"></script>
+<script src="/ui/_boot.js?v=2"></script>
 </head>
 <body>
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
@@ -5807,43 +5807,8 @@ async function openCertificatesPage(){ if(window.JM&&JM.Screens) return JM.Scree
 
 // ── My Students: aggregate roster across all the teacher's courses. Loads each
 // course's /students endpoint and merges by student. ────────────────────────
-async function openMyStudentsPage(){
-  showModal('👨‍🎓 My Students', `<div id="stu-body" style="min-height:160px"><div style="color:var(--jm-text-muted);padding:14px">Loading your students…</div></div>`);
-  const body=document.getElementById('stu-body'); if(!body) return;
-  let courses=window._teacherCourses||[];
-  if(!courses.length){
-    body.innerHTML=`<div class="empty-state" style="text-align:center;padding:32px"><div class="icon" style="font-size:44px">👨‍🎓</div><div style="font-weight:600;margin:8px 0">No students yet</div><div style="color:var(--jm-text-muted);font-size:13px;margin-bottom:14px">Create a course and share it — enrolled learners will appear here with their progress.</div><button onclick="closeAnyModal(); (typeof openWizard==='function'?openWizard():document.querySelector('.nav-item[data-nav-key=courses]')?.click())" style="background:linear-gradient(135deg,var(--jm-primary),#a855f7);color:#fff;border:0;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(124,58,237,.35)">＋ Create a course</button></div>`;
-    return;
-  }
-  // Merge rosters across courses, keyed by student_id.
-  const byStudent={};
-  await Promise.all(courses.map(async c=>{
-    try{
-      const r=await api('/courses/'+c.id+'/students','GET');
-      (r.students||[]).forEach(s=>{
-        const k=s.student_id||s.email;
-        if(!byStudent[k]) byStudent[k]={name:s.full_name,email:s.email,courses:[],bestPct:0};
-        byStudent[k].courses.push(c.title);
-        byStudent[k].bestPct=Math.max(byStudent[k].bestPct, s.progress_percentage||0);
-      });
-    }catch(e){}
-  }));
-  const students=Object.values(byStudent);
-  if(!students.length){
-    body.innerHTML=`<div class="empty-state" style="text-align:center;padding:32px"><div class="icon" style="font-size:44px">👨‍🎓</div><div style="font-weight:600;margin:8px 0">No enrollments yet</div><div style="color:var(--jm-text-muted);font-size:13px;margin-bottom:14px">Your ${courses.length} course${courses.length>1?'s have':' has'} no enrolled students yet. Share your course link to get learners in.</div><button onclick="closeAnyModal(); document.querySelector('.nav-item[data-nav-key=courses]')?.click()" style="background:linear-gradient(135deg,var(--jm-primary),#a855f7);color:#fff;border:0;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(124,58,237,.35)">📚 View my courses</button></div>`;
-    return;
-  }
-  students.sort((a,b)=>b.bestPct-a.bestPct);
-  body.innerHTML=`<div style="font-size:12px;color:var(--jm-text-muted);margin-bottom:10px">${students.length} student${students.length>1?'s':''} across ${courses.length} course${courses.length>1?'s':''}</div>`+
-    students.map(s=>`<div style="display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--jm-border);border-radius:10px;margin-bottom:8px">
-      <div style="width:34px;height:34px;border-radius:50%;background:var(--jm-primary-tint,#eee);color:var(--jm-primary);display:flex;align-items:center;justify-content:center;font-weight:700">${escHtml((s.name||'?')[0].toUpperCase())}</div>
-      <div style="flex:1;min-width:0">
-        <div style="font-weight:600;font-size:13px">${escHtml(s.name||'—')}</div>
-        <div style="font-size:11px;color:var(--jm-text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(s.courses.join(', '))}</div>
-      </div>
-      <div style="text-align:right"><div style="font-weight:700;font-size:13px">${s.bestPct}%</div><div style="font-size:10px;color:var(--jm-text-muted)">progress</div></div>
-    </div>`).join('');
-}
+// openMyStudentsPage — now a thin delegator. Real screen: /ui/screens/MyStudents.js
+async function openMyStudentsPage(){ if(window.JM&&JM.Screens) return JM.Screens.open('my-students'); }
 
 // ── Help & Support: static help center with quick links + contact. No backend
 // dependency — always available to every role. ─────────────────────────────
@@ -5859,39 +5824,8 @@ function openHelpPage(){ if(window.JM&&JM.Screens) return JM.Screens.open('help'
 // openWidgetAdmin — now a thin delegator. Real screen: /ui/screens/WidgetAdmin.js
 async function openWidgetAdmin(){ if(window.JM&&JM.Screens) return JM.Screens.open('widget-admin'); }
 
-async function openAnalyticsPage(){
-  showModal('📊 Analytics', `<div id="ana-body" style="min-height:160px"><div style="color:var(--jm-text-muted);padding:14px">Crunching your numbers…</div></div>`);
-  const body=document.getElementById('ana-body'); if(!body) return;
-  let courses=window._teacherCourses||[];
-  if(!courses.length){
-    body.innerHTML=`<div class="empty-state" style="text-align:center;padding:32px"><div class="icon" style="font-size:44px">📊</div><div style="font-weight:600;margin:8px 0">No data yet</div><div style="color:var(--jm-text-muted);font-size:13px;margin-bottom:14px">Once you create courses and enroll students, your analytics will appear here.</div><button onclick="closeAnyModal(); (typeof openWizard==='function'?openWizard():switchTab('courses'))" style="background:linear-gradient(135deg,var(--jm-primary),#a855f7);color:#fff;border:0;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(124,58,237,.35)">＋ Create a course</button></div>`;
-    return;
-  }
-  let totStudents=0, totRevenue=0, pctSum=0, pctCount=0;
-  const perCourse=[];
-  await Promise.all(courses.map(async c=>{
-    try{
-      const a=await api('/courses/'+c.id+'/analytics','GET');
-      const s=a.students||a.student_count||0, rev=a.revenue||0, comp=a.completion_rate||0;
-      totStudents+=s; totRevenue+=rev; if(s){ pctSum+=comp; pctCount++; }
-      perCourse.push({title:c.title, students:s, revenue:rev, completion:comp});
-    }catch(e){ perCourse.push({title:c.title, students:0, revenue:0, completion:0}); }
-  }));
-  const avgComp=pctCount?Math.round(pctSum/pctCount):0;
-  const kpi=(label,val)=>`<div style="flex:1;min-width:120px;background:var(--jm-surface-2,#f5f5f5);border-radius:10px;padding:14px"><div style="font-size:11px;color:var(--jm-text-muted)">${label}</div><div style="font-size:22px;font-weight:800;margin-top:2px">${val}</div></div>`;
-  body.innerHTML=`
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">
-      ${kpi('Courses', courses.length)}
-      ${kpi('Total students', totStudents)}
-      ${kpi('Avg completion', avgComp+'%')}
-      ${kpi('Revenue', '₹'+totRevenue.toLocaleString('en-IN'))}
-    </div>
-    <div style="font-weight:700;font-size:13px;margin-bottom:8px">Per course</div>
-    <table style="width:100%;border-collapse:collapse;font-size:13px">
-      <thead><tr style="color:var(--jm-text-muted);font-size:11px;text-align:left"><th style="padding:6px 8px">Course</th><th style="padding:6px 8px;text-align:right">Students</th><th style="padding:6px 8px;text-align:right">Done</th><th style="padding:6px 8px;text-align:right">Revenue</th></tr></thead>
-      <tbody>${perCourse.map(p=>`<tr style="border-top:1px solid var(--jm-border)"><td style="padding:8px;font-weight:600">${escHtml(p.title)}</td><td style="padding:8px;text-align:right">${p.students}</td><td style="padding:8px;text-align:right">${p.completion}%</td><td style="padding:8px;text-align:right">₹${(p.revenue||0).toLocaleString('en-IN')}</td></tr>`).join('')}</tbody>
-    </table>`;
-}
+// openAnalyticsPage — now a thin delegator. Real screen: /ui/screens/Analytics.js
+async function openAnalyticsPage(){ if(window.JM&&JM.Screens) return JM.Screens.open('analytics'); }
 
 // ── AI Knowledge / RAG trainer: paste notes or re-index uploaded docs so the
 // AI tutor can ground answers in this course's own material. ───────────────
@@ -7082,19 +7016,8 @@ async function isCourseDownloaded(courseId){ return !!(await _idbGet(courseId));
 async function removeDownload(courseId){ await _idbDel(courseId); toast('Removed offline copy'); openDownloads(); renderStudentCourses(); }
 
 // Downloads manager: list saved courses, open offline, or remove.
-async function openDownloads(){
-  showModal('📥 Offline Downloads', '<div id="dl-body" style="min-height:140px"><div style="color:var(--jm-text-muted);padding:16px">Loading…</div></div>');
-  const all=await _idbAll();
-  const body=document.getElementById('dl-body'); if(!body) return;
-  const online=navigator.onLine;
-  body.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap"><div style="font-size:12px;color:var(--jm-text-muted)">${online?'🟢 Online':'🔴 Offline — reading from saved copies'} · ${all.length} course${all.length===1?'':'s'} saved</div><button class="btn-sm btn-primary" onclick="openOfflineAI()">🧠 Offline AI</button></div>`+
-    (all.length?all.map(r=>`<div style="display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--jm-border);border-radius:10px;margin-bottom:8px">
-      <div style="width:40px;height:40px;border-radius:8px;background:var(--jm-primary-tint);display:flex;align-items:center;justify-content:center">📚</div>
-      <div style="flex:1;min-width:0"><div style="font-weight:600;font-size:14px">${escHtml(r.title)}</div><div style="font-size:11px;color:var(--jm-text-muted)">${(r.full?.topics||[]).length} chapters · ${(r.full?.lectures||[]).length} lectures · saved ${new Date(r.savedAt).toLocaleDateString()}</div></div>
-      <button class="btn-sm btn-primary" onclick="openReader('${r.courseId}','${escHtml(r.title).replace(/'/g,"\\'")}')">📖 Read</button>
-      <button class="btn-sm btn-outline" onclick="removeDownload('${r.courseId}')" title="Remove" style="color:#b91c1c">🗑</button>
-    </div>`).join(''):'<div class="empty-state"><div class="icon">📥</div>No downloads yet. Tap ⬇ on any course to save it for offline study.</div>');
-}
+// openDownloads — now a thin delegator. Real screen: /ui/screens/Downloads.js
+async function openDownloads(){ if(window.JM&&JM.Screens) return JM.Screens.open('downloads'); }
 
 // ── Offline AI panel: build the local index, test it, and (optionally) enable
 // on-device embeddings + a generative LLM that run with no internet. ──────────

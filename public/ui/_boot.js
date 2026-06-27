@@ -29,9 +29,9 @@
     'SectionHeader', 'ModalShell', 'Tabs'
   ];
   var MOLECULES = ['KPIGrid', 'ListSection', 'ActionToolbar'];
-  var MODELS = ['Wallet', 'Certificates', 'WidgetAdmin'];
+  var MODELS = ['Wallet', 'Certificates', 'WidgetAdmin', 'Analytics', 'MyStudents', 'Downloads'];
   var CONTROLLERS = ['Wallet'];
-  var SCREENS = ['Help', 'WidgetAdmin', 'Wallet', 'Certificates'];
+  var SCREENS = ['Help', 'WidgetAdmin', 'Wallet', 'Certificates', 'Analytics', 'MyStudents', 'Downloads'];
 
   function inject(folder, names) {
     names.forEach(function (n) {
