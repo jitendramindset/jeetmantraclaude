@@ -29,21 +29,21 @@
     'SectionHeader', 'ModalShell', 'Tabs'
   ];
   var MOLECULES = ['KPIGrid', 'ListSection', 'ActionToolbar', 'TakeoverPage'];
-  var MODELS = ['Wallet', 'Certificates', 'WidgetAdmin', 'Analytics', 'MyStudents', 'Downloads', 'Recordings', 'AttendanceReport', 'Gamification', 'AiKey', 'MyExternalResults', 'LiveRoster', 'AttendanceLog', 'Wall', 'Timetable', 'TestAnalytics', 'EssayInbox', 'Submissions'];
+  var MODELS = ['Wallet', 'Certificates', 'WidgetAdmin', 'Analytics', 'MyStudents', 'Downloads', 'Recordings', 'AttendanceReport', 'Gamification', 'AiKey', 'MyExternalResults', 'LiveRoster', 'AttendanceLog', 'Wall', 'Timetable', 'TestAnalytics', 'EssayInbox', 'Submissions', 'StudentDetail'];
   var CONTROLLERS = ['Wallet'];
-  var SCREENS = ['Help', 'WidgetAdmin', 'Wallet', 'Certificates', 'Analytics', 'MyStudents', 'Downloads', 'Recordings', 'AttendanceReport', 'Gamification', 'AiKey', 'MyExternalResults', 'LiveRoster', 'AttendanceLog', 'Wall', 'Timetable', 'TestAnalytics', 'EssayInbox', 'Submissions'];
+  var SCREENS = ['Help', 'WidgetAdmin', 'Wallet', 'Certificates', 'Analytics', 'MyStudents', 'Downloads', 'Recordings', 'AttendanceReport', 'Gamification', 'AiKey', 'MyExternalResults', 'LiveRoster', 'AttendanceLog', 'Wall', 'Timetable', 'TestAnalytics', 'EssayInbox', 'Submissions', 'StudentDetail'];
 
   function inject(folder, names) {
     names.forEach(function (n) {
       var s = document.createElement('script');
-      s.src = '/ui/' + folder + '/' + n + '.js?v=14';
+      s.src = '/ui/' + folder + '/' + n + '.js?v=15';
       s.async = false; // preserve order
       document.head.appendChild(s);
     });
   }
   // Registry must exist before screens self-register.
   var reg = document.createElement('script');
-  reg.src = '/ui/registry/screens.js?v=14';
+  reg.src = '/ui/registry/screens.js?v=15';
   reg.async = false;
   document.head.appendChild(reg);
 
