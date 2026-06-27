@@ -97,21 +97,19 @@ body{font-family:-apple-system,'Segoe UI',sans-serif;background:var(--jm-bg);col
     </div>
   </div>
   <div class="sidebar" id="sidebar">
-    <div class="tabs">
-      <button class="tab active" onclick="showTab('attendees')">👥 Attendees (<span id="attCount">0</span>)</button>
-      <button class="tab" onclick="showTab('chat')">💬 Chat</button>
-      <button class="tab" onclick="showTab('polls')">📊 Polls</button>
-    </div>
-    <div class="tab-body" id="tabPolls" style="display:none">
-      <div id="pollPanel" style="font-size:13px"></div>
-    </div>
-    <div class="tab-body" id="tabAttendees">
-      <div id="attendeesList"><div style="color:var(--jm-text-muted);font-size:13px">No one's joined yet.</div></div>
-      <div class="summary" id="classSummary"></div>
-    </div>
-    <div class="tab-body" id="tabChat" style="display:none">
-      <div id="chatList" style="margin-bottom:10px"></div>
-    </div>
+    <!-- JM.TabBar widget: emits tabs + panels with built-in switching -->
+    <script src="/ui/widgets/page/TabBar.js?v=1"></script>
+    <script>
+      document.write(JM.TabBar({
+        active: 'attendees',
+        tabs: [
+          { id: 'attendees', label: '👥 Attendees (<span id="attCount">0</span>)',
+            body: '<div id="attendeesList"><div style="color:var(--jm-text-muted);font-size:13px">No one\'s joined yet.</div></div><div class="summary" id="classSummary"></div>' },
+          { id: 'chat',  label: '💬 Chat',  body: '<div id="chatList" style="margin-bottom:10px"></div>' },
+          { id: 'polls', label: '📊 Polls', body: '<div id="pollPanel" style="font-size:13px"></div>' }
+        ]
+      }));
+    </script>
     <div class="chat-input" id="chatInputBox" style="display:none">
       <input id="chatInput" placeholder="Message everyone…" aria-label="Type a message to everyone" onkeydown="if(event.key==='Enter')sendChatMsg()">
       <button class="btn primary" onclick="sendChatMsg()">Send</button>
@@ -710,13 +708,10 @@ async function loadAttendees() {
 function escape(s) { return String(s || '').replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c])); }
 
 function showTab(name) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  event.target.classList.add('active');
-  document.getElementById('tabAttendees').style.display = name === 'attendees' ? '' : 'none';
-  document.getElementById('tabChat').style.display = name === 'chat' ? '' : 'none';
+  // Tab visual state is owned by JM.TabBar — delegate.
+  if (window.JM && JM.TabBar) JM.TabBar.show(name);
+  // Page-specific side effects: chat input box only visible on chat tab; refresh polls on demand.
   document.getElementById('chatInputBox').style.display = name === 'chat' ? '' : 'none';
-  const polls = document.getElementById('tabPolls');
-  if (polls) polls.style.display = name === 'polls' ? '' : 'none';
   if (name === 'polls') refreshPolls();
 }
 
