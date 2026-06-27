@@ -503,7 +503,7 @@ window.addEventListener('storage', function(e){
 <!-- Widgets self-register via /widgets/<id>.js — _index.js injects them all. -->
 <script src="/widgets/_index.js?v=3"></script>
 <!-- Layered UI system (atoms → molecules → screens) — JM.Screens.open(id) -->
-<script src="/ui/_boot.js?v=13"></script>
+<script src="/ui/_boot.js?v=14"></script>
 </head>
 <body>
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
@@ -4073,33 +4073,9 @@ function fillCourseGeo(){
 }
 
 // ── Teacher: list submissions for an assignment → grade each ───────────
-async function openSubmissions(assignmentId, title){
-  _modalCtx={assignmentId};
-  // Reuse Configure modal infrastructure for the list view
-  const overlay=document.getElementById('actionOverlay');
-  document.getElementById('actionModal').innerHTML=`
-    <button class="close" onclick="closeModal()">×</button>
-    <h3>📥 Submissions: ${title||'Assignment'}</h3>
-    <div id="subs-body">Loading…</div>`;
-  overlay.classList.add('show');
-  try{
-    const r=await api('/assignments/'+assignmentId+'/submissions','GET');
-    const body=document.getElementById('subs-body');
-    if(!r.submissions?.length){
-      body.innerHTML='<div style="text-align:center;padding:20px;color:var(--jm-text-muted)">No submissions yet.</div>';
-      return;
-    }
-    body.innerHTML=r.submissions.map(s=>{
-      const badge=s.status==='graded'?'badge-green':s.status==='submitted'?'badge-blue':'badge-yellow';
-      return `<div style="display:flex;justify-content:space-between;padding:12px;border-bottom:1px solid var(--jm-border);align-items:center">
-        <div><div style="font-weight:600">${s.full_name||s.email||'Student'}</div><div style="font-size:11px;color:var(--jm-text-muted)">${s.email||''}</div>${s.submission_url?'<div style="margin-top:4px"><a href="'+s.submission_url+'" target="_blank">📎 View</a></div>':''}</div>
-        <div class="row-actions"><span class="badge ${badge}">${s.status}${s.grade!=null?': '+s.grade:''}</span><button class="btn-sm btn-primary" onclick="openGradeSubmission('${s.id}')">Grade</button></div>
-      </div>`;
-    }).join('');
-    // Inject the inline-JSON-encoded submissions into a window var so onclick can read by id
-    window._pendingSubmissions=Object.fromEntries(r.submissions.map(s=>[s.id,s]));
-  }catch(e){ document.getElementById('subs-body').innerHTML='<div style="color:#b91c1c">Error: '+escHtml(e.message)+'</div>'; }
-}
+// openSubmissions — now a thin delegator. Real screen: /ui/screens/Submissions.js
+// openGradeSubmission(sid) below stays (legacy onclick handler in the rendered rows).
+async function openSubmissions(assignmentId, title){ if(window.JM&&JM.Screens) return JM.Screens.open('submissions',{assignmentId,title}); }
 function openGradeSubmission(sid){
   const s=window._pendingSubmissions?.[sid];
   if(!s){toast('Submission not found',true);return;}
