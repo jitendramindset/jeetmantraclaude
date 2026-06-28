@@ -503,7 +503,7 @@ window.addEventListener('storage', function(e){
 <!-- Widgets self-register via /widgets/<id>.js — _index.js injects them all. -->
 <script src="/widgets/_index.js?v=3"></script>
 <!-- Layered UI system (atoms → molecules → screens) — JM.Screens.open(id) -->
-<script src="/ui/_boot.js?v=22"></script>
+<script src="/ui/_boot.js?v=23"></script>
 </head>
 <body>
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
@@ -8653,54 +8653,10 @@ function t(key){ const lang=localStorage.getItem('jm_lang')||'en'; return I18N[l
 // ============================================================
 // BILLING / INVOICES (CRM-style) — issue, list, mark paid, print PDF.
 // ============================================================
-async function openBilling(){
-  document.getElementById('billingPage').classList.add('active');
-  document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
-  document.querySelectorAll('.topbar').forEach(s=>s.style.display='none'); // keep sidebar visible (synced nav)
-  await _renderBilling();
-}
-function closeBilling(){
-  document.getElementById('billingPage').classList.remove('active');
-  document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='');
-  document.querySelectorAll('.sidebar, .topbar').forEach(s=>s.style.display='');
-}
-async function _renderBilling(){
-  const body=document.getElementById('bl-body');
-  body.innerHTML='<div style="text-align:center;padding:40px;color:#888">Loading…</div>';
-  try{
-    const r=await api('/teacher/invoices','GET');
-    const s=r.summary||{}, rows=r.invoices||[];
-    body.innerHTML=`<div style="max-width:1180px;margin:0 auto">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:8px;flex-wrap:wrap">
-        <h2 style="margin:0">🧾 Billing &amp; Invoices</h2>
-        <button class="btn-sm btn-primary" onclick="blOpenNew()">➕ New invoice</button>
-      </div>
-      <div class="stats-grid" style="margin-bottom:18px">
-        <div class="stat-card" style="--sc:#10b981"><div class="label">Collected</div><div class="value">${fmt(s.paidAmount||0)}</div><div class="sub">${s.paid||0} paid</div></div>
-        <div class="stat-card" style="--sc:#f59e0b"><div class="label">Pending</div><div class="value">${fmt(s.pendingAmount||0)}</div><div class="sub">${s.pending||0} invoices</div></div>
-        <div class="stat-card" style="--sc:#ef4444"><div class="label">Overdue</div><div class="value">${s.overdue||0}</div><div class="sub">past due date</div></div>
-        <div class="stat-card" style="--sc:#7c3aed"><div class="label">Total invoices</div><div class="value">${s.total||0}</div><div class="sub">All time</div></div>
-      </div>
-      <div class="card" style="padding:0">${rows.length?`<table style="width:100%;border-collapse:collapse">
-        <thead><tr style="text-align:left;color:var(--jm-text-muted);font-size:11px;text-transform:uppercase;border-bottom:1px solid var(--jm-border)">
-          <th style="padding:12px 14px">#</th><th style="padding:12px 14px">Client</th><th style="padding:12px 14px">Issued</th><th style="padding:12px 14px">Due</th><th style="padding:12px 14px">Status</th><th style="padding:12px 14px;text-align:right">Total</th><th style="padding:12px 14px;text-align:right">Actions</th>
-        </tr></thead><tbody>
-        ${rows.map(inv=>`<tr style="border-bottom:1px solid var(--jm-border)">
-          <td style="padding:12px 14px;font-family:monospace;font-size:12px;font-weight:600">${escHtml(inv.invoice_number||'')}</td>
-          <td style="padding:12px 14px"><div style="font-weight:600">${escHtml(inv.client_name||'—')}</div><div style="font-size:11px;color:var(--jm-text-muted)">${escHtml(inv.client_email||'')}</div></td>
-          <td style="padding:12px 14px;font-size:12px">${inv.created_at?new Date(inv.created_at).toLocaleDateString('en-IN'):''}</td>
-          <td style="padding:12px 14px;font-size:12px">${inv.due_date?new Date(inv.due_date).toLocaleDateString('en-IN'):'—'}</td>
-          <td style="padding:12px 14px"><span class="badge ${inv.status==='paid'?'badge-green':inv.status==='cancelled'?'badge-red':'badge-yellow'}">${escHtml(inv.status||'pending')}</span></td>
-          <td style="padding:12px 14px;text-align:right;font-weight:700">${fmt(inv.total||inv.amount||0)}</td>
-          <td style="padding:12px 14px;text-align:right">
-            <button class="btn-sm btn-outline" onclick="blOpenPdf('${inv.id}')">📄 PDF</button>
-            ${inv.status!=='paid'?`<button class="btn-sm btn-primary" onclick="blMarkPaid('${inv.id}')">✓ Paid</button>`:''}
-          </td>
-        </tr>`).join('')}
-        </tbody></table>`:'<div class="empty-state" style="text-align:center;padding:32px"><div class="icon" style="font-size:44px">🧾</div><div style="font-weight:600;margin:8px 0">No invoices yet</div><div style="color:var(--jm-text-muted);font-size:13px;margin-bottom:14px">Issue an invoice to a student or org — payments tracked automatically.</div><button onclick="if(typeof openNewInvoice===\'function\')openNewInvoice();else document.getElementById(\'biNewBtn\')?.click();" style="background:linear-gradient(135deg,var(--jm-primary),#a855f7);color:#fff;border:0;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(124,58,237,.35)">➕ New invoice</button></div>'}</div>
-    </div>`;
-  }catch(e){ body.innerHTML='<div style="color:#b91c1c;padding:20px">'+escHtml(e.message)+'</div>'; }
-}
+// openBilling — thin delegator. Real screen: /ui/screens/Billing.js (takeover via #billingPage).
+// _renderBilling is set on window by Billing screen's afterMount so blMarkPaid() can refresh.
+async function openBilling(){ if(window.JM&&JM.Screens) return JM.Screens.open('billing'); }
+function closeBilling(){ JM.TakeoverPage&&JM.TakeoverPage.close('billingPage'); }
 function blOpenPdf(id){
   const token=localStorage.getItem('jm_token');
   fetch(API+'/teacher/invoices/'+id+'/pdf',{headers:{Authorization:'Bearer '+token}})
