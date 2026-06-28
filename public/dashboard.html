@@ -503,7 +503,7 @@ window.addEventListener('storage', function(e){
 <!-- Widgets self-register via /widgets/<id>.js — _index.js injects them all. -->
 <script src="/widgets/_index.js?v=3"></script>
 <!-- Layered UI system (atoms → molecules → screens) — JM.Screens.open(id) -->
-<script src="/ui/_boot.js?v=31"></script>
+<script src="/ui/_boot.js?v=32"></script>
 </head>
 <body>
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
@@ -5637,11 +5637,7 @@ const joinLive=_withButtonLoading(async (id)=>{ window.location.hash='#/m/live/'
 // ============================================================
 window._wiz = null;
 function openWizard(){
-  window._wiz = { step:1, data:{ title:'', category:'General', level:'beginner', price:0, description:'', cover:null } };
-  document.getElementById('wizardPage').classList.add('active');
-  document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
-  document.querySelectorAll('.topbar').forEach(s=>s.style.display='none'); // keep sidebar visible (synced nav)
-  renderWizard();
+  if(window.JM && JM.Screens) return JM.Screens.open('wizard');
 }
 function closeWizard(){
   document.getElementById('wizardPage').classList.remove('active');
