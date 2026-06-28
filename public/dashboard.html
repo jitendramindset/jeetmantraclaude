@@ -503,7 +503,7 @@ window.addEventListener('storage', function(e){
 <!-- Widgets self-register via /widgets/<id>.js — _index.js injects them all. -->
 <script src="/widgets/_index.js?v=3"></script>
 <!-- Layered UI system (atoms → molecules → screens) — JM.Screens.open(id) -->
-<script src="/ui/_boot.js?v=27"></script>
+<script src="/ui/_boot.js?v=28"></script>
 </head>
 <body>
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
@@ -4462,20 +4462,7 @@ function exportRosterCsv(students, courseTitle){
 // correct answer + marks + difficulty. Inline forms, no nested modals.
 let _qeTestId=null, _qeCourseId=null;
 async function openQuestionEditor(testId, testTitle){
-  _qeTestId=testId;
-  // _qeCourseId powers the "test settings" fetch in _renderQuestionEditor.
-  // It comes from the active Configure page (_cfgCourseId); if the editor is
-  // opened from elsewhere, resolve it from the test row itself.
-  _qeCourseId = _cfgCourseId || null;
-  if(!_qeCourseId){
-    try{
-      const r=await api('/course-content/tests/'+testId,'GET').catch(()=>null);
-      _qeCourseId = r?.test?.course_id || null;
-    }catch(_){}
-  }
-  openModal('questionEditor');
-  document.querySelector('#actionModal h3').textContent='📝 Questions: '+testTitle;
-  await _renderQuestionEditor();
+  if(window.JM && JM.Screens) return JM.Screens.open('question-editor', {testId: testId, testTitle: testTitle, courseId: _cfgCourseId||null});
 }
 // ── KaTeX bootstrap — load once, then call _renderMath() on any DOM node.
 window._katexReady = null;
@@ -5572,8 +5559,7 @@ async function openAnalyticsPage(){ if(window.JM&&JM.Screens) return JM.Screens.
 // ── AI Knowledge / RAG trainer: paste notes or re-index uploaded docs so the
 // AI tutor can ground answers in this course's own material. ───────────────
 async function openRagTrainer(courseId){
-  showModal('🧠 Train Course AI', `<div id="rag-body" style="min-height:160px"><div style="color:var(--jm-text-muted)">Loading index status…</div></div>`);
-  await ragRefresh(courseId);
+  if(window.JM && JM.Screens) return JM.Screens.open('rag-trainer', {courseId: courseId});
 }
 async function ragRefresh(courseId){
   const body=document.getElementById('rag-body'); if(!body) return;
