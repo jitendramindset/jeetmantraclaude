@@ -503,7 +503,7 @@ window.addEventListener('storage', function(e){
 <!-- Widgets self-register via /widgets/<id>.js — _index.js injects them all. -->
 <script src="/widgets/_index.js?v=3"></script>
 <!-- Layered UI system (atoms → molecules → screens) — JM.Screens.open(id) -->
-<script src="/ui/_boot.js?v=34"></script>
+<script src="/ui/_boot.js?v=36"></script>
 </head>
 <body>
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
@@ -8304,37 +8304,9 @@ function jmLangBcp(c){ const l=JM_LANGS.find(x=>x.c===c); return l?l.bcp:'en-IN'
 // ── Topbar language picker: single compact button → tile grid of all 9 languages.
 // Pattern matches the user's Mantravat Setu reference: native name shown big,
 // English label small. Keeps the topbar tidy while still surfacing the full list.
-function openLangPicker(){
-  if(!document.getElementById('jmLangPickCss')){
-    const s=document.createElement('style'); s.id='jmLangPickCss';
-    s.textContent='.lang-curr-btn:hover{border-color:var(--jm-primary)!important;color:var(--jm-primary)!important}'
-      +'.lang-pick-ov{position:fixed;inset:0;z-index:10040;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);display:flex;align-items:flex-start;justify-content:center;padding:48px 16px;overflow-y:auto}'
-      +'.lang-pick-modal{background:var(--jm-surface);border:1px solid var(--jm-border);border-radius:18px;width:100%;max-width:480px;box-shadow:0 12px 40px rgba(0,0,0,.28);animation:lpRise .22s cubic-bezier(.2,.9,.3,1)}'
-      +'@keyframes lpRise{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}'
-      +'.lang-pick-head{padding:14px 18px;border-bottom:1px solid var(--jm-border);display:flex;align-items:center;justify-content:space-between}'
-      +'.lang-pick-head h3{font-size:16px;margin:0;font-weight:700}'
-      +'.lang-pick-close{width:32px;height:32px;border-radius:8px;background:transparent;border:none;color:var(--jm-text-muted);font-size:18px;cursor:pointer}'
-      +'.lang-pick-close:hover{background:var(--jm-primary-tint);color:var(--jm-text)}'
-      +'.lang-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:14px}'
-      +'.lang-tile{padding:12px 8px;border:1.5px solid var(--jm-border);border-radius:12px;cursor:pointer;text-align:center;background:var(--jm-surface);color:var(--jm-text);transition:.15s}'
-      +'.lang-tile:hover{border-color:var(--jm-primary);background:var(--jm-primary-tint)}'
-      +'.lang-tile.active{border-color:var(--jm-primary);background:var(--jm-primary);color:#fff}'
-      +'.lt-native{font-size:15px;font-weight:700;line-height:1.2;margin-bottom:2px}'
-      +'.lt-en{font-size:10px;opacity:.78}'
-      +'@media(max-width:420px){.lang-grid{grid-template-columns:1fr 1fr}}';
-    document.head.appendChild(s);
-  }
-  closeLangPicker();
-  const cur=localStorage.getItem('jm_lang')||'en';
-  const ov=document.createElement('div'); ov.className='lang-pick-ov no-i18n'; ov.id='jmLangPickOv';
-  ov.innerHTML='<div class="lang-pick-modal" onclick="event.stopPropagation()">'
-    +'<div class="lang-pick-head"><h3>🌐 Language / भाषा</h3><button class="lang-pick-close" onclick="closeLangPicker()" aria-label="Close">✕</button></div>'
-    +'<div class="lang-grid">'+JM_LANGS.map(l=>'<div class="lang-tile '+(cur===l.c?'active':'')+'" onclick="setLang(\''+l.c+'\');closeLangPicker()"><div class="lt-native">'+l.n+'</div><div class="lt-en">'+l.e+'</div></div>').join('')+'</div>'
-    +'</div>';
-  ov.addEventListener('click', ev=>{ if(ev.target===ov) closeLangPicker(); });
-  document.body.appendChild(ov);
-}
-function closeLangPicker(){ const o=document.getElementById('jmLangPickOv'); if(o) o.remove(); }
+// openLangPicker — delegator. Real screen: /ui/screens/LangPicker.js
+function openLangPicker(){ if(window.JM&&JM.Screens) JM.Screens.open('lang-picker'); }
+function closeLangPicker(){ closeAnyModal(); }
 
 // ── Runtime auto-translation engine ───────────────────────────────────────
 // The app's authored text is English. For any non-English language we walk the
