@@ -104,6 +104,13 @@ app.use((req, res, next) => {
   next();
 });
 
+// Pre-auth SPA: serve index.html for all former standalone login/signup pages
+// so that old bookmarks / e-mail links still work after those files are deleted.
+const PRE_AUTH_PAGES = ['/login.html', '/signup.html', '/forgot-password.html', '/reset-password.html', '/verify-email.html'];
+app.get(PRE_AUTH_PAGES, (req, res) => {
+  res.sendFile(path.join(frontendPath, 'index.html'));
+});
+
 app.use(express.static(frontendPath));
 
 // LevelDB wiring for ALL /api routes:
