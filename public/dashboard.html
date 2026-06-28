@@ -503,7 +503,7 @@ window.addEventListener('storage', function(e){
 <!-- Widgets self-register via /widgets/<id>.js — _index.js injects them all. -->
 <script src="/widgets/_index.js?v=3"></script>
 <!-- Layered UI system (atoms → molecules → screens) — JM.Screens.open(id) -->
-<script src="/ui/_boot.js?v=30"></script>
+<script src="/ui/_boot.js?v=31"></script>
 </head>
 <body>
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
@@ -4655,8 +4655,7 @@ async function qeDeleteBank(id){
 // ── STANDALONE QUESTION BANK — create questions directly, then attach to any
 // course's test. Reachable from the teacher quick-actions (not just a test).
 async function openQuestionBank(){
-  showModal('📚 Question Bank', '<div id="qb-body"><div style="text-align:center;padding:30px;color:#888">Loading…</div></div>');
-  await _qbRenderList();
+  if(window.JM && JM.Screens) return JM.Screens.open('question-bank');
 }
 async function _qbRenderList(){
   const body=document.getElementById('qb-body'); if(!body) return;
@@ -6397,31 +6396,7 @@ async function applyCoupon(code, amount, courseId){
 // cancel + reschedule + refund actions.
 // ============================================================
 async function openBookingDetail(bookingId){
-  try{
-    const r=await api('/teacher/bookings/'+bookingId,'GET');
-    const b=r.booking||{}, s=r.student||{}, p=r.payment||{};
-    const overlay=document.createElement('div');
-    overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9998;display:flex;align-items:center;justify-content:center;padding:20px';
-    overlay.onclick=e=>{ if(e.target===overlay) overlay.remove(); };
-    overlay.innerHTML=`<div style="background:var(--jm-surface);max-width:520px;width:100%;border-radius:12px;padding:24px;max-height:90vh;overflow-y:auto">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><h2>📅 Booking</h2><button onclick="this.closest('[style*=position]').remove()" style="border:0;background:none;font-size:22px;cursor:pointer">×</button></div>
-      <table style="width:100%;border-collapse:collapse;margin-bottom:14px;font-size:13px">
-        <tr><td style="padding:6px;color:var(--jm-text-muted);width:35%">Student</td><td style="padding:6px;font-weight:600">${escHtml(s.full_name||'—')}<div style="font-size:11px;color:var(--jm-text-muted)">${escHtml(s.email||'')} ${s.phone?'· '+escHtml(s.phone):''}</div></td></tr>
-        <tr><td style="padding:6px;color:var(--jm-text-muted)">Course</td><td style="padding:6px">${escHtml(b.course_title||'—')}</td></tr>
-        <tr><td style="padding:6px;color:var(--jm-text-muted)">Status</td><td style="padding:6px"><span class="badge ${b.status==='confirmed'?'badge-green':b.status==='cancelled'?'badge-red':'badge-yellow'}">${b.status||'pending'}</span></td></tr>
-        <tr><td style="padding:6px;color:var(--jm-text-muted)">Amount</td><td style="padding:6px">${b.amount?fmt(b.amount):'—'}</td></tr>
-        <tr><td style="padding:6px;color:var(--jm-text-muted)">Payment</td><td style="padding:6px">${p.status?'<span class="badge badge-'+(p.status==='paid'?'green':'yellow')+'">'+p.status+'</span>':'—'} ${p.transaction_id?'<div style="font-family:monospace;font-size:11px;color:var(--jm-text-muted)">'+escHtml(p.transaction_id)+'</div>':''}</td></tr>
-        <tr><td style="padding:6px;color:var(--jm-text-muted)">Booked</td><td style="padding:6px">${b.created_at?new Date(b.created_at).toLocaleString():'—'}</td></tr>
-      </table>
-      <div class="form-row"><label>Reschedule (optional)</label><input id="bk-resch" type="datetime-local" value="${b.scheduled_for?new Date(b.scheduled_for).toISOString().slice(0,16):''}"></div>
-      <div class="form-row"><label>Status</label><select id="bk-status"><option value="pending" ${b.status==='pending'?'selected':''}>pending</option><option value="confirmed" ${b.status==='confirmed'?'selected':''}>confirmed</option><option value="completed" ${b.status==='completed'?'selected':''}>completed</option><option value="cancelled" ${b.status==='cancelled'?'selected':''}>cancelled</option></select></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
-        <button class="btn-sm btn-primary" onclick="bookingSave('${bookingId}')">💾 Save</button>
-        <button class="btn-sm btn-outline" onclick="bookingCancel('${bookingId}')" style="color:#b91c1c">❌ Cancel + refund</button>
-      </div>
-    </div>`;
-    document.body.appendChild(overlay);
-  }catch(e){ toast(e.message,true); }
+  if(window.JM && JM.Screens) return JM.Screens.open('booking-detail', {bookingId: bookingId});
 }
 async function bookingSave(id){
   try{
@@ -6429,7 +6404,7 @@ async function bookingSave(id){
       status:document.getElementById('bk-status').value,
       scheduledFor:document.getElementById('bk-resch').value||null
     });
-    toast('✓ Saved'); document.querySelector('[style*="z-index:9998"]')?.remove();
+    toast('✓ Saved'); closeAnyModal();
     openBookings();
   }catch(e){ toast(e.message,true); }
 }
@@ -6437,7 +6412,7 @@ async function bookingCancel(id){
   if(!confirm('Cancel this booking and refund the payment?')) return;
   try{
     await api('/teacher/bookings/'+id+'/cancel','POST',{});
-    toast('✓ Cancelled + refunded'); document.querySelector('[style*="z-index:9998"]')?.remove();
+    toast('✓ Cancelled + refunded'); closeAnyModal();
     openBookings();
   }catch(e){ toast(e.message,true); }
 }
