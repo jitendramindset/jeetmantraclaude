@@ -85,33 +85,45 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // Serve frontend files
 const frontendPath = path.join(__dirname, '..', 'public');
 
-// ── Single App Shell ────────────────────────────────────────────────────────
-// /app is the canonical post-login entry. The shell (currently dashboard.html —
-// already role-driven dynamic nav + widget engine + in-page section routing) is
-// served for /app and any /app/* client route so deep links / refreshes work.
-// Standalone module pages (studio/exam-platform/…) still resolve for now and are
-// being migrated to render *inside* this shell; public pages stay standalone.
+// ── App shell (post-login) ───────────────────────────────────────────────────
+// /app and /app/* serve the dashboard shell. All other navigation happens inside
+// the SPA (index.html) via history.pushState — the shell itself is never linked
+// to directly by end users; they always arrive via the JS router.
 app.get(['/app', '/app/*'], (req, res) => {
   res.sendFile(path.join(frontendPath, 'dashboard.html'));
 });
 
-// Dev-only pages — 404 in production so the prod build ships without dev tooling.
-const DEV_ONLY_PAGES = new Set(['/control-center.html']);
+// ── HTML gating — single entry point ────────────────────────────────────────
+// Every HTML file on disk falls into one of three buckets:
+//   1. index.html          → served freely (it IS the SPA entry)
+//   2. Embed modules       → served raw ONLY when ?embed=1 (dashboard iframes)
+//   3. Everything else     → SPA handles routing; serve index.html
+// This means typing /dashboard.html, /marketplace.html, /website.html etc. in
+// the browser always goes through the JS router — no "naked HTML page" confusion.
+const EMBED_MODULES = new Set([
+  '/marketplace.html', '/studio.html', '/exam-platform.html',
+  '/bhasha-setu.html', '/settings.html', '/admin-os.html', '/liveRoom.html',
+]);
 app.use((req, res, next) => {
-  if (process.env.NODE_ENV === 'production' && DEV_ONLY_PAGES.has(req.path)) {
-    return res.status(404).send('Not found');
-  }
-  next();
+  if (req.method !== 'GET') return next();
+  const p = req.path;
+  if (!p.endsWith('.html')) return next();               // CSS/JS/images pass through
+  if (p === '/index.html') return next();                // SPA shell — serve normally
+  if (EMBED_MODULES.has(p) && req.query.embed) return next(); // iframe embed — allow
+  // All other .html requests → SPA
+  return res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
-// Pre-auth SPA: serve index.html for all former standalone login/signup pages
-// so that old bookmarks / e-mail links still work after those files are deleted.
-const PRE_AUTH_PAGES = ['/login.html', '/signup.html', '/forgot-password.html', '/reset-password.html', '/verify-email.html'];
-app.get(PRE_AUTH_PAGES, (req, res) => {
+// ── Static assets (JS, CSS, images, fonts, etc.) ────────────────────────────
+app.use(express.static(frontendPath));
+
+// ── SPA catch-all ────────────────────────────────────────────────────────────
+// Any GET that fell through (unknown path, client-side route refresh, etc.)
+// returns index.html so the JS router can handle it.
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api/')) return next();
   res.sendFile(path.join(frontendPath, 'index.html'));
 });
-
-app.use(express.static(frontendPath));
 
 // LevelDB wiring for ALL /api routes:
 //   cacheMiddleware — cache-aside reads (local LevelDB), Supabase on miss
