@@ -114,8 +114,8 @@
     }
     metaTheme.content = '#7c3aed';
 
-    // Set body HTML (without scripts — scripts are loaded separately)
-    document.body.innerHTML = _BODY_HTML;
+    // Set body HTML — strip BOM if present (UTF-8 BOM breaks innerHTML parsing)
+    document.body.innerHTML = _BODY_HTML.replace(/^﻿/, '');
 
     // Expose _loadJSModule globally so the shellModuleHost code can call it
     global._loadJSModule = _loadJSModule;
@@ -145,10 +145,12 @@
         }
       });
 
-      // Execute the combined dashboard inline scripts
-      var scriptEl = document.createElement('script');
-      scriptEl.textContent = _MAIN_JS;
-      document.body.appendChild(scriptEl);
+      // Execute combined dashboard JS in global scope (indirect eval avoids scope isolation)
+      try {
+        (0,eval)(_MAIN_JS.replace(/^﻿/, ''));
+      } catch(e) {
+        console.error('[AppShell] dashboard JS error:', e.message, e.stack);
+      }
     });
   }
 
