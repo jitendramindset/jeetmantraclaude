@@ -503,7 +503,7 @@ window.addEventListener('storage', function(e){
 <!-- Widgets self-register via /widgets/<id>.js — _index.js injects them all. -->
 <script src="/widgets/_index.js?v=3"></script>
 <!-- Layered UI system (atoms → molecules → screens) — JM.Screens.open(id) -->
-<script src="/ui/_boot.js?v=28"></script>
+<script src="/ui/_boot.js?v=29"></script>
 </head>
 <body>
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
@@ -4080,35 +4080,7 @@ function openGradeSubmission(sid){
 
 // ── Teacher: list enrolled students per course ─────────────────────────
 async function openCourseStudents(courseId, title){
-  _modalCtx={courseId};
-  const overlay=document.getElementById('actionOverlay');
-  document.getElementById('actionModal').innerHTML=`
-    <button class="close" onclick="closeModal()">×</button>
-    <h3>👥 Students: ${title||'Course'}</h3>
-    <div id="cs-body">Loading…</div>`;
-  overlay.classList.add('show');
-  try{
-    const r=await api('/courses/'+courseId+'/students','GET');
-    const body=document.getElementById('cs-body');
-    if(!r.students?.length){
-      body.innerHTML='<div style="text-align:center;padding:20px;color:var(--jm-text-muted)">No enrolled students yet.</div>';
-      return;
-    }
-    // Stash students so the CSV export button can read them
-    window._lastStudentRoster={students:r.students,title:r.course?.title};
-    body.innerHTML=`
-      <div style="display:flex;justify-content:space-between;margin-bottom:10px"><div style="font-size:12px;color:var(--jm-text-muted)">${r.students.length} enrolled · ${r.students.filter(s=>s.progress_percentage===100).length} completed</div>
-      <button class="btn-sm btn-outline" onclick="exportRosterCsv(window._lastStudentRoster.students, window._lastStudentRoster.title)">📥 Export CSV</button></div>
-      ${r.students.map(s=>`
-        <div onclick="openStudentDetail('${courseId}','${s.student_id}')" style="display:flex;justify-content:space-between;padding:10px;border-bottom:1px solid var(--jm-border);align-items:center;cursor:pointer;border-radius:8px" onmouseover="this.style.background='var(--jm-surface-2)'" onmouseout="this.style.background=''">
-          <div style="flex:1">
-            <div style="font-weight:600">${escHtml(s.full_name)} <span style="font-size:11px;color:var(--jm-primary)">→ view</span></div>
-            <div style="font-size:11px;color:var(--jm-text-muted)">${escHtml(s.email)} · ${s.attended_lectures}/${s.total_lectures} attended${s.last_attendance_date?' · last '+new Date(s.last_attendance_date).toLocaleDateString():''}</div>
-            <div class="progress-bar" style="margin-top:4px;max-width:200px"><div class="progress-fill" style="width:${s.progress_percentage}%"></div></div>
-          </div>
-          <span class="badge ${s.progress_percentage===100?'badge-green':'badge-blue'}">${s.progress_percentage}%</span>
-        </div>`).join('')}`;
-  }catch(e){ document.getElementById('cs-body').innerHTML='<div style="color:#b91c1c">Error: '+escHtml(e.message)+'</div>'; }
+  if(window.JM && JM.Screens) return JM.Screens.open('course-students', {courseId: courseId, title: title||''});
 }
 
 // openStudentDetail — now a thin delegator. Real screen: /ui/screens/StudentDetail.js
