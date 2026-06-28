@@ -503,7 +503,7 @@ window.addEventListener('storage', function(e){
 <!-- Widgets self-register via /widgets/<id>.js — _index.js injects them all. -->
 <script src="/widgets/_index.js?v=3"></script>
 <!-- Layered UI system (atoms → molecules → screens) — JM.Screens.open(id) -->
-<script src="/ui/_boot.js?v=23"></script>
+<script src="/ui/_boot.js?v=24"></script>
 </head>
 <body>
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
@@ -8750,14 +8750,9 @@ const _iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${St
 // openMyExternalResults — now a thin delegator. Real screen: /ui/screens/MyExternalResults.js
 function openMyExternalResults(){ if(window.JM&&JM.Screens) return JM.Screens.open('my-external-results'); }
 
-async function openCalendar(){
-  _closeAllPages();
-  document.getElementById('calendarPage').classList.add('active');
-  document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
-  document.querySelectorAll('.topbar').forEach(s=>s.style.display='none'); // keep sidebar visible
-  _calRef=new Date(); _calView=localStorage.getItem('jm_calView')||'month';
-  await _renderCalendar();
-}
+// openCalendar — thin delegator. Real screen: /ui/screens/Calendar.js.
+// afterMount sets _calRef/_calView and calls _renderCalendar().
+async function openCalendar(){ if(window.JM&&JM.Screens) return JM.Screens.open('calendar'); }
 function closeCalendar(){
   document.getElementById('calendarPage').classList.remove('active');
   document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='');
