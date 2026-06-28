@@ -57,6 +57,20 @@ async function resolveCaps(req, orgId) {
   return { roles, capabilities: [...caps] };
 }
 
+// GET /api/me — basic profile for the calling user.
+router.get('/', authenticateToken, async (req, res) => {
+  try {
+    const { data: user } = await supabaseAdmin
+      .from('jeetmantra_users')
+      .select('id,email,full_name,user_type,phone,profile_image,bio,created_at')
+      .eq('id', req.user.id).maybeSingle();
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    res.json({ user: { ...user, role: user.user_type } });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // GET /api/me/contexts — everything the switcher needs in one shot.
 router.get('/contexts', authenticateToken, async (req, res) => {
   try {
