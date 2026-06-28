@@ -503,7 +503,7 @@ window.addEventListener('storage', function(e){
 <!-- Widgets self-register via /widgets/<id>.js — _index.js injects them all. -->
 <script src="/widgets/_index.js?v=3"></script>
 <!-- Layered UI system (atoms → molecules → screens) — JM.Screens.open(id) -->
-<script src="/ui/_boot.js?v=29"></script>
+<script src="/ui/_boot.js?v=30"></script>
 </head>
 <body>
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
@@ -4167,14 +4167,7 @@ async function clearAiKey(){
 // ── COURSE CHAT — open the per-course group chat ──────────────────────
 let _activeChat=null;
 async function openCourseChat(courseId, title){
-  _modalCtx={courseId};
-  openModal('courseChat');
-  document.querySelector('#actionModal h3').textContent='💬 '+(title||'Chat');
-  try{
-    const r=await api('/chat/rooms/course/'+courseId,'GET');
-    _activeChat=r.room;
-    await renderChat();
-  }catch(e){ document.getElementById('chat-messages').innerHTML='<div style="color:#b91c1c">'+e.message+'</div>'; }
+  if(window.JM && JM.Screens) return JM.Screens.open('course-chat', {courseId: courseId, title: title||''});
 }
 // Escape any string before inserting into HTML to prevent stored XSS.
 function escHtml(s){
@@ -5841,16 +5834,7 @@ async function wizCreate(){
 // ============================================================
 window._att = null;
 async function openAttGrid(courseId){
-  document.getElementById('attGridPage').classList.add('active');
-  document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
-  document.querySelectorAll('.topbar').forEach(s=>s.style.display='none'); // keep sidebar visible (synced nav)
-  const courses=window._teacherCourses||[];
-  if(!courses.length){
-    document.getElementById('att-body').innerHTML='<div class="card" style="max-width:600px;margin:40px auto;padding:24px;text-align:center"><div style="font-size:48px">📚</div><div style="font-weight:600;margin-top:10px">No courses yet</div><div style="color:var(--jm-text-muted);margin-top:6px">Create a course first to mark attendance.</div></div>';
-    return;
-  }
-  window._att={ courseId: courseId||courses[0].id, date: new Date().toISOString().slice(0,10), roster:[] };
-  await renderAttGrid();
+  if(window.JM && JM.Screens) return JM.Screens.open('att-grid', {courseId: courseId||null});
 }
 function closeAttGrid(){
   document.getElementById('attGridPage').classList.remove('active');
