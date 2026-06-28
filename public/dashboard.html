@@ -503,7 +503,7 @@ window.addEventListener('storage', function(e){
 <!-- Widgets self-register via /widgets/<id>.js — _index.js injects them all. -->
 <script src="/widgets/_index.js?v=3"></script>
 <!-- Layered UI system (atoms → molecules → screens) — JM.Screens.open(id) -->
-<script src="/ui/_boot.js?v=25"></script>
+<script src="/ui/_boot.js?v=26"></script>
 </head>
 <body>
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
@@ -3253,11 +3253,7 @@ let _cfgEditing=null; // { type, id }
 let _cfgAdding=null;  // { type, topicId? }
 
 async function openConfigure(courseId){
-  _cfgCourseId=courseId;
-  document.getElementById('configurePage').classList.add('active');
-  document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
-  document.querySelectorAll('.topbar').forEach(s=>s.style.display='none'); // keep sidebar visible (synced nav)
-  await _reopenConfigure(courseId);
+  if(window.JM && JM.Screens) return JM.Screens.open('configure', {courseId: courseId});
 }
 function closeConfigurePage(){
   document.getElementById('configurePage').classList.remove('active');
