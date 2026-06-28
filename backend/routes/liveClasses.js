@@ -1,3 +1,30 @@
+/**
+ * liveClasses.js — scheduling, joining, casting & recording of live classes.
+ * Mount: /api/live-classes
+ *
+ * Endpoints:
+ *   POST   /:classId/cast              🔒 [creator/owner] — teacher pushes a JPEG Studio frame (ephemeral relay)
+ *   GET    /:classId/cast              🔒 — viewer polls the latest frame (204 when not casting/stale)
+ *   POST   /                          🔒 [cap live.schedule, course owner] — schedule a live class
+ *   GET    /course/:courseId          🌐 — list a course's classes split into upcoming/past
+ *   GET    /upcoming                  🔒 — caller's upcoming + currently-live classes (enrolled courses)
+ *   GET    /:classId                  🌐 — single class details (+ course/teacher/attendee count)
+ *   POST   /:classId/join             🔒 [owner/admin/enrolled] — join & receive meeting link
+ *   POST   /:classId/documents        🔒 — upload a class document (multipart)
+ *   PUT    /:classId                  🔒 [creator/owner] — update/reschedule a class
+ *   POST   /:classId/start            🔒 [cap live.start, owner] — mark class live (idempotent)
+ *   POST   /:classId/end              🔒 [cap live.start, owner] — mark class completed (idempotent)
+ *   GET    /:id/attendees             🔒 [owner/admin] — who joined
+ *   POST   /:classId/recording        🔒 [creator/owner] — attach recording (file upload or external URL)
+ *   GET    /recordings/list           🔒 — recordings library (teacher: own courses; student: enrolled)
+ *   POST   /:id/summary               🔒 [owner/admin] — generate/store AI post-class notes
+ *
+ * Notes: uses supabaseAdmin (self-hosted anon key invalid); course/teacher
+ * names hydrated via separate lookups (jeetmantra_users.id is VARCHAR, no FK
+ * embeds). Cast frames are in-memory only (reset on restart, 15s TTL). Join
+ * enforces an enrollment gate; start/end are idempotent. Joining fires the
+ * award pipeline (first join only).
+ */
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
@@ -29,6 +56,54 @@ const upload = multer({
 });
 
 const router = express.Router();
+
+// ── Studio cast relay (lightweight) ────────────────────────────────────────
+// The teacher's Studio composes its scene on a canvas and POSTs periodic JPEG
+// snapshots here; students in the live room poll the latest frame and show it.
+// Ephemeral in-memory store (one frame per class); resets on restart, which is
+// fine for a live session. A stale frame (>15s) is treated as "not casting".
+const _castFrames = new Map(); // classId -> { data, ts, by }
+const CAST_TTL_MS = 15000;
+const CAST_MAX = 200;          // cap distinct classes held at once
+function _castGc() {
+  const now = Date.now();
+  for (const [k, v] of _castFrames) if (now - v.ts > CAST_TTL_MS) _castFrames.delete(k);
+  if (_castFrames.size > CAST_MAX) {
+    // drop oldest
+    const oldest = [..._castFrames.entries()].sort((a, b) => a[1].ts - b[1].ts)[0];
+    if (oldest) _castFrames.delete(oldest[0]);
+  }
+}
+
+// Teacher pushes a frame. Body: { frame: "data:image/jpeg;base64,..." }.
+// Only the class's teacher (or admin) may publish.
+router.post('/:classId/cast', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
+  try {
+    const { classId } = req.params;
+    const frame = req.body && req.body.frame;
+    if (typeof frame !== 'string' || !/^data:image\/(jpeg|png|webp);base64,/.test(frame)) {
+      return res.status(400).json({ error: 'frame (data URL) required' });
+    }
+    if (frame.length > 1500000) return res.status(413).json({ error: 'frame too large' }); // ~1.1MB decoded
+    const { data: course } = await supabaseAdmin.from('live_classes')
+      .select('id, course_id, courses(teacher_id)').eq('id', classId).single();
+    if (!course) return res.status(404).json({ error: 'Class not found' });
+    const teacherId = course.courses && course.courses.teacher_id;
+    if (req.user.role !== 'admin' && teacherId && teacherId !== req.user.id) {
+      return res.status(403).json({ error: 'Not your class' });
+    }
+    _castFrames.set(classId, { data: frame, ts: Date.now(), by: req.user.id });
+    _castGc();
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Viewer polls the latest frame. 204 when the teacher isn't casting (or stale).
+router.get('/:classId/cast', authenticateToken, async (req, res) => {
+  const v = _castFrames.get(req.params.classId);
+  if (!v || Date.now() - v.ts > CAST_TTL_MS) return res.status(204).end();
+  res.json({ frame: v.data, ts: v.ts });
+});
 
 // Schedule a live class (teacher only)
 router.post('/', authenticateToken, requireCapability('live.schedule'), validate('liveClassCreate'), async (req, res) => {

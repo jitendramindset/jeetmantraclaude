@@ -1,3 +1,22 @@
+/**
+ * n8n.js — n8n workflow-automation integration (config, webhooks, sync).
+ * Mount: /api/n8n
+ *
+ * Endpoints:
+ *   GET  /config       🔒 auth — view addon config (secret redacted)
+ *   POST /config       🔒 auth [admin] — set webhook URL/secret/enabled
+ *   POST /test         🔒 auth [admin] — fire a test event to the webhook
+ *   POST /webhook      🌐 public — receive events FROM n8n (signature-verified)
+ *   POST /trigger      🔒 auth — trigger an n8n workflow
+ *   GET  /status       🌐 public — check n8n connectivity (latency)
+ *   POST /notify        🔒 auth — send a notification via n8n
+ *   POST /sync-users   🌐 public (secret-gated) — n8n pulls user data
+ *   POST /sync-courses 🌐 public (secret-gated) — n8n pulls course data
+ *
+ * Notes: inbound /webhook is verified against N8N_WEBHOOK_SECRET (x-n8n-secret /
+ * x-webhook-secret header). sync-* endpoints are gated by an x-sync-secret header
+ * (or body.secret) and fail-closed in production when no secret is configured.
+ */
 const express = require('express');
 const axios = require('axios');
 const { supabaseAdmin } = require('../config/supabase');

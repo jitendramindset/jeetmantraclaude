@@ -1,6 +1,24 @@
 /**
  * wallet.js — wallet balance, top-up via Razorpay, referrals, SaaS plans.
  * Phase 2B of the EduOS roadmap.
+ * Mount: /api/wallet
+ *
+ * Endpoints:
+ *   GET  /                     🔒 — balance + recent transactions
+ *   POST /topup/order          🔒 — create Razorpay order (or demo) for a top-up
+ *   POST /topup/verify         🔒 — verify signature + credit wallet
+ *   POST /spend                🔒 — atomic debit (checkout pays via wallet)
+ *   GET  /referrals/my-code    🔒 — get-or-create personal referral code
+ *   POST /referrals/apply      🔒 — apply a code; credit both parties
+ *   GET  /plans                🌐 — public SaaS pricing
+ *   GET  /subscription         🔒 — caller's active subscription
+ *   POST /subscribe            🔒 [INSTITUTION_ROLES + creators] — start/replace a subscription
+ *
+ * Notes: MONEY-CRITICAL. All balance changes go through postTransaction(), which
+ * does a compare-and-swap UPDATE (.eq('balance', cur)) with retry so concurrent
+ * debits can't double-spend; negative results throw INSUFFICIENT. topup/verify
+ * checks the Razorpay HMAC-SHA256 signature (demo orders auto-pass). Write routes
+ * are Joi-validated; /subscribe is also role-gated.
  */
 const express = require('express');
 const crypto = require('crypto');

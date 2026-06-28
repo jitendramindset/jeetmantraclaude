@@ -1,3 +1,18 @@
+/**
+ * attendance.js — class attendance recording + reporting.
+ * Mount: /api/attendance
+ *
+ * Endpoints:
+ *   POST   /                        🔒 cap:attendance.mark — record one attendance row (teacher must own course)
+ *   GET    /student/:studentId      🔒 auth — a student's full history + present/absent/late summary
+ *   GET    /course/:courseId        🔒 auth — all attendance rows for a course
+ *   GET    /log/:courseId           🔒 auth — full course log; students see only own rows, teachers see all + names
+ *
+ * Notes: POST requires the attendance.mark capability (teacher + assistant_teacher)
+ *   and verifies course ownership via the enrollment's course. /log scopes by role
+ *   (student → own rows; teacher → ownership-checked, with student-name hydration).
+ *   jeetmantra_users.id is VARCHAR — names hydrated manually, no FK embeds.
+ */
 const express = require('express');
 const { supabase, supabaseAdmin } = require('../config/supabase');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');

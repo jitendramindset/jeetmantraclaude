@@ -1,0 +1,665 @@
+(function(g) {
+var _CSS = [
+'/* Marketplace — uses theme.css design tokens */',
+'nav{background:var(--jm-surface);border-bottom:1px solid var(--jm-border);padding:14px 32px;display:flex;align-items:center;gap:20px;position:sticky;top:0;z-index:100;box-shadow:var(--jm-shadow-sm)}',
+'nav .logo{font-size:20px;font-weight:800;text-decoration:none;white-space:nowrap;color:var(--jm-text);letter-spacing:-0.02em}',
+'nav .logo .accent{color:var(--jm-primary)}',
+'.nav-search{display:flex;align-items:center;background:var(--jm-surface-2);border:1px solid var(--jm-border);border-radius:var(--jm-radius-sm);padding:10px 16px;gap:8px;flex:1;max-width:480px}',
+'.nav-search input{background:none;border:none;color:var(--jm-text);font-size:14px;outline:none;width:100%;font-family:inherit}',
+'.nav-links{display:flex;align-items:center;gap:12px;margin-left:auto}',
+'.nav-links a{color:var(--jm-text-strong);text-decoration:none;font-size:14px;font-weight:600;transition:color .15s}',
+'.nav-links a:hover{color:var(--jm-primary)}',
+'.btn{padding:9px 18px;border-radius:var(--jm-radius-sm);font-size:13px;font-weight:700;cursor:pointer;border:1.5px solid transparent;font-family:inherit;transition:all .15s;text-decoration:none;display:inline-block}',
+'.btn-primary{background:var(--jm-primary);color:#fff;box-shadow:0 2px 8px var(--jm-primary-glow)}',
+'.btn-primary:hover{background:var(--jm-primary-2)}',
+'.btn-outline{background:transparent;border-color:var(--jm-border);color:var(--jm-text)}',
+'.btn-outline:hover{border-color:var(--jm-primary);color:var(--jm-primary)}',
+'.btn-sm{padding:6px 14px;font-size:12px}',
+'.hero{background:linear-gradient(135deg,var(--jm-deep) 0%,var(--jm-deep-2) 100%);color:#fff;padding:56px 32px;text-align:center}',
+'.hero h1{font-size:38px;font-weight:800;margin-bottom:12px;letter-spacing:-0.02em;color:#fff}',
+'.hero h1 span{color:var(--jm-primary)}',
+'.hero p{color:rgba(255,255,255,0.7);font-size:16px;margin-bottom:24px}',
+'.filter-bar{padding:20px 32px;border-bottom:1px solid var(--jm-border);background:var(--jm-surface);display:flex;align-items:center;gap:12px;overflow-x:auto}',
+'.cat-pill{padding:8px 16px;border-radius:var(--jm-radius-pill);background:var(--jm-surface);border:1.5px solid var(--jm-border);color:var(--jm-text-strong);cursor:pointer;font-size:13px;font-weight:600;white-space:nowrap;transition:all .15s}',
+'.cat-pill:hover{border-color:var(--jm-primary);color:var(--jm-primary)}',
+'.cat-pill.active{background:var(--jm-primary);border-color:var(--jm-primary);color:#fff}',
+'.filter-right{margin-left:auto;display:flex;gap:10px;align-items:center;white-space:nowrap}',
+'select.filter-select{background:var(--jm-surface);border:1.5px solid var(--jm-border);color:var(--jm-text);border-radius:var(--jm-radius-sm);padding:8px 12px;font-size:13px;outline:none;font-family:inherit;font-weight:600}',
+'.main-layout{display:grid;grid-template-columns:1fr;max-width:1400px;margin:0 auto;padding:28px 32px;gap:24px}',
+'.section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}',
+'.section-head h2{font-size:20px;font-weight:800;letter-spacing:-0.02em}',
+'.courses-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(280px,100%),1fr));gap:20px}',
+'.course-card{background:var(--jm-surface);border-radius:var(--jm-radius);border:1px solid var(--jm-border);overflow:hidden;transition:all .2s;cursor:pointer;box-shadow:var(--jm-shadow-sm)}',
+'.course-card:hover{transform:translateY(-4px);border-color:var(--jm-primary);box-shadow:var(--jm-shadow)}',
+'.course-thumb{height:150px;background:linear-gradient(135deg,var(--jm-deep),var(--jm-deep-2));display:flex;align-items:center;justify-content:center;font-size:48px;position:relative;color:#fff}',
+'.course-category{position:absolute;top:10px;left:10px;background:var(--jm-primary);color:#fff;font-size:10px;padding:4px 10px;border-radius:var(--jm-radius-pill);font-weight:700;text-transform:uppercase;letter-spacing:0.04em}',
+'.course-level{position:absolute;top:10px;right:10px;background:rgba(255,255,255,0.95);color:var(--jm-text);font-size:10px;padding:4px 10px;border-radius:var(--jm-radius-pill);font-weight:600}',
+'.course-body{padding:16px}',
+'.course-title{font-size:15px;font-weight:700;margin-bottom:6px;line-height:1.3;color:var(--jm-text)}',
+'.course-instructor{font-size:12px;color:var(--jm-text-muted);margin-bottom:8px}',
+'.mp-chips{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px}',
+'.mp-chip{font-size:10px;background:var(--jm-surface-2,#f1f5f9);color:var(--jm-text,#334155);padding:2px 8px;border-radius:20px;white-space:nowrap}',
+'.course-meta{display:flex;justify-content:space-between;align-items:center}',
+'.course-price{font-size:18px;font-weight:800;color:var(--jm-primary)}',
+'.course-rating{font-size:12px;color:#92400e}',
+'.buy-btn{width:100%;margin-top:12px;padding:10px;border:none;border-radius:var(--jm-radius-sm);background:var(--jm-primary);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .15s;box-shadow:0 2px 8px var(--jm-primary-glow)}',
+'.buy-btn:hover{background:var(--jm-primary-2)}',
+'.buy-btn.owned{background:#f0fdf4;color:#15803d;cursor:default;box-shadow:none}',
+'.seller-banner{background:linear-gradient(135deg,var(--jm-deep) 0%,var(--jm-deep-2) 100%);color:#fff;border-radius:var(--jm-radius);padding:28px;display:flex;align-items:center;gap:24px;margin-bottom:28px}',
+'.seller-banner .icon{font-size:48px}',
+'.seller-banner h3{font-size:20px;font-weight:800;margin-bottom:6px;letter-spacing:-0.02em}',
+'.seller-banner p{color:rgba(255,255,255,0.7);font-size:14px;margin-bottom:14px}',
+'.modal-overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,0.6);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(4px)}',
+'.modal-overlay.show{display:flex}',
+'.modal{background:var(--jm-surface);border-radius:var(--jm-radius);padding:28px;max-width:500px;width:90%;border:1px solid var(--jm-border);max-height:90vh;overflow-y:auto;box-shadow:var(--jm-shadow)}',
+'.modal h3{font-size:20px;font-weight:800;margin-bottom:16px;letter-spacing:-0.02em}',
+'.modal .close{float:right;cursor:pointer;color:var(--jm-text-muted);font-size:20px;line-height:1}',
+'.form-group{margin-bottom:14px}',
+'.form-group label{display:block;font-size:12px;color:var(--jm-text-strong);margin-bottom:5px;font-weight:600}',
+'.form-group input,.form-group select{width:100%;background:var(--jm-surface);border:1.5px solid var(--jm-border);border-radius:var(--jm-radius-sm);padding:10px 12px;color:var(--jm-text);font-size:14px;outline:none;font-family:inherit;transition:all .15s}',
+'.form-group input:focus,.form-group select:focus{border-color:var(--jm-primary);box-shadow:0 0 0 3px rgba(124,58,237,0.12)}',
+'.msg{padding:10px 14px;border-radius:var(--jm-radius-sm);font-size:13px;margin-bottom:12px;display:none;font-weight:600}',
+'.msg.error{background:#fef2f2;color:#b91c1c;border:1px solid #fca5a5}',
+'.msg.success{background:#f0fdf4;color:#15803d;border:1px solid #86efac}',
+'.empty-state{text-align:center;padding:60px 20px;color:var(--jm-text-muted)}',
+'.empty-state .icon{font-size:48px;margin-bottom:12px;opacity:.5}',
+'.loading{text-align:center;padding:40px;color:var(--jm-text-muted)}',
+'@media(max-width:1024px){.courses-grid{grid-template-columns:repeat(auto-fill,minmax(min(260px,100%),1fr))}}',
+'@media(max-width:768px){nav{padding:12px 16px;flex-wrap:wrap;gap:10px}.nav-search{max-width:100%;order:3;width:100%}.hero{padding:32px 16px}.hero h1{font-size:26px}.main-layout{padding:16px}.filter-bar{padding:12px 16px;flex-wrap:wrap}.filter-select{min-width:0;flex:1 1 120px}.seller-banner{flex-direction:column;text-align:center}.courses-grid{grid-template-columns:repeat(auto-fill,minmax(min(220px,100%),1fr))}}',
+'@media(max-width:480px){.courses-grid{grid-template-columns:1fr}.modal{padding:18px 14px;width:94%}.modal [style*="repeat(4,1fr)"]{grid-template-columns:1fr 1fr !important}}',
+'@keyframes mpUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}',
+'.course-card{animation:mpUp .35s ease both}',
+'.sk-card{border:1px solid var(--jm-border);border-radius:14px;overflow:hidden;background:var(--jm-surface)}',
+'.sk-card .sk-img{height:150px}',
+'.sk-card .sk-body{padding:14px}',
+'.sk-line{height:12px;border-radius:6px;margin-bottom:10px;background:linear-gradient(90deg,rgba(150,150,150,.12) 25%,rgba(150,150,150,.22) 37%,rgba(150,150,150,.12) 63%);background-size:400% 100%;animation:skShimmer 1.4s ease infinite}',
+'.sk-line.w60{width:60%}.sk-line.w40{width:40%}.sk-line.w80{width:80%}',
+'.sk-img{background:linear-gradient(90deg,rgba(150,150,150,.12) 25%,rgba(150,150,150,.22) 37%,rgba(150,150,150,.12) 63%);background-size:400% 100%;animation:skShimmer 1.4s ease infinite}',
+'@keyframes skShimmer{0%{background-position:100% 0}100%{background-position:-100% 0}}',
+'.mp-shell{display:grid;grid-template-columns:230px 1fr;gap:24px;align-items:start}',
+'.facet-rail{position:sticky;top:80px;background:var(--jm-surface);border:1px solid var(--jm-border);border-radius:var(--jm-radius);padding:16px;box-shadow:var(--jm-shadow-sm)}',
+'.facet-rail h3{font-size:14px;font-weight:800;margin-bottom:14px;letter-spacing:-0.01em}',
+'.facet-group{margin-bottom:18px}',
+'.facet-group h4{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--jm-text-muted);margin-bottom:8px;font-weight:700}',
+'.facet-chip{display:inline-block;padding:6px 11px;margin:0 6px 6px 0;border-radius:var(--jm-radius-pill);border:1.5px solid var(--jm-border);font-size:12px;cursor:pointer;font-weight:600;color:var(--jm-text-strong);transition:all .15s;user-select:none}',
+'.facet-chip:hover{border-color:var(--jm-primary);color:var(--jm-primary)}',
+'.facet-chip.active{background:var(--jm-primary);color:#fff;border-color:var(--jm-primary)}',
+'.facet-price{display:flex;gap:6px}',
+'.facet-price input{flex:1;min-width:0;background:var(--jm-surface);border:1.5px solid var(--jm-border);border-radius:var(--jm-radius-sm);padding:7px 9px;font-size:12px;color:var(--jm-text);font-family:inherit;outline:none}',
+'.trending-row{margin-bottom:28px}',
+'.trending-scroll{display:flex;gap:16px;overflow-x:auto;padding:4px 2px 10px;scroll-snap-type:x mandatory}',
+'.trending-scroll .course-card{min-width:230px;max-width:230px;scroll-snap-align:start}',
+'.trending-scroll .course-card .course-thumb{height:120px}',
+'@media(max-width:900px){.mp-shell{grid-template-columns:1fr}.facet-rail{position:static}.facet-rail .facet-body{display:flex;flex-wrap:wrap;gap:0 18px}}',
+'@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}'
+].join('');
+
+var _HTML = [
+'<nav>',
+'  <a href="/" class="logo" data-embed-hide>Jeet<span class="accent">Mantra</span></a>',
+'  <div class="nav-search">',
+'    <span aria-hidden="true">🔍</span>',
+'    <input type="text" placeholder="Search courses, topics, instructors..." aria-label="Search courses, topics, instructors" id="navSearch" oninput="debounceSearch(this.value)">',
+'  </div>',
+'  <div class="nav-links">',
+'    <span id="authLink"><a href="/login.html" class="btn btn-primary btn-sm" style="color:#fff">Login</a></span>',
+'  </div>',
+'</nav>',
+'<div class="hero">',
+'  <h1>Find Your Next <span>Course</span></h1>',
+'  <p>Browse thousands of courses from teachers, coaching centers, schools and partners.</p>',
+'</div>',
+'<div class="filter-bar" id="filterBar">',
+'  <div class="cat-pill active" onclick="filterCategory(\'all\',this)">All</div>',
+'  <div class="cat-pill" onclick="filterCategory(\'Mathematics\',this)">📐 Mathematics</div>',
+'  <div class="cat-pill" onclick="filterCategory(\'Science\',this)">🔬 Science</div>',
+'  <div class="cat-pill" onclick="filterCategory(\'English\',this)">📖 English</div>',
+'  <div class="cat-pill" onclick="filterCategory(\'Programming\',this)">💻 Programming</div>',
+'  <div class="cat-pill" onclick="filterCategory(\'Commerce\',this)">📊 Commerce</div>',
+'  <div class="cat-pill" onclick="filterCategory(\'Arts\',this)">🎨 Arts</div>',
+'  <div class="cat-pill" onclick="filterCategory(\'Physics\',this)">⚛️ Physics</div>',
+'  <div class="cat-pill" onclick="filterCategory(\'Chemistry\',this)">🧪 Chemistry</div>',
+'  <div class="filter-right">',
+'    <select class="filter-select" onchange="sortListings(this.value)" aria-label="Sort courses">',
+'      <option value="newest">Newest</option>',
+'      <option value="price-low">Price: Low to High</option>',
+'      <option value="price-high">Price: High to Low</option>',
+'    </select>',
+'  </div>',
+'</div>',
+'<div class="main-layout">',
+'  <div class="seller-banner" id="sellerBanner" style="display:none">',
+'    <div class="icon">🏪</div>',
+'    <div>',
+'      <h3>Sell Your Courses Here</h3>',
+'      <p>Teachers, coaching centers, schools and partners can list their courses on the marketplace. Earn 85% of every sale.</p>',
+'      <button class="btn btn-primary" onclick="openListModal()">+ List a Course</button>',
+'    </div>',
+'  </div>',
+'  <div id="myPurchasesSection" style="display:none">',
+'    <div class="section-head"><h2>🛍️ My Purchases</h2></div>',
+'    <div class="courses-grid" id="myPurchasesGrid"></div>',
+'  </div>',
+'  <div class="trending-row" id="trendingRow" style="display:none">',
+'    <div class="section-head"><h2>🔥 Trending Now</h2></div>',
+'    <div class="trending-scroll" id="trendingScroll"></div>',
+'  </div>',
+'  <div class="mp-shell">',
+'    <aside class="facet-rail" id="facetRail" aria-label="Filter courses">',
+'      <h3>Filters</h3>',
+'      <div class="facet-body">',
+'        <div class="facet-group">',
+'          <h4>Mode</h4>',
+'          <div id="facetModes"><span style="font-size:12px;color:var(--jm-text-muted)">—</span></div>',
+'        </div>',
+'        <div class="facet-group">',
+'          <h4>Level</h4>',
+'          <div id="facetLevels"><span style="font-size:12px;color:var(--jm-text-muted)">—</span></div>',
+'        </div>',
+'        <div class="facet-group">',
+'          <h4>City</h4>',
+'          <select class="filter-select" id="facetCity" style="width:100%" onchange="setFacet(\'city\',this.value)" aria-label="Filter by city">',
+'            <option value="">All cities</option>',
+'          </select>',
+'        </div>',
+'        <div class="facet-group">',
+'          <h4>Price (₹)</h4>',
+'          <div class="facet-price">',
+'            <input type="number" id="facetMin" placeholder="Min" min="0" aria-label="Minimum price">',
+'            <input type="number" id="facetMax" placeholder="Max" min="0" aria-label="Maximum price">',
+'          </div>',
+'          <button class="btn btn-outline btn-sm" style="width:100%;margin-top:8px" onclick="applyPrice()">Apply price</button>',
+'        </div>',
+'      </div>',
+'      <button class="btn btn-outline btn-sm" style="width:100%" onclick="clearFacets()">↺ Clear all</button>',
+'    </aside>',
+'    <div>',
+'      <div class="section-head">',
+'        <h2 id="resultsTitle">All Courses</h2>',
+'        <span id="resultsCount" style="color:#595959;font-size:13px"></span>',
+'      </div>',
+'      <div id="loadingState" class="loading">⏳ Loading courses...</div>',
+'      <div class="courses-grid" id="coursesGrid"></div>',
+'      <div id="emptyState" class="empty-state" style="display:none">',
+'        <div class="icon">🔍</div>',
+'        <div>No courses found</div>',
+'        <div style="font-size:13px;margin-top:8px">Try a different search or filter</div>',
+'        <button class="btn btn-primary" style="margin-top:14px" onclick="clearFacets();filterCategory(\'all\',document.querySelector(\'.cat-pill\'));document.getElementById(\'navSearch\').value=\'\';">↺ Show all courses</button>',
+'      </div>',
+'    </div>',
+'  </div>',
+'</div>',
+'<div class="modal-overlay" id="purchaseModal">',
+'  <div class="modal">',
+'    <span class="close" onclick="closeModal(\'purchaseModal\')">✕</span>',
+'    <h3>Purchase Course</h3>',
+'    <div id="purchaseMsg" class="msg"></div>',
+'    <div id="purchaseDetails" style="margin-bottom:20px;padding:14px;background:#0f3460;border-radius:10px">',
+'      <div style="font-weight:600;font-size:15px" id="modalTitle">—</div>',
+'      <div style="color:#888;font-size:13px;margin-top:4px" id="modalCategory">—</div>',
+'      <div style="font-size:22px;color:#00d4aa;font-weight:700;margin-top:10px" id="modalPrice">—</div>',
+'    </div>',
+'    <p style="color:#aaa;font-size:13px;margin-bottom:20px">After purchase you will be automatically enrolled in this course.</p>',
+'    <button class="btn btn-primary" style="width:100%;padding:12px" onclick="confirmPurchase()" id="confirmBtn">Confirm Purchase</button>',
+'  </div>',
+'</div>',
+'<div class="modal-overlay" id="previewModal" onclick="if(event.target===this)closePreview()">',
+'  <div class="modal" style="max-width:640px">',
+'    <span class="close" onclick="closePreview()">✕</span>',
+'    <h3 id="previewTitle">Course Preview</h3>',
+'    <div id="previewBody">Loading…</div>',
+'  </div>',
+'</div>',
+'<div class="modal-overlay" id="listModal">',
+'  <div class="modal">',
+'    <span class="close" onclick="closeModal(\'listModal\')">✕</span>',
+'    <h3>List Your Course</h3>',
+'    <div id="listMsg" class="msg"></div>',
+'    <div class="form-group">',
+'      <label>Select Course</label>',
+'      <select id="listCourseId"><option value="">Loading your courses...</option></select>',
+'    </div>',
+'    <div class="form-group">',
+'      <label>Listing Price (₹)</label>',
+'      <input type="number" id="listPrice" placeholder="e.g. 2999" min="0">',
+'    </div>',
+'    <div class="form-group">',
+'      <label>Commission Rate (%) — Platform takes this %</label>',
+'      <input type="number" id="listCommission" value="15" min="5" max="50">',
+'    </div>',
+'    <button class="btn btn-primary" style="width:100%;padding:12px;margin-top:6px" onclick="submitListing()" id="listBtn">Publish Listing</button>',
+'  </div>',
+'</div>'
+].join('');
+
+function _init(container) {
+  var API=window.location.origin+'/api';
+  var allListings=[],filteredListings=[];
+  var state={category:'all',level:'',mode:'',city:'',priceMin:'',priceMax:'',sort:'newest',q:''};
+  var selectedListingId=null,purchasedIds=new Set();
+  var token=localStorage.getItem('jm_token');
+  var user=function(){try{return JSON.parse(localStorage.getItem('jm_user'));}catch(e){return null;}};
+
+  var ICONS={Mathematics:'📐',Science:'🔬',English:'📖',Programming:'💻',Commerce:'📊',Arts:'🎨',Physics:'⚛️',Chemistry:'🧪'};
+  var SELLER_ROLES=['teacher','partner','school','coaching','admin'];
+
+  function fmt(n){return '₹'+Number(n||0).toLocaleString('en-IN');}
+  function debounceSearch(q){clearTimeout(window._st);window._st=setTimeout(function(){applySearch(q);},400);}
+  function closeModal(id){document.getElementById(id).classList.remove('show');}
+  function showMsg(id,txt,type){var m=document.getElementById(id);m.textContent=txt;m.className='msg '+type;m.style.display='block';}
+
+  function getListingIcon(listing){
+    var cat=listing.courses&&listing.courses.category||'';
+    return ICONS[cat]||'📚';
+  }
+
+  function renderCard(listing, owned) {
+    var c = listing.courses || {};
+    var seller = listing.jeetmantra_users || listing.seller || {};
+    var esc = function(s){ return String(s == null ? '' : s).replace(/[<>&"]/g, function(ch){ return {'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[ch]; }); };
+    var cover = c.cover_image
+      ? '<img src="'+c.cover_image+'" alt="" loading="lazy" decoding="async" width="300" height="150" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0">'
+      : '<span style="font-size:48px">'+getListingIcon(listing)+'</span>';
+    var modeBadge = {offline:'🏫 Offline',hybrid:'🔀 Hybrid',online:'💻 Online'}[c.class_mode] || '';
+    var loc = [c.area, c.city].filter(Boolean).join(', ');
+    var timing = c.timing || c.batch_timing || '';
+    var institute = c.institute_name || '';
+    var chips = [
+      institute ? '<span class="mp-chip">🏫 '+esc(institute)+'</span>' : '',
+      loc       ? '<span class="mp-chip">📍 '+esc(loc)+'</span>' : '',
+      timing    ? '<span class="mp-chip">🕑 '+esc(timing)+'</span>' : '',
+      c.age_group ? '<span class="mp-chip">👥 '+esc(c.age_group)+'</span>' : '',
+      modeBadge ? '<span class="mp-chip">'+modeBadge+'</span>' : ''
+    ].filter(Boolean).join('');
+    return JM.CourseCard({
+      id: listing.course_id,
+      title: c.title || 'Untitled Course',
+      instructor: seller.full_name || 'Instructor',
+      category: c.category || 'Course',
+      level: c.level || '',
+      cover: cover,
+      priceLabel: c.free_listing ? 'Free' : fmt(listing.price),
+      ratingLabel: '⭐ 4.5',
+      chips: chips,
+      freeListing: !!c.free_listing,
+      demoClass: !!c.demo_class,
+      owned: !!owned,
+      onPreview: 'openPreview(\''+listing.course_id+'\',\''+(c.title||'Course').replace(/'/g,"\\'")+'\')',
+      onBuy:     'openPurchase(\''+listing.id+'\')'
+    });
+  }
+
+  async function openPreview(courseId, courseTitle){
+    var overlay=document.getElementById('previewModal');
+    var body=document.getElementById('previewBody');
+    document.getElementById('previewTitle').textContent=courseTitle;
+    body.innerHTML='<div style="text-align:center;padding:24px;color:#888">Loading…</div>';
+    overlay.classList.add('show');
+    try{
+      var r=await fetch(API+'/course-content/'+courseId+'/preview');
+      if(!r.ok) throw new Error('Could not load preview');
+      var data=await r.json();
+      var c=data.course||{};
+      body.innerHTML=
+        (c.cover_image?'<img src="'+c.cover_image+'" alt="" loading="lazy" decoding="async" width="540" height="180" style="width:100%;height:180px;object-fit:cover;border-radius:10px;margin-bottom:14px">':'')+
+        '<div style="margin-bottom:14px;font-size:14px;line-height:1.55;color:#374151">'+(c.description||'(no description)')+'</div>'+
+        '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px">'+
+          '<div style="padding:12px;background:var(--jm-primary-tint);border-radius:8px;text-align:center"><div style="font-size:18px;font-weight:800;color:var(--jm-primary)">'+(data.topics||[]).length+'</div><div style="font-size:11px;color:#6b7280">Topics</div></div>'+
+          '<div style="padding:12px;background:var(--jm-primary-tint);border-radius:8px;text-align:center"><div style="font-size:18px;font-weight:800;color:var(--jm-primary)">'+(data.lectures||[]).length+'</div><div style="font-size:11px;color:#6b7280">Lectures</div></div>'+
+          '<div style="padding:12px;background:var(--jm-primary-tint);border-radius:8px;text-align:center"><div style="font-size:18px;font-weight:800;color:var(--jm-primary)">'+(data.materials||[]).length+'</div><div style="font-size:11px;color:#6b7280">Materials</div></div>'+
+          '<div style="padding:12px;background:var(--jm-primary-tint);border-radius:8px;text-align:center"><div style="font-size:18px;font-weight:800;color:var(--jm-primary)">'+(data.tests||[]).length+'</div><div style="font-size:11px;color:#6b7280">Tests</div></div>'+
+        '</div>'+
+        '<div style="margin-bottom:14px"><strong>What you\'ll learn</strong></div>'+
+        ((data.topics||[]).length ? data.topics.map(function(t){return '<div style="padding:10px;border-left:3px solid var(--jm-primary);background:var(--jm-primary-tint);border-radius:0 8px 8px 0;margin-bottom:8px"><div style="font-weight:600">'+t.title+'</div>'+(t.description?'<div style="font-size:12px;color:#6b7280;margin-top:2px">'+t.description+'</div>':'')+'</div>';}).join('') : '<div style="color:#6b7280;font-size:13px">Curriculum coming soon.</div>');
+    }catch(e){ body.innerHTML='<div style="color:#b91c1c">Error: '+e.message+'</div>'; }
+  }
+  window.closePreview = function(){ document.getElementById('previewModal').classList.remove('show'); };
+  window.openPreview = openPreview;
+
+  function renderGrid(listings){
+    var grid=document.getElementById('coursesGrid');
+    var empty=document.getElementById('emptyState');
+    document.getElementById('loadingState').style.display='none';
+    document.getElementById('resultsCount').textContent=listings.length+' course'+(listings.length!==1?'s':'');
+    if(!listings.length){grid.innerHTML='';empty.style.display='block';return;}
+    empty.style.display='none';
+    grid.innerHTML=listings.map(function(l){return renderCard(l,purchasedIds.has(l.id));}).join('');
+  }
+
+  function buildQS(){
+    var p=new URLSearchParams();
+    if(state.category&&state.category!=='all') p.set('category',state.category);
+    if(state.level)    p.set('level',state.level);
+    if(state.mode)     p.set('mode',state.mode);
+    if(state.city)     p.set('city',state.city);
+    if(state.priceMin) p.set('priceMin',state.priceMin);
+    if(state.priceMax) p.set('priceMax',state.priceMax);
+    if(state.q)        p.set('q',state.q);
+    p.set('sort',{'price-low':'price_low','price-high':'price_high','newest':'newest'}[state.sort]||'newest');
+    p.set('limit','24');
+    return p.toString();
+  }
+
+  function applyFilters(){ loadListings(); }
+
+  function applySearch(q){
+    state.q=q||'';
+    document.getElementById('resultsTitle').textContent=q?'Results for "'+q+'"':(state.category==='all'?'All Courses':state.category+' Courses');
+    loadListings();
+  }
+
+  function filterCategory(cat,el){
+    document.querySelectorAll('.cat-pill').forEach(function(p){p.classList.remove('active');p.setAttribute('aria-selected','false');});
+    if(el){el.classList.add('active');el.setAttribute('aria-selected','true');}
+    state.category=cat;
+    state.q='';
+    document.getElementById('navSearch').value='';
+    document.getElementById('resultsTitle').textContent=cat==='all'?'All Courses':cat+' Courses';
+    loadListings();
+  }
+
+  function sortListings(sort){ state.sort=sort; loadListings(); }
+  function setFacet(key,val){ state[key]=val; loadListings(); }
+
+  function toggleChip(key,val,el){
+    var wasActive=el.classList.contains('active');
+    document.querySelectorAll('.facet-chip[data-facet="'+key+'"]').forEach(function(c){c.classList.remove('active');c.setAttribute('aria-pressed','false');});
+    state[key]=wasActive?'':val;
+    if(!wasActive){el.classList.add('active');el.setAttribute('aria-pressed','true');}
+    loadListings();
+  }
+
+  function applyPrice(){
+    state.priceMin=document.getElementById('facetMin').value||'';
+    state.priceMax=document.getElementById('facetMax').value||'';
+    loadListings();
+  }
+
+  function clearFacets(){
+    state.level='';state.mode='';state.city='';state.priceMin='';state.priceMax='';
+    document.querySelectorAll('.facet-chip').forEach(function(c){c.classList.remove('active');c.setAttribute('aria-pressed','false');});
+    var city=document.getElementById('facetCity'); if(city) city.value='';
+    var mn=document.getElementById('facetMin'); if(mn) mn.value='';
+    var mx=document.getElementById('facetMax'); if(mx) mx.value='';
+    loadListings();
+  }
+
+  async function loadFacets(){
+    try{
+      var f=await (await fetch(API+'/marketplace/facets')).json();
+      var modeLabels={online:'💻 Online',offline:'🏫 Offline',hybrid:'🔀 Hybrid'};
+      var chip=function(key,val,label){return '<span class="facet-chip" data-facet="'+key+'" data-val="'+val+'" role="button" tabindex="0" aria-pressed="false" onclick="toggleChip(\''+key+'\',\''+val+'\',this)" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();this.click();}">'+label+'</span>';};
+      var modes=(f.modes||[]).map(function(m){return chip('mode',m,modeLabels[m]||m);}).join('');
+      document.getElementById('facetModes').innerHTML=modes||'<span style="font-size:12px;color:var(--jm-text-muted)">—</span>';
+      var levels=(f.levels||[]).map(function(l){return chip('level',l,l.charAt(0).toUpperCase()+l.slice(1));}).join('');
+      document.getElementById('facetLevels').innerHTML=levels||'<span style="font-size:12px;color:var(--jm-text-muted)">—</span>';
+      var citySel=document.getElementById('facetCity');
+      if(citySel) citySel.innerHTML='<option value="">All cities</option>'+(f.cities||[]).map(function(c){return '<option value="'+c+'">'+c+'</option>';}).join('');
+      if(f.priceRange){
+        var mn=document.getElementById('facetMin'),mx=document.getElementById('facetMax');
+        if(mn) mn.placeholder='₹'+(f.priceRange.min||0);
+        if(mx) mx.placeholder='₹'+(f.priceRange.max||0);
+      }
+    }catch(e){/* rail stays with placeholders */}
+  }
+
+  async function loadTrending(){
+    try{
+      var data=await (await fetch(API+'/marketplace/trending?limit=8')).json();
+      var list=data.listings||[];
+      if(!list.length) return;
+      document.getElementById('trendingRow').style.display='block';
+      document.getElementById('trendingScroll').innerHTML=list.map(function(l){return renderCard(l,purchasedIds.has(l.id));}).join('');
+    }catch(e){/* no trending row */}
+  }
+
+  function openPurchase(listingId){
+    if(!token){window.location.href='/login.html';return;}
+    var listing=allListings.find(function(l){return l.id===listingId;});
+    if(!listing)return;
+    selectedListingId=listingId;
+    document.getElementById('modalTitle').textContent=listing.courses&&listing.courses.title||'Course';
+    document.getElementById('modalCategory').textContent=(listing.courses&&listing.courses.category||'')+(listing.courses&&listing.courses.level?' · '+listing.courses.level:'');
+    document.getElementById('modalPrice').textContent=fmt(listing.price);
+    document.getElementById('purchaseMsg').style.display='none';
+    document.getElementById('confirmBtn').disabled=false;
+    document.getElementById('confirmBtn').textContent='Confirm Purchase';
+    document.getElementById('purchaseModal').classList.add('show');
+  }
+
+  async function confirmPurchase(){
+    if(!selectedListingId)return;
+    var listing=allListings.find(function(l){return l.id===selectedListingId;});
+    var btn=document.getElementById('confirmBtn');
+    btn.disabled=true;btn.textContent='Processing...';
+    var price=Number(listing&&listing.price)||0;
+    if(price<=0){
+      try{
+        var res=await fetch(API+'/marketplace/'+selectedListingId+'/purchase',{
+          method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'}
+        });
+        var data=await res.json();
+        if(!res.ok)throw new Error(data.error||'Enroll failed');
+        purchasedIds.add(selectedListingId);
+        showMsg('purchaseMsg','✅ Enrolled (free course)','success');
+        btn.textContent='✅ Enrolled!';
+        setTimeout(function(){closeModal('purchaseModal');applyFilters();},1500);
+      }catch(e){ showMsg('purchaseMsg',e.message,'error'); btn.disabled=false; btn.textContent='Confirm Purchase'; }
+      return;
+    }
+    try{
+      var order=await (await fetch(API+'/payments/order',{
+        method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+        body:JSON.stringify({courseId:listing.course_id, amount:price})
+      })).json();
+      if(order.error) throw new Error(order.error);
+      if(order.mode==='demo'){
+        if(!confirm('DEMO mode: simulate a successful ₹'+price+' payment?')){
+          btn.disabled=false; btn.textContent='Confirm Purchase'; return;
+        }
+        var v=await (await fetch(API+'/payments/verify',{
+          method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+          body:JSON.stringify({paymentRowId:order.paymentRowId, razorpayOrderId:order.orderId, courseId:listing.course_id})
+        })).json();
+        if(v.error) throw new Error(v.error);
+        purchasedIds.add(selectedListingId);
+        showMsg('purchaseMsg','✅ Payment successful (demo) — enrolled','success');
+        btn.textContent='✅ Enrolled!';
+        setTimeout(function(){closeModal('purchaseModal');applyFilters();},1500);
+        return;
+      }
+      await new Promise(function(resolve,reject){
+        if(window.Razorpay) return resolve();
+        var s=document.createElement('script');
+        s.src='https://checkout.razorpay.com/v1/checkout.js';
+        s.onload=resolve; s.onerror=function(){reject(new Error('Razorpay script failed'));};
+        document.head.appendChild(s);
+      });
+      var u=JSON.parse(localStorage.getItem('jm_user')||'{}');
+      var rzp=new Razorpay({
+        key:order.keyId, order_id:order.orderId, amount:order.amount, currency:order.currency,
+        name:'JeetMantra', description:listing.courses&&listing.courses.title||'Course',
+        prefill:{ name:u.fullName||u.full_name||'', email:u.email||'', contact:u.phone||'' },
+        theme:{ color:'#7c3aed' },
+        handler:async function(resp){
+          try{
+            var vr=await (await fetch(API+'/payments/verify',{
+              method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+              body:JSON.stringify({
+                paymentRowId:order.paymentRowId, courseId:listing.course_id,
+                razorpayOrderId:resp.razorpay_order_id,
+                razorpayPaymentId:resp.razorpay_payment_id,
+                razorpaySignature:resp.razorpay_signature
+              })
+            })).json();
+            if(vr.error) throw new Error(vr.error);
+            purchasedIds.add(selectedListingId);
+            showMsg('purchaseMsg','✅ Payment verified — enrolled','success');
+            btn.textContent='✅ Enrolled!';
+            setTimeout(function(){closeModal('purchaseModal');applyFilters();},1500);
+          }catch(e){ showMsg('purchaseMsg',e.message,'error'); btn.disabled=false; btn.textContent='Confirm Purchase'; }
+        },
+        modal:{ ondismiss:function(){ btn.disabled=false; btn.textContent='Confirm Purchase'; } }
+      });
+      rzp.open();
+    }catch(e){ showMsg('purchaseMsg',e.message,'error'); btn.disabled=false; btn.textContent='Confirm Purchase'; }
+  }
+
+  async function openListModal(){
+    if(!token){window.location.href='/login.html';return;}
+    document.getElementById('listModal').classList.add('show');
+    document.getElementById('listMsg').style.display='none';
+    try{
+      var res=await fetch(API+'/courses',{headers:{'Authorization':'Bearer '+token}});
+      var data=await res.json();
+      var sel=document.getElementById('listCourseId');
+      var courses=data.courses||data.data||[];
+      if(courses.length){
+        sel.innerHTML=courses.map(function(c){return '<option value="'+c.id+'">'+c.title+'</option>';}).join('');
+      } else {
+        sel.innerHTML='<option value="">No courses found — create one first</option>';
+      }
+    }catch(e){document.getElementById('listCourseId').innerHTML='<option value="">Failed to load courses</option>';}
+  }
+
+  async function submitListing(){
+    var courseId=document.getElementById('listCourseId').value;
+    var price=parseFloat(document.getElementById('listPrice').value);
+    var commission=parseFloat(document.getElementById('listCommission').value)||15;
+    if(!courseId)return showMsg('listMsg','Select a course','error');
+    if(!price||price<=0)return showMsg('listMsg','Enter a valid price','error');
+    var btn=document.getElementById('listBtn');
+    btn.disabled=true;btn.textContent='Publishing...';
+    try{
+      var res=await fetch(API+'/marketplace',{
+        method:'POST',
+        headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
+        body:JSON.stringify({courseId:courseId,price:price,commissionRate:commission})
+      });
+      var data=await res.json();
+      if(!res.ok)throw new Error(data.error||'Failed to list');
+      showMsg('listMsg','✅ Course listed on marketplace!','success');
+      btn.textContent='Published!';
+      setTimeout(function(){closeModal('listModal');loadListings();},1500);
+    }catch(e){
+      showMsg('listMsg',e.message,'error');
+      btn.disabled=false;btn.textContent='Publish Listing';
+    }
+  }
+
+  function showSkeletons(n){
+    var grid=document.getElementById('coursesGrid');
+    var ls=document.getElementById('loadingState');
+    if(ls) ls.style.display='none';
+    document.getElementById('emptyState').style.display='none';
+    grid.innerHTML=Array.from({length:n||6}).map(function(){
+      return '<div class="sk-card"><div class="sk-img"></div><div class="sk-body"><div class="sk-line w80"></div><div class="sk-line w60"></div><div class="sk-line w40"></div></div></div>';
+    }).join('');
+  }
+
+  async function loadListings(){
+    showSkeletons(8);
+    try{
+      var res=await fetch(API+'/marketplace?'+buildQS());
+      var data=await res.json();
+      allListings=data.listings||[];
+      filteredListings=allListings;
+      renderGrid(allListings);
+    }catch(e){
+      document.getElementById('loadingState').style.display='none';
+      document.getElementById('emptyState').style.display='block';
+      document.getElementById('emptyState').innerHTML='<div class="icon">⚠️</div><div>Course catalog is unavailable right now</div><div style="font-size:13px;margin-top:8px;opacity:.8">Please check your connection and try again.</div><button class="btn btn-primary" style="margin-top:14px" onclick="loadListings()">🔄 Retry</button>';
+    }
+  }
+
+  async function loadMyPurchases(){
+    if(!token)return;
+    try{
+      var res=await fetch(API+'/marketplace/my/purchases',{headers:{'Authorization':'Bearer '+token}});
+      var data=await res.json();
+      var purchases=data.purchases||[];
+      if(purchases.length){
+        purchases.forEach(function(p){purchasedIds.add(p.listing_id);});
+        document.getElementById('myPurchasesSection').style.display='block';
+        document.getElementById('myPurchasesGrid').innerHTML=purchases.map(function(p){
+          var l=p.marketplace_listings||{};
+          var c=l.courses||{};
+          return '<div class="course-card"><div class="course-thumb"><span>'+(ICONS[c.category]||'📚')+'</span><span class="course-category">'+(c.category||'Course')+'</span></div><div class="course-body"><div class="course-title">'+(c.title||'Course')+'</div><div class="course-instructor">Purchased '+new Date(p.created_at).toLocaleDateString()+'</div><div class="course-meta"><div class="course-price">'+fmt(p.amount)+'</div><span style="font-size:11px;color:#00d4aa">✅ Enrolled</span></div></div></div>';
+        }).join('');
+      }
+    }catch(e){}
+  }
+
+  function initUI(){
+    var u=user();
+    if(u){
+      document.getElementById('authLink').innerHTML='<a href="/dashboard.html" class="btn btn-outline btn-sm">Dashboard</a>';
+      if(SELLER_ROLES.includes(u.role)){
+        document.getElementById('sellerBanner').style.display='flex';
+      }
+    }
+    var q=new URLSearchParams(location.search).get('q');
+    if(q){document.getElementById('navSearch').value=q;document.getElementById('resultsTitle').textContent='Results for "'+q+'"';}
+  }
+
+  (function enhancePills(){
+    var bar=document.getElementById('filterBar');
+    if(bar){ bar.setAttribute('role','toolbar'); bar.setAttribute('aria-label','Filter courses by category'); }
+    document.querySelectorAll('.cat-pill').forEach(function(p){
+      p.setAttribute('role','tab');
+      p.setAttribute('tabindex','0');
+      p.setAttribute('aria-selected', p.classList.contains('active')?'true':'false');
+      p.addEventListener('keydown',function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); p.click(); } });
+    });
+  })();
+
+  // Expose functions to global scope for inline event handlers
+  window.debounceSearch = debounceSearch;
+  window.closeModal = closeModal;
+  window.filterCategory = filterCategory;
+  window.sortListings = sortListings;
+  window.openListModal = openListModal;
+  window.openPurchase = openPurchase;
+  window.confirmPurchase = confirmPurchase;
+  window.submitListing = submitListing;
+  window.applyPrice = applyPrice;
+  window.clearFacets = clearFacets;
+  window.setFacet = setFacet;
+  window.toggleChip = toggleChip;
+  window.loadListings = loadListings;
+
+  // Embed mode
+  (function(){
+    try{
+      if(new URLSearchParams(location.search).get('embed')!=='1') return;
+      document.documentElement.classList.add('embed');
+      var s=document.createElement('style');
+      s.textContent='html.embed a[href$="/dashboard.html"],html.embed a[href="/app"],html.embed [data-embed-hide]{display:none!important}';
+      (document.head||document.documentElement).appendChild(s);
+      var hide=function(){ document.querySelectorAll('[onclick]').forEach(function(el){ var o=el.getAttribute('onclick')||''; if(o.indexOf('dashboard.html')>-1 || /['"]\/app['"]/.test(o)) el.style.display='none'; }); };
+      hide();
+    }catch(e){}
+  })();
+
+  initUI();
+  loadFacets();
+  var urlQ=new URLSearchParams(location.search).get('q');
+  if(urlQ) state.q=urlQ;
+  loadListings();
+  loadTrending();
+  loadMyPurchases();
+}
+
+function mount(container) {
+  if (!document.getElementById('jm-mod-marketplace-css')) {
+    var s = document.createElement('style');
+    s.id = 'jm-mod-marketplace-css';
+    s.textContent = _CSS;
+    document.head.appendChild(s);
+  }
+  container.innerHTML = _HTML;
+  try { _init(container); } catch(e) { console.warn('marketplace init error:', e); }
+}
+
+g.JM = g.JM || {}; g.JM.Modules = g.JM.Modules || {}; g.JM.Modules['marketplace'] = { mount: mount, unmount: function(c){ if(c) c.innerHTML=''; } };
+})(window);

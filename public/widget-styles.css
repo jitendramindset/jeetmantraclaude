@@ -14,6 +14,7 @@
 .wg-big{font-size:30px;font-weight:800;color:var(--jm-primary,#7c3aed);line-height:1.1}
 .wg-sub{font-size:12px;color:var(--jm-text-muted,#6b7280);margin-top:2px}
 .wg-link{display:inline-block;margin-top:10px;font-size:12px;font-weight:700;color:var(--jm-primary,#7c3aed);text-decoration:none}
+html[data-theme="dark"] .wg-link{color:#a78bfa}
 .wg-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--jm-border,#eee);text-decoration:none;color:var(--jm-text-strong,#334155)}
 .wg-row:last-child{border-bottom:none}
 .wg-row-t{flex:1;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -43,6 +44,49 @@
 @media(prefers-reduced-motion:reduce){.wg-card,.wg-skel{animation:none!important}}
 /* W5 — wide tiers: re-flow into MORE columns rather than widening cards. */
 @media(min-width:1700px){.wg-grid{grid-template-columns:repeat(6,1fr)}.wg-large{grid-column:span 3}.wg-medium{grid-column:span 2}}
+/* 4K / smartboard 2200+: more density still — 8 columns. (P1 WIDGET_AUDIT gap) */
+@media(min-width:2200px){.wg-grid{grid-template-columns:repeat(8,1fr)}.wg-large{grid-column:span 4}.wg-medium{grid-column:span 2}}
+@media(min-width:3200px){.wg-grid{grid-template-columns:repeat(10,1fr)}.wg-large{grid-column:span 4}.wg-medium{grid-column:span 2}}
+/* Favorite star adornment + overflow menu styling. */
+.wg-card.wg-favorite{box-shadow:0 0 0 1px #f59e0b inset,var(--jm-shadow,0 1px 3px rgba(0,0,0,.06))}
+.wg-ctrl-more summary::-webkit-details-marker{display:none}
+.wg-ctrl-more[open] > summary{background:var(--jm-primary-tint,rgba(124,58,237,.12));border-radius:6px}
+.wg-more-item:hover{background:var(--jm-primary-tint,rgba(124,58,237,.08))}
+/* P2: density toggle (grid-wide compact). Tighter padding + smaller type. */
+.wg-density-compact .wg-card{padding:10px 12px}
+.wg-density-compact .wg-head{margin-bottom:6px}
+.wg-density-compact .wg-title{font-size:12px}
+.wg-density-compact .wg-body{font-size:12px}
+.wg-density-compact .wg-big{font-size:22px}
+.wg-density-compact .wg-row{padding:5px 0}
+/* P2: per-widget theme override (light|dark). Forces local CSS-var overrides
+   so a single widget can flip independently of the page theme. */
+.wg-card.wg-theme-light{--jm-surface:#fff;--jm-bg:#f8f7fc;--jm-text:#1a1325;--jm-text-muted:#6b6783;--jm-border:#e5e3ed;background:var(--jm-surface)}
+.wg-card.wg-theme-dark{--jm-surface:#1a1325;--jm-bg:#0f0d1c;--jm-text:#f5f3ff;--jm-text-muted:#a8a3c4;--jm-border:#332b4d;background:var(--jm-surface);color:var(--jm-text)}
+.wg-card.wg-theme-dark .wg-title{color:var(--jm-text)}
+.wg-card.wg-theme-dark .wg-sub{color:var(--jm-text-muted)}
+/* P3: typography size override per widget (sm | md | lg | xl). */
+.wg-card.wg-type-sm{font-size:11px}.wg-card.wg-type-sm .wg-title{font-size:11px}.wg-card.wg-type-sm .wg-big{font-size:22px}
+.wg-card.wg-type-md{font-size:13px}.wg-card.wg-type-md .wg-title{font-size:13px}.wg-card.wg-type-md .wg-big{font-size:28px}
+.wg-card.wg-type-lg{font-size:15px}.wg-card.wg-type-lg .wg-title{font-size:15px}.wg-card.wg-type-lg .wg-big{font-size:34px}
+.wg-card.wg-type-xl{font-size:18px}.wg-card.wg-type-xl .wg-title{font-size:18px}.wg-card.wg-type-xl .wg-big{font-size:42px}
+/* P3: title double-click affordance + animation variants. */
+.wg-title[contenteditable=true]{cursor:text;background:var(--jm-surface,#fff)}
+.wg-card.wg-anim-slide{animation:wgSlide .35s ease both}
+.wg-card.wg-anim-fade{animation:wgFade .35s ease both}
+.wg-card.wg-anim-scale{animation:wgScale .35s cubic-bezier(.2,.9,.3,1.05) both}
+@keyframes wgSlide{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:none}}
+@keyframes wgFade{from{opacity:0}to{opacity:1}}
+@keyframes wgScale{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}
+/* P3 final: widget groups (opt-in via manifest w.group). */
+.wg-group{margin-bottom:18px}
+.wg-group-head{display:flex;align-items:center;gap:8px;padding:8px 4px 6px;cursor:pointer;user-select:none;border-bottom:1px solid var(--jm-border,#e5e7eb);margin-bottom:10px}
+.wg-group-toggle{background:none;border:0;font-size:13px;color:var(--jm-text-muted,#6b7280);padding:2px 4px;cursor:pointer;border-radius:4px}
+.wg-group-toggle:hover{background:var(--jm-primary-tint,rgba(124,58,237,.12))}
+.wg-group-title{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--jm-text-strong,var(--jm-text,#1a1325));flex:1}
+.wg-group-count{font-size:11px;font-weight:600;color:var(--jm-text-muted,#6b7280);background:var(--jm-surface-2,#f3f4f6);padding:2px 8px;border-radius:10px}
+.wg-group-body{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(220px,100%),1fr));gap:12px}
+.wg-group.wg-group-collapsed .wg-group-body{display:none}
 /* Smartboard / large touch — bigger targets + type; controls always shown
    (no hover on touch). */
 @media(min-width:1280px) and (pointer:coarse){

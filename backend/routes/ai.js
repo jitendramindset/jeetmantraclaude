@@ -517,4 +517,31 @@ router.post('/grade-essay', authenticateToken, async (req, res) => {
   }
 });
 
+// ── IN-CHAT AGENT: the AI assistant can call the platform's own APIs, scoped
+// to the caller's role. Execution reuses the normal authenticated endpoints so
+// every permission/validation check applies. Money-moving tools are never
+// registered. See services/aiAgent.js.
+router.post('/agent', authenticateToken, async (req, res) => {
+  try {
+    const message = (req.body && req.body.message || '').trim();
+    if (!message) return res.status(400).json({ error: 'message required' });
+    const { runAgent } = require('../services/aiAgent');
+    const out = await runAgent(req, message);
+    res.json(out);
+  } catch (e) {
+    res.status(e.code === 'RATE_LIMITED' ? 429 : 400).json({ error: e.message, code: e.code });
+  }
+});
+
+// List the agent tools available to the caller's role (so the UI can show
+// "what can I ask?" hints without exposing forbidden actions).
+router.get('/agent/tools', authenticateToken, async (req, res) => {
+  try {
+    const { toolsForRole } = require('../services/aiAgent');
+    const roles = req.user.roles || [req.user.role];
+    const tools = toolsForRole(roles).map(t => ({ id: t.id, desc: t.desc, write: !!t.write }));
+    res.json({ tools });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 module.exports = router;

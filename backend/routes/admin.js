@@ -1,3 +1,39 @@
+/**
+ * admin.js — platform admin console (users, stats, analytics, moderation, tenancy, ops).
+ * Mount: /api/admin
+ *
+ * Endpoints:
+ *   GET    /users                          🔒 admin — paginated user list (filter role/status), excludes deleted
+ *   PUT    /users/:userId/toggle-status    🔒 admin — block/unblock a user (audited with before/after + IP/UA)
+ *   GET    /stats                          🔒 admin — platform totals (users by role, courses, enrollments, revenue)
+ *   GET    /analytics/overview             🔒 admin — DAU/WAU/MAU, signups, 30-day revenue sparkline
+ *   GET    /system/status                  🔒 admin — health probe of db / leveldb / n8n integrations
+ *   GET    /actions/inbox                  🔒 admin — pending counts for approvals/payouts/tickets/reports
+ *   GET    /institutes                     🔒 admin — list institutions (school/coaching/franchise) + member counts
+ *   GET    /payments                       🔒 admin — platform-wide payment ledger with filters + payer hydration
+ *   GET    /users/:userId                  🔒 admin — deep user detail (owned courses, enrollments, payments)
+ *   PUT    /users/:userId                  🔒 admin — update user (name/role/status), audited
+ *   DELETE /users/:userId                  🔒 admin — soft-delete user (status='deleted'), can't delete self
+ *   GET    /audit                          🔒 admin — recent audit_log events
+ *   GET    /settings                       🔒 admin — read platform_settings key/value map
+ *   PUT    /settings                       🔒 admin — upsert platform_settings (secrets masked in audit)
+ *   POST   /test-email                     🔒 admin — send SMTP test email to the signed-in admin
+ *   POST   /courses/:id/moderate           🔒 admin — moderate a course (activate/deactivate/delete)
+ *   POST   /impersonate/start              🔒 admin — mint short-lived "view as user" JWT (audited)
+ *   POST   /impersonate/stop               🔒 auth  — end an impersonation session (admin or the session itself)
+ *   GET    /impersonate/sessions           🔒 admin — list impersonation sessions (optional active=1)
+ *   GET    /bookings                       🔒 admin — cross-tenant bookings_v2 list with filters + hydration
+ *   GET    /live-classes                   🔒 admin — platform-wide live classes (course title + host hydration)
+ *   POST   /migrations/run                 🔒 admin — run a named SQL migration via /pg/query (audited)
+ *   POST   /backup/trigger                 🔒 admin — spawn api-backup.js as a detached child process
+ *   GET    /backup/list                    🔒 admin — list local backup files
+ *
+ * Notes: every route is authenticateToken + authorizeRole(['admin']) except
+ *   /impersonate/stop (any authenticated caller). auditLog() is best-effort
+ *   (Supabase builder is a thenable without .catch, so awaited in try/catch).
+ *   jeetmantra_users.id is VARCHAR — payer/booker/host names are hydrated
+ *   manually, not via FK embeds. See [[supabase-selfhosted-quirks]].
+ */
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const { supabase, supabaseAdmin } = require('../config/supabase');
@@ -364,6 +400,7 @@ router.get('/users/:userId', authenticateToken, authorizeRole(['admin']), async 
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// PUT /admin/users/:userId — update a user's name/role/status (audited).
 router.put('/users/:userId', authenticateToken, authorizeRole(['admin']), validate('adminUserUpdate'), async (req, res) => {
   try {
     const { fullName, role, status } = req.body || {};
@@ -379,6 +416,7 @@ router.put('/users/:userId', authenticateToken, authorizeRole(['admin']), valida
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// DELETE /admin/users/:userId — soft-delete a user (can't delete own account).
 router.delete('/users/:userId', authenticateToken, authorizeRole(['admin']), async (req, res) => {
   try {
     if (req.params.userId === req.user.id) return res.status(400).json({ error: "Can't delete your own admin account" });
@@ -388,6 +426,7 @@ router.delete('/users/:userId', authenticateToken, authorizeRole(['admin']), asy
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// GET /admin/audit — recent audit_log events (newest first, capped at 200).
 router.get('/audit', authenticateToken, authorizeRole(['admin']), async (req, res) => {
   try {
     const limit = Math.min(200, Number(req.query.limit) || 100);
@@ -680,6 +719,41 @@ router.get('/backup/list', authenticateToken, authorizeRole(['admin']), (req, re
       })
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     res.json({ backups: files, dir: backupDir });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── Widget Management (admin) ──────────────────────────────────────────────
+// Admin is the highest authority for widget policy. The config persists in
+// LevelDB (no DB migration needed; survives restarts on disk) and is also
+// surfaced on /api/me/contexts so every dashboard load picks up the policy.
+// Shape: { global:{[id]:boolean}, byRole:{[role]:{[id]:boolean}}, order:{[role]:[id]}, sizes:{[id]:'small|medium|large|full'} }
+const _widgetCfgKey = 'admin:widget-config';
+async function _readWidgetCfg() {
+  try { const { get } = require('../config/leveldb'); const raw = await get(_widgetCfgKey); return raw ? JSON.parse(raw) : { global:{}, byRole:{}, order:{}, sizes:{} }; }
+  catch (_) { return { global:{}, byRole:{}, order:{}, sizes:{} }; }
+}
+async function _writeWidgetCfg(cfg) {
+  const { put } = require('../config/leveldb'); await put(_widgetCfgKey, JSON.stringify(cfg || {}));
+}
+
+// GET — anyone authenticated; the dashboard reads this to apply admin policy.
+router.get('/widget-config', authenticateToken, async (req, res) => {
+  try { res.json({ config: await _readWidgetCfg() }); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// PUT — admin only; replaces the config.
+router.put('/widget-config', authenticateToken, authorizeRole(['admin']), async (req, res) => {
+  try {
+    const body = req.body || {};
+    const cfg = {
+      global: (body.global && typeof body.global === 'object') ? body.global : {},
+      byRole: (body.byRole && typeof body.byRole === 'object') ? body.byRole : {},
+      order:  (body.order  && typeof body.order  === 'object') ? body.order  : {},
+      sizes:  (body.sizes  && typeof body.sizes  === 'object') ? body.sizes  : {}
+    };
+    await _writeWidgetCfg(cfg);
+    res.json({ ok: true, config: cfg });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

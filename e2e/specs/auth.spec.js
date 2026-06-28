@@ -165,15 +165,15 @@ test.describe('Session lifecycle', () => {
     await expect(page.locator('#loginEmail')).toBeVisible();
   });
 
-  test('seeded session auto-redirects login.html → /dashboard.html?role=', async ({ page }) => {
+  test('seeded session auto-redirects login.html → /app?role=', async ({ page }) => {
     await stubGoogleUnconfigured(page);
-    // seedSession writes jm_token + jm_user BEFORE navigation; login.html's inline
-    // script reads them on load and does window.location.href = '/dashboard.html?role='+role.
+    // seedSession writes jm_token + jm_user BEFORE navigation; index.html's bootstrap
+    // reads them on load and does window.location.replace('/app?role='+role).
     const user = await seedSession(page, 'teacher');
     await page.goto(`${BASE_URL}/login.html`);
 
-    await page.waitForURL(/\/dashboard\.html\?role=teacher/, { timeout: 10000 });
-    await expect(page).toHaveURL(new RegExp(`/dashboard\\.html\\?role=${user.role}`));
+    await page.waitForURL(/\/app\?role=teacher/, { timeout: 10000 });
+    await expect(page).toHaveURL(new RegExp(`/app\\?role=${user.role}`));
   });
 });
 

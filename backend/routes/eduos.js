@@ -70,6 +70,7 @@ router.get('/courses/:courseId/batches', authenticateToken, async (req, res) => 
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// Create a batch for a course (course owner or admin).
 router.post('/courses/:courseId/batches', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
   try {
     if (!(await ownsCourse(req.params.courseId, req.user.id)) && req.user.role !== 'admin') {
@@ -128,6 +129,7 @@ router.post('/batches/:batchId/enroll', authenticateToken, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// Roster of students enrolled in a batch (creator/admin).
 router.get('/batches/:batchId/roster', authenticateToken, authorizeRole([...CREATOR_ROLES, 'admin']), async (req, res) => {
   try {
     const { data: rows } = await supabaseAdmin.from('batch_enrollments').select('*').eq('batch_id', req.params.batchId);
@@ -314,6 +316,7 @@ router.get('/notify', authenticateToken, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// Mark all of the caller's notifications read.
 router.post('/notify/mark-read', authenticateToken, async (req, res) => {
   try {
     await supabaseAdmin.from('notifications').update({ read_at: new Date().toISOString() })
@@ -355,6 +358,7 @@ router.get('/forum/:courseId', authenticateToken, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// Create a new forum thread on a course.
 router.post('/forum/:courseId', authenticateToken, async (req, res) => {
   try {
     const { title, body } = req.body || {};
@@ -367,6 +371,7 @@ router.post('/forum/:courseId', authenticateToken, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// Fetch a thread + its replies (author names hydrated).
 router.get('/forum/thread/:threadId', authenticateToken, async (req, res) => {
   try {
     const { data: thread } = await supabaseAdmin.from('forum_threads').select('*').eq('id', req.params.threadId).maybeSingle();
@@ -382,6 +387,7 @@ router.get('/forum/thread/:threadId', authenticateToken, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// Post a reply (optionally nested via parentId) to a thread.
 router.post('/forum/thread/:threadId/reply', authenticateToken, async (req, res) => {
   try {
     const { body, parentId } = req.body || {};
@@ -431,6 +437,7 @@ router.delete('/forum/reply/:replyId', authenticateToken, authorizeRole(CREATOR_
 // PHASE 3B — LIVE POLLS + AI REPORT CARD
 // ════════════════════════════════════════════════════════════════════
 
+// Create a live poll for a class (teacher/creator).
 router.post('/polls', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
   try {
     const { classId, question, options } = req.body || {};
@@ -446,6 +453,7 @@ router.post('/polls', authenticateToken, authorizeRole(CREATOR_ROLES), async (re
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// Cast/replace the caller's vote on an open poll (one vote per student).
 router.post('/polls/:pollId/vote', authenticateToken, async (req, res) => {
   try {
     const { choice } = req.body || {};
@@ -462,6 +470,7 @@ router.post('/polls/:pollId/vote', authenticateToken, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// Tally of votes per option for a poll.
 router.get('/polls/:pollId/results', authenticateToken, async (req, res) => {
   try {
     const { data: poll } = await supabaseAdmin.from('class_polls').select('*').eq('id', req.params.pollId).maybeSingle();
@@ -474,6 +483,7 @@ router.get('/polls/:pollId/results', authenticateToken, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// Close a poll so no further votes are accepted (owning teacher).
 router.post('/polls/:pollId/close', authenticateToken, authorizeRole(CREATOR_ROLES), async (req, res) => {
   try {
     await supabaseAdmin.from('class_polls').update({ status: 'closed', closed_at: new Date().toISOString() }).eq('id', req.params.pollId).eq('teacher_id', req.user.id);
@@ -780,6 +790,7 @@ router.get('/franchise/branches', authenticateToken, authorizeRole(['franchise',
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// Link an institution as a branch under this franchise.
 router.post('/franchise/branches', authenticateToken, authorizeRole(['franchise', 'admin']), async (req, res) => {
   try {
     const { institutionId, branchName } = req.body || {};

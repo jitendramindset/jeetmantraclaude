@@ -10,6 +10,27 @@
  *   - the caller's resolved capability list (gate the UI)
  *   - the category taxonomy (replace SELECT DISTINCT category)
  *   - the caller's org memberships with role
+ *
+ * Endpoints (default router, mounted /api/orgs):
+ *   GET    /mine                              🔒 auth — caller's orgs + roles
+ *   GET    /:id                               🔒 auth — single org profile
+ *   POST   /                                  🔒 cap:course.create — create a non-personal org
+ *   PATCH  /:id                               🔒 cap:org.branding + member — update name/category/branding
+ *   GET    /:id/members                       🔒 auth + member — roster with roles
+ *   POST   /:id/members                       🔒 cap:org.member.invite + member — invite by personId/email
+ *   PATCH  /:id/members/:personId             🔒 cap:org.member.manage + member — change member role
+ *   DELETE /:id/members/:personId             🔒 cap:org.member.manage + member — revoke (can't remove owner)
+ *   POST   /:id/transfer                      🔒 cap:org.transfer + owner/admin — transfer ownership
+ *   GET    /:id/settings                      🔒 auth + member — full settings blob
+ *   PUT    /:id/settings                      🔒 cap:org.branding + member — update settings/slug/locale/seo
+ *
+ * Sub-routers exported separately and mounted on their own paths in server.js:
+ *   capRouter → /api/capabilities:  GET /me   🔒 auth — caller's resolved capability list
+ *   catRouter → /api/categories:    GET /     🌐 public — category + subcategory tree
+ *
+ * Notes: write routes gate on requireCapability AND org membership (admins bypass
+ * membership). catRouter falls back to distinct legacy course.category if the
+ * taxonomy tables aren't migrated.
  */
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');

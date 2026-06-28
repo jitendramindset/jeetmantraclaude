@@ -55,7 +55,7 @@ function shouldCache(path) {
   if (NO_CACHE_PREFIXES.some(p => path.startsWith(p))) return false;
   // Live, fast-polling sub-resources must stay fresh — caching them (60s) while
   // the client polls every 5–7s just serves stale data and defeats the poll.
-  if (/\/(attendees|poll|polls|recordings\/list)(\/|$|\?)/.test(path)) return false;
+  if (/\/(attendees|poll|polls|recordings\/list|cast)(\/|$|\?)/.test(path)) return false;
   return true;
 }
 
@@ -123,6 +123,8 @@ function syncMiddleware(req, res, next) {
   // not a replayable data mutation), or the n8n addon config endpoints.
   const SKIP = ['/api/sync', '/api/auth', '/api/n8n'];
   if (SKIP.some(p => fullPath.startsWith(p))) return next();
+  // High-frequency live studio frames must not flood the offline sync queue.
+  if (/\/cast(\/|$|\?)/.test(fullPath)) return next();
 
   const originalJson = res.json.bind(res);
   res.json = (body) => {

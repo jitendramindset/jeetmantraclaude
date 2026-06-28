@@ -85,26 +85,34 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // Serve frontend files
 const frontendPath = path.join(__dirname, '..', 'public');
 
-// ── Single App Shell ────────────────────────────────────────────────────────
-// /app is the canonical post-login entry. The shell (currently dashboard.html —
-// already role-driven dynamic nav + widget engine + in-page section routing) is
-// served for /app and any /app/* client route so deep links / refreshes work.
-// Standalone module pages (studio/exam-platform/…) still resolve for now and are
-// being migrated to render *inside* this shell; public pages stay standalone.
+// ── App shell (post-login) ───────────────────────────────────────────────────
+// /app and /app/* serve the dashboard shell. All other navigation happens inside
+// the SPA (index.html) via history.pushState — the shell itself is never linked
+// to directly by end users; they always arrive via the JS router.
 app.get(['/app', '/app/*'], (req, res) => {
-  res.sendFile(path.join(frontendPath, 'dashboard.html'));
+  res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
-// Dev-only pages — 404 in production so the prod build ships without dev tooling.
-const DEV_ONLY_PAGES = new Set(['/control-center.html']);
+// ── HTML gating — single entry point ────────────────────────────────────────
+// Only index.html exists on disk. Any other .html URL goes through the JS router.
 app.use((req, res, next) => {
-  if (process.env.NODE_ENV === 'production' && DEV_ONLY_PAGES.has(req.path)) {
-    return res.status(404).send('Not found');
-  }
-  next();
+  if (req.method !== 'GET') return next();
+  const p = req.path;
+  if (!p.endsWith('.html')) return next();
+  if (p === '/index.html') return next();
+  return res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
+// ── Static assets (JS, CSS, images, fonts, etc.) ────────────────────────────
 app.use(express.static(frontendPath));
+
+// ── SPA catch-all ────────────────────────────────────────────────────────────
+// Any GET that fell through (unknown path, client-side route refresh, etc.)
+// returns index.html so the JS router can handle it.
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api/')) return next();
+  res.sendFile(path.join(frontendPath, 'index.html'));
+});
 
 // LevelDB wiring for ALL /api routes:
 //   cacheMiddleware — cache-aside reads (local LevelDB), Supabase on miss

@@ -109,7 +109,9 @@ test.describe('Phase 2/5 — per-role dashboard loads', () => {
       // /api/dashboard, so this is backend-independent. Assert it shows the
       // role we seeded.
       const badge = page.locator('#userRoleBadge');
-      await expect(badge).toBeVisible();
+      // Sidebar is intentionally display:none on this branch (navigation moved to topbar ☰ menu).
+      // The badge element stays in DOM so JS can read it; visibility is not required.
+      await expect(badge).toBeAttached();
       await expect(badge).toHaveText(new RegExp(ROLE_LABEL_TEXT[role], 'i'), { timeout: 5000 });
 
       // No hard crash: document.title is set to "...<Role> Dashboard".

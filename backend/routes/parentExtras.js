@@ -1,8 +1,18 @@
 /**
  * parentExtras.js — endpoints for the parent role.
+ * Mount: /api/parent
+ *
  * Parents link to one or more students (siblings) and read their child's
  * grades / attendance / payments. They never write to the student's data —
  * everything is read-only with the student's consent (verified link).
+ *
+ * Endpoints:
+ *   POST /link                          🔒 auth [parent/admin] — link a child by email
+ *   GET  /children                      🔒 auth [parent/admin] — list linked children
+ *   GET  /child/:studentId/snapshot     🔒 auth [parent/admin] — enrollments, grades, attendance %
+ *
+ * Notes: all routes gated to parent/admin via authorizeRole. Snapshot verifies a
+ * parent_student_links row (admins bypass). Course titles are hydrated separately.
  */
 const express = require('express');
 const { supabaseAdmin } = require('../config/supabase');

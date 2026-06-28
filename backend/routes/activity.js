@@ -74,5 +74,23 @@ router.get('/course/:courseId', authenticateToken, async (req, res) => {
   }
 });
 
+// GET /api/activity/recent — alias of /me for dashboard widgets
+router.get('/recent', authenticateToken, async (req, res) => {
+  try {
+    const { data: rows } = await supabaseAdmin.from('activity_feed')
+      .select('*').eq('target_user_id', req.user.id)
+      .order('created_at', { ascending: false }).limit(20);
+    const aIds = [...new Set((rows || []).map(r => r.actor_id).filter(Boolean))];
+    let actors = {};
+    if (aIds.length) {
+      const { data } = await supabaseAdmin.from('jeetmantra_users').select('id, full_name, email').in('id', aIds);
+      actors = Object.fromEntries((data || []).map(u => [u.id, u.full_name || u.email]));
+    }
+    res.json({ feed: (rows || []).map(r => ({ ...r, actor_name: actors[r.actor_id] || null })) });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 module.exports = router;
 module.exports.logEvent = logEvent;

@@ -52,149 +52,20 @@
   // SELLERS = roles that list/sell on the marketplace.
   const SELLERS = ['teacher', 'partner', 'coaching', 'school', 'content_creator', 'corporate_trainer', 'franchise'];
 
-  const WIDGETS = [
-    {
-      id: 'quick-actions', title: 'Quick Actions', roles: null, category: 'ops', size: 'full', priority: 5,
-      render: (_, ctx) => {
-        const has = c => (ctx.capabilities || []).includes(c) || (ctx.roles || []).includes('admin');
-        const A = [
-          has('course.create') && ['＋ New course', 'dashboard.html#create'],
-          has('live.schedule') && ['📡 Schedule class', 'dashboard.html#live'],
-          has('attendance.mark') && ['✓ Take attendance', 'dashboard.html#attendance'],
-          ['🛒 Browse marketplace', 'marketplace.html'],
-          ['🤖 Ask AI', 'dashboard.html#ai']
-        ].filter(Boolean);
-        return `<div class="wg-actions">${A.map(([l, h]) => `<a class="wg-action" href="${h}">${esc(l)}</a>`).join('')}</div>`;
-      }
-    },
-    {
-      id: 'streak', title: 'Learning Streak', roles: ['student'], category: 'learning', size: 'small', priority: 10,
-      aiTriggers: ['streak', 'my streak'],
-      dataSource: () => api('/gamification/streak'),
-      render: d => { const s = d?.streak || {}; return `<div class="wg-big">${pct(s.current_streak)}🔥</div><div class="wg-sub">day streak · longest ${pct(s.longest_streak)} · ${pct(s.total_days)} active days</div>`; }
-    },
-    {
-      id: 'continue-learning', title: 'Continue Learning', roles: ['student'], category: 'learning', size: 'medium', priority: 15,
-      aiTriggers: ['continue learning', 'resume', 'my courses'],
-      dataSource: () => api('/student/continue-learning'),
-      render: d => { const it = listOf(d, 'items'); if (!it.length) return empty('No courses in progress yet.', { label: '🛒 Browse marketplace', onclick: "location.hash='#/m/marketplace'" }); return it.slice(0, 4).map(c => `<a class="wg-row" href="dashboard.html"><span class="wg-row-t">${esc(c.title || c.course_title || c.course_id)}</span><span class="wg-bar"><i style="width:${pct(c.progress)}%"></i></span><span class="wg-row-x">${pct(c.progress)}%</span></a>`).join(''); }
-    },
-    {
-      id: 'assignments-due', title: 'Assignments Due', roles: ['student'], category: 'learning', size: 'small', priority: 20,
-      aiTriggers: ['assignments', 'homework', 'due'],
-      dataSource: () => api('/assignments/my'),
-      render: d => { const a = listOf(d, 'assignments').filter(x => !x.submitted && !x.submission); if (!a.length) return empty('All caught up 🎉'); return a.slice(0, 5).map(x => `<div class="wg-row"><span class="wg-row-t">${esc(x.title || 'Assignment')}</span><span class="wg-row-x">${x.due_date ? when(x.due_date) : ''}</span></div>`).join(''); }
-    },
-    {
-      id: 'upcoming-classes', title: 'Upcoming Classes', roles: null, category: 'teaching', size: 'medium', priority: 25,
-      aiTriggers: ["today's classes", 'upcoming classes', 'schedule', 'open calendar'],
-      dataSource: () => api('/live-classes/upcoming'),
-      render: (d, ctx) => { const c = listOf(d, 'liveClasses', 'classes', 'upcoming', 'items'); const isStudent = (ctx && (ctx.roles||[]).includes('student')); if (!c.length) return empty('No upcoming classes.', { label: isStudent?'🛒 Browse courses':'📡 Schedule a class', onclick: isStudent?"location.hash='#/m/marketplace'":"if(typeof openSchedule==='function')openSchedule();else location.hash='#/m/calendar'" }); return c.slice(0, 5).map(x => `<div class="wg-row"><span class="wg-row-t">${esc(x.title || x.course_title || 'Class')}</span><span class="wg-row-x">${when(x.scheduled_time || x.start_at || x.starts_at)}</span></div>`).join(''); }
-    },
-    {
-      id: 'pending-eval', title: 'Pending Evaluation', roles: TEACHING, capability: 'assignment.grade', category: 'teaching', size: 'small', priority: 22,
-      aiTriggers: ['pending evaluation', 'grade', 'essays to grade'],
-      dataSource: () => api('/teacher/essays/pending'),
-      render: d => { const it = listOf(d, 'items', 'essays'); if (!it.length) return empty('Inbox zero — nothing to grade.', { label: '📝 Create an assignment', onclick: "if(typeof openAssignmentEditor==='function')openAssignmentEditor();else location.hash='#/m/tests'" }); return `<div class="wg-big">${it.length}</div><div class="wg-sub">submissions awaiting your grade</div><a class="wg-link" href="dashboard.html#grade">Open grading →</a>`; }
-    },
-    {
-      id: 'revenue', title: 'Revenue', roles: CREATOR.concat(['institute_owner']), capability: 'payment.read', category: 'finance', size: 'medium', priority: 30,
-      aiTriggers: ['revenue', 'earnings', 'income', 'show revenue'],
-      dataSource: () => api('/teacher/payments'),
-      render: d => { const p = listOf(d, 'payments'); const done = p.filter(x => x.status === 'completed'); const total = done.reduce((s, x) => s + (Number(x.amount) || 0), 0); return `<div class="wg-big">${fmtMoney(d?.total ?? total)}</div><div class="wg-sub">${done.length} completed payment${done.length !== 1 ? 's' : ''}</div><a class="wg-link" href="dashboard.html#payments">View payouts →</a>`; }
-    },
-    {
-      id: 'my-courses', title: 'My Courses', roles: CREATOR, capability: 'course.edit', category: 'teaching', size: 'medium', priority: 18,
-      aiTriggers: ['my courses', 'manage courses', 'course list'],
-      dataSource: () => api('/courses?mine=1'),
-      render: d => { const c = listOf(d, 'courses'); if (!c.length) return empty('No courses yet — create your first.', { label: '➕ Create a course', onclick: "if(typeof openCourseCreator==='function')openCourseCreator();else location.hash='#create'" }); return c.slice(0, 4).map(x => `<a class="wg-row" href="dashboard.html#course"><span class="wg-row-t">${esc(x.title || 'Course')}</span><span class="wg-row-x">${x.is_active === false ? 'draft' : (x.category || '')}</span></a>`).join('') + (c.length > 4 ? `<a class="wg-link" href="dashboard.html#courses">+${c.length - 4} more →</a>` : ''); }
-    },
-    {
-      id: 'my-listings', title: 'Marketplace Sales', roles: SELLERS, category: 'finance', size: 'small', priority: 38,
-      aiTriggers: ['my listings', 'marketplace sales', 'my sales'],
-      dataSource: () => api('/marketplace/my/listings'),
-      render: d => { const l = listOf(d, 'listings'); if (!l.length) return empty('No listings yet — turn a course into income.', { label: '🛒 List a course', onclick: "location.hash='#/m/marketplace'" }); const active = l.filter(x => x.status === 'active' || !x.status).length; return `<div class="wg-big">${l.length}</div><div class="wg-sub">listing${l.length !== 1 ? 's' : ''} · ${active} active</div><a class="wg-link" href="marketplace.html">Manage listings →</a>`; }
-    },
-    {
-      id: 'recommended', title: 'Recommended', roles: ['student', 'guest'], category: 'learning', size: 'large', priority: 40,
-      aiTriggers: ['recommended', 'trending courses'],
-      dataSource: () => api('/marketplace/trending?limit=6'),
-      render: d => { const l = listOf(d, 'listings'); if (!l.length) return empty('No recommendations yet.'); return `<div class="wg-cards">${l.slice(0, 6).map(x => { const c = x.courses || {}; return `<a class="wg-mini" href="marketplace.html"><div class="wg-mini-t">${esc(c.title || 'Course')}</div><div class="wg-mini-x">${c.category || ''} · ${x.price ? fmtMoney(x.price) : 'Free'}</div></a>`; }).join('')}</div>`; }
-    },
-    {
-      id: 'notifications', title: 'Notifications', roles: null, category: 'social', size: 'small', priority: 45,
-      aiTriggers: ['notifications', 'alerts'],
-      dataSource: () => api('/notifications/unread'),
-      render: d => { const n = listOf(d, 'notifications'); const total = d?.total ?? n.length; if (!total) return empty('All caught up — no new notifications.', { label: '🔔 Open notifications', onclick: "if(typeof toggleNotifs==='function')toggleNotifs(event);else location.hash='#/m/notifications'" }); return `<div class="wg-big" style="cursor:pointer" onclick="if(typeof toggleNotifs==='function')toggleNotifs(event)">${total}</div><div class="wg-sub">unread — tap to open</div>` + n.slice(0, 3).map(x => `<div class="wg-row"><span class="wg-row-t">${esc(x.title || x.message || 'Notification')}</span></div>`).join(''); }
-    },
-    {
-      id: 'leaderboard', title: 'Leaderboard', roles: ['student'], category: 'learning', size: 'small', priority: 35,
-      aiTriggers: ['leaderboard', 'rank', 'my rank'],
-      dataSource: () => api('/gamification/summary'),
-      render: d => { const s = d?.summary || d || {}; const xp = s.xp ?? s.total_xp ?? 0; const lvl = s.level ?? 1; return `<div class="wg-big">Lv ${pct(lvl)}</div><div class="wg-sub">${pct(xp)} XP${s.rank ? ' · rank #' + pct(s.rank) : ''}</div>`; }
-    },
-    {
-      id: 'certificates', title: 'My Certificates', roles: ['student'], category: 'learning', size: 'small', priority: 55,
-      aiTriggers: ['certificates', 'my certificates'],
-      dataSource: () => api('/certificates/my'),
-      render: d => { const c = listOf(d, 'certificates'); if (!c.length) return empty('Earn your first certificate by completing a course.', { label: '📚 Resume learning', onclick: "location.hash='#/m/marketplace'" }); return `<div class="wg-big">${c.length}</div><div class="wg-sub">earned</div>` + c.slice(0, 3).map(x => `<div class="wg-row"><span class="wg-row-t">${esc(x.course_title || x.title || 'Certificate')}</span></div>`).join(''); }
-    },
-    {
-      id: 'messages', title: 'Messages', roles: null, category: 'social', size: 'small', priority: 46,
-      aiTriggers: ['messages', 'unread messages', 'chat'],
-      dataSource: () => api('/chat/unread'),
-      render: d => { const total = d?.total ?? d?.unread ?? (listOf(d, 'rooms', 'threads').length); if (!total) return empty('No unread messages.'); return `<div class="wg-big">${pct(total)}</div><div class="wg-sub">unread · <a class="wg-link" href="dashboard.html#messages">Open inbox →</a></div>`; }
-    },
-    {
-      id: 'attendance-pending', title: 'Attendance', roles: TEACHING, capability: 'attendance.mark', category: 'teaching', size: 'small', priority: 24,
-      aiTriggers: ['attendance', 'take attendance', 'mark attendance'],
-      render: () => `<div class="wg-sub">Mark today's roster across your batches.</div><a class="wg-action" style="margin-top:10px" href="dashboard.html#attendance">✓ Take attendance</a>`
-    },
-    {
-      id: 'weak-students', title: 'Students Needing Help', roles: TEACHING, capability: 'analytics.read', category: 'teaching', size: 'small', priority: 28,
-      aiTriggers: ['weak students', 'at risk', 'students needing help'],
-      render: () => `<div class="wg-sub">Spot low-progress / low-attendance students from course analytics.</div><a class="wg-action" style="margin-top:10px" href="dashboard.html#analytics">📉 Open analytics</a>`
-    },
-    {
-      id: 'timetable', title: 'Timetable', roles: ORG_ADMIN, capability: 'live.schedule', category: 'ops', size: 'medium', priority: 26,
-      aiTriggers: ['timetable', 'class schedule', 'weekly schedule'],
-      dataSource: () => api('/timetable/templates'),
-      render: d => { const t = listOf(d, 'templates'); if (!t.length) return empty('No timetable templates yet.', { label: '📅 Create timetable', onclick: "location.hash='#timetable'" }); return t.slice(0, 4).map(x => `<div class="wg-row"><span class="wg-row-t">${esc(x.name || 'Timetable')}</span></div>`).join('') + `<a class="wg-link" href="dashboard.html#timetable">Manage →</a>`; }
-    },
-    {
-      id: 'admissions', title: 'Admissions', roles: ORG_ADMIN, capability: 'admissions.manage', category: 'ops', size: 'small', priority: 32,
-      aiTriggers: ['admissions', 'new admissions', 'enrollment intake'],
-      dataSource: () => api('/eduos/admissions'),
-      render: d => { const a = listOf(d, 'admissions', 'items'); return `<div class="wg-big">${a.length}</div><div class="wg-sub">recent admissions · <a class="wg-link" href="dashboard.html#admissions">Manage →</a></div>`; }
-    },
-    {
-      id: 'fees', title: 'Fees', roles: ORG_ADMIN, capability: 'billing.manage', category: 'finance', size: 'small', priority: 34,
-      aiTriggers: ['fees', 'fee invoices', 'pending fees'],
-      dataSource: () => api('/eduos/fees/invoices'),
-      render: d => { const inv = listOf(d, 'invoices', 'items'); const due = inv.filter(x => x.status !== 'paid'); return `<div class="wg-big">${due.length}</div><div class="wg-sub">unpaid invoices · <a class="wg-link" href="dashboard.html#fees">Collect →</a></div>`; }
-    },
-    {
-      id: 'bookings', title: 'Bookings', roles: SPORTS, capability: 'booking.manage', category: 'ops', size: 'medium', priority: 30,
-      aiTriggers: ['bookings', 'court bookings', 'slot bookings'],
-      dataSource: () => api('/bookings/received'),
-      render: d => { const b = listOf(d, 'bookings', 'items'); if (!b.length) return empty('No bookings yet.', { label: '📅 Book a resource', onclick: "location.hash='#bookings'" }); return b.slice(0, 5).map(x => `<div class="wg-row"><span class="wg-row-t">${esc(x.resource?.title || x.resource_type || 'Booking')}</span><span class="wg-row-x">${when(x.start_at)}</span></div>`).join(''); }
-    },
-    {
-      id: 'children', title: 'My Children', roles: ['parent'], category: 'learning', size: 'medium', priority: 12,
-      aiTriggers: ['my children', 'my child', 'kids'],
-      dataSource: () => api('/parent/children'),
-      render: d => { const ch = listOf(d, 'children', 'students', 'items'); if (!ch.length) return empty('Link a child to see their progress.', { label: '👪 Link child', onclick: "location.hash='#link-child'" }); return ch.slice(0, 4).map(c => `<a class="wg-row" href="dashboard.html#child"><span class="wg-row-t">${esc(c.full_name || c.name || 'Child')}</span><span class="wg-row-x">${c.class || c.grade || ''}</span></a>`).join(''); }
-    },
-    {
-      id: 'network', title: 'Network', roles: ['partner', 'franchise'], category: 'finance', size: 'small', priority: 36,
-      aiTriggers: ['network', 'branches', 'franchise'],
-      render: () => `<div class="wg-sub">Track branches, network revenue and per-branch KPIs.</div><a class="wg-action" style="margin-top:10px" href="dashboard.html#network">🌐 Open network</a>`
-    },
-    {
-      id: 'ai-tutor', title: 'AI Copilot', roles: null, category: 'ai', size: 'small', priority: 60,
-      render: () => `<div class="wg-sub">Ask anything — "show revenue", "today's classes", "create course".</div><a class="wg-action" style="margin-top:10px" href="dashboard.html#ai">🤖 Open Copilot</a>`
-    }
-  ];
+  // ── Widget library helpers exposed to external /widgets/<id>.js files.
+  // Each extracted widget file destructures from EduOSWidgets._lib and then
+  // calls EduOSWidgets.register({...}) to add itself to WIDGETS.
+  const _LIB = { esc, pct, api, fmtMoney, when, listOf, empty,
+                 CREATOR, ORG_ADMIN, SPORTS, TEACHING, SELLERS };
+  function register(w) {
+    if (!w || !w.id) return;
+    // De-dupe: a re-load of the same id replaces the previous manifest.
+    const i = WIDGETS.findIndex(x => x.id === w.id);
+    if (i >= 0) WIDGETS[i] = w; else WIDGETS.push(w);
+  }
+
+  // WIDGETS is populated by /widgets/<id>.js files via register(). See /widgets/_README.md.
+  let WIDGETS = [];
 
   // ── RESOLVER (audit §1) ─────────────────────────────────────────────────────
   // passesGates: role ∩ + capability + admin-config. `ignoreRemoved` lets the
@@ -208,6 +79,9 @@
     if (w.capability && !isAdmin && !caps.has(w.capability)) return false;
     if (adminCfg && adminCfg[w.id] === false) return false;
     if (!ignoreRemoved && (ctx.userPrefs?.removed || []).includes(w.id)) return false;
+    // P1 gap closure: archived widgets are filtered out of the main grid.
+    // They survive in ctx.userPrefs.archived and surface via an Archive tray.
+    if (!ignoreRemoved && (ctx.userPrefs?.archived || []).includes(w.id)) return false;
     return true;
   }
 
@@ -235,20 +109,88 @@
   function skeleton() { return '<div class="wg-skel"></div><div class="wg-skel w60"></div>'; }
 
   async function renderWidget(w, ctx) {
+    const prefs = ctx.userPrefs || {};
+    const size = (prefs.sizes || {})[w.id] || w.size || 'medium';
+    const collapsed = (prefs.collapsed || []).includes(w.id);
+    const accent = (prefs.accents || {})[w.id] || '';
+    const favorited = (prefs.favorites || []).includes(w.id);
+    // P2: per-widget theme override (light|dark|auto). Auto = inherit page theme.
+    const theme = (prefs.themes || {})[w.id] || '';
+    // P2: track hidden sections (consumer widgets honor via ctx.hiddenSections).
+    const hiddenSections = (prefs.hiddenSections || {})[w.id] || [];
+    // P3: user-edited title overrides the manifest title; typeSize cycles type.
+    const userTitle = (prefs.titles || {})[w.id] || '';
+    const displayTitle = userTitle || w.title;
+    const typeSize = (prefs.typeSize || {})[w.id] || '';
+    // P3: animation type (manifest w.animation: 'slide'|'fade'|'scale'); default = grid's wgUp.
+    const animClass = w.animation ? ' wg-anim-' + w.animation : '';
     const card = document.createElement('section');
-    card.className = 'wg-card wg-' + (w.size || 'medium') + (w._pinned ? ' wg-pinned' : '');
+    card.className = 'wg-card wg-' + size + (w._pinned ? ' wg-pinned' : '') + (collapsed ? ' wg-collapsed' : '') + (favorited ? ' wg-favorite' : '') + (theme ? ' wg-theme-' + theme : '') + (typeSize ? ' wg-type-' + typeSize : '') + animClass;
     card.dataset.widget = w.id;
     card.setAttribute('role', 'region');
-    card.setAttribute('aria-label', w.title);
+    card.setAttribute('aria-label', displayTitle);
     card.tabIndex = 0;
-    const ctrls = `<span class="wg-ctrls"><button class="wg-ctrl" title="${w._pinned ? 'Unpin' : 'Pin'}" aria-label="Pin widget" onclick="EduOSWidgets.togglePin('${w.id}')">${w._pinned ? '📌' : '📍'}</button><button class="wg-ctrl" title="Hide widget" aria-label="Hide widget" onclick="EduOSWidgets.removeWidget('${w.id}')">✕</button></span>`;
-    card.innerHTML = `<header class="wg-head"><span class="wg-title">${esc(w.title)}</span>${ctrls}</header><div class="wg-body">${skeleton()}</div>`;
+    if (accent) card.style.setProperty('--wg-accent', accent);
+    // P1 gap closure: Action overflow — when more than 5 controls would render,
+    // primary actions stay visible and the rest fold into a "More …" menu.
+    // For now we keep the 5 primary inline (collapse/resize/accent/pin/hide) and
+    // surface favorite + archive in a "..." menu so the header stays clean.
+    const ctrls = `<span class="wg-ctrls">`
+      + `<button class="wg-ctrl" title="${collapsed ? 'Expand' : 'Collapse'}" aria-label="Collapse widget" onclick="EduOSWidgets.toggleCollapse('${w.id}')">${collapsed ? '▸' : '▾'}</button>`
+      + `<button class="wg-ctrl" title="Resize" aria-label="Resize widget" onclick="EduOSWidgets.cycleSize('${w.id}')">⤢</button>`
+      + `<label class="wg-ctrl wg-ctrl-color" title="Accent colour" aria-label="Accent colour">🎨<input type="color" value="${accent || '#7c3aed'}" oninput="EduOSWidgets.setAccent('${w.id}',this.value)"></label>`
+      + `<button class="wg-ctrl" title="${w._pinned ? 'Unpin' : 'Pin'}" aria-label="Pin widget" onclick="EduOSWidgets.togglePin('${w.id}')">${w._pinned ? '📌' : '📍'}</button>`
+      + `<button class="wg-ctrl" data-wg-action="favorite" title="${favorited ? 'Unfavorite' : 'Favorite'}" aria-label="Favorite widget" onclick="EduOSWidgets.toggleFavorite('${w.id}')">${favorited ? '⭐' : '☆'}</button>`
+      + `<details class="wg-ctrl wg-ctrl-more" style="display:inline-block;position:relative"><summary title="More" aria-label="More actions" style="cursor:pointer;list-style:none">⋯</summary>`
+      +   `<div class="wg-more-menu" style="position:absolute;right:0;top:100%;background:var(--jm-surface,#fff);border:1px solid var(--jm-border,#e5e7eb);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:6px;z-index:10;min-width:140px;display:flex;flex-direction:column;gap:2px">`
+      +     `<button class="wg-more-item" style="background:none;border:0;padding:6px 10px;text-align:left;font-size:12px;border-radius:6px;cursor:pointer" onclick="EduOSWidgets.cycleTypeSize('${w.id}');this.closest('details').open=false">🔤 Type size</button>`
+      +     `<button class="wg-more-item" style="background:none;border:0;padding:6px 10px;text-align:left;font-size:12px;border-radius:6px;cursor:pointer" onclick="EduOSWidgets.toggleArchive('${w.id}');this.closest('details').open=false">🗄 Archive</button>`
+      +     `<button class="wg-more-item" style="background:none;border:0;padding:6px 10px;text-align:left;font-size:12px;border-radius:6px;cursor:pointer" onclick="EduOSWidgets.removeWidget('${w.id}');this.closest('details').open=false">✕ Hide</button>`
+      +   `</div></details>`
+      + `</span>`;
+    card.innerHTML = `<header class="wg-head" title="Drag to reorder"><span class="wg-grip" aria-hidden="true">⠿</span><span class="wg-title" title="Double-click to rename" ondblclick="EduOSWidgets._editTitle(event,'${w.id}')">${esc(displayTitle)}</span>${ctrls}</header><div class="wg-body">${skeleton()}</div>`;
+    // Drag-to-reorder — the header is the handle (so inner controls stay clickable).
+    const head = card.querySelector('.wg-head');
+    head.setAttribute('draggable', 'true');
+    head.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', w.id); e.dataTransfer.effectAllowed = 'move'; card.classList.add('wg-dragging'); });
+    head.addEventListener('dragend', () => card.classList.remove('wg-dragging'));
+    card.addEventListener('dragover', e => { e.preventDefault(); card.classList.add('wg-dragover'); });
+    card.addEventListener('dragleave', () => card.classList.remove('wg-dragover'));
+    card.addEventListener('drop', e => { e.preventDefault(); card.classList.remove('wg-dragover'); const from = e.dataTransfer.getData('text/plain'); if (from) reorder(from, w.id); });
     const body = card.querySelector('.wg-body');
-    try {
-      const data = w.dataSource ? await w.dataSource(ctx) : null;
-      body.innerHTML = w.render(data, ctx);
-    } catch (e) {
-      body.innerHTML = empty('Couldn’t load right now.');
+    // Per-widget data load with isolation: one widget failing never breaks the
+    // grid — it shows its own Retry that re-fetches just this widget.
+    async function load() {
+      try {
+        const data = w.dataSource ? await w.dataSource(ctx) : null;
+        // P2: pass per-widget hidden-section list as ctx.hiddenSections so the
+        // widget's render() can opt-out of sections the user turned off.
+        const widgetCtx = Object.assign({}, ctx, { hiddenSections: hiddenSections });
+        body.innerHTML = w.render(data, widgetCtx);
+      } catch (e) {
+        body.innerHTML = (global.JMStates)
+          ? JMStates.retryCard({ msg: 'Couldn’t load this widget.', onRetry: function () { body.innerHTML = skeleton(); load(); } })
+          : empty('Couldn’t load right now.');
+      }
+    }
+    await load();
+    // P1 gap closure: per-widget refresh frequency. A manifest can declare
+    // refreshMs:30000 to auto-poll. Interval is owned by the card so it's
+    // cleared automatically when the card is replaced by renderDashboard.
+    if (w.refreshMs && Number(w.refreshMs) > 1000) {
+      const handle = setInterval(load, Number(w.refreshMs));
+      card._jmRefresh = handle;
+      // Stop polling when the card LEAVES the DOM after first being mounted.
+      // The card is detached at renderWidget-time (it's appended later by
+      // renderDashboard), so we wait until it's mounted before watching for
+      // removal — otherwise the observer fires once and kills the interval.
+      let wasMounted = false;
+      const obs = new MutationObserver(() => {
+        const inDom = document.body.contains(card);
+        if (inDom) { wasMounted = true; return; }
+        if (wasMounted) { clearInterval(handle); obs.disconnect(); }
+      });
+      obs.observe(document.body, { childList: true, subtree: true });
     }
     return card;
   }
@@ -258,9 +200,40 @@
   async function renderDashboard(mountEl, ctx) {
     _mount = mountEl; _ctx = ctx;
     const widgets = resolveWidgets(ctx);
+    // P2: apply grid-wide density class from prefs (compact|comfortable).
+    const density = (ctx.userPrefs && ctx.userPrefs.density) || 'comfortable';
+    mountEl.classList.toggle('wg-density-compact', density === 'compact');
     mountEl.innerHTML = '';
     const cards = await Promise.all(widgets.map(w => renderWidget(w, ctx)));
-    cards.forEach(c => mountEl.appendChild(c));
+    // P3 final: opt-in groups. If no widget declares `group`, render flat grid (legacy).
+    // Otherwise bucket by group name, emit a collapsible <section> per group.
+    const declaresAnyGroup = widgets.some(w => w.group);
+    if (!declaresAnyGroup) {
+      cards.forEach(c => mountEl.appendChild(c));
+    } else {
+      const collapsedGroups = (ctx.userPrefs && ctx.userPrefs.collapsedGroups) || [];
+      const buckets = new Map();
+      widgets.forEach((w, i) => {
+        const g = w.group || 'General';
+        if (!buckets.has(g)) buckets.set(g, []);
+        buckets.get(g).push(cards[i]);
+      });
+      buckets.forEach((cardsForGroup, groupId) => {
+        const isCollapsed = collapsedGroups.includes(groupId);
+        const section = document.createElement('section');
+        section.className = 'wg-group' + (isCollapsed ? ' wg-group-collapsed' : '');
+        section.dataset.group = groupId;
+        section.innerHTML = '<header class="wg-group-head" onclick="EduOSWidgets.toggleGroup(\'' + esc(groupId).replace(/'/g, '\\\'') + '\')">'
+          + '<button class="wg-group-toggle" aria-label="Toggle group">' + (isCollapsed ? '▸' : '▾') + '</button>'
+          + '<span class="wg-group-title">' + esc(groupId) + '</span>'
+          + '<span class="wg-group-count">' + cardsForGroup.length + '</span>'
+          + '</header>'
+          + '<div class="wg-group-body wg-grid"></div>';
+        const body = section.querySelector('.wg-group-body');
+        cardsForGroup.forEach(c => body.appendChild(c));
+        mountEl.appendChild(section);
+      });
+    }
     // "Add widget" tray for anything the user hid.
     const hidden = hiddenWidgets(ctx);
     const tray = document.getElementById('wgAddTray');
@@ -276,8 +249,33 @@
     _ctx.userPrefs.removed = _ctx.userPrefs.removed || [];
     _ctx.userPrefs.pinned = _ctx.userPrefs.pinned || [];
     _ctx.userPrefs.order = _ctx.userPrefs.order || [];
+    _ctx.userPrefs.collapsed = _ctx.userPrefs.collapsed || [];   // header-only widgets
+    _ctx.userPrefs.sizes = _ctx.userPrefs.sizes || {};            // per-widget size override
+    _ctx.userPrefs.accents = _ctx.userPrefs.accents || {};        // per-widget accent colour
+    // P1 gap closure (per WIDGET_AUDIT.md): favorites + archived are separate
+    // from pinned/removed. Favorite = "star" (visual only, never auto-hidden);
+    // archive = soft-removed (gone from grid but kept in a separate Archive tray
+    // — distinct from Hide which means "I don't want this right now").
+    _ctx.userPrefs.favorites = _ctx.userPrefs.favorites || [];
+    _ctx.userPrefs.archived = _ctx.userPrefs.archived || [];
+    // P2 gap closure: density (compact|comfortable) is grid-wide; themes is
+    // per-widget {id: 'light'|'dark'|'auto'}; hiddenSections is per-widget
+    // {id: [sectionId,...]} for widgets that declare opt-in sections.
+    _ctx.userPrefs.density = _ctx.userPrefs.density || 'comfortable';
+    _ctx.userPrefs.themes = _ctx.userPrefs.themes || {};
+    _ctx.userPrefs.hiddenSections = _ctx.userPrefs.hiddenSections || {};
+    // P3 gap closure: typeSize {id: 'sm'|'md'|'lg'|'xl'} per widget;
+    // titles {id: 'My custom title'} for user-edited names.
+    _ctx.userPrefs.typeSize = _ctx.userPrefs.typeSize || {};
+    _ctx.userPrefs.titles = _ctx.userPrefs.titles || {};
+    // P3 final closure: widget groups + saved layouts. collapsedGroups is
+    // an array of group-ids the user has folded. savedLayouts is a map of
+    // {layoutName: <userPrefs snapshot>}.
+    _ctx.userPrefs.collapsedGroups = _ctx.userPrefs.collapsedGroups || [];
+    _ctx.userPrefs.savedLayouts = _ctx.userPrefs.savedLayouts || {};
     return _ctx.userPrefs;
   }
+  function _card(id){ return _mount && _mount.querySelector('[data-widget="' + id + '"]'); }
   async function persistPrefs() {
     try {
       await fetch(API + '/me/widget-prefs', {
@@ -287,8 +285,179 @@
     } catch (_) {/* best-effort; UI already updated */}
   }
   async function togglePin(id) { const p = ensurePrefs(); const i = p.pinned.indexOf(id); i >= 0 ? p.pinned.splice(i, 1) : p.pinned.push(id); await persistPrefs(); await renderDashboard(_mount, _ctx); }
+  // Collapse / resize / accent — applied in-place (no data refetch) for snappy
+  // feedback, then persisted best-effort.
+  function toggleCollapse(id) {
+    const p = ensurePrefs(); const i = p.collapsed.indexOf(id); const on = i < 0;
+    on ? p.collapsed.push(id) : p.collapsed.splice(i, 1);
+    const card = _card(id); if (card) { card.classList.toggle('wg-collapsed', on); const b = card.querySelector('.wg-ctrl'); if (b) { b.textContent = on ? '▸' : '▾'; b.title = on ? 'Expand' : 'Collapse'; } }
+    persistPrefs();
+  }
+  function cycleSize(id) {
+    // P1 gap closure: add explicit 'full' (row-spanning) size to the rotation.
+    // A widget's manifest can opt out via supportedSizes:[…] (checked here).
+    const ALL = ['small', 'medium', 'large', 'full'];
+    const p = ensurePrefs();
+    const card = _card(id);
+    const w = WIDGETS.find(x => x.id === id);
+    const allowed = (w && Array.isArray(w.supportedSizes) && w.supportedSizes.length) ? w.supportedSizes : ALL;
+    const cur = p.sizes[id] || (card && ALL.find(s => card.classList.contains('wg-' + s))) || 'medium';
+    // Find next size in the allowed list, starting from cur+1.
+    const idx = allowed.indexOf(cur);
+    const next = allowed[(idx + 1) % allowed.length];
+    p.sizes[id] = next;
+    if (card) { ALL.forEach(s => card.classList.remove('wg-' + s)); card.classList.add('wg-' + next); }
+    persistPrefs();
+  }
+  function setAccent(id, color) {
+    const p = ensurePrefs(); p.accents[id] = color;
+    const card = _card(id); if (card) card.style.setProperty('--wg-accent', color);
+    persistPrefs();
+  }
+  async function reorder(fromId, toId) {
+    if (!fromId || fromId === toId) return;
+    const ids = resolveWidgets(_ctx).map(w => w.id);
+    const from = ids.indexOf(fromId); if (from < 0) return;
+    ids.splice(from, 1);
+    const at = ids.indexOf(toId); ids.splice(at < 0 ? ids.length : at, 0, fromId);
+    const p = ensurePrefs(); p.order = ids; await persistPrefs(); await renderDashboard(_mount, _ctx);
+  }
   async function removeWidget(id) { const p = ensurePrefs(); if (!p.removed.includes(id)) p.removed.push(id); await persistPrefs(); await renderDashboard(_mount, _ctx); }
   async function addWidget(id) { const p = ensurePrefs(); const i = p.removed.indexOf(id); if (i >= 0) p.removed.splice(i, 1); await persistPrefs(); await renderDashboard(_mount, _ctx); }
+  // P1 gap closure: Favorite & Archive (separate from pin/hide per WIDGET_AUDIT.md).
+  // Favorite = visual star — no effect on visibility or order (Pin already covers sorting).
+  // Archive = soft-remove — disappears from grid; can be brought back from an Archive tray.
+  function toggleFavorite(id) {
+    const p = ensurePrefs(); const i = p.favorites.indexOf(id); const on = i < 0;
+    on ? p.favorites.push(id) : p.favorites.splice(i, 1);
+    const card = _card(id); if (card) {
+      card.classList.toggle('wg-favorite', on);
+      const btn = card.querySelector('[data-wg-action="favorite"]');
+      if (btn) { btn.textContent = on ? '⭐' : '☆'; btn.title = on ? 'Unfavorite' : 'Favorite'; }
+    }
+    persistPrefs();
+  }
+  async function toggleArchive(id) {
+    const p = ensurePrefs(); const i = p.archived.indexOf(id); const on = i < 0;
+    on ? p.archived.push(id) : p.archived.splice(i, 1);
+    await persistPrefs();
+    await renderDashboard(_mount, _ctx);
+  }
+  // P2 gap closure: density (grid-wide) toggles tighter spacing/typography.
+  function setDensity(mode) {
+    const p = ensurePrefs(); p.density = (mode === 'compact') ? 'compact' : 'comfortable';
+    if (_mount) {
+      _mount.classList.toggle('wg-density-compact', p.density === 'compact');
+    }
+    persistPrefs();
+  }
+  // P2 gap closure: per-widget theme override (light | dark | auto).
+  function setTheme(id, mode) {
+    const p = ensurePrefs();
+    if (!mode || mode === 'auto') { delete p.themes[id]; } else { p.themes[id] = mode; }
+    const card = _card(id);
+    if (card) {
+      card.classList.remove('wg-theme-light', 'wg-theme-dark');
+      if (p.themes[id]) card.classList.add('wg-theme-' + p.themes[id]);
+    }
+    persistPrefs();
+  }
+  // P2 gap closure: section-level show/hide for widgets that declare
+  // sections in their manifest. Hidden sections are removed from the
+  // rendered body on the next renderWidget pass.
+  async function toggleSection(widgetId, sectionId) {
+    const p = ensurePrefs();
+    p.hiddenSections[widgetId] = p.hiddenSections[widgetId] || [];
+    const list = p.hiddenSections[widgetId];
+    const i = list.indexOf(sectionId);
+    if (i >= 0) list.splice(i, 1); else list.push(sectionId);
+    await persistPrefs();
+    await renderDashboard(_mount, _ctx);
+  }
+  // P3 gap closure: typography size cycle (sm | md | lg | xl). Applied via class.
+  function cycleTypeSize(id) {
+    const STEPS = ['sm', 'md', 'lg', 'xl'];
+    const p = ensurePrefs();
+    const cur = p.typeSize[id] || 'md';
+    const next = STEPS[(STEPS.indexOf(cur) + 1) % STEPS.length];
+    p.typeSize[id] = next;
+    const card = _card(id);
+    if (card) { STEPS.forEach(s => card.classList.remove('wg-type-' + s)); card.classList.add('wg-type-' + next); }
+    persistPrefs();
+  }
+  // P3 gap closure: user-editable widget titles. Renamed name persists; reset to '' restores manifest title.
+  // P3 final closure: widget groups. A widget declares group:'Money' in its
+  // manifest to land in the "Money" section; widgets without a group go to
+  // the implicit "" bucket. If no widget declares any group, the engine
+  // renders a single flat grid (current behaviour).
+  function toggleGroup(groupId) {
+    const p = ensurePrefs(); const i = p.collapsedGroups.indexOf(groupId); const on = i < 0;
+    on ? p.collapsedGroups.push(groupId) : p.collapsedGroups.splice(i, 1);
+    // Toggle in-place — no full re-render.
+    if (_mount) {
+      const sec = _mount.querySelector('.wg-group[data-group="' + CSS.escape(groupId) + '"]');
+      if (sec) {
+        sec.classList.toggle('wg-group-collapsed', on);
+        const btn = sec.querySelector('.wg-group-toggle');
+        if (btn) btn.textContent = on ? '▸' : '▾';
+      }
+    }
+    persistPrefs();
+  }
+  // P3 final closure: layout save/load/reset/export/import.
+  async function saveLayout(name) {
+    if (!name) return;
+    const p = ensurePrefs();
+    // Snapshot prefs EXCEPT savedLayouts itself (avoid recursion).
+    const { savedLayouts, ...snap } = p;
+    p.savedLayouts[name] = JSON.parse(JSON.stringify(snap));
+    await persistPrefs();
+    return name;
+  }
+  async function loadLayout(name) {
+    const p = ensurePrefs();
+    const snap = p.savedLayouts[name];
+    if (!snap) return false;
+    // Keep savedLayouts; restore everything else from the snapshot.
+    const layouts = p.savedLayouts;
+    _ctx.userPrefs = Object.assign({}, snap, { savedLayouts: layouts });
+    await persistPrefs();
+    await renderDashboard(_mount, _ctx);
+    return true;
+  }
+  async function resetLayout() {
+    // Keep savedLayouts so the user can still recover; clear everything else.
+    const layouts = (_ctx.userPrefs && _ctx.userPrefs.savedLayouts) || {};
+    _ctx.userPrefs = { savedLayouts: layouts };
+    await persistPrefs();
+    await renderDashboard(_mount, _ctx);
+  }
+  function exportLayout() {
+    const p = ensurePrefs();
+    return JSON.stringify(p, null, 2);
+  }
+  async function importLayout(json) {
+    let parsed = null;
+    try { parsed = (typeof json === 'string') ? JSON.parse(json) : json; }
+    catch (e) { throw new Error('Invalid layout JSON: ' + e.message); }
+    if (!parsed || typeof parsed !== 'object') throw new Error('Layout must be an object');
+    _ctx.userPrefs = parsed;
+    await persistPrefs();
+    await renderDashboard(_mount, _ctx);
+    return true;
+  }
+  function setTitle(id, newTitle) {
+    const p = ensurePrefs();
+    const clean = String(newTitle || '').trim().slice(0, 80);
+    if (!clean) { delete p.titles[id]; } else { p.titles[id] = clean; }
+    const card = _card(id);
+    const titleEl = card && card.querySelector('.wg-title');
+    if (titleEl) {
+      const w = WIDGETS.find(x => x.id === id);
+      titleEl.textContent = clean || (w && w.title) || id;
+    }
+    persistPrefs();
+  }
 
   // ── BOOT — resolve context, then compose ────────────────────────────────────
   async function getContext() {
@@ -304,9 +473,40 @@
     } catch (_) { return { roles: [], capabilities: [] }; }
   }
 
+  // Wait for /widgets/<id>.js files (loaded async by _index.js) to finish
+  // self-registering. Polls every 30ms; gives up after ~1.5s so a missing file
+  // never blocks boot. The first widget(s) usually arrive within a frame or two.
+  async function _waitForWidgets(expectedMin) {
+    const target = Math.max(expectedMin || 0, 0);
+    const deadline = Date.now() + 1500;
+    while (WIDGETS.length < target && Date.now() < deadline) {
+      await new Promise(r => setTimeout(r, 30));
+    }
+  }
+
   async function boot(mountEl) {
     if (!token()) { location.href = '/login.html'; return; }
+    // Widgets self-register from /widgets/<id>.js. Wait briefly so we don't
+    // render against an empty registry on fast machines.
+    await _waitForWidgets(10);
     const ctx = await getContext();
+    // Admin policy (highest authority): merge the platform-wide widget policy
+    // into ctx.adminWidgets BEFORE rendering, so passesGates() honours it.
+    // global[id]===false → hide from everyone. byRole[<role>][id]===false →
+    // hide for that role. Per-user prefs layer on top of what survives.
+    try {
+      const cfgResp = await api('/admin/widget-config');
+      const cfg = (cfgResp && cfgResp.config) || {};
+      const adminWidgets = {};
+      Object.keys(cfg.global || {}).forEach(id => { if (cfg.global[id] === false) adminWidgets[id] = false; });
+      const myRoles = new Set(ctx.roles || []);
+      Object.keys(cfg.byRole || {}).forEach(role => {
+        if (!myRoles.has(role)) return;
+        const block = cfg.byRole[role] || {};
+        Object.keys(block).forEach(id => { if (block[id] === false) adminWidgets[id] = false; });
+      });
+      ctx.adminWidgets = Object.assign({}, ctx.adminWidgets || {}, adminWidgets);
+    } catch (_) { /* best-effort; defaults remain */ }
     const ids = await renderDashboard(mountEl, ctx);
     return { ctx, rendered: ids };
   }
@@ -360,5 +560,38 @@
     try { r.start(); return true; } catch (_) { return false; }
   }
 
-  global.EduOSWidgets = { WIDGETS, resolveWidgets, hiddenWidgets, renderDashboard, boot, getContext, widgetForIntent, handleCommand, listen, togglePin, removeWidget, addWidget, api, esc };
+  // P3: in-place title editor. Replaces the title with a contentEditable span,
+  // commits on blur or Enter, cancels on Esc.
+  function _editTitle(ev, widgetId) {
+    if (ev) { ev.stopPropagation(); ev.preventDefault?.(); }
+    const card = _card(widgetId);
+    const titleEl = card && card.querySelector('.wg-title');
+    if (!titleEl || titleEl.dataset.editing === '1') return;
+    titleEl.dataset.editing = '1';
+    const original = titleEl.textContent;
+    titleEl.contentEditable = 'true';
+    titleEl.style.outline = '2px solid var(--jm-primary,#7c3aed)';
+    titleEl.style.borderRadius = '4px';
+    titleEl.style.padding = '0 4px';
+    titleEl.focus();
+    // Select all text.
+    const sel = window.getSelection(); const range = document.createRange();
+    range.selectNodeContents(titleEl); sel.removeAllRanges(); sel.addRange(range);
+    const commit = () => {
+      titleEl.contentEditable = 'false';
+      titleEl.style.outline = ''; titleEl.style.padding = '';
+      titleEl.removeAttribute('data-editing');
+      setTitle(widgetId, titleEl.textContent);
+      titleEl.removeEventListener('blur', commit);
+      titleEl.removeEventListener('keydown', keys);
+    };
+    const keys = (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); titleEl.blur(); }
+      if (e.key === 'Escape') { titleEl.textContent = original; titleEl.blur(); }
+    };
+    titleEl.addEventListener('blur', commit);
+    titleEl.addEventListener('keydown', keys);
+  }
+
+  global.EduOSWidgets = { WIDGETS, register, _lib: _LIB, resolveWidgets, hiddenWidgets, renderDashboard, boot, getContext, widgetForIntent, handleCommand, listen, togglePin, removeWidget, addWidget, toggleCollapse, cycleSize, setAccent, reorder, toggleFavorite, toggleArchive, setDensity, setTheme, toggleSection, cycleTypeSize, setTitle, _editTitle, toggleGroup, saveLayout, loadLayout, resetLayout, exportLayout, importLayout, api, esc };
 })(window);

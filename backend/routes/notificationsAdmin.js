@@ -1,9 +1,20 @@
 /**
- * notificationsAdmin.js — notification template + broadcast admin
- * (/api/notifications-admin).
+ * notificationsAdmin.js — notification template + broadcast admin.
+ * Mount: /api/notifications-admin
  *
  * Sprint 3. Admin manages templates and triggers broadcasts. Actual delivery is
  * the n8n addon's job — we just queue rows in notification_log.
+ *
+ * Endpoints (all 🔒 auth [admin]):
+ *   GET    /templates       — list templates (filter by key/locale/channel)
+ *   POST   /templates       — create a template
+ *   PUT    /templates/:id   — update + version bump
+ *   DELETE /templates/:id   — delete a template
+ *   POST   /broadcast       — queue notification_log rows by audience (role/user_ids/institution_id)
+ *   GET    /log             — query the delivery log (recipient/status/date filters)
+ *
+ * Notes: every mutating action is recorded via auditLog into audit_log.
+ * Broadcasts insert in chunks of 500 to avoid oversized requests.
  */
 const express = require('express');
 const { supabaseAdmin } = require('../config/supabase');

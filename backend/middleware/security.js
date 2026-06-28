@@ -48,8 +48,22 @@ function applySecurity(app) {
       standardHeaders: true, legacyHeaders: false,
       message: { error: 'Too many attempts — please wait a minute.' }
     });
-    ['/api/auth/login', '/api/auth/signup', '/api/auth/send-otp', '/api/auth/verify-otp',
-     '/api/auth/forgot-password', '/api/ai', '/api/payments/order', '/api/payments/verify'].forEach(p => app.use(p, strict));
+    // Coverage groups (closing P1 rate-limit audit gap from PROJECT_AUDIT.md):
+    // - Auth brute-force: login/signup/OTP/forgot-password/reset-password.
+    // - Cost-abuse: AI generation, payment order/verify, wallet topup,
+    //   referral apply (free-credit abuse), course checkout.
+    // - DoS: marketplace search (heavy DB query when unbounded).
+    [
+      // Auth brute-force surfaces
+      '/api/auth/login', '/api/auth/signup', '/api/auth/send-otp',
+      '/api/auth/verify-otp', '/api/auth/forgot-password', '/api/auth/reset-password',
+      // Cost-abuse surfaces
+      '/api/ai', '/api/payments/order', '/api/payments/verify',
+      '/api/wallet/topup', '/api/wallet/referrals/apply',
+      '/api/courses/checkout',
+      // DoS surfaces
+      '/api/search', '/api/marketplace/search'
+    ].forEach(p => app.use(p, strict));
   }
 }
 

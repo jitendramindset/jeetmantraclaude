@@ -3,6 +3,19 @@
  *
  * Sprint 3. Tickets + threaded messages. Admin sees everything; requesters see
  * only their own ticket and the non-internal messages on it.
+ *
+ * Mount: /api/support
+ *
+ * Endpoints (all 🔒 JWT):
+ *   GET  /tickets                 — list tickets (own for users; all + filters for admin)
+ *   POST /tickets                 — open a new ticket (Joi: supportTicketCreate)
+ *   GET  /tickets/:id             — ticket + messages (owner or admin)
+ *   POST /tickets/:id/messages    — add a message (Joi: supportMessage)
+ *   PUT  /tickets/:id             — admin only: update status/priority/assignee (Joi: supportTicketUpdate)
+ *
+ * Notes: requester-vs-admin scoping enforced per route. Non-admins can only see
+ * is_internal=false messages and cannot mark their own messages internal. PUT is
+ * gated by authorizeRole(['admin']).
  */
 const express = require('express');
 const { supabaseAdmin } = require('../config/supabase');

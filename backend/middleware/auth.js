@@ -10,7 +10,9 @@ const authenticateToken = (req, res, next) => {
 
   jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
     if (err) {
-      return res.status(403).json({ error: 'Invalid or expired token' });
+      // 401 = token present but invalid/expired → client should re-authenticate.
+      // (Previously 403, which the api() helper didn't treat as session-expiry.)
+      return res.status(401).json({ error: 'Invalid or expired token' });
     }
     req.user = user;
     next();
