@@ -90,27 +90,16 @@ const frontendPath = path.join(__dirname, '..', 'public');
 // the SPA (index.html) via history.pushState — the shell itself is never linked
 // to directly by end users; they always arrive via the JS router.
 app.get(['/app', '/app/*'], (req, res) => {
-  res.sendFile(path.join(frontendPath, 'dashboard.html'));
+  res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
 // ── HTML gating — single entry point ────────────────────────────────────────
-// Every HTML file on disk falls into one of three buckets:
-//   1. index.html          → served freely (it IS the SPA entry)
-//   2. Embed modules       → served raw ONLY when ?embed=1 (dashboard iframes)
-//   3. Everything else     → SPA handles routing; serve index.html
-// This means typing /dashboard.html, /marketplace.html, /website.html etc. in
-// the browser always goes through the JS router — no "naked HTML page" confusion.
-const EMBED_MODULES = new Set([
-  '/marketplace.html', '/studio.html', '/exam-platform.html',
-  '/bhasha-setu.html', '/settings.html', '/admin-os.html', '/liveRoom.html',
-]);
+// Only index.html exists on disk. Any other .html URL goes through the JS router.
 app.use((req, res, next) => {
   if (req.method !== 'GET') return next();
   const p = req.path;
-  if (!p.endsWith('.html')) return next();               // CSS/JS/images pass through
-  if (p === '/index.html') return next();                // SPA shell — serve normally
-  if (EMBED_MODULES.has(p) && req.query.embed) return next(); // iframe embed — allow
-  // All other .html requests → SPA
+  if (!p.endsWith('.html')) return next();
+  if (p === '/index.html') return next();
   return res.sendFile(path.join(frontendPath, 'index.html'));
 });
 

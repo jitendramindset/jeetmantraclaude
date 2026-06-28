@@ -622,6 +622,7 @@ var PAGE_MAP = {
   '/forgot-password.html':'forgot',
   '/reset-password.html': 'reset',
   '/verify-email.html':   'verify',
+  '/app':                 'loading',  // handled by bootstrap — mounts app-shell
 };
 var PAGE_TITLES = {
   website:'JeetMantra — India\'s Modern Gurukul',
@@ -630,6 +631,7 @@ var PAGE_TITLES = {
   forgot: 'Forgot Password — JeetMantra',
   reset:  'Reset Password — JeetMantra',
   verify: 'Verify Email — JeetMantra',
+  loading:'JeetMantra',
 };
 
 function jmShowPage(pageId) {
@@ -676,10 +678,23 @@ function wsScrollTo(id) {
   var user = null;
   try { user = JSON.parse(localStorage.getItem('jm_user') || 'null'); } catch(e) {}
   var path = location.pathname;
-  // Logged-in user hitting the website/landing pages → go to app
+  // Logged-in user hitting the website/landing pages → load app shell
   if (token && user && path !== '/verify-email.html') {
     var role = user.user_type || user.role || 'student';
-    window.location.replace('/app?role=' + role);
+    // Logged-in: load the app shell JS and mount it (no page reload)
+    document.getElementById('jm-loading').style.display = 'flex';
+    var _s = document.createElement('script');
+    _s.src = '/js/app-shell.js';
+    _s.onload = function() {
+      if (window.JM && JM.AppShell) {
+        JM.AppShell.mount();
+      } else {
+        // fallback
+        window.location.href = '/app?role=' + role;
+      }
+    };
+    _s.onerror = function() { window.location.href = '/app?role=' + role; };
+    document.head.appendChild(_s);
     return;
   }
   jmShowPage(PAGE_MAP[path] || 'website');

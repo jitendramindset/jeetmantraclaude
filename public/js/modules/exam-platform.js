@@ -1,16 +1,7 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<script src="/jm-settings.js"></script>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title id="page-title">ExamForge — Smart Test Platform</title>
-<!-- KaTeX for proper math rendering -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Fraunces:ital,wght@0,700;1,400&display=swap" rel="stylesheet">
-<style>
+(function(g) {
+
+var _CSS = [
+'
   :root {
     --bg: #0a0c10;
     --surface: #111318;
@@ -30,15 +21,18 @@
     --brand-name: "ExamForge";
   }
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family:'Space Grotesk',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; overflow-x:hidden; }
+  body { font-family:\'S',
+'pace Grotesk\',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; overflow-x:hidden; }
 
   /* NAV */
   nav { display:flex; align-items:center; justify-content:space-between; padding:14px 28px; border-bottom:1px solid var(--border); background:rgba(10,12,16,0.96); position:sticky; top:0; z-index:100; backdrop-filter:blur(16px); gap:16px; flex-wrap:wrap; }
-  .logo { font-family:'Fraunces',serif; font-size:21px; color:var(--brand-primary); letter-spacing:-0.5px; display:flex; align-items:center; gap:8px; white-space:nowrap; }
+  .logo { font-family:\'Fraunces\',serif; font-size:21px; color:var(--brand-primary); letter-spacing:-0.5px; display:flex; a',
+'lign-items:center; gap:8px; white-space:nowrap; }
   .logo-icon { width:30px; height:30px; border-radius:8px; background:var(--brand-primary); display:flex; align-items:center; justify-content:center; font-size:16px; }
   .logo span { color:var(--brand-secondary); }
   .nav-tabs { display:flex; gap:3px; flex-wrap:wrap; }
-  .nav-tab { padding:7px 15px; border-radius:8px; cursor:pointer; font-size:13px; font-weight:500; color:var(--muted); transition:all 0.2s; border:none; background:none; white-space:nowrap; }
+  .nav-tab { padding:7px 15px; border-radius:8px; cursor:pointer; font-size:13px; font-weight:500; color:var(--muted); transition:all 0.2s; border:none; background:none; white-spac',
+'e:nowrap; }
   .nav-tab.active, .nav-tab:hover { background:var(--surface2); color:var(--text); }
   .nav-tab.active { color:var(--brand-primary); }
   .badge { background:var(--brand-primary); color:#000; font-size:10px; padding:2px 6px; border-radius:99px; font-weight:700; margin-left:4px; }
@@ -46,19 +40,22 @@
   /* PAGES */
   .page { display:none; padding:28px; max-width:1200px; margin:0 auto; animation:fadeIn 0.3s ease; }
   .page.active { display:block; }
-  @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(',
+'8px)} to{opacity:1;transform:translateY(0)} }
 
-  .page-title { font-family:'Fraunces',serif; font-size:30px; margin-bottom:6px; }
+  .page-title { font-family:\'Fraunces\',serif; font-size:30px; margin-bottom:6px; }
   .page-subtitle { color:var(--muted); font-size:14px; margin-bottom:28px; }
   .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
   .grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; }
 
   .card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:18px; }
-  .card h3 { font-size:11px; text-transform:uppercase; letter-spacing:1.2px; color:var(--muted); margin-bottom:14px; font-weight:600; }
+  .card h3 { font-size:11px; text-transform:uppe',
+'rcase; letter-spacing:1.2px; color:var(--muted); margin-bottom:14px; font-weight:600; }
 
   label { display:block; font-size:13px; color:var(--muted); margin-bottom:5px; font-weight:500; }
   input, select, textarea { width:100%; background:var(--surface); border:1px solid var(--border); color:var(--text); padding:9px 13px; border-radius:8px; font-family:inherit; font-size:14px; outline:none; transition:border 0.2s; }
-  input:focus, select:focus, textarea:focus { border-color:var(--brand-primary); }
+  input:focus, select:focus, textarea:focus { border-color:var(--brand-primary);',
+' }
   textarea { resize:vertical; min-height:80px; }
   .form-row { margin-bottom:14px; }
 
@@ -67,14 +64,16 @@
 
   /* CHIPS */
   .chip-group { display:flex; flex-wrap:wrap; gap:7px; margin-top:5px; }
-  .chip { padding:5px 13px; border-radius:99px; font-size:12px; cursor:pointer; border:1.5px solid var(--border); background:var(--surface); color:var(--muted); transition:all 0.15s; font-weight:500; }
+  .chip { padding:5px 13px; border-radius:99px; font-size:12px; cursor:pointer; border:1.5px solid var(--border); background:var(--surface); color:var(--muted); transition:all 0.15s; font-weight:500;',
+' }
   .chip:hover { border-color:var(--brand-primary); color:var(--brand-primary); }
   .chip.selected { border-color:var(--brand-primary); background:rgba(79,156,249,0.1); color:var(--brand-primary); }
 
   /* QUESTION TYPES */
   .qtype-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:6px; }
   .qtype-card { background:var(--surface); border:1.5px solid var(--border); border-radius:10px; padding:10px; cursor:pointer; text-align:center; transition:all 0.15s; }
-  .qtype-card:hover { border-color:var(--brand-primary); }
+  .qtype-ca',
+'rd:hover { border-color:var(--brand-primary); }
   .qtype-card.active { border-color:var(--brand-primary); background:rgba(79,156,249,0.08); }
   .qtype-card .icon { font-size:18px; margin-bottom:3px; }
   .qtype-card .name { font-size:11px; font-weight:600; color:var(--text); }
@@ -82,171 +81,200 @@
 
   /* TOGGLES */
   .toggle-row { display:flex; align-items:center; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--border); }
-  .toggle-row:last-child { border:none; }
+  .toggle',
+'-row:last-child { border:none; }
   .toggle-label { font-size:13px; }
   .toggle-sub { font-size:11px; color:var(--muted); margin-top:1px; }
   .toggle { position:relative; width:38px; height:21px; flex-shrink:0; }
   .toggle input { opacity:0; width:0; height:0; }
   .slider { position:absolute; inset:0; background:var(--surface2); border-radius:99px; cursor:pointer; transition:0.2s; border:1px solid var(--border); }
-  .slider:before { content:''; position:absolute; width:15px; height:15px; left:2px; top:2px; background:var(--muted); border-radius:50%; transition:0.2s; }
+  .slider:before { content:\'\'; position:absolute; width:15px; height:15px; left:2',
+'px; top:2px; background:var(--muted); border-radius:50%; transition:0.2s; }
   input:checked + .slider { background:rgba(79,156,249,0.2); border-color:var(--brand-primary); }
   input:checked + .slider:before { transform:translateX(17px); background:var(--brand-primary); }
 
   /* BUTTONS */
   .btn { padding:9px 20px; border-radius:8px; font-family:inherit; font-size:13px; font-weight:600; cursor:pointer; border:none; transition:all 0.15s; display:inline-flex; align-items:center; gap:6px; }
-  .btn-primary { background:var(--brand-primary); color:#000; }
+  .btn-p',
+'rimary { background:var(--brand-primary); color:#000; }
   .btn-primary:hover { opacity:0.85; }
   .btn-secondary { background:var(--surface2); color:var(--text); border:1px solid var(--border); }
   .btn-secondary:hover { border-color:var(--brand-primary); color:var(--brand-primary); }
   .btn-ai { background:linear-gradient(135deg,rgba(167,139,250,0.2),rgba(79,156,249,0.2)); color:var(--accent2); border:1.5px solid rgba(167,139,250,0.4); }
-  .btn-ai:hover { border-color:var(--accent2); background:linear-gradient(135deg,rgba(167,139,250,0.3),rgba(79,156,249,0.3)); }
+  .btn-ai:hover { border-color:var(--accent2); background:',
+'linear-gradient(135deg,rgba(167,139,250,0.3),rgba(79,156,249,0.3)); }
   .btn-danger { background:rgba(248,113,113,0.1); color:var(--danger); border:1px solid rgba(248,113,113,0.3); }
   .btn-sm { padding:5px 12px; font-size:12px; }
   .btn-icon { padding:6px 8px; border-radius:7px; background:var(--surface2); border:1px solid var(--border); cursor:pointer; color:var(--muted); font-size:13px; transition:all 0.15s; }
   .btn-icon:hover { color:var(--danger); border-color:var(--danger); }
-  .btn:disabled { opacity:0.4; cursor:not-allowed; }
+  .btn:disab',
+'led { opacity:0.4; cursor:not-allowed; }
 
   /* MCQ */
   .mcq-opts { display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-top:8px; }
   .mcq-opt { display:flex; gap:7px; align-items:center; }
-  .opt-label { font-size:12px; font-weight:700; color:var(--brand-primary); min-width:18px; font-family:'JetBrains Mono',monospace; }
+  .opt-label { font-size:12px; font-weight:700; color:var(--brand-primary); min-width:18px; font-family:\'JetBrains Mono\',monospace; }
 
   .math-inline { color:var(--accent2); font-weight:500; }
-  .chem-block { background:var(--surface); border:1px solid rgba(52,211,153,0.3); border-radius:8px; padding:8px 14px; margin:6px 0; font-family:'JetBrains Mono',monospace; font-size:14px; color:var(--accent3); }
+  .chem-block { background:var(--surface); border:1px solid rgba(52,211,153,0.3); border-radius:8px; paddin',
+'g:8px 14px; margin:6px 0; font-family:\'JetBrains Mono\',monospace; font-size:14px; color:var(--accent3); }
 
   /* FORMULA TOOLBAR */
   .formula-toolbar { display:flex; flex-wrap:wrap; gap:4px; padding:10px; background:var(--surface); border:1px solid var(--border); border-radius:8px; margin-top:6px; align-items:center; max-height:180px; overflow-y:auto; }
-  .ftool { padding:5px 10px; background:var(--surface2); border:1px solid var(--border); border-radius:6px; font-size:12px; cursor:pointer; color:var(--text); transition:all 0.12s; font-family:'JetBrains Mono',monospace; white-space:nowrap; line-height:1.4; }
+  .ftool { padding:5px 10px; background:var(--surface2); border:1px solid var(--border); border-radius:6px; font-size:12px; cursor:pointer; co',
+'lor:var(--text); transition:all 0.12s; font-family:\'JetBrains Mono\',monospace; white-space:nowrap; line-height:1.4; }
   .ftool:hover { border-color:var(--accent2); color:var(--accent2); background:rgba(167,139,250,0.08); }
   .ftool:active { transform:scale(0.95); }
   .ftool-chem { color:var(--accent3); border-color:rgba(52,211,153,0.3); background:rgba(52,211,153,0.06); }
   .ftool-chem:hover { border-color:var(--accent3); background:rgba(52,211,153,0.14); color:var(--accent3); }
-  .ftool-sep { width:1px; background:var(--border); margin:2px 5px; align-self:stretch; flex-shrink:0; }
+  .ftool-sep {',
+' width:1px; background:var(--border); margin:2px 5px; align-self:stretch; flex-shrink:0; }
   .ftool-group-label { font-size:9px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); padding:2px 4px; opacity:0.7; white-space:nowrap; }
 
   /* KaTeX rendering fixes */
   .katex { font-size:1em !important; }
   .katex-display { margin:0.4em 0 !important; overflow-x:auto; overflow-y:hidden; }
   .katex-display > .katex { white-space:normal; }
-  .chem-inline { color:var(--accent3); font-weight:600; }
+  .chem-inline { color:var(--accent3); font-weigh',
+'t:600; }
   .chem-inline sub { font-size:0.78em; vertical-align:sub; line-height:0; }
 
   /* Math preview box */
   .math-block { background:var(--surface); border:1px solid rgba(167,139,250,0.3); border-radius:8px; padding:12px 16px; margin:6px 0; color:var(--text); font-size:15px; overflow-x:auto; line-height:1.8; }
-  .graph-block { display:inline-block; background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.3); border-radius:6px; padding:3px 10px; font-size:13px; color:var(--warn); }
+  .graph-block { display:inline-block; background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.3); border-radius:6px; padding:3px 10px; font-size:13px; color:var(--warn);',
+' }
 
   /* STATS */
   .stats-row { display:flex; gap:14px; margin-bottom:22px; flex-wrap:wrap; }
   .stat-card { flex:1; min-width:120px; background:var(--card); border:1px solid var(--border); border-radius:12px; padding:14px; }
-  .stat-val { font-size:24px; font-weight:700; font-family:'JetBrains Mono',monospace; color:var(--brand-primary); }
+  .stat-val { font-size:24px; font-weight:700; font-family:\'JetBrains Mono\',monospace; color:var(--brand-primary); }
   .stat-label { font-size:11px; color:var(--muted); margin-top:2px; }
 
   .sep { height:1px; background:var(--border); margin:22px 0; }
 
   /* Q ITEM */
-  .q-item { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:14px; margin-bottom:10px; }
+  .',
+'q-item { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:14px; margin-bottom:10px; }
   .q-item-head { display:flex; align-items:center; gap:8px; margin-bottom:10px; flex-wrap:wrap; }
-  .q-num { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--brand-primary); font-weight:600; }
+  .q-num { font-family:\'JetBrains Mono\',monospace; font-size:12px; color:var(--brand-primary); font-weight:600; }
   .q-type-badge { font-size:10px; padding:2px 8px; border-radius:99px; background:var(--surface2); color:var(--muted); }
 
   /* STUDENT EXAM */
-  .exam-header { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:18px 22px; margin-bottom:20px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
-  .exam-title { font-family:'Fraunces',serif; font-size:20px; }
+  .exam-header { ba',
+'ckground:var(--card); border:1px solid var(--border); border-radius:14px; padding:18px 22px; margin-bottom:20px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  .exam-title { font-family:\'Fraunces\',serif; font-size:20px; }
   .exam-meta { display:flex; gap:14px; align-items:center; flex-wrap:wrap; }
-  .timer-display { font-family:'JetBrains Mono',monospace; font-size:22px; font-weight:600; color:var(--brand-primary); background:var(--surface); padding:7px 16px; border-radius:8px; border:1px solid var(--border); }
+  .timer-display { font-family:\'JetBrains Mono\',monospace; font-size:22px; font-weight:600; color:var(--brand-primary); background:var(--surface); pa',
+'dding:7px 16px; border-radius:8px; border:1px solid var(--border); }
   .timer-display.warn { color:var(--warn); border-color:var(--warn); animation:pulse 1s infinite; }
   .timer-display.danger { color:var(--danger); border-color:var(--danger); animation:pulse 0.5s infinite; }
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
 
   .q-card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:22px; margin-bottom:18px; }
-  .q-card-head { display:flex; align-items:flex-start; gap:10px; margin-bottom:14px; }
-  .q-n { font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--brand-primary); font-weight:600; min-width:30px; }
+  .q-card-head { display:flex; align-it',
+'ems:flex-start; gap:10px; margin-bottom:14px; }
+  .q-n { font-family:\'JetBrains Mono\',monospace; font-size:13px; color:var(--brand-primary); font-weight:600; min-width:30px; }
   .q-marks { font-size:11px; color:var(--accent3); padding:2px 7px; border-radius:99px; background:rgba(52,211,153,0.1); border:1px solid rgba(52,211,153,0.2); margin-left:auto; white-space:nowrap; }
   .q-text-body { font-size:15px; line-height:1.65; }
 
-  .opt-list { display:flex; flex-direction:column; gap:9px; margin-top:12px; }
+  .opt-list { display:flex; flex-direction:column; gap:9px; margin-t',
+'op:12px; }
   .opt-item { display:flex; align-items:center; gap:11px; background:var(--surface); border:1.5px solid var(--border); border-radius:10px; padding:11px 15px; cursor:pointer; transition:all 0.15s; }
   .opt-item:hover { border-color:var(--brand-primary); background:rgba(79,156,249,0.05); }
   .opt-item.selected { border-color:var(--brand-primary); background:rgba(79,156,249,0.1); }
   .opt-item.correct { border-color:var(--accent3); background:rgba(52,211,153,0.1); }
-  .opt-item.wrong { border-color:var(--danger); background:rgba(248,113,113,0.08); }
-  .opt-letter { font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700; color:var(--brand-primary); min-width:20px; }
+  .opt-item.wrong { b',
+'order-color:var(--danger); background:rgba(248,113,113,0.08); }
+  .opt-letter { font-family:\'JetBrains Mono\',monospace; font-size:12px; font-weight:700; color:var(--brand-primary); min-width:20px; }
   .opt-text { font-size:14px; }
 
-  .text-answer { width:100%; background:var(--surface); border:1.5px solid var(--border); border-radius:10px; padding:13px; font-family:inherit; font-size:14px; color:var(--text); resize:vertical; min-height:90px; outline:none; transition:border 0.2s; margin-top:12px; }
+  .text-answer { width:100%; background:var(--surface); border:1.5px solid var(--border); border-radius:10px; padding:13px; font-family:inherit; font-size:14px; color:var(--text); resize:vertical; min-height:90px; outline:none; transition:border 0.2s; margin-top:12p',
+'x; }
   .text-answer:focus { border-color:var(--brand-primary); }
 
   /* SECURITY */
   .security-panel { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:18px; margin-bottom:18px; }
   .security-panel h4 { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:12px; font-weight:600; }
   .sec-row { display:flex; align-items:center; gap:9px; padding:7px 0; border-bottom:1px solid var(--border); }
-  .sec-row:last-child { border:none; }
+  .sec-row:last-child { borde',
+'r:none; }
   .sec-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
   .sec-dot.ok { background:var(--accent3); box-shadow:0 0 5px var(--accent3); }
   .sec-dot.warn { background:var(--warn); box-shadow:0 0 5px var(--warn); }
   .sec-dot.off { background:var(--muted); }
   .sec-label { font-size:13px; flex:1; }
-  .sec-status { font-size:11px; font-family:'JetBrains Mono',monospace; }
-  .sec-status.ok { color:var(--accent3); } .sec-status.warn { color:var(--warn); } .sec-status.off { color:var(--muted); }
+  .sec-status { font-size:11px; font-family:\'JetBrains Mono\',monospace; }
+  .sec-status.ok { color:var(--accent3); } .sec-status.warn { color:var(--warn); } .sec-status.off { ',
+'color:var(--muted); }
 
   /* VIOLATION TOAST */
   #violation-toast { position:fixed; top:76px; left:50%; transform:translateX(-50%) translateY(-120px); background:#1a0a0a; border:1px solid var(--danger); border-radius:12px; padding:12px 22px; z-index:9999; font-size:13px; color:var(--danger); font-weight:600; transition:transform 0.3s; display:flex; align-items:center; gap:8px; box-shadow:0 8px 32px rgba(248,113,113,0.2); }
   #violation-toast.show { transform:translateX(-50%) translateY(0); }
 
-  /* PROGRESS */
+  ',
+'/* PROGRESS */
   .progress-bar { height:3px; background:var(--surface); border-radius:2px; overflow:hidden; margin-bottom:20px; }
   .progress-fill { height:100%; background:linear-gradient(90deg,var(--brand-primary),var(--brand-secondary)); border-radius:2px; transition:width 0.3s; }
 
   /* RESULT */
   .result-ring { position:relative; width:130px; height:130px; margin:0 auto 18px; }
   .result-ring svg { transform:rotate(-90deg); }
-  .result-ring .ring-bg { fill:none; stroke:var(--surface2); stroke-width:11; }
+  .result-ring .ring-bg { fill:none; stroke:var(--surface2); stro',
+'ke-width:11; }
   .result-ring .ring-fill { fill:none; stroke-width:11; stroke-linecap:round; transition:stroke-dashoffset 1.5s ease; }
   .result-center { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
-  .result-pct { font-size:26px; font-weight:700; font-family:'JetBrains Mono',monospace; }
+  .result-pct { font-size:26px; font-weight:700; font-family:\'JetBrains Mono\',monospace; }
   .result-grade { font-size:12px; color:var(--muted); }
 
   /* WEBHOOK */
-  .wh-row { display:flex; gap:8px; align-items:flex-start; margin-bottom:10px; }
+  .wh-row { display:flex; gap:8px; align-items:flex-start; margin-bot',
+'tom:10px; }
   .wh-key { flex:1; } .wh-val { flex:2; }
   .method-sel { display:flex; gap:5px; }
   .method-btn { padding:6px 13px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; border:1px solid var(--border); background:var(--surface); color:var(--muted); transition:all 0.15s; }
   .method-btn.active { background:rgba(79,156,249,0.15); border-color:var(--brand-primary); color:var(--brand-primary); }
 
   /* Q NAVIGATOR */
-  .q-nav { display:flex; flex-wrap:wrap; gap:5px; margin-bottom:18px; }
-  .q-nav-btn { width:32px; height:32px; border-radius:7px; font-size:11px; font-weight:600; font-family:'JetBrains Mono',monospace; cursor:pointer; border:1.5px solid var(--border); background:var(--surface); color:var(--muted); transition:all 0.15s; display:flex; align-items:center; justify-content:center; }
+  .q-nav { display:flex; flex-wrap:wrap; gap:5px; margin-',
+'bottom:18px; }
+  .q-nav-btn { width:32px; height:32px; border-radius:7px; font-size:11px; font-weight:600; font-family:\'JetBrains Mono\',monospace; cursor:pointer; border:1.5px solid var(--border); background:var(--surface); color:var(--muted); transition:all 0.15s; display:flex; align-items:center; justify-content:center; }
   .q-nav-btn.answered { background:rgba(79,156,249,0.12); border-color:var(--brand-primary); color:var(--brand-primary); }
-  .q-nav-btn.current { background:var(--brand-primary); color:#000; border-color:var(--brand-primary); }
+  .q-nav-btn.current { background:var(--brand-pri',
+'mary); color:#000; border-color:var(--brand-primary); }
 
   /* ATTACH */
   .attach-box { border:2px dashed var(--border); border-radius:10px; padding:20px; text-align:center; cursor:pointer; transition:all 0.15s; }
   .attach-box:hover { border-color:var(--brand-primary); background:rgba(79,156,249,0.03); }
 
   /* CAMERA */
-  .camera-preview { width:100%; max-width:180px; border-radius:9px; border:1px solid var(--border); background:#000; aspect-ratio:4/3; display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--muted); overflow:hidden; }
+  .camera-preview { width:100%; max-width:180px; border-radius:9px; border:1px solid var(--border); background:#000; aspect-ratio:4/3; display:flex; align-items:center; justify-',
+'content:center; font-size:11px; color:var(--muted); overflow:hidden; }
   .camera-preview video { width:100%; height:100%; object-fit:cover; border-radius:9px; }
 
   /* PILLS */
   .info-pill { display:inline-flex; align-items:center; gap:5px; padding:3px 10px; border-radius:99px; font-size:11px; font-weight:500; }
   .info-pill.blue { background:rgba(79,156,249,0.1); border:1px solid rgba(79,156,249,0.2); color:var(--accent); }
-  .info-pill.green { background:rgba(52,211,153,0.1); border:1px solid rgba(52,211,153,0.2); color:var(--accent3); }
+  .info-pill.green { background:rgba(52,211,153,0.1); border:1px solid ',
+'rgba(52,211,153,0.2); color:var(--accent3); }
   .info-pill.purple { background:rgba(167,139,250,0.1); border:1px solid rgba(167,139,250,0.2); color:var(--accent2); }
 
   /* AI GENERATE MODAL */
   .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:200; display:flex; align-items:center; justify-content:center; padding:20px; backdrop-filter:blur(4px); }
-  .modal { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:24px; width:100%; max-width:620px; max-height:90vh; overflow-y:auto; animation:fadeIn 0.25s ease; }
-  .modal h2 { font-family:'Fraunces',serif; font-size:22px; margin-bottom:6px; }
+  .modal { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:24px; width:100%; max-widt',
+'h:620px; max-height:90vh; overflow-y:auto; animation:fadeIn 0.25s ease; }
+  .modal h2 { font-family:\'Fraunces\',serif; font-size:22px; margin-bottom:6px; }
   .modal-subtitle { color:var(--muted); font-size:13px; margin-bottom:20px; }
   .ai-spinner { display:inline-block; width:16px; height:16px; border:2px solid rgba(167,139,250,0.3); border-top-color:var(--accent2); border-radius:50%; animation:spin 0.7s linear infinite; vertical-align:middle; margin-right:6px; }
-  @keyframes spin { to{transform:rotate(360deg)} }
+  @keyframes spin { to{transfo',
+'rm:rotate(360deg)} }
 
   /* BRANDING PAGE */
   .color-row { display:flex; gap:10px; align-items:center; }
   .color-preview { width:36px; height:36px; border-radius:8px; border:1px solid var(--border); flex-shrink:0; }
   .font-preview { padding:10px; background:var(--surface); border-radius:8px; border:1px solid var(--border); margin-top:6px; font-size:18px; }
   .theme-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:6px; }
-  .theme-card { border:2px solid var(--border); border-radius:10px; padding:12px; cursor:pointer; text-align:center; transition:all 0.15s; }
+  .theme-card { border:2px solid var(--border',
+'); border-radius:10px; padding:12px; cursor:pointer; text-align:center; transition:all 0.15s; }
   .theme-card:hover, .theme-card.active { border-color:var(--brand-primary); }
   .theme-swatch { height:28px; border-radius:6px; margin-bottom:7px; }
   .theme-name { font-size:11px; color:var(--muted); }
@@ -256,12 +284,14 @@
   ::-webkit-scrollbar-track { background:var(--bg); }
   ::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
 
-  /* INNER TABS */
+',
+'  /* INNER TABS */
   .inner-tabs { display:flex; gap:3px; border-bottom:1px solid var(--border); margin-bottom:22px; overflow-x:auto; }
   .inner-tab { padding:8px 15px; font-size:13px; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; font-weight:500; transition:all 0.15s; white-space:nowrap; }
   .inner-tab.active { color:var(--brand-primary); border-color:var(--brand-primary); }
   .inner-tab-page { display:none; }
-  .inner-tab-page.active { display:block; }
+  .inner-tab-page.active { display:blo',
+'ck; }
 
   /* LOGO UPLOAD */
   .logo-upload-box { border:2px dashed var(--border); border-radius:10px; padding:18px; text-align:center; cursor:pointer; transition:all 0.15s; }
@@ -269,7 +299,8 @@
   #branding-logo-preview { max-height:60px; max-width:180px; border-radius:6px; margin-top:10px; display:none; }
 
   /* AI GENERATED Q PREVIEW */
-  .ai-q-preview { background:var(--surface); border:1.5px solid rgba(167,139,250,0.3); border-radius:10px; padding:14px; margin-bottom:10px; }
+  .ai-q-preview { background:var(--surface); border:1.5px solid rgba(167,139,250,0.3); border-radius:10px; padding:14',
+'px; margin-bottom:10px; }
   .ai-q-preview .q-label { font-size:11px; color:var(--accent2); text-transform:uppercase; letter-spacing:1px; margin-bottom:7px; font-weight:600; }
 
   /* RESPONSIVE */
@@ -280,15 +311,14 @@
     .qtype-grid { grid-template-columns:repeat(2,1fr); }
     .mcq-opts { grid-template-columns:1fr; }
     .stats-row { gap:8px; }
-    .theme-grid { grid-template-columns:repeat(2,1fr); }
+    .theme-grid { grid-template-columns',
+':repeat(2,1fr); }
   }
-</style>
-<link rel="stylesheet" href="/premium-ui.css?v=5">
-<script src="/jm-states.js"></script>
-<script src="/ui/widgets/page/QuestionCard.js?v=1"></script>
-<script src="/ui/widgets/page/Timer.js?v=1"></script>
-</head>
-<body>
+'
+].join('');
+
+var _HTML = [
+'
 
 <div id="violation-toast">⚠️ <span id="violation-msg">Tab switch detected!</span></div>
 
@@ -300,7 +330,8 @@
     <div class="form-row">
       <label>Subject</label>
       <select id="ai-subject">
-        <option>Mathematics</option><option>Physics</option><option>Chemistry</option>
+        <option>Mathematics</opt',
+'ion><option>Physics</option><option>Chemistry</option>
         <option>Biology</option><option>English</option><option>History</option><option>Geography</option><option>Computer Science</option>
       </select>
     </div>
@@ -310,14 +341,16 @@
     </div>
     <div class="form-row">
       <label>Question Types to Generate</label>
-      <div class="chip-group" id="ai-qtypes">
+      <div ',
+'class="chip-group" id="ai-qtypes">
         <div class="chip selected" data-t="mcq" onclick="toggleAiQtype(this)">MCQ</div>
         <div class="chip" data-t="short" onclick="toggleAiQtype(this)">Short Answer</div>
         <div class="chip" data-t="long" onclick="toggleAiQtype(this)">Long Answer</div>
         <div class="chip" data-t="fill" onclick="toggleAiQtype(this)">Fill in Blank</div>
         <div class="chip" data-t="truefalse" onclick="toggleAiQtype(this)">True/False</div>
       </div>
-    </div>
+    ',
+'</div>
     <div class="grid2" style="gap:10px;margin-bottom:14px">
       <div>
         <label>Number of Questions</label>
@@ -329,7 +362,8 @@
           <option value="mixed">Mixed (Easy+Medium+Hard)</option>
           <option value="easy">All Easy</option>
           <option value="medium">All Medium</option>
-          <option value="hard">All Hard</option>
+          <option value="hard">All Hard<',
+'/option>
         </select>
       </div>
     </div>
@@ -339,19 +373,22 @@
     </div>
     <div class="form-row">
       <label>AI Webhook Endpoint <span style="font-size:11px;color:var(--muted)">(auto-filled from Webhook → AI Generation tab)</span></label>
-      <input type="url" id="ai-webhook-url" placeholder="https://api.anthropic.com/v1/messages">
+      <input type="url" id="ai-we',
+'bhook-url" placeholder="https://api.anthropic.com/v1/messages">
     </div>
     <div class="form-row">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
         <label style="margin:0">AI API Key <span style="font-size:11px;color:var(--muted)">(stored locally in browser)</span></label>
         <button class="btn btn-secondary btn-sm" onclick="saveAiKey()" style="font-size:11px;padding:3px 10px">💾 Save Key</button>
       </div>
-      <input type="password" id="ai-api-key" placeholder="sk-ant-...  or  sk-...">
+      <input type="',
+'password" id="ai-api-key" placeholder="sk-ant-...  or  sk-...">
       <div id="ai-key-saved-msg" style="font-size:11px;color:var(--accent3);margin-top:4px;display:none">✓ Key saved to browser storage</div>
     </div>
     <div id="ai-status" style="display:none;margin-bottom:14px;padding:12px;background:var(--surface);border-radius:8px;font-size:13px;color:var(--muted)"></div>
     <div id="ai-questions-preview" style="margin-bottom:14px"></div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <div style="display:flex;gap:10px;flex-wrap:wrap',
+'">
       <button class="btn btn-ai" id="btn-ai-generate" onclick="generateWithAI()">✨ Generate Questions</button>
       <button class="btn btn-secondary btn-sm" id="btn-ai-add" style="display:none" onclick="addAiQuestionsToExam()">➕ Add All to Exam</button>
       <button class="btn btn-secondary btn-sm" onclick="closeAiModal()">✕ Cancel</button>
@@ -362,14 +399,16 @@
 <nav>
   <div class="logo" data-embed-hide>
     <div class="logo-icon" id="nav-logo-icon">📝</div>
-    <span id="nav-brand-name">Exam<span id="nav-brand-name2">Forge</span></span>
+    <span id="nav-brand-na',
+'me">Exam<span id="nav-brand-name2">Forge</span></span>
   </div>
   <div class="nav-tabs">
-    <button class="nav-tab active" onclick="showPage('teacher',this)">🎓 Teacher</button>
-    <button class="nav-tab" onclick="showPage('student',this)">📝 Student</button>
-    <button class="nav-tab" onclick="showPage('results',this)">📊 Results</button>
-    <button class="nav-tab" onclick="showPage('webhook',this)">🔗 Webhook</button>
-    <button class="nav-tab" onclick="showPage('branding',this)">🎨 Branding</button>
+    <button class="nav-tab active" onclick="showPage(\'teacher\',this)">🎓 Teacher</button>
+    <button class="nav-tab" onclick="showPage(\'student\',this)">📝 Student</button>
+    <button class="nav-tab" onclick="showPage(\'results\',this)">📊 Results</button>
+    <button class="nav-tab" onclick="showPage(\'webhook\',this)">🔗 Webhook</button>
+    <button class="nav-tab" onclick="showPage(\'branding\',this)',
+'">🎨 Branding</button>
   </div>
 </nav>
 
@@ -380,7 +419,8 @@
 
   <div class="stats-row">
     <div class="stat-card"><div class="stat-val" id="q-count">0</div><div class="stat-label">Questions</div></div>
-    <div class="stat-card"><div class="stat-val" id="total-marks">0</div><div class="stat-label">Total Marks</div></div>
+    <div class="stat-card"><div class="stat-v',
+'al" id="total-marks">0</div><div class="stat-label">Total Marks</div></div>
     <div class="stat-card"><div class="stat-val" id="est-time">60 min</div><div class="stat-label">Duration</div></div>
     <div class="stat-card"><div class="stat-val" id="subject-count">0</div><div class="stat-label">Subjects Mixed</div></div>
   </div>
@@ -390,13 +430,15 @@
     <div>
       <div class="card" style="margin-bottom:14px">
         <h3>📚 Subjects</h3>
-        <div class="chip-group" id="subject-chips">
+        <div class="chip-group" id="s',
+'ubject-chips">
           <div class="chip" data-sub="Mathematics" onclick="toggleSubject(this)">📐 Maths</div>
           <div class="chip" data-sub="Physics" onclick="toggleSubject(this)">⚡ Physics</div>
           <div class="chip" data-sub="Chemistry" onclick="toggleSubject(this)">🧪 Chemistry</div>
           <div class="chip" data-sub="Biology" onclick="toggleSubject(this)">🌿 Biology</div>
           <div class="chip" data-sub="English" onclick="toggleSubject(this)">📖 English</div>
-          <div class="chip" data-sub="History" onclick="toggleSubject(this)">🏛 History</div>
+          ',
+'<div class="chip" data-sub="History" onclick="toggleSubject(this)">🏛 History</div>
           <div class="chip" data-sub="Geography" onclick="toggleSubject(this)">🌍 Geography</div>
           <div class="chip" data-sub="Computer Science" onclick="toggleSubject(this)">💻 CS</div>
           <div class="chip" data-sub="Economics" onclick="toggleSubject(this)">📈 Economics</div>
@@ -405,7 +447,8 @@
 
       <div class="card" style="margin-bottom:14px">
         <h3>⚙️ Exam Settings</h3>
-        <div class="form-row">
+       ',
+' <div class="form-row">
           <label>Exam Title</label>
           <input type="text" id="exam-title" placeholder="e.g. Mid-Term Science Exam 2026" oninput="updateStats()">
         </div>
@@ -415,14 +458,16 @@
         </div>
         <div class="form-row">
           <label>Instructions for Students</label>
-          <textarea id="exam-instructions" style="min-height:60px" placeholder="All questions are compulsory. Use blue pen only..."></textarea>
+          <textarea id="exam-instructions" style="min-he',
+'ight:60px" placeholder="All questions are compulsory. Use blue pen only..."></textarea>
         </div>
         <div class="form-row">
           <label>Duration (minutes)</label>
           <div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap">
             <input type="number" id="exam-duration" value="60" min="5" max="360" style="width:90px" oninput="updateStats()">
             <span class="chip" onclick="setTime(30)">30m</span>
-            <span class="chip" onclick="setTime(60)">1h</span>
+            <span class="chip" onclick="setTime(60)">1',
+'h</span>
             <span class="chip" onclick="setTime(90)">1.5h</span>
             <span class="chip" onclick="setTime(120)">2h</span>
             <span class="chip" onclick="setTime(180)">3h</span>
@@ -432,7 +477,8 @@
           <div><div class="toggle-label">Shuffle Questions</div></div>
           <label class="toggle"><input type="checkbox" id="shuffle-q" checked><span class="slider"></span></label>
         </div>
-        <div class="toggle-row">
+        <div class="toggle-row">',
+'
           <div><div class="toggle-label">Shuffle MCQ Options</div></div>
           <label class="toggle"><input type="checkbox" id="shuffle-opts" checked><span class="slider"></span></label>
         </div>
@@ -441,23 +487,28 @@
           <label class="toggle"><input type="checkbox" id="show-score" checked><span class="slider"></span></label>
         </div>
         <div class="toggle-row">
-          <div><div class="toggle-label">Negative Marking</div></div>
-          <label class="toggle"><input type="checkbox" id="neg-mark" onchange="document.getElementById('neg-val').style.display=this.checked?'block':'none'"><span class="slider"></span></label>
+          <div><div',
+' class="toggle-label">Negative Marking</div></div>
+          <label class="toggle"><input type="checkbox" id="neg-mark" onchange="document.getElementById(\'neg-val\').style.display=this.checked?\'block\':\'none\'"><span class="slider"></span></label>
         </div>
         <div id="neg-val" style="display:none;padding:8px 0">
           <label>Marks deducted per wrong answer</label>
           <input type="number" value="0.25" step="0.25" min="0.25" max="2" style="width:90px">
         </div>
-      </div>
+     ',
+' </div>
 
       <div class="card">
         <h3>🔒 Anti-Cheat Security</h3>
         <div class="toggle-row"><div><div class="toggle-label">📷 Camera Monitoring</div><div class="toggle-sub">Access webcam during exam</div></div><label class="toggle"><input type="checkbox" id="cam-enable" checked><span class="slider"></span></label></div>
-        <div class="toggle-row"><div><div class="toggle-label">🎤 Microphone Monitoring</div><div class="toggle-sub">Detect audio anomalies</div></div><label class="toggle"><input type="checkbox" id="mic-enable" checked><span class="slider"></span></label></div>
+        <div class="toggle-row"><div><div class="toggle-label">🎤 Microphone Monitoring</div><div class="toggle-sub">Detect audio anomalies</div></div><label class=',
+'"toggle"><input type="checkbox" id="mic-enable" checked><span class="slider"></span></label></div>
         <div class="toggle-row"><div><div class="toggle-label">🔁 Tab Switch Detection</div><div class="toggle-sub">Warn on tab/window change</div></div><label class="toggle"><input type="checkbox" id="tab-detect" checked><span class="slider"></span></label></div>
-        <div class="toggle-row"><div><div class="toggle-label">🤖 AI / Paste Detection</div><div class="toggle-sub">Flag clipboard and fast typing</div></div><label class="toggle"><input type="checkbox" id="ai-detect" checked><span class="slider"></span></label></div>
+        <div class="toggle-row"><div><div class="toggle-label">🤖 AI / Paste Detection</div><div class="toggle-sub">Flag clipboard and f',
+'ast typing</div></div><label class="toggle"><input type="checkbox" id="ai-detect" checked><span class="slider"></span></label></div>
         <div class="toggle-row"><div><div class="toggle-label">📋 Disable Copy-Paste</div><div class="toggle-sub">Block clipboard in text answers</div></div><label class="toggle"><input type="checkbox" id="no-paste" checked><span class="slider"></span></label></div>
-        <div class="toggle-row"><div><div class="toggle-label">🖥 Force Fullscreen</div><div class="toggle-sub">Require fullscreen to start</div></div><label class="toggle"><input type="checkbox" id="fullscreen"><span class="slider"></span></label></div>
+        <div class="toggle-row"><div><div class="toggle-label">🖥 Force Fullscreen</div><div class="',
+'toggle-sub">Require fullscreen to start</div></div><label class="toggle"><input type="checkbox" id="fullscreen"><span class="slider"></span></label></div>
         <div class="toggle-row"><div><div class="toggle-label">🚫 Max Violations Before Auto-Submit</div></div><input type="number" value="3" min="1" max="10" id="max-violations" style="width:60px;padding:5px 9px"></div>
       </div>
     </div>
@@ -465,10 +516,12 @@
     <!-- RIGHT: Question Builder -->
     <div>
       <!-- AI GENERATE button prominent -->
-      <div class="card" style="margin-bottom:14px;border-color:rgba(167,139,250,0.3);background:linear-gradient(135deg,rgba(167,139,250,0.05),rgba(79,156,249,0.05))">
+      <d',
+'iv class="card" style="margin-bottom:14px;border-color:rgba(167,139,250,0.3);background:linear-gradient(135deg,rgba(167,139,250,0.05),rgba(79,156,249,0.05))">
         <h3>🤖 AI Question Generation</h3>
         <div style="color:var(--muted);font-size:13px;margin-bottom:12px">Let AI create a complete set of questions for any subject and topic. Calls your configured AI webhook endpoint.</div>
-        <button class="btn btn-ai" style="width:100%" onclick="openAiModal()">✨ Generate Questions with AI</button>
+        <button class="btn btn-ai" style="width:100%" onclick="openAiModal()">✨ Generate Questions with AI',
+'</button>
       </div>
 
       <div class="card" style="margin-bottom:14px">
@@ -477,10 +530,12 @@
           <label>Question Type</label>
           <div class="qtype-grid">
             <div class="qtype-card active" data-type="mcq" onclick="selectQType(this)"><div class="icon">🔘</div><div class="name">MCQ</div><div class="desc">4 choices</div></div>
-            <div class="qtype-card" data-type="truefalse" onclick="selectQType(this)"><div class="icon">✅</div><div class="name">True/False</div><div class="desc">Binary</div></div>
+            <div class="qtype-card" data-type="truefalse" onclick="selectQType(this)"><div clas',
+'s="icon">✅</div><div class="name">True/False</div><div class="desc">Binary</div></div>
             <div class="qtype-card" data-type="short" onclick="selectQType(this)"><div class="icon">✏️</div><div class="name">Short Ans</div><div class="desc">1–2 lines</div></div>
             <div class="qtype-card" data-type="long" onclick="selectQType(this)"><div class="icon">📄</div><div class="name">Long Ans</div><div class="desc">Essay</div></div>
-            <div class="qtype-card" data-type="fill" onclick="selectQType(this)"><div class="icon">⬜</div><div class="name">Fill Blank</div><div class="desc">Complete</div></div>
+            <div class="qtype-card" data-type="fill" oncl',
+'ick="selectQType(this)"><div class="icon">⬜</div><div class="name">Fill Blank</div><div class="desc">Complete</div></div>
             <div class="qtype-card" data-type="match" onclick="selectQType(this)"><div class="icon">🔗</div><div class="name">Match</div><div class="desc">Columns</div></div>
           </div>
         </div>
@@ -488,7 +543,8 @@
         <div class="form-row">
           <label>Subject</label>
           <select id="q-subject" onchange="updateToolbar()">
-            <option value="General">General</option>
+            <option value="General">General</',
+'option>
             <option value="Mathematics">📐 Mathematics</option>
             <option value="Physics">⚡ Physics</option>
             <option value="Chemistry">🧪 Chemistry</option>
@@ -497,7 +553,8 @@
             <option value="History">🏛 History</option>
             <option value="Geography">🌍 Geography</option>
             <option value="Computer Science">💻 Computer Science</option>
-            <option value="Economics">📈 Economics</option>
+           ',
+' <option value="Economics">📈 Economics</option>
           </select>
         </div>
 
@@ -508,7 +565,8 @@
 
         <!-- Dynamic Subject Toolbar -->
         <div class="form-row">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <div style="display:flex;al',
+'ign-items:center;justify-content:space-between;margin-bottom:6px">
             <label style="margin:0" id="toolbar-label">📐 Mathematics Toolbar</label>
             <span style="font-size:11px;color:var(--muted)" id="toolbar-hint">Changes with subject</span>
           </div>
@@ -517,7 +575,8 @@
 
         <!-- Math Preview -->
         <div id="math-preview-box" style="display:none;margin-bottom:12px">
-          <label>Live Preview</label>
+          <label>Live Previ',
+'ew</label>
           <div id="math-preview" class="math-block" style="text-align:left;font-size:14px;line-height:1.7"></div>
         </div>
 
@@ -527,7 +586,8 @@
             <label>Answer Options</label>
             <div class="mcq-opts">
               <div class="mcq-opt"><span class="opt-label">A</span><input type="text" id="opt-a" placeholder="Option A"></div>
-              <div class="mcq-opt"><span class="opt-label">B</span><input type="text" id="opt-b" placeholder="Option B"></div>
+              <div class="mcq-opt"><span class="opt-label">B</',
+'span><input type="text" id="opt-b" placeholder="Option B"></div>
               <div class="mcq-opt"><span class="opt-label">C</span><input type="text" id="opt-c" placeholder="Option C"></div>
               <div class="mcq-opt"><span class="opt-label">D</span><input type="text" id="opt-d" placeholder="Option D"></div>
             </div>
@@ -535,7 +595,8 @@
           <div class="form-row">
             <label>Correct Answer</label>
             <select id="correct-ans" style="width:120px">
-              <option>A</option><option>B</option><option>C</option><option>D</option>
+            ',
+'  <option>A</option><option>B</option><option>C</option><option>D</option>
             </select>
           </div>
         </div>
@@ -549,7 +610,8 @@
             <label>Difficulty</label>
             <select id="q-diff">
               <option value="easy">Easy</option>
-              <option value="medium" selected>Medium</option>
+ ',
+'             <option value="medium" selected>Medium</option>
               <option value="hard">Hard</option>
             </select>
           </div>
@@ -562,14 +624,16 @@
       </div>
 
       <!-- Attach -->
-      <div class="card" style="margin-bottom:14px">
+      <div class="card" style="margin-bottom:14px">',
+'
         <h3>📎 Attach Your Own Question</h3>
-        <div class="attach-box" onclick="document.getElementById('attach-file').click()">
+        <div class="attach-box" onclick="document.getElementById(\'attach-file\').click()">
           <div style="font-size:24px;margin-bottom:6px">📁</div>
           <div style="font-size:13px;color:var(--muted)">Upload image or PDF question<br><span style="font-size:11px">PNG, JPG, PDF — max 5MB</span></div>
         </div>
         <input type="file" id="attach-file" accept="image/*,.pdf" style="display:none" onchange="handleAttach(this)">
-        <div id="attached-list" style="margin-top:8px"></div>
+        <',
+'div id="attached-list" style="margin-top:8px"></div>
       </div>
     </div>
   </div>
@@ -579,7 +643,8 @@
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">
     <h3 style="font-size:15px;font-weight:600">📋 Questions in Paper <span id="q-list-count" class="badge">0</span></h3>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn btn-secondary btn-sm" onclick="sortBySubject()">Sort by Subject</button>
+      <button class="btn btn-secondary btn-sm" onclick="sortBySub',
+'ject()">Sort by Subject</button>
       <button class="btn btn-secondary btn-sm" onclick="sortByDiff()">Sort by Difficulty</button>
     </div>
   </div>
@@ -588,7 +653,8 @@
   <div style="display:flex;gap:10px;margin-top:22px;flex-wrap:wrap">
     <button class="btn btn-primary" onclick="publishExam()" style="padding:12px 28px;font-size:15px">🚀 Publish Exam</button>
     <button class="btn btn-secondary" onclick="previewExam()">👁 Preview</button>
-    <button class="btn btn-secondary" onclick="exportPDF()">📄 Export PDF</button>
+    <button class="btn btn-secondary"',
+' onclick="exportPDF()">📄 Export PDF</button>
     <button class="btn btn-secondary" onclick="saveTemplate()">💾 Save Template</button>
   </div>
 </div>
@@ -598,15 +664,18 @@
   <div id="exam-start-screen">
     <div style="max-width:480px;margin:50px auto;text-align:center">
       <div id="start-logo" style="font-size:44px;margin-bottom:14px">📝</div>
-      <div class="page-title" id="start-exam-title" style="margin-bottom:6px">Ready to Begin?</div>
+      <div class="page-title" id="start-exam-title" style="margi',
+'n-bottom:6px">Ready to Begin?</div>
       <div id="start-exam-meta" style="color:var(--muted);margin-bottom:8px;font-size:13px">Ensure you are in a quiet, well-lit place.</div>
       <div id="start-instructions" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;font-size:13px;color:var(--muted);margin-bottom:22px;text-align:left;display:none"></div>
       <div class="card" style="text-align:left;margin-bottom:22px">
-        <div class="toggle-row"><div><div class="toggle-label">📷 Camera</div></div><span class="info-pill blue" id="cam-status">Pending</span></div>
+        <div class="toggle-row"><d',
+'iv><div class="toggle-label">📷 Camera</div></div><span class="info-pill blue" id="cam-status">Pending</span></div>
         <div class="toggle-row"><div><div class="toggle-label">🎤 Microphone</div></div><span class="info-pill blue" id="mic-status">Pending</span></div>
         <div class="toggle-row"><div><div class="toggle-label">🔒 Anti-Cheat</div></div><span class="info-pill green">Will activate</span></div>
       </div>
-      <button class="btn btn-primary" style="width:100%;padding:14px;font-size:15px" onclick="startExam()">✅ Allow & Start Exam</button>
+      <button class="btn btn-primary" style="width:100%;padding:14px;fon',
+'t-size:15px" onclick="startExam()">✅ Allow & Start Exam</button>
     </div>
   </div>
 
@@ -616,7 +685,8 @@
         <div class="exam-title" id="active-exam-title">Mid-Term Exam</div>
         <div style="display:flex;gap:6px;margin-top:5px;flex-wrap:wrap">
           <span class="info-pill blue" id="active-class">Class 10</span>
-          <span class="info-pill purple" id="active-subjects">Multi-Subject</span>
+          <span class="info-pill purple" id="active-subjects">Multi-Sub',
+'ject</span>
           <span class="info-pill green" id="active-q-count">Questions</span>
         </div>
       </div>
@@ -629,16 +699,19 @@
       </div>
     </div>
 
-    <div class="security-panel">
+    <div class="security-',
+'panel">
       <h4>🔒 Proctoring Status</h4>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 20px">
         <div class="sec-row"><div class="sec-dot ok" id="sd-cam"></div><div class="sec-label">Camera</div><div class="sec-status ok" id="ss-cam">Active</div></div>
         <div class="sec-row"><div class="sec-dot ok" id="sd-mic"></div><div class="sec-label">Microphone</div><div class="sec-status ok" id="ss-mic">Monitoring</div></div>
-        <div class="sec-row"><div class="sec-dot ok" id="sd-tab"></div><div class="sec-label">Tab Switching</div><div class="sec-status ok" id="ss-tab">0 detected</div></div>
+        <div class="sec-row"><div class="sec-d',
+'ot ok" id="sd-tab"></div><div class="sec-label">Tab Switching</div><div class="sec-status ok" id="ss-tab">0 detected</div></div>
         <div class="sec-row"><div class="sec-dot ok" id="sd-ai"></div><div class="sec-label">AI/Paste</div><div class="sec-status ok" id="ss-ai">Clean</div></div>
         <div class="sec-row" style="grid-column:1/-1"><div class="sec-dot off" id="sd-v"></div><div class="sec-label">Total Violations</div><div class="sec-status off" id="ss-v">0</div></div>
       </div>
-    </div>
+   ',
+' </div>
 
     <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
     <div class="q-nav" id="q-navigator"></div>
@@ -646,7 +719,8 @@
 
     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;flex-wrap:wrap;gap:10px">
       <button class="btn btn-secondary" onclick="prevQuestion()" id="btn-prev">← Prev</button>
-      <button class="btn btn-secondary" onclick="nextQuestion()" id="btn-next">Next →</button>
+      <button class="btn btn-secondary" onclick="nextQuestion()" id="btn-next">Next →<',
+'/button>
       <button class="btn btn-primary" onclick="confirmSubmit()" style="margin-left:auto">✅ Submit Exam</button>
     </div>
   </div>
@@ -657,22 +731,25 @@
   <div class="page-title">Exam Results</div>
   <div class="page-subtitle">Detailed performance analytics and integrity report</div>
   <div id="results-container">
-    <div style="text-align:center;padding:60px;color:var(--muted)"><div style="font-size:44px;margin-bottom:14px">📊</div><div style="margin-bottom:14px">No results yet. Complete an exam to see results.</div><button onclick="showPage('take')" style="background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;border:0;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(124,58,237,.35)">📝 Take an exam</button></div>
+    <div style="text-align:center;padding:60px;color:var(--muted)"><div style="font-siz',
+'e:44px;margin-bottom:14px">📊</div><div style="margin-bottom:14px">No results yet. Complete an exam to see results.</div><button onclick="showPage(\'take\')" style="background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;border:0;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(124,58,237,.35)">📝 Take an exam</button></div>
   </div>
 </div>
 
 <!-- ==================== WEBHOOK PAGE ==================== -->
-<div id="page-webhook" class="page">
+<div id="page-webhook" clas',
+'s="page">
   <div class="page-title">Webhook Configuration</div>
   <div class="page-subtitle">Send exam events and results to your server in real-time</div>
 
   <div class="inner-tabs">
-    <div class="inner-tab active" onclick="showInnerTab('wh-exam',this)">📤 Exam Results</div>
-    <div class="inner-tab" onclick="showInnerTab('wh-ai',this)">🤖 AI Generation</div>
-    <div class="inner-tab" onclick="showInnerTab('wh-log',this)">📋 Event Log</div>
+    <div class="inner-tab active" onclick="showInnerTab(\'wh-exam\',this)">📤 Exam Results</div>
+    <div class="inner-tab" onclick="showInnerTab(\'wh-ai\',this)">🤖 AI Generation</div>
+    <div class="inner-tab" onclick="showInnerTab(\'wh-log\',this)">📋 Event Log</div>
   </div>
 
-  <div id="wh-exam" class="inner-tab-page active">
+  <div id="wh-exam" class="inner-t',
+'ab-page active">
     <div class="grid2">
       <div>
         <div class="card" style="margin-bottom:14px">
@@ -681,47 +758,55 @@
           <div class="form-row">
             <label>HTTP Method</label>
             <div class="method-sel">
-              <button class="method-btn active" onclick="setMethod(this,'POST')">POST</button>
-              <button class="method-btn" onclick="setMethod(this,'PUT')">PUT</button>
-              <button class="method-btn" onclick="setMethod(this,'PATCH')">PATCH</button>
+              <button class="method-btn active" oncl',
+'ick="setMethod(this,\'POST\')">POST</button>
+              <button class="method-btn" onclick="setMethod(this,\'PUT\')">PUT</button>
+              <button class="method-btn" onclick="setMethod(this,\'PATCH\')">PATCH</button>
             </div>
           </div>
           <div class="form-row"><label>Content-Type</label><select id="wh-content-type"><option>application/json</option><option>application/x-www-form-urlencoded</option></select></div>
         </div>
-        <div class="card" style="margin-bottom:14px">
+        <div class="card" style="marg',
+'in-bottom:14px">
           <h3>🔑 Custom Headers</h3>
           <div id="headers-list">
             <div class="wh-row"><div class="wh-key"><input type="text" placeholder="Header" value="Authorization"></div><div class="wh-val"><input type="text" placeholder="Value" value="Bearer YOUR_TOKEN"></div><button class="btn-icon" onclick="this.parentElement.remove()">✕</button></div>
-            <div class="wh-row"><div class="wh-key"><input type="text" placeholder="Header" value="X-Exam-Source"></div><div class="wh-val"><input type="text" placeholder="Value" value="ExamForge"></div><button class="btn-icon" onclick="this.parentElement.remove()">✕</button></div>
+            <div class="wh-row"><div class="wh-key"><input type="text" placeholder="Header" value="X-Exam-Source"></div><',
+'div class="wh-val"><input type="text" placeholder="Value" value="ExamForge"></div><button class="btn-icon" onclick="this.parentElement.remove()">✕</button></div>
           </div>
           <button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="addHeader()">+ Add Header</button>
         </div>
         <div class="card">
           <h3>⚡ Trigger Events</h3>
-          <div class="toggle-row"><div class="toggle-label">Exam Started</div><label class="toggle"><input type="checkbox" id="evt-start" checked><span class="slider"></span></label></div>
+          <div class="toggle-row"><div class="toggle-label">Exam Started</div><label class="toggle"><input type="checkbox" id',
+'="evt-start" checked><span class="slider"></span></label></div>
           <div class="toggle-row"><div class="toggle-label">Exam Submitted</div><label class="toggle"><input type="checkbox" id="evt-submit" checked><span class="slider"></span></label></div>
           <div class="toggle-row"><div class="toggle-label">Violation Detected</div><label class="toggle"><input type="checkbox" id="evt-violation" checked><span class="slider"></span></label></div>
-          <div class="toggle-row"><div class="toggle-label">Each Question Answered</div><label class="toggle"><input type="checkbox" id="evt-answer"><span class="slider"></span></label></div>
+          <div class="toggle-row"><div class=',
+'"toggle-label">Each Question Answered</div><label class="toggle"><input type="checkbox" id="evt-answer"><span class="slider"></span></label></div>
           <div class="toggle-row"><div class="toggle-label">5-Minute Warning</div><label class="toggle"><input type="checkbox" id="evt-timer" checked><span class="slider"></span></label></div>
         </div>
       </div>
       <div>
         <div class="card" style="margin-bottom:14px">
           <h3>📦 Payload Preview</h3>
-          <textarea readonly id="wh-payload" style="min-height:230px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent2)">{
+          <textarea readonly',
+' id="wh-payload" style="min-height:230px;font-family:\'JetBrains Mono\',monospace;font-size:11px;color:var(--accent2)">{
   "event": "exam_submitted",
   "timestamp": "2026-05-29T10:45:00Z",
   "exam": { "id": "exam_abc123", "title": "Mid-Term Science", "subjects": ["Physics","Chemistry"], "duration_minutes": 60 },
   "student": { "name": "Ravi Kumar", "class": "10-A" },
   "result": { "score": 38, "total": 50, "percentage": 76.0, "grade": "B+" },
-  "integrity": { "violations": 1, "tab_switches": 1, "paste_attempts": 0, "ai_flag": false }
+  "integrity": { "violations": 1, "tab_switches": 1, ',
+'"paste_attempts": 0, "ai_flag": false }
 }</textarea>
         </div>
         <div class="card">
           <h3>🧪 Test Webhook</h3>
           <div style="color:var(--muted);font-size:12px;margin-bottom:10px">Send a test payload to verify your endpoint.</div>
           <button class="btn btn-primary" onclick="testWebhook()" style="width:100%">▶ Send Test Payload</button>
-          <div id="wh-response" style="margin-top:10px;padding:10px;background:var(--surface);border-radius:7px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent3);display:none"></div>
+          <div id="wh-response" style="margin-top:10px;padding:10px;background:var(--surface);border-radius:7px;font-family:\'Jet',
+'Brains Mono\',monospace;font-size:11px;color:var(--accent3);display:none"></div>
         </div>
       </div>
     </div>
@@ -732,13 +817,15 @@
       <div>
         <div class="card" style="margin-bottom:14px">
           <h3>🤖 AI Generation Webhook</h3>
-          <div style="color:var(--muted);font-size:12px;margin-bottom:14px">Configure which AI API to call when generating questions. Supports OpenAI, Anthropic, or any compatible endpoint.</div>
+          <div style="color:var(--muted);font-size:12px;margin-bottom:14px">Configure which AI API to call when generating questions. Supports OpenAI, Anthropic, or any compatible endpoint.</div',
+'>
           <div class="form-row"><label>AI API Endpoint</label><input type="url" id="ai-wh-endpoint" placeholder="https://api.anthropic.com/v1/messages" value="https://api.anthropic.com/v1/messages"></div>
           <div class="form-row"><label>API Key</label><input type="password" id="ai-wh-key" placeholder="sk-ant-..."></div>
           <div class="form-row">
             <label>AI Provider</label>
             <select id="ai-provider" onchange="updateAiProvider()">
-              <option value="anthropic">Anthropic (Claude)</option>
+              <option value="',
+'anthropic">Anthropic (Claude)</option>
               <option value="openai">OpenAI (GPT)</option>
               <option value="custom">Custom / Other</option>
             </select>
@@ -746,11 +833,13 @@
           <div class="form-row"><label>Model</label><input type="text" id="ai-model" value="claude-sonnet-4-20250514" placeholder="model name"></div>
           <div class="form-row"><label>Max Tokens</label><input type="number" id="ai-max-tokens" value="4096" style="width:120px"></div>
         </div>
-        <div class="card">
+',
+'        <div class="card">
           <h3>🔑 AI Endpoint Headers</h3>
           <div id="ai-headers-list">
             <div class="wh-row"><div class="wh-key"><input type="text" value="Content-Type"></div><div class="wh-val"><input type="text" value="application/json"></div><button class="btn-icon" onclick="this.parentElement.remove()">✕</button></div>
-            <div class="wh-row"><div class="wh-key"><input type="text" value="anthropic-version"></div><div class="wh-val"><input type="text" value="2023-06-01"></div><button class="btn-icon" onclick="this.parentElement.remove()">✕</button></div>
+            <div class="wh-row"><div class="wh-key"><input type="text" value="anthropic-version"></div><div class="wh-val"><input type="text" valu',
+'e="2023-06-01"></div><button class="btn-icon" onclick="this.parentElement.remove()">✕</button></div>
           </div>
           <button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="addAiHeader()">+ Add Header</button>
         </div>
@@ -759,7 +848,8 @@
         <div class="card" style="margin-bottom:14px">
           <h3>📤 Request Format</h3>
           <div style="color:var(--muted);font-size:12px;margin-bottom:8px">This is what ExamForge sends to your AI webhook:</div>
-          <textarea readonly id="ai-req-preview" style="min-height:200px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent2)">{
+ ',
+'         <textarea readonly id="ai-req-preview" style="min-height:200px;font-family:\'JetBrains Mono\',monospace;font-size:11px;color:var(--accent2)">{
   "model": "claude-sonnet-4-20250514",
   "max_tokens": 4096,
   "system": "You are an expert exam question generator...",
@@ -771,8 +861,9 @@
         </div>
         <div class="card">
           <h3>📥 Expected Response Format</h3>
-          <div style="color:var(--muted);font-size:12px;margin-bottom:8px">AI should return JSON in this structure:</div>
-          <textarea readonly style="min-height:160px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent3)">{
+  ',
+'        <div style="color:var(--muted);font-size:12px;margin-bottom:8px">AI should return JSON in this structure:</div>
+          <textarea readonly style="min-height:160px;font-family:\'JetBrains Mono\',monospace;font-size:11px;color:var(--accent3)">{
   "questions": [
     {
       "text": "Question text with $math$",
@@ -781,7 +872,8 @@
       "difficulty": "medium",
       "marks": 2,
       "options": {"A":"...","B":"...","C":"...","D":"..."},
-      "correct": "B",
+      "correct": "B"',
+',
       "explanation": "Because..."
     }
   ]
@@ -794,10 +886,11 @@
   <div id="wh-log" class="inner-tab-page">
     <div class="card">
       <h3>📋 Event Log</h3>
-      <div id="event-log" style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);min-height:200px">
+      <div id="event-log" style="font-family:\'JetBrains Mono\',monospace;font-size:12px;color:var(--muted);min-height:200px">
         <div style="color:var(--muted);padding:20px;text-align:center">No events yet. Events will appear here as they fire.</div>
       </div>
-      <button class="btn btn-secondary btn-sm" style="margin-top:10px" onclick="document.getElementById('event-log').innerHTML='<div style=color:var(--muted);padding:20px;text-align:center>Log cleared</div>'">Clear Log</button>
+      <button class="btn btn',
+'-secondary btn-sm" style="margin-top:10px" onclick="document.getElementById(\'event-log\').innerHTML=\'<div style=color:var(--muted);padding:20px;text-align:center>Log cleared</div>\'">Clear Log</button>
     </div>
   </div>
 </div>
@@ -805,18 +898,20 @@
 <!-- ==================== BRANDING PAGE ==================== -->
 <div id="page-branding" class="page">
   <div class="page-title">Branding & Configuration</div>
-  <div class="page-subtitle">Customize the platform's name, logo, colors and appearance for your institution</div>
+  <div class="page-subtitle">Customize the platform\'s name, logo, colors and appearance for your institutio',
+'n</div>
 
   <div class="inner-tabs">
-    <div class="inner-tab active" onclick="showInnerTab('br-identity',this)">🏫 Identity</div>
-    <div class="inner-tab" onclick="showInnerTab('br-colors',this)">🎨 Colors & Theme</div>
-    <div class="inner-tab" onclick="showInnerTab('br-typography',this)">🔤 Typography</div>
-    <div class="inner-tab" onclick="showInnerTab('br-preview',this)">👁 Preview</div>
+    <div class="inner-tab active" onclick="showInnerTab(\'br-identity\',this)">🏫 Identity</div>
+    <div class="inner-tab" onclick="showInnerTab(\'br-colors\',this)">🎨 Colors & Theme</div>
+    <div class="inner-tab" onclick="showInnerTab(\'br-typography\',this)">🔤 Typography</div>
+    <div class="inner-tab" onclick="showInnerTab(\'br-preview\',this)">👁 Preview</div>
   </div>
 
   <!-- Identity Tab -->
   <div id="br-identity" class="inner-tab-page active">
-    <div class="grid2">
+  ',
+'  <div class="grid2">
       <div>
         <div class="card" style="margin-bottom:14px">
           <h3>🏫 Institution Identity</h3>
@@ -826,7 +921,8 @@
           </div>
           <div class="form-row">
             <label>Tagline / Subtitle</label>
-            <input type="text" id="brand-tagline" placeholder="e.g. Smart Assessment Platform" oninput="applyBranding()">
+            <input type="text" id="brand-tagli',
+'ne" placeholder="e.g. Smart Assessment Platform" oninput="applyBranding()">
           </div>
           <div class="form-row">
             <label>Logo Emoji or Symbol (shown in nav)</label>
@@ -834,7 +930,8 @@
           </div>
           <div class="form-row">
             <label>School / Institute Name (on exam paper)</label>
-            <input type="text" id="brand-school" placeholder="e.g. Delhi Public School, Jamshedpur" oninput="applyBranding()">
+            <input type="text" id="brand-s',
+'chool" placeholder="e.g. Delhi Public School, Jamshedpur" oninput="applyBranding()">
           </div>
           <div class="form-row">
             <label>Address / City</label>
@@ -845,7 +942,8 @@
             <input type="text" id="brand-year" value="2025–2026" placeholder="2025–2026">
           </div>
           <div class="form-row">
-            <label>Contact Email (shown on exam paper)</label>
+     ',
+'       <label>Contact Email (shown on exam paper)</label>
             <input type="email" id="brand-email" placeholder="admin@school.edu">
           </div>
         </div>
@@ -853,14 +951,16 @@
       <div>
         <div class="card" style="margin-bottom:14px">
           <h3>🖼 Logo Upload</h3>
-          <div class="logo-upload-box" onclick="document.getElementById('logo-upload').click()">
+          <div class="logo-upload-box" onclick="document.getElementById(\'logo-upload\').click()">
             <div style="font-size:28px;margin-bottom:6px">🖼</div>
-            <div style="font-size:13px;color:var(--muted)">Click to upload your school logo<br><span style="font-size:11px">PNG, JPG, SVG — recommended 200×60px</span></div>
+            <div style="font-size:13px;color:var(-',
+'-muted)">Click to upload your school logo<br><span style="font-size:11px">PNG, JPG, SVG — recommended 200×60px</span></div>
             <img id="branding-logo-preview" src="" alt="Logo preview">
           </div>
           <input type="file" id="logo-upload" accept="image/*" style="display:none" onchange="handleLogoUpload(this)">
           <div style="margin-top:10px">
-            <button class="btn btn-secondary btn-sm" onclick="document.getElementById('logo-upload').click()">Upload Logo</button>
+            <button class="btn btn-secondary btn-sm" onclick="document.getElementById(\'logo-upload\').click()">Upload Logo</butt',
+'on>
             <button class="btn btn-secondary btn-sm" style="margin-left:6px" onclick="removeLogo()">Remove</button>
           </div>
         </div>
@@ -868,11 +968,13 @@
           <h3>📄 Exam Paper Header Preview</h3>
           <div id="paper-header-preview" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center">
             <img id="paper-logo" style="max-height:50px;max-width:150px;margin-bottom:8px;display:none">
-            <div id="ph-school" style="font-size:16px;font-weight:700;color:var(--text)">Your School Name</div>
+           ',
+' <div id="ph-school" style="font-size:16px;font-weight:700;color:var(--text)">Your School Name</div>
             <div id="ph-tagline" style="font-size:11px;color:var(--muted);margin-top:2px"></div>
             <div style="height:1px;background:var(--border);margin:10px 0"></div>
             <div id="ph-exam-title" style="font-size:15px;font-weight:600">Exam Title</div>
-            <div id="ph-meta" style="font-size:12px;color:var(--muted);margin-top:4px">Class: 10 | Duration: 60 min | Total Marks: 50</div>
+            <div id="ph-meta" style="font-size:12px;color:var(--muted);margin-top:4px">Class: 10 | Duration: 60 min | Total Mark',
+'s: 50</div>
           </div>
         </div>
       </div>
@@ -886,35 +988,39 @@
         <div class="card" style="margin-bottom:14px">
           <h3>🎨 Preset Themes</h3>
           <div class="theme-grid">
-            <div class="theme-card active" onclick="applyTheme('midnight',this)">
+            <div class="theme-card active" onclick="applyTheme(\'midnight\',this)">
               <div class="theme-swatch" style="background:linear-gradient(135deg,#4f9cf9,#a78bfa)"></div>
-              <div class="theme-name">Midnight Blue</div>
+   ',
+'           <div class="theme-name">Midnight Blue</div>
             </div>
-            <div class="theme-card" onclick="applyTheme('emerald',this)">
+            <div class="theme-card" onclick="applyTheme(\'emerald\',this)">
               <div class="theme-swatch" style="background:linear-gradient(135deg,#10b981,#059669)"></div>
               <div class="theme-name">Emerald</div>
             </div>
-            <div class="theme-card" onclick="applyTheme('crimson',this)">
-              <div class="theme-swatch" style="background:linear-gradient(135deg,#ef4444,#f97316)"></div>
+            <div class="theme-card" onclick="applyTheme(\'crimson\',this)">
+              <div class="theme-swatch" style="background:linear-gradient(135deg,#ef4444,#f97316)',
+'"></div>
               <div class="theme-name">Crimson</div>
             </div>
-            <div class="theme-card" onclick="applyTheme('gold',this)">
+            <div class="theme-card" onclick="applyTheme(\'gold\',this)">
               <div class="theme-swatch" style="background:linear-gradient(135deg,#f59e0b,#eab308)"></div>
               <div class="theme-name">Gold</div>
             </div>
-            <div class="theme-card" onclick="applyTheme('ocean',this)">
-              <div class="theme-swatch" style="background:linear-gradient(135deg,#0ea5e9,#2563eb)"></div>
+            <div class="theme-card" onclick="applyTheme(\'ocean\',this)">
+              <div class="theme-swatch" style="background:linear-gradient(135deg,#0ea5e9,#2563eb)">',
+'</div>
               <div class="theme-name">Ocean</div>
             </div>
-            <div class="theme-card" onclick="applyTheme('violet',this)">
+            <div class="theme-card" onclick="applyTheme(\'violet\',this)">
               <div class="theme-swatch" style="background:linear-gradient(135deg,#8b5cf6,#d946ef)"></div>
               <div class="theme-name">Violet</div>
             </div>
-            <div class="theme-card" onclick="applyTheme('light',this)">
-              <div class="theme-swatch" style="background:linear-gradient(135deg,#f1f5f9,#e2e8f0);border:1px solid #cbd5e1"></div>
+            <div class="theme-card" onclick="applyTheme(\'light\',this)">
+              <div class="theme-swatch" style="background:linear-gradient(135deg,#f1f5f9,#e2e8f0);b',
+'order:1px solid #cbd5e1"></div>
               <div class="theme-name">Light Mode</div>
             </div>
-            <div class="theme-card" onclick="applyTheme('custom',this)">
+            <div class="theme-card" onclick="applyTheme(\'custom\',this)">
               <div class="theme-swatch" style="background:conic-gradient(#f43f5e,#f59e0b,#10b981,#3b82f6,#8b5cf6,#f43f5e)"></div>
               <div class="theme-name">Custom</div>
             </div>
@@ -923,37 +1029,42 @@
       </div>
       <div>
         <div class="card">
-          <h3>🖊 Custom Colors</h3>
+          <h3>🖊 Custom Colors</h3>',
+'
           <div class="form-row">
             <label>Primary Accent Color</label>
             <div class="color-row">
               <input type="color" id="color-primary" value="#4f9cf9" oninput="applyCustomColor()">
-              <input type="text" id="color-primary-hex" value="#4f9cf9" style="width:110px;font-family:JetBrains Mono,monospace;font-size:13px" oninput="syncColorFromHex('primary')">
+              <input type="text" id="color-primary-hex" value="#4f9cf9" style="width:110px;font-family:JetBrains Mono,monospace;font-size:13px" oninput="syncColorFromHex(\'primary\')">
               <div class="color-preview" id="cp-primary" style="background:#4f9cf9"></div>
-            </div>
+       ',
+'     </div>
           </div>
           <div class="form-row">
             <label>Secondary Accent Color</label>
             <div class="color-row">
               <input type="color" id="color-secondary" value="#a78bfa" oninput="applyCustomColor()">
-              <input type="text" id="color-secondary-hex" value="#a78bfa" style="width:110px;font-family:JetBrains Mono,monospace;font-size:13px" oninput="syncColorFromHex('secondary')">
-              <div class="color-preview" id="cp-secondary" style="background:#a78bfa"></div>
+              <input type="text" id="color-secondary-hex" value="#a78bfa" style="width:110px;font-family:JetBrains Mono,monospace;font-size:13px" oninput="syncColorFromHex(\'secondary\')">
+              <div class="color-preview" id="cp-secondary" sty',
+'le="background:#a78bfa"></div>
             </div>
           </div>
           <div class="form-row">
             <label>Background Color</label>
             <div class="color-row">
               <input type="color" id="color-bg" value="#0a0c10" oninput="applyCustomColor()">
-              <input type="text" id="color-bg-hex" value="#0a0c10" style="width:110px;font-family:JetBrains Mono,monospace;font-size:13px" oninput="syncColorFromHex('bg')">
-              <div class="color-preview" id="cp-bg" style="background:#0a0c10;border-color:#333"></div>
+              <input type="text" id="color-bg-hex" value="#0a0c10" style="width:110px;font-family:JetBrains Mono,monospace;font-size:13px" oninput="syncColorFromHex(\'bg\')">
+              <div class="color-preview" id="cp-bg"',
+' style="background:#0a0c10;border-color:#333"></div>
             </div>
           </div>
           <div class="form-row">
             <label>Card / Surface Color</label>
             <div class="color-row">
               <input type="color" id="color-card" value="#13171f" oninput="applyCustomColor()">
-              <input type="text" id="color-card-hex" value="#13171f" style="width:110px;font-family:JetBrains Mono,monospace;font-size:13px" oninput="syncColorFromHex('card')">
-              <div class="color-preview" id="cp-card" style="background:#13171f;border-color:#333"></div>
+              <input type="text" id="color-card-hex" value="#13171f" style="width:110px;font-family:JetBrains Mono,monospace;font-size:13px" oninput="syncColorFromHex(\'card\')">
+              <div ',
+'class="color-preview" id="cp-card" style="background:#13171f;border-color:#333"></div>
             </div>
           </div>
           <button class="btn btn-secondary btn-sm" onclick="resetColors()">↺ Reset to Default</button>
@@ -968,7 +1079,8 @@
       <div>
         <div class="card" style="margin-bottom:14px">
           <h3>🔤 Font Selection</h3>
-          <div class="form-row">
+          <div class="',
+'form-row">
             <label>Body / UI Font</label>
             <select id="font-body" onchange="applyFonts()">
               <option value="Space Grotesk">Space Grotesk (default)</option>
@@ -978,7 +1090,8 @@
               <option value="Roboto">Roboto</option>
               <option value="DM Sans">DM Sans</option>
             </select>
-            <div class="font-preview" id="fp-body" style="font-family:'Space Grotesk',sans-serif">
+            <div clas',
+'s="font-preview" id="fp-body" style="font-family:\'Space Grotesk\',sans-serif">
               The quick brown fox jumps over the lazy dog. 1234567890
             </div>
           </div>
@@ -987,12 +1100,13 @@
             <select id="font-heading" onchange="applyFonts()">
               <option value="Fraunces">Fraunces (default)</option>
               <option value="Playfair Display">Playfair Display</option>
-              <option value="Merriweather">Merriweather</option>
+              <option value=',
+'"Merriweather">Merriweather</option>
               <option value="Lora">Lora</option>
               <option value="Space Grotesk">Space Grotesk</option>
               <option value="Montserrat">Montserrat</option>
             </select>
-            <div class="font-preview" id="fp-heading" style="font-family:'Fraunces',serif;font-size:22px">
+            <div class="font-preview" id="fp-heading" style="font-family:\'Fraunces\',serif;font-size:22px">
               ExamForge — Smart Assessment
             </div>
           </div>
@@ -1000,14 +1114,16 @@
       </div>
       <div>
         <div class="card">
-          <h3>📐 Size & Spacing</h3>
+         ',
+' <h3>📐 Size & Spacing</h3>
           <div class="form-row">
             <label>Base Font Size: <span id="font-size-val">14px</span></label>
             <input type="range" id="font-size" min="12" max="18" value="14" oninput="applyFontSize(this.value)" style="padding:0;background:none;border:none;accent-color:var(--brand-primary)">
           </div>
           <div class="form-row">
             <label>Border Radius: <span id="radius-val">8px</span></label>
-            <input type="range" id="border-radius" min="0" max="20" value="8" oninput="applyRadius(this.value)" style="padding:0;background:none;border:none;accent-color:var(--brand-primary)">
+            <input type="range" id="borde',
+'r-radius" min="0" max="20" value="8" oninput="applyRadius(this.value)" style="padding:0;background:none;border:none;accent-color:var(--brand-primary)">
           </div>
           <div class="form-row">
             <label>Compact Mode</label>
@@ -1019,24 +1135,28 @@
   </div>
 
   <!-- Preview Tab -->
-  <div id="br-preview" class="inner-tab-page">
+  <div id="br-previ',
+'ew" class="inner-tab-page">
     <div class="card">
       <h3>👁 Live Branding Preview</h3>
       <div id="brand-preview-container" style="border:1px solid var(--border);border-radius:10px;padding:20px;background:var(--bg)">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border)">
-          <div id="prev-logo-icon" style="width:32px;height:32px;border-radius:8px;background:var(--brand-primary);display:flex;align-items:center;justify-content:center;font-size:16px">📝</div>
+          <div id="prev-logo-icon" style="width:32px;height:32px;border-radius:8px;background:var(--brand-primary);display:flex;align-it',
+'ems:center;justify-content:center;font-size:16px">📝</div>
           <div id="prev-brand-name" style="font-family:Fraunces,serif;font-size:20px;color:var(--brand-primary)">ExamForge</div>
         </div>
         <div class="stats-row" style="margin-bottom:14px">
           <div class="stat-card"><div class="stat-val">12</div><div class="stat-label">Questions</div></div>
           <div class="stat-card"><div class="stat-val">50</div><div class="stat-label">Total Marks</div></div>
-          <div class="stat-card"><div class="stat-val">60 min</div><div class="stat-label">Duration</div></div>
+          <div cla',
+'ss="stat-card"><div class="stat-val">60 min</div><div class="stat-label">Duration</div></div>
         </div>
         <div class="card">
           <div style="font-size:14px;font-weight:600;margin-bottom:8px">Q1. What is the value of $x$ in $2x + 4 = 10$?</div>
           <div class="opt-list">
             <div class="opt-item selected"><span class="opt-letter">A</span><span class="opt-text">x = 3</span></div>
-            <div class="opt-item"><span class="opt-letter">B</span><span class="opt-text">x = 5</span></div>
+            <div class="opt-item"><span class="opt-letter">B</span><span class="opt-text',
+'">x = 5</span></div>
             <div class="opt-item"><span class="opt-letter">C</span><span class="opt-text">x = 7</span></div>
           </div>
         </div>
@@ -1049,7 +1169,14 @@
   </div>
 </div>
 
-<script>
+
+
+
+'
+].join('');
+
+function _init(container) {
+
 // ==================== STATE ====================
 const state = {
   questions: [], selectedSubjects: [], selectedQType: 'mcq',
@@ -2406,7 +2533,7 @@ window.JM_CTX = (() => {
 })();
 window.JM_CAN_AUTHOR = ['teacher','school','coaching','admin','partner'].includes(window.JM_CTX.role);
 
-document.addEventListener('DOMContentLoaded', () => {
+/* DOMContentLoaded -> direct */ (function() {
   // Wire math preview to textarea input
   const qta = document.getElementById('q-text');
   if (qta) qta.addEventListener('input', updateMathPreview);
@@ -2466,9 +2593,8 @@ document.addEventListener('DOMContentLoaded', () => {
   updateStats();
   updateToolbar();
 });
-</script>
-<script src="/jm-nav.js" defer></script>
-<script>
+
+
 /* App-shell embed mode: when hosted in the shell (?embed=1), hide controls that
    navigate OUT to the shell so they can't nest the iframe (shell supplies chrome). */
 (function(){ try{ if(new URLSearchParams(location.search).get('embed')!=='1') return;
@@ -2476,9 +2602,25 @@ document.addEventListener('DOMContentLoaded', () => {
   var s=document.createElement('style');
   s.textContent='html.embed a[href$="/dashboard.html"],html.embed a[href="/app"],html.embed [data-embed-hide]{display:none!important}';
   (document.head||document.documentElement).appendChild(s);
-  var hide=function(){ document.querySelectorAll('[onclick]').forEach(function(el){ var o=el.getAttribute('onclick')||''; if(o.indexOf('dashboard.html')>-1 || /['"]\/app['"]/.test(o)) el.style.display='none'; }); };
+  var hide=function(){ document.querySelectorAll('[onclick]').forEach(function(el){ var o=el.getAttribute('onclick')||''; if(o.indexOf('dashboard.html')>-1 || /['"]\/app['"]/.test(o)) el.style.display='none'; })(); };
   if(document.readyState!=='loading') hide(); else document.addEventListener('DOMContentLoaded',hide);
 }catch(e){} })();
-</script>
-</body>
-</html>
+
+}
+
+function mount(container) {
+  if (!document.getElementById('jm-mod-exam-platform-css')) {
+    var s = document.createElement('style');
+    s.id = 'jm-mod-exam-platform-css';
+    s.textContent = _CSS;
+    document.head.appendChild(s);
+  }
+  container.innerHTML = _HTML;
+  try { _init(container); } catch(e) { console.warn('exam-platform init error:', e); }
+}
+
+g.JM = g.JM || {};
+g.JM.Modules = g.JM.Modules || {};
+g.JM.Modules['examPlatform'] = { mount: mount, unmount: function(c){ if(c) c.innerHTML=''; } };
+
+})(window);
