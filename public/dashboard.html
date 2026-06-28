@@ -503,7 +503,7 @@ window.addEventListener('storage', function(e){
 <!-- Widgets self-register via /widgets/<id>.js — _index.js injects them all. -->
 <script src="/widgets/_index.js?v=3"></script>
 <!-- Layered UI system (atoms → molecules → screens) — JM.Screens.open(id) -->
-<script src="/ui/_boot.js?v=26"></script>
+<script src="/ui/_boot.js?v=27"></script>
 </head>
 <body>
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
@@ -5979,8 +5979,8 @@ async function attSave(){
 // ============================================================
 // BOOKINGS + PAYMENTS pages.
 // ============================================================
-async function openBookings(){ await _openMoneyPage('bookings'); }
-async function openPayments(){ await _openMoneyPage('payments'); }
+async function openBookings(){ if(window.JM&&JM.Screens) return JM.Screens.open('money-page',{kind:'bookings'}); }
+async function openPayments(){ if(window.JM&&JM.Screens) return JM.Screens.open('money-page',{kind:'payments'}); }
 function closeBookings(){
   document.getElementById('bookingsPage').classList.remove('active');
   document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='');
