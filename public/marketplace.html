@@ -51,7 +51,7 @@ select.filter-select{background:var(--jm-surface);border:1.5px solid var(--jm-bo
 .mp-chip{font-size:10px;background:var(--jm-surface-2,#f1f5f9);color:var(--jm-text,#334155);padding:2px 8px;border-radius:20px;white-space:nowrap}
 .course-meta{display:flex;justify-content:space-between;align-items:center}
 .course-price{font-size:18px;font-weight:800;color:var(--jm-primary)}
-.course-rating{font-size:12px;color:var(--jm-warn)}
+.course-rating{font-size:12px;color:#92400e}
 .buy-btn{width:100%;margin-top:12px;padding:10px;border:none;border-radius:var(--jm-radius-sm);background:var(--jm-primary);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .15s;box-shadow:0 2px 8px var(--jm-primary-glow)}
 .buy-btn:hover{background:var(--jm-primary-2)}
 .buy-btn.owned{background:#f0fdf4;color:#15803d;cursor:default;box-shadow:none}
@@ -142,7 +142,7 @@ select.filter-select{background:var(--jm-surface);border:1.5px solid var(--jm-bo
     <input type="text" placeholder="Search courses, topics, instructors..." aria-label="Search courses, topics, instructors" id="navSearch" oninput="debounceSearch(this.value)">
   </div>
   <div class="nav-links">
-    <span id="authLink"><a href="/login.html" class="btn btn-primary btn-sm">Login</a></span>
+    <span id="authLink"><a href="/login.html" class="btn btn-primary btn-sm" style="color:#fff">Login</a></span>
   </div>
 </nav>
 
@@ -229,7 +229,7 @@ select.filter-select{background:var(--jm-surface);border:1.5px solid var(--jm-bo
     <div>
       <div class="section-head">
         <h2 id="resultsTitle">All Courses</h2>
-        <span id="resultsCount" style="color:#888;font-size:13px"></span>
+        <span id="resultsCount" style="color:#595959;font-size:13px"></span>
       </div>
       <div id="loadingState" class="loading">⏳ Loading courses...</div>
       <div class="courses-grid" id="coursesGrid"></div>
@@ -319,7 +319,7 @@ function renderCard(listing, owned) {
   const seller = listing.jeetmantra_users || listing.seller || {};
   const esc = s => String(s == null ? '' : s).replace(/[<>&"]/g, ch => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[ch]));
   const cover = c.cover_image
-    ? `<img src="${c.cover_image}" loading="lazy" decoding="async" width="300" height="150" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0">`
+    ? `<img src="${c.cover_image}" alt="" loading="lazy" decoding="async" width="300" height="150" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0">`
     : `<span style="font-size:48px">${getListingIcon(listing)}</span>`;
   const modeBadge = {offline:'🏫 Offline',hybrid:'🔀 Hybrid',online:'💻 Online'}[c.class_mode] || '';
   const loc = [c.area, c.city].filter(Boolean).join(', ');
@@ -364,7 +364,7 @@ async function openPreview(courseId, courseTitle){
     const data=await r.json();
     const c=data.course||{};
     body.innerHTML=`
-      ${c.cover_image?`<img src="${c.cover_image}" loading="lazy" decoding="async" width="540" height="180" style="width:100%;height:180px;object-fit:cover;border-radius:10px;margin-bottom:14px">`:''}
+      ${c.cover_image?`<img src="${c.cover_image}" alt="" loading="lazy" decoding="async" width="540" height="180" style="width:100%;height:180px;object-fit:cover;border-radius:10px;margin-bottom:14px">`:''}
       <div style="margin-bottom:14px;font-size:14px;line-height:1.55;color:#374151">${c.description||'(no description)'}</div>
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px">
         <div style="padding:12px;background:var(--jm-primary-tint);border-radius:8px;text-align:center"><div style="font-size:18px;font-weight:800;color:var(--jm-primary)">${(data.topics||[]).length}</div><div style="font-size:11px;color:#6b7280">Topics</div></div>
@@ -678,7 +678,7 @@ function initUI(){
 // A11y: make category filter pills keyboard-operable (role=tab + Enter/Space).
 (function enhancePills(){
   const bar=document.getElementById('filterBar');
-  if(bar) bar.setAttribute('role','tablist'), bar.setAttribute('aria-label','Filter courses by category');
+  if(bar) bar.setAttribute('role','toolbar'), bar.setAttribute('aria-label','Filter courses by category');
   document.querySelectorAll('.cat-pill').forEach(p=>{
     p.setAttribute('role','tab');
     p.setAttribute('tabindex','0');

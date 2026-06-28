@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="theme.css">
 <style>
 /* Login page — uses theme.css design tokens */
+html{overflow-x:hidden}
 /* Branded background plane: accent gradient + soft glow blobs, shared with
    the website hero palette so the login feels like one product. */
 body{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;position:relative;overflow:hidden;
@@ -290,7 +291,7 @@ async function doSignup() {
 
 function showOTP() {
   const sec = document.getElementById('otpSection');
-  sec.style.display = sec.style.display === 'none' ? 'block' : 'none';
+  sec.style.display = getComputedStyle(sec).display === 'none' ? 'block' : 'none';
 }
 
 async function sendOTP() {
@@ -400,7 +401,7 @@ const existingUser = localStorage.getItem('jm_user');
 if (existingToken && existingUser) {
   try {
     const u = JSON.parse(existingUser);
-    window.location.href = '/app?role=' + u.role;
+    window.location.href = '/dashboard.html?role=' + u.role;
   } catch {}
 }
 </script>
