@@ -503,7 +503,7 @@ window.addEventListener('storage', function(e){
 <!-- Widgets self-register via /widgets/<id>.js — _index.js injects them all. -->
 <script src="/widgets/_index.js?v=3"></script>
 <!-- Layered UI system (atoms → molecules → screens) — JM.Screens.open(id) -->
-<script src="/ui/_boot.js?v=24"></script>
+<script src="/ui/_boot.js?v=25"></script>
 </head>
 <body>
 <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
@@ -7140,11 +7140,15 @@ _crmApplyTheme();
 try{ applyCrmBranding(); }catch(e){}
 
 function openCRMConfig(){
+  if(window.JM && JM.Screens) return JM.Screens.open('crm-config');
+}
+// legacy body kept for reference only — extracted to ui/screens/CrmConfig.js
+function _openCRMConfig_legacy(){
   const overlay = document.getElementById('settingsPage');
   if(!overlay) return toast('Settings page not available',true);
   overlay.classList.add('active');
   document.querySelectorAll('.role-section').forEach(s=>s.style.visibility='hidden');
-  document.querySelectorAll('.topbar').forEach(s=>s.style.display='none'); // keep sidebar visible (synced nav)
+  document.querySelectorAll('.topbar').forEach(s=>s.style.display='none');
   const c=_crm();
   const lastInv = Number(localStorage.getItem('jm_invoice_seq')||28);
   const previewInv = _crmFmtInvoice(c.invoiceFormat, lastInv+1);
