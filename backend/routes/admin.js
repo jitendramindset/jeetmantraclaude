@@ -783,4 +783,70 @@ router.post('/payment-config', authenticateToken, authorizeRole(['admin']), asyn
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ── QUICK BROADCAST: admin sends notification to all users / by role ────────
+// POST /api/admin/broadcast  { title, body, link?, audience: 'all'|role }
+router.post('/broadcast', authenticateToken, authorizeRole(['admin']), async (req, res) => {
+  try {
+    const { title, body, link, audience = 'all' } = req.body || {};
+    if (!title?.trim() || !body?.trim()) return res.status(400).json({ error: 'title and body required' });
+    const { v4: uuidv4 } = require('uuid');
+
+    // Resolve recipients
+    let q = supabaseAdmin.from('jeetmantra_users').select('id');
+    if (audience !== 'all') q = q.eq('user_type', audience);
+    const { data: users, error: uErr } = await q;
+    if (uErr) return res.status(500).json({ error: uErr.message });
+    if (!users?.length) return res.status(400).json({ error: 'No recipients found' });
+
+    const now = new Date().toISOString();
+    const CHUNK = 500;
+    const rows = users.map(u => ({
+      id: uuidv4(), user_id: u.id, channel: 'in-app', type: 'admin_broadcast',
+      title: title.trim(), body: body.trim(), link: link || null, status: 'sent', sent_at: now
+    }));
+    for (let i = 0; i < rows.length; i += CHUNK) {
+      const { error } = await supabaseAdmin.from('notifications').insert(rows.slice(i, i + CHUNK));
+      if (error) return res.status(500).json({ error: error.message });
+    }
+    await auditLog(req.user.id, 'admin.broadcast', null, { title, audience, count: rows.length });
+    res.json({ sent: rows.length, audience });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── COURSES: list all courses with creator + enrollment count (admin view) ──
+// GET /api/admin/courses?limit=50&offset=0&status=all|active|inactive
+router.get('/courses', authenticateToken, authorizeRole(['admin']), async (req, res) => {
+  try {
+    const { limit = 50, offset = 0, status } = req.query;
+    let q = supabaseAdmin.from('courses')
+      .select('id,title,category,price,is_active,archived,created_at,teacher_id', { count: 'exact' });
+    if (status === 'active')   q = q.eq('is_active', true).eq('archived', false);
+    if (status === 'inactive') q = q.eq('is_active', false);
+    q = q.order('created_at', { ascending: false }).range(Number(offset), Number(offset) + Number(limit) - 1);
+    const { data: courses, count, error } = await q;
+    if (error) return res.status(500).json({ error: error.message });
+
+    // Fetch creator names separately
+    const teacherIds = [...new Set((courses || []).map(c => c.teacher_id).filter(Boolean))];
+    let userMap = {};
+    if (teacherIds.length) {
+      const { data: users } = await supabaseAdmin.from('jeetmantra_users')
+        .select('id,full_name,email').in('id', teacherIds);
+      (users || []).forEach(u => { userMap[u.id] = u.full_name || u.email || 'Unknown'; });
+    }
+
+    // Fetch enrollment counts
+    const ids = (courses || []).map(c => c.id);
+    let enrollMap = {};
+    if (ids.length) {
+      const { data: enr } = await supabaseAdmin.from('enrollments').select('course_id').in('course_id', ids);
+      (enr || []).forEach(e => { enrollMap[e.course_id] = (enrollMap[e.course_id] || 0) + 1; });
+    }
+    const result = (courses || []).map(c => ({
+      ...c, creator_name: userMap[c.teacher_id] || 'Unknown', enrollments: enrollMap[c.id] || 0
+    }));
+    res.json({ courses: result, total: count || 0 });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 module.exports = router;
