@@ -6,6 +6,12 @@ const router = express.Router();
 const ADMIN_ROLES = ['admin'];
 const EDITOR_ROLES = ['admin', 'teacher', 'partner'];
 
+// Wrap any promise with a timeout — prevents Supabase from hanging on missing tables
+const withTimeout = (promise, ms = 8000) =>
+  Promise.race([promise, new Promise((_, rej) => setTimeout(() => rej(new Error('DB_TIMEOUT')), ms))]);
+
+const TABLE_MISSING = e => e?.code === '42P01' || e?.message?.includes('does not exist') || e?.message === 'DB_TIMEOUT';
+
 // Slug generator
 function toSlug(str) {
   return str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -38,10 +44,10 @@ router.get('/posts', async (req, res) => {
     q = q.order('published_at', { ascending: false, nullsFirst: false })
          .order('created_at', { ascending: false })
          .range(Number(offset), Number(offset) + Number(limit) - 1);
-    const { data, error, count } = await q;
+    let data, error, count;
+    try { ({ data, error, count } = await withTimeout(q)); } catch(te) { error = te; }
     if (error) {
-      // Table doesn't exist yet — return empty gracefully
-      if (error.message?.includes('does not exist') || error.code === '42P01') return res.json({ posts: [], count: 0, _note: 'Run migration-s14-cms.sql' });
+      if (TABLE_MISSING(error)) return res.json({ posts: [], count: 0, _note: 'Run migration-s14-cms.sql' });
       return res.status(500).json({ error: error.message });
     }
     res.json({ posts: data || [], count });
