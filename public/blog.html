@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Blog & Events — JeetMantra</title>
+<meta name="description" content="Latest blogs, events, and announcements from JeetMantra.">
+<style>
+  :root{--primary:#7c3aed;--surface:#fff;--bg:#f8fafc;--border:#e2e8f0;--text:#0f172a;--muted:#64748b}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.6}
+  header{background:var(--surface);border-bottom:1.5px solid var(--border);padding:14px 24px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:10}
+  header a{color:var(--primary);font-weight:700;text-decoration:none;font-size:20px}
+  .tag{display:inline-flex;align-items:center;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+  .tag-blog{background:#ede9fe;color:#6d28d9}
+  .tag-event{background:#fef3c7;color:#b45309}
+  .tag-page{background:#d1fae5;color:#065f46}
+  .tag-announcement{background:#fee2e2;color:#991b1b}
+  .tag-media{background:#dbeafe;color:#1d4ed8}
+  main{max-width:900px;margin:0 auto;padding:32px 16px}
+  h1{font-size:28px;font-weight:900;margin-bottom:4px}
+  .subtitle{color:var(--muted);margin-bottom:28px;font-size:15px}
+  .filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px}
+  .filter-btn{padding:6px 14px;border:1.5px solid var(--border);border-radius:999px;font-size:12px;font-weight:700;cursor:pointer;background:var(--surface);color:var(--muted);transition:all .15s}
+  .filter-btn.active,.filter-btn:hover{background:var(--primary);color:#fff;border-color:var(--primary)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px}
+  .card{background:var(--surface);border:1.5px solid var(--border);border-radius:14px;overflow:hidden;cursor:pointer;transition:box-shadow .15s,transform .15s}
+  .card:hover{box-shadow:0 4px 20px rgba(0,0,0,.08);transform:translateY(-2px)}
+  .card-img{width:100%;height:160px;object-fit:cover;background:#f1f5f9;display:flex;align-items:center;justify-content:center;font-size:48px}
+  .card-body{padding:14px}
+  .card-meta{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  .card-date{font-size:11px;color:var(--muted)}
+  .card-title{font-size:16px;font-weight:800;margin-bottom:6px;line-height:1.3}
+  .card-excerpt{font-size:13px;color:var(--muted);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  .empty{text-align:center;padding:64px;color:var(--muted)}
+  .empty .icon{font-size:48px;margin-bottom:12px}
+  .empty h3{font-size:18px;font-weight:700;margin-bottom:8px}
+  /* Detail view */
+  #detail{display:none}
+  #detail header{position:relative}
+  .detail-content{max-width:720px;margin:32px auto;padding:0 16px 48px}
+  .detail-content h1{font-size:26px;font-weight:900;margin:16px 0 8px}
+  .detail-content .meta{display:flex;gap:12px;align-items:center;color:var(--muted);font-size:13px;margin-bottom:20px;flex-wrap:wrap}
+  .detail-content .body{font-size:16px;line-height:1.8}
+  .detail-content .body p{margin-bottom:14px}
+  .detail-content .cover{width:100%;max-height:380px;object-fit:cover;border-radius:12px;margin-bottom:20px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;font-size:80px}
+  .back-btn{border:none;background:none;font-size:20px;cursor:pointer;padding:4px;display:flex;align-items:center;gap:6px;font-weight:700;color:var(--text)}
+  #loading{text-align:center;padding:64px;color:var(--muted);font-size:15px}
+</style>
+</head>
+<body>
+
+<!-- LIST VIEW -->
+<div id="list-view">
+  <header>
+    <a href="/">← JeetMantra</a>
+    <span style="font-weight:900;font-size:18px">Blog & Events</span>
+  </header>
+  <main>
+    <h1>Latest from JeetMantra</h1>
+    <p class="subtitle">Blogs, Events, Announcements & more</p>
+    <div class="filters">
+      <button class="filter-btn active" onclick="filterPosts('all')">All</button>
+      <button class="filter-btn" onclick="filterPosts('blog')">Blogs</button>
+      <button class="filter-btn" onclick="filterPosts('event')">Events</button>
+      <button class="filter-btn" onclick="filterPosts('announcement')">Announcements</button>
+      <button class="filter-btn" onclick="filterPosts('page')">Pages</button>
+    </div>
+    <div id="loading">Loading content…</div>
+    <div id="posts-grid" class="grid" style="display:none"></div>
+    <div id="empty-state" class="empty" style="display:none">
+      <div class="icon">📰</div>
+      <h3>No posts yet</h3>
+      <p>Content will appear here once published by the admin.</p>
+    </div>
+  </main>
+</div>
+
+<!-- DETAIL VIEW -->
+<div id="detail">
+  <header>
+    <button class="back-btn" onclick="showList()">← Back</button>
+  </header>
+  <div class="detail-content">
+    <div id="detail-cover" class="cover"></div>
+    <div id="detail-meta" class="meta"></div>
+    <h1 id="detail-title"></h1>
+    <div id="detail-body" class="body"></div>
+  </div>
+</div>
+
+<script>
+const API = '/api';
+let allPosts = [];
+let currentFilter = 'all';
+
+const TYPE_ICONS = {blog:'📝',event:'📅',page:'📄',announcement:'📢',media:'🎬'};
+const TYPE_TAGS  = {blog:'tag-blog',event:'tag-event',page:'tag-page',announcement:'tag-announcement',media:'tag-media'};
+
+async function loadPosts(){
+  try {
+    const res = await fetch(API + '/cms/posts?status=published&limit=50');
+    const data = await res.json();
+    allPosts = data.posts || [];
+    renderPosts(allPosts);
+  } catch(e) {
+    document.getElementById('loading').textContent = 'Could not load posts. Please try again.';
+  }
+}
+
+function renderPosts(posts){
+  document.getElementById('loading').style.display = 'none';
+  const grid = document.getElementById('posts-grid');
+  const empty = document.getElementById('empty-state');
+  if (!posts.length){ grid.style.display='none'; empty.style.display='block'; return; }
+  empty.style.display = 'none';
+  grid.style.display = 'grid';
+  grid.innerHTML = posts.map(p => {
+    const tag = p.type || 'blog';
+    const icon = TYPE_ICONS[tag] || '📄';
+    const date = p.published_at ? new Date(p.published_at).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}) : '';
+    const cover = p.cover_image
+      ? `<img class="card-img" src="${escHtml(p.cover_image)}" alt="" loading="lazy">`
+      : `<div class="card-img">${icon}</div>`;
+    return `<div class="card" onclick="openPost('${p.id}')">
+      ${cover}
+      <div class="card-body">
+        <div class="card-meta">
+          <span class="tag ${TYPE_TAGS[tag]||'tag-blog'}">${tag}</span>
+          <span class="card-date">${date}</span>
+        </div>
+        <div class="card-title">${escHtml(p.title||'Untitled')}</div>
+        <div class="card-excerpt">${escHtml(p.excerpt||p.content?.slice(0,140)||'')}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filterPosts(type){
+  currentFilter = type;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.toggle('active',b.textContent.toLowerCase()===type||(type==='all'&&b.textContent==='All')));
+  renderPosts(type==='all' ? allPosts : allPosts.filter(p=>p.type===type));
+}
+
+function openPost(id){
+  const p = allPosts.find(x=>x.id===id); if(!p) return;
+  const tag = p.type || 'blog';
+  const icon = TYPE_ICONS[tag] || '📄';
+  const date = p.published_at ? new Date(p.published_at).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}) : '';
+
+  const coverEl = document.getElementById('detail-cover');
+  if (p.cover_image){ coverEl.innerHTML=`<img src="${escHtml(p.cover_image)}" style="width:100%;height:100%;object-fit:cover;border-radius:12px" alt="">`; }
+  else { coverEl.textContent = icon; }
+
+  document.getElementById('detail-title').textContent = p.title || 'Untitled';
+  document.getElementById('detail-meta').innerHTML = `<span class="tag ${TYPE_TAGS[tag]||'tag-blog'}">${tag}</span><span>${date}</span>${p.author_name?'<span>By '+escHtml(p.author_name)+'</span>':''}`;
+
+  const body = document.getElementById('detail-body');
+  const content = p.content || p.excerpt || 'No content available.';
+  body.innerHTML = content.split('\n\n').map(para=>`<p>${escHtml(para)}</p>`).join('');
+
+  document.getElementById('list-view').style.display = 'none';
+  document.getElementById('detail').style.display = 'block';
+  window.scrollTo(0,0);
+}
+
+function showList(){
+  document.getElementById('detail').style.display = 'none';
+  document.getElementById('list-view').style.display = 'block';
+}
+
+function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+loadPosts();
+</script>
+</body>
+</html>

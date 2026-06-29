@@ -263,14 +263,18 @@ router.post('/', authenticateToken, requireCapability('course.create'), validate
 // Update course (teacher only)
 router.put('/:id', authenticateToken, requireCapability('course.edit'), async (req, res) => {
   try {
-    // Verify ownership
+    // Verify ownership — admin always passes; institution managers pass when
+    // the course belongs to their active institution.
     const { data: course } = await supabaseAdmin
       .from('courses')
-      .select('teacher_id')
+      .select('teacher_id, institution_id')
       .eq('id', req.params.id)
       .single();
 
-    if (!course || course.teacher_id !== req.user.id) {
+    const isOwner    = course?.teacher_id === req.user.id;
+    const isAdmin    = req.user.role === 'admin';
+    const isOrgMgr   = req.institutionId && course?.institution_id === req.institutionId;
+    if (!course || (!isOwner && !isAdmin && !isOrgMgr)) {
       return res.status(403).json({ error: 'Not authorized to update this course' });
     }
 
@@ -329,14 +333,18 @@ router.put('/:id', authenticateToken, requireCapability('course.edit'), async (r
 // Delete course (teacher only)
 router.delete('/:id', authenticateToken, requireCapability('course.delete'), async (req, res) => {
   try {
-    // Verify ownership
+    // Verify ownership — admin can delete any; institution managers can delete
+    // courses that belong to their institution.
     const { data: course } = await supabaseAdmin
       .from('courses')
-      .select('teacher_id')
+      .select('teacher_id, institution_id')
       .eq('id', req.params.id)
       .single();
 
-    if (!course || course.teacher_id !== req.user.id) {
+    const isOwner  = course?.teacher_id === req.user.id;
+    const isAdmin  = req.user.role === 'admin';
+    const isOrgMgr = req.institutionId && course?.institution_id === req.institutionId;
+    if (!course || (!isOwner && !isAdmin && !isOrgMgr)) {
       return res.status(403).json({ error: 'Not authorized to delete this course' });
     }
 
