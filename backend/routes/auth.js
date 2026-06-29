@@ -346,6 +346,18 @@ router.post('/login', loginThrottle, validate('login'), async (req, res) => {
     }
 
     if (!user) {
+      // In dev mode, allow built-in dev users even when Supabase is reachable but has no matching row
+      if (process.env.NODE_ENV !== 'production') {
+        const devUser = DEV_USERS.find(u => u.email === email);
+        if (devUser && devUser._pw === password) {
+          loginRecordSuccess(req);
+          const token = jwt.sign(
+            { id: devUser.id, email: devUser.email, role: devUser.user_type, roles: [devUser.user_type] },
+            process.env.JWT_SECRET, { expiresIn: '7d' }
+          );
+          return res.json({ token, user: { id: devUser.id, email: devUser.email, fullName: devUser.full_name, role: devUser.user_type, roles: [devUser.user_type] }, _offline: true });
+        }
+      }
       loginRecordFail(req);
       return res.status(401).json({ error: 'Invalid email or password' });
     }
