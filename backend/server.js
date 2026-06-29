@@ -187,6 +187,8 @@ app.use('/api/timetable', timetableRoutes);
 app.use('/api/i18n', i18nRoutes);
 app.use('/api/studio', studioRoutes);
 app.use('/api/rag', ragRoutes);
+const permissionsRoutes = require('./routes/permissions');
+app.use('/api/permissions', permissionsRoutes);
 
 // LevelDB sync queue endpoint
 app.get('/api/sync/queue', async (req, res) => {

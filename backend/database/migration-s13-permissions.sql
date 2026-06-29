@@ -1,0 +1,176 @@
+-- S13: Feature Permission Control System
+-- Admin can toggle any menu / widget / action per role, per org, or per user.
+-- Scope priority: user > org > role (most-specific wins).
+
+CREATE TABLE IF NOT EXISTS feature_permissions (
+  id              UUID    PRIMARY KEY DEFAULT gen_random_uuid(),
+  scope           VARCHAR NOT NULL DEFAULT 'role',   -- 'role' | 'org' | 'user'
+  role            VARCHAR,       -- teacher|student|admin|partner|school|coaching
+  org_id          UUID,          -- references organizations(id)
+  user_id         VARCHAR,       -- references jeetmantra_users(id)
+  feature_key     VARCHAR NOT NULL,
+  enabled         BOOLEAN NOT NULL DEFAULT true,
+  plan_required   VARCHAR NOT NULL DEFAULT 'free',  -- free|basic|pro|enterprise
+  created_at      TIMESTAMPTZ DEFAULT NOW(),
+  updated_at      TIMESTAMPTZ DEFAULT NOW(),
+  created_by      VARCHAR,
+  UNIQUE NULLS NOT DISTINCT (scope, role, org_id, user_id, feature_key)
+);
+
+CREATE INDEX IF NOT EXISTS fp_role_idx    ON feature_permissions(scope, role)    WHERE scope='role';
+CREATE INDEX IF NOT EXISTS fp_org_idx     ON feature_permissions(scope, org_id)  WHERE scope='org';
+CREATE INDEX IF NOT EXISTS fp_user_idx    ON feature_permissions(scope, user_id) WHERE scope='user';
+
+-- ── Seed defaults (role-level, all features, free tier unless specified) ─────
+INSERT INTO feature_permissions (scope, role, feature_key, enabled, plan_required) VALUES
+
+-- ── TEACHER ──────────────────────────────────────────────────────────────────
+('role','teacher','menu.dashboard',         true, 'free'),
+('role','teacher','menu.courses',           true, 'free'),
+('role','teacher','menu.live_class',        true, 'free'),
+('role','teacher','menu.calendar',          true, 'free'),
+('role','teacher','menu.students',          true, 'free'),
+('role','teacher','menu.attendance',        true, 'free'),
+('role','teacher','menu.assignments',       true, 'free'),
+('role','teacher','menu.studio',            true, 'free'),
+('role','teacher','menu.wallet',            true, 'free'),
+('role','teacher','menu.earnings',          true, 'free'),
+('role','teacher','menu.marketplace',       true, 'free'),
+('role','teacher','menu.timetable',         true, 'free'),
+('role','teacher','menu.certificates',      true, 'basic'),
+('role','teacher','menu.analytics',         true, 'pro'),
+('role','teacher','menu.ai_tools',          true, 'pro'),
+('role','teacher','menu.bhasha_setu',       true, 'basic'),
+('role','teacher','widget.quick_actions',   true, 'free'),
+('role','teacher','widget.my_courses',      true, 'free'),
+('role','teacher','widget.calendar',        true, 'free'),
+('role','teacher','widget.upcoming_classes',true, 'free'),
+('role','teacher','widget.earnings',        true, 'free'),
+('role','teacher','widget.attendance',      true, 'free'),
+('role','teacher','widget.students_help',   true, 'free'),
+('role','teacher','widget.announcements',   true, 'free'),
+('role','teacher','widget.ai_insights',     true, 'pro'),
+('role','teacher','action.create_course',   true, 'free'),
+('role','teacher','action.schedule_class',  true, 'free'),
+('role','teacher','action.take_attendance', true, 'free'),
+('role','teacher','action.go_live',         true, 'basic'),
+('role','teacher','action.issue_certificate',true,'basic'),
+('role','teacher','action.bulk_enroll',     true, 'pro'),
+('role','teacher','action.export_data',     true, 'pro'),
+
+-- ── STUDENT ──────────────────────────────────────────────────────────────────
+('role','student','menu.dashboard',         true, 'free'),
+('role','student','menu.my_courses',        true, 'free'),
+('role','student','menu.live_class',        true, 'free'),
+('role','student','menu.calendar',          true, 'free'),
+('role','student','menu.homework',          true, 'free'),
+('role','student','menu.certificates',      true, 'free'),
+('role','student','menu.wallet',            true, 'free'),
+('role','student','menu.marketplace',       true, 'free'),
+('role','student','menu.gamification',      true, 'free'),
+('role','student','menu.bhasha_setu',       true, 'basic'),
+('role','student','menu.ai_tutor',          true, 'pro'),
+('role','student','widget.enrolled_courses',true, 'free'),
+('role','student','widget.upcoming_classes',true, 'free'),
+('role','student','widget.calendar',        true, 'free'),
+('role','student','widget.streak',          true, 'free'),
+('role','student','widget.homework',        true, 'free'),
+('role','student','widget.certificates',    true, 'basic'),
+('role','student','widget.announcements',   true, 'free'),
+('role','student','widget.ai_insights',     true, 'pro'),
+('role','student','action.enroll',          true, 'free'),
+('role','student','action.submit_assignment',true,'free'),
+('role','student','action.join_live',       true, 'free'),
+('role','student','action.download_material',true,'basic'),
+
+-- ── ADMIN ─────────────────────────────────────────────────────────────────────
+('role','admin','menu.dashboard',           true, 'free'),
+('role','admin','menu.users',               true, 'free'),
+('role','admin','menu.courses',             true, 'free'),
+('role','admin','menu.payments',            true, 'free'),
+('role','admin','menu.marketplace',         true, 'free'),
+('role','admin','menu.reports',             true, 'free'),
+('role','admin','menu.settings',            true, 'free'),
+('role','admin','menu.platform_os',         true, 'free'),
+('role','admin','menu.permissions',         true, 'free'),
+('role','admin','menu.certificates',        true, 'free'),
+('role','admin','menu.analytics',           true, 'free'),
+('role','admin','menu.notifications',       true, 'free'),
+('role','admin','menu.live_class',          true, 'free'),
+('role','admin','menu.calendar',            true, 'free'),
+('role','admin','action.bulk_enroll',       true, 'free'),
+('role','admin','action.impersonate',       true, 'enterprise'),
+('role','admin','action.export_data',       true, 'free'),
+('role','admin','action.issue_certificate', true, 'free'),
+
+-- ── PARTNER ───────────────────────────────────────────────────────────────────
+('role','partner','menu.dashboard',         true, 'free'),
+('role','partner','menu.courses',           true, 'free'),
+('role','partner','menu.live_class',        true, 'free'),
+('role','partner','menu.calendar',          true, 'free'),
+('role','partner','menu.students',          true, 'free'),
+('role','partner','menu.earnings',          true, 'free'),
+('role','partner','menu.wallet',            true, 'free'),
+('role','partner','menu.marketplace',       true, 'free'),
+('role','partner','menu.studio',            true, 'free'),
+('role','partner','menu.certificates',      true, 'basic'),
+('role','partner','menu.analytics',         true, 'basic'),
+('role','partner','widget.quick_actions',   true, 'free'),
+('role','partner','widget.my_courses',      true, 'free'),
+('role','partner','widget.earnings',        true, 'free'),
+('role','partner','widget.upcoming_classes',true, 'free'),
+('role','partner','widget.calendar',        true, 'free'),
+('role','partner','widget.announcements',   true, 'free'),
+('role','partner','action.create_course',   true, 'free'),
+('role','partner','action.go_live',         true, 'basic'),
+('role','partner','action.issue_certificate',true,'basic'),
+
+-- ── SCHOOL ────────────────────────────────────────────────────────────────────
+('role','school','menu.dashboard',          true, 'free'),
+('role','school','menu.courses',            true, 'free'),
+('role','school','menu.students',           true, 'free'),
+('role','school','menu.teachers',           true, 'free'),
+('role','school','menu.live_class',         true, 'free'),
+('role','school','menu.calendar',           true, 'free'),
+('role','school','menu.attendance',         true, 'free'),
+('role','school','menu.timetable',          true, 'free'),
+('role','school','menu.wallet',             true, 'free'),
+('role','school','menu.certificates',       true, 'basic'),
+('role','school','menu.analytics',          true, 'basic'),
+('role','school','menu.reports',            true, 'pro'),
+('role','school','widget.quick_actions',    true, 'free'),
+('role','school','widget.attendance',       true, 'free'),
+('role','school','widget.calendar',         true, 'free'),
+('role','school','widget.upcoming_classes', true, 'free'),
+('role','school','widget.announcements',    true, 'free'),
+('role','school','action.create_course',    true, 'free'),
+('role','school','action.take_attendance',  true, 'free'),
+('role','school','action.bulk_enroll',      true, 'pro'),
+('role','school','action.issue_certificate',true, 'basic'),
+('role','school','action.export_data',      true, 'pro'),
+
+-- ── COACHING ──────────────────────────────────────────────────────────────────
+('role','coaching','menu.dashboard',        true, 'free'),
+('role','coaching','menu.courses',          true, 'free'),
+('role','coaching','menu.students',         true, 'free'),
+('role','coaching','menu.live_class',       true, 'free'),
+('role','coaching','menu.calendar',         true, 'free'),
+('role','coaching','menu.bookings',         true, 'free'),
+('role','coaching','menu.earnings',         true, 'free'),
+('role','coaching','menu.wallet',           true, 'free'),
+('role','coaching','menu.timetable',        true, 'free'),
+('role','coaching','menu.studio',           true, 'free'),
+('role','coaching','menu.certificates',     true, 'basic'),
+('role','coaching','menu.analytics',        true, 'basic'),
+('role','coaching','widget.quick_actions',  true, 'free'),
+('role','coaching','widget.my_courses',     true, 'free'),
+('role','coaching','widget.earnings',       true, 'free'),
+('role','coaching','widget.calendar',       true, 'free'),
+('role','coaching','widget.upcoming_classes',true,'free'),
+('role','coaching','widget.announcements',  true, 'free'),
+('role','coaching','action.create_course',  true, 'free'),
+('role','coaching','action.schedule_class', true, 'free'),
+('role','coaching','action.go_live',        true, 'basic'),
+('role','coaching','action.issue_certificate',true,'basic')
+
+ON CONFLICT DO NOTHING;

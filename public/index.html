@@ -684,7 +684,7 @@ function wsScrollTo(id) {
     // Logged-in: load the app shell JS and mount it (no page reload)
     document.getElementById('jm-loading').style.display = 'flex';
     var _s = document.createElement('script');
-    _s.src = '/js/app-shell.js?v=5';
+    _s.src = '/js/app-shell.js?v=6';
     _s.onload = function() {
       if (window.JM && JM.AppShell) {
         JM.AppShell.mount();
@@ -989,4 +989,5 @@ document.addEventListener('change', function(e) {
 <script src="/i18n-lite.js?v=4" defer></script>
 </body>
 </html>
+
 
