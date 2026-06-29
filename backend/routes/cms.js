@@ -39,7 +39,11 @@ router.get('/posts', async (req, res) => {
          .order('created_at', { ascending: false })
          .range(Number(offset), Number(offset) + Number(limit) - 1);
     const { data, error, count } = await q;
-    if (error) return res.status(500).json({ error: error.message });
+    if (error) {
+      // Table doesn't exist yet — return empty gracefully
+      if (error.message?.includes('does not exist') || error.code === '42P01') return res.json({ posts: [], count: 0, _note: 'Run migration-s14-cms.sql' });
+      return res.status(500).json({ error: error.message });
+    }
     res.json({ posts: data || [], count });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
