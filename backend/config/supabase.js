@@ -8,21 +8,25 @@ if (!supabaseUrl || !supabaseServiceKey) {
   console.warn('⚠️  Supabase credentials not configured. Some features may not work.');
 }
 
-// Admin client (service role) — full DB access, bypasses RLS.
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+// Fetch wrapper with a 10-second timeout so Supabase hangs don't stall the server
+function fetchWithTimeout(url, options = {}) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10000);
+  return fetch(url, { ...options, signal: controller.signal })
+    .finally(() => clearTimeout(timer));
+}
 
-// "supabase" is the general client used by routes for reads/writes.
-// NOTE: this self-hosted instance rejects the anon key ("Invalid authentication
-// credentials"), and the backend is itself the trusted gateway — it enforces
-// JWT auth + role checks via middleware on every route. So we back this client
-// with the service role key too, which makes all existing supabase.from(...)
-// calls work. If you later expose Supabase directly to browsers with RLS, give
-// this its own anon/user-scoped client instead.
-const supabase = supabaseServiceKey
-  ? createClient(supabaseUrl, supabaseServiceKey)
-  : createClient(supabaseUrl, supabaseKey);
-
-module.exports = {
-  supabase,
-  supabaseAdmin
+const clientOpts = {
+  auth: { persistSession: false },
+  global: { fetch: fetchWithTimeout },
 };
+
+// Admin client (service role) — full DB access, bypasses RLS.
+const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, clientOpts);
+
+// General client — backed by service role key (self-hosted anon key is invalid).
+const supabase = supabaseServiceKey
+  ? createClient(supabaseUrl, supabaseServiceKey, clientOpts)
+  : createClient(supabaseUrl, supabaseKey, clientOpts);
+
+module.exports = { supabase, supabaseAdmin };
