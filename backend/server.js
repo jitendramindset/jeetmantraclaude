@@ -189,6 +189,8 @@ app.use('/api/studio', studioRoutes);
 app.use('/api/rag', ragRoutes);
 const permissionsRoutes = require('./routes/permissions');
 app.use('/api/permissions', permissionsRoutes);
+const cmsRoutes = require('./routes/cms');
+app.use('/api/cms', cmsRoutes);
 
 // LevelDB sync queue endpoint
 app.get('/api/sync/queue', async (req, res) => {
