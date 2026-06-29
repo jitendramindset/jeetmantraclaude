@@ -50,6 +50,40 @@ function exceedsCapacity(existing, newPartySize, capacity) {
   return total > (capacity || 1);
 }
 
+// GET / — merged view: both bookings I made (mine) and bookings on my resources (received).
+router.get('/', authenticateToken, async (req, res) => {
+  try {
+    // mine
+    const { data: mineData } = await supabaseAdmin.from('bookings_v2')
+      .select('*').eq('booker_id', req.user.id).order('start_at', { ascending: false });
+    const resourceIds = [...new Set((mineData || []).map(r => r.resource_id))];
+    let resourceTitles = {};
+    if (resourceIds.length) {
+      const { data: r } = await supabaseAdmin.from('resources').select('id, title, type, cover_image').in('id', resourceIds);
+      resourceTitles = Object.fromEntries((r || []).map(x => [x.id, x]));
+    }
+    const mine = (mineData || []).map(b => ({ ...b, resource: resourceTitles[b.resource_id] || null }));
+
+    // received
+    const { data: myResources } = await supabaseAdmin.from('resources').select('id').eq('owner_id', req.user.id);
+    const myResourceIds = (myResources || []).map(r => r.id);
+    let received = [];
+    if (myResourceIds.length) {
+      const { data: receivedData } = await supabaseAdmin.from('bookings_v2')
+        .select('*').in('resource_id', myResourceIds).order('start_at', { ascending: false });
+      const bookerIds = [...new Set((receivedData || []).map(b => b.booker_id))];
+      let bookers = {};
+      if (bookerIds.length) {
+        const { data: u } = await supabaseAdmin.from('jeetmantra_users').select('id, full_name, email').in('id', bookerIds);
+        bookers = Object.fromEntries((u || []).map(x => [x.id, x]));
+      }
+      received = (receivedData || []).map(b => ({ ...b, booker: bookers[b.booker_id] || null }));
+    }
+
+    res.json({ mine, received });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 router.post('/', authenticateToken, validate('bookingCreate'), async (req, res) => {
   try {
     const b = req.validatedData;

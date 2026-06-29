@@ -757,4 +757,30 @@ router.put('/widget-config', authenticateToken, authorizeRole(['admin']), async 
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ── PAYMENT GATEWAY CONFIG: admin can view and update the active gateway
+// credentials. Credentials are stored as a JSON blob in platform_settings
+// under the key 'payment_config'. Secrets are never echoed back.
+router.get('/payment-config', authenticateToken, authorizeRole(['admin']), async (req, res) => {
+  try {
+    const { data } = await supabaseAdmin.from('platform_settings').select('value').eq('key', 'payment_config').maybeSingle();
+    const config = data ? JSON.parse(data.value) : {};
+    res.json({
+      gateway: config.gateway || 'demo',
+      razorpay_configured: !!(config.razorpay_key_id && config.razorpay_key_secret),
+      instamojo_configured: !!(config.instamojo_api_key && config.instamojo_auth_token),
+      instamojo_env: config.instamojo_env || 'test',
+    });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.post('/payment-config', authenticateToken, authorizeRole(['admin']), async (req, res) => {
+  try {
+    const { gateway, razorpay_key_id, razorpay_key_secret, instamojo_api_key, instamojo_auth_token, instamojo_env } = req.body;
+    const config = { gateway, razorpay_key_id, razorpay_key_secret, instamojo_api_key, instamojo_auth_token, instamojo_env: instamojo_env || 'test' };
+    await supabaseAdmin.from('platform_settings').upsert({ key: 'payment_config', value: JSON.stringify(config) }, { onConflict: 'key' });
+    await auditLog(req.user.id, 'payment_config.update', null, { gateway, instamojo_env: config.instamojo_env });
+    res.json({ success: true, gateway });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 module.exports = router;

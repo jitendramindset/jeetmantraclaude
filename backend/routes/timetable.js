@@ -28,6 +28,20 @@ const { validate } = require('../middleware/validation');
 
 const router = express.Router();
 
+// GET /api/timetable/ — upcoming timetable slots for the current user (as teacher).
+router.get('/', authenticateToken, async (req, res) => {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('timetable_slots')
+      .select('*, timetable_templates(name)')
+      .eq('teacher_id', req.user.id)
+      .order('slot_date')
+      .limit(20);
+    if (error) return res.json({ slots: [] });
+    res.json({ slots: data || [] });
+  } catch (e) { res.json({ slots: [] }); }
+});
+
 // GET /api/timetable/templates?orgId= — list templates for an org.
 router.get('/templates', authenticateToken, async (req, res) => {
   try {

@@ -41,6 +41,16 @@ function generateVerifyToken() {
   return crypto.randomBytes(24).toString('base64url'); // ~32 chars URL-safe
 }
 
+// GET /api/certificates/ — alias for GET /my (caller's own certificates).
+router.get('/', authenticateToken, async (req, res) => {
+  try {
+    const { data } = await supabaseAdmin.from('certificates')
+      .select('*').eq('student_id', req.user.id).is('revoked_at', null)
+      .order('issued_at', { ascending: false });
+    res.json({ certificates: data || [] });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // POST /api/certificates/issue — admin or course owner. Body:
 //   { type, studentId, courseId?, resourceId?, templateId?, title?, metadata? }
 // Eligibility checks:

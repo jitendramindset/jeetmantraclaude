@@ -81,6 +81,11 @@ async function auditLog(actorId, action, targetId, metadata) {
   } catch (_) { /* audit is best-effort */ }
 }
 
+// GET / — list of supported languages.
+router.get('/', authenticateToken, (req, res) => {
+  res.json({ languages: ['en', 'hi', 'mr', 'gu', 'bn', 'te', 'ta', 'kn', 'ml', 'pa', 'ur', 'od'] });
+});
+
 // ── POST /content — translate-or-fetch one field of an entity.
 router.post('/content', authenticateToken, async (req, res) => {
   try {

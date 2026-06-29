@@ -76,6 +76,16 @@ async function postTransaction(userId, type, amount, reference, notes) {
   throw e;
 }
 
+// ── GET /balance — alias for GET / (wallet balance + recent transactions).
+router.get('/balance', authenticateToken, async (req, res) => {
+  try {
+    const w = await ensureWallet(req.user.id);
+    const { data: tx } = await supabaseAdmin.from('wallet_transactions')
+      .select('*').eq('user_id', req.user.id).order('created_at', { ascending: false }).limit(30);
+    res.json({ balance: Number(w.balance) || 0, transactions: tx || [] });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ── WALLET — balance + recent transactions.
 router.get('/', authenticateToken, async (req, res) => {
   try {

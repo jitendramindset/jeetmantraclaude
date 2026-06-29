@@ -40,6 +40,13 @@ const RZP_KEY_ID = process.env.RAZORPAY_KEY_ID || '';
 const RZP_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET || '';
 const RZP_MODE = RZP_KEY_ID && RZP_KEY_SECRET ? 'live' : 'demo';
 
+// ── Instamojo configuration: optional second gateway.
+const IMOJO_API_KEY = process.env.INSTAMOJO_API_KEY || '';
+const IMOJO_AUTH_TOKEN = process.env.INSTAMOJO_AUTH_TOKEN || '';
+const IMOJO_BASE = process.env.INSTAMOJO_ENV === 'production'
+  ? 'https://www.instamojo.com/api/1.1'
+  : 'https://test.instamojo.com/api/1.1';
+
 // Has this user already redeemed this coupon? Backed by the coupon_redemptions
 // table (UNIQUE(coupon_code,user_id)). Returns false if the table is missing so
 // the flow degrades to the global max_uses cap rather than breaking.
@@ -50,6 +57,19 @@ async function couponRedeemedBy(code, userId) {
     return !!data;
   } catch (e) { return false; }
 }
+
+// GET / — alias for GET /my (caller's payment history).
+router.get('/', authenticateToken, async (req, res) => {
+  try {
+    const { data: payments, error } = await supabaseAdmin
+      .from('payments')
+      .select('*')
+      .eq('user_id', req.user.id)
+      .order('created_at', { ascending: false });
+    if (error) return res.status(500).json({ error: 'Failed to fetch payments' });
+    res.json({ message: 'Payments fetched successfully', payments });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
 
 // ── COUPONS: validate a code + apply against an amount. Returns the
 // discounted amount the order should be created with.
@@ -118,6 +138,10 @@ router.delete('/coupons/:id', authenticateToken, async (req, res) => {
 // Public config — anything the browser checkout needs.
 router.get('/config', (req, res) => {
   res.json({
+    gateway: RZP_KEY_ID && RZP_KEY_SECRET ? 'razorpay' : (IMOJO_API_KEY && IMOJO_AUTH_TOKEN ? 'instamojo' : 'demo'),
+    razorpay: { keyId: RZP_KEY_ID || null, mode: RZP_MODE },
+    instamojo: { enabled: !!(IMOJO_API_KEY && IMOJO_AUTH_TOKEN) },
+    // Legacy fields kept for backward-compat with existing frontend code.
     keyId: RZP_KEY_ID || null,
     mode: RZP_MODE,
     methods: ['upi', 'card', 'netbanking', 'wallet'],
@@ -477,6 +501,57 @@ button{padding:8px 18px;border:0;border-radius:6px;background:#f97316;color:#fff
   <div style="font-size:12px;color:#999;border-top:1px solid #f0eff5;padding-top:14px">This is a computer-generated receipt. Thank you for choosing JeetMantra.</div>
 </div></body></html>`);
   } catch (e) { res.status(500).json({ error: 'Receipt failed: ' + e.message }); }
+});
+
+// ── INSTAMOJO: create a payment request (redirect-based gateway).
+// Body: { amount, courseId, purpose }
+router.post('/instamojo/order', authenticateToken, async (req, res) => {
+  const { amount, courseId, purpose } = req.body;
+  if (!IMOJO_API_KEY || !IMOJO_AUTH_TOKEN) {
+    // demo mode — return a fake request id so the UI flow can be exercised
+    return res.json({ mode: 'demo', paymentUrl: null, paymentRequestId: 'demo_imojo_' + Date.now(), amount });
+  }
+  try {
+    const body = new URLSearchParams({
+      purpose: purpose || 'Course Payment',
+      amount: String(amount),
+      buyer_name: req.user.email,
+      email: req.user.email,
+      redirect_url: (process.env.APP_BASE_URL || '') + '/payment-return?gateway=instamojo',
+      allow_repeated_payments: 'false',
+      send_email: 'false',
+      send_sms: 'false',
+    });
+    const r = await fetch(IMOJO_BASE + '/payment-requests/', {
+      method: 'POST',
+      headers: { 'X-Api-Key': IMOJO_API_KEY, 'X-Auth-Token': IMOJO_AUTH_TOKEN, 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body.toString(),
+    });
+    const data = await r.json();
+    if (!data.success) return res.status(400).json({ error: data.message || 'Instamojo error' });
+    const { data: paymentRow } = await supabaseAdmin.from('payments').insert({
+      user_id: req.user.id, course_id: courseId || null,
+      amount, payment_method: 'instamojo', status: 'pending',
+      transaction_id: data.payment_request.id,
+    }).select().single();
+    res.json({ mode: 'live', paymentUrl: data.payment_request.longurl, paymentRequestId: data.payment_request.id, paymentRowId: paymentRow?.id });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── INSTAMOJO: verify redirect-back result.
+// Body: { paymentId, paymentRequestId, paymentStatus }
+// Instamojo sends paymentStatus='Credit' on success.
+router.post('/instamojo/verify', authenticateToken, async (req, res) => {
+  const { paymentId, paymentRequestId, paymentStatus } = req.body;
+  try {
+    if (paymentStatus === 'Credit') {
+      await supabaseAdmin.from('payments').update({ status: 'completed', transaction_id: paymentId }).eq('transaction_id', paymentRequestId);
+      res.json({ success: true, status: 'completed' });
+    } else {
+      await supabaseAdmin.from('payments').update({ status: 'failed' }).eq('transaction_id', paymentRequestId);
+      res.json({ success: false, status: paymentStatus });
+    }
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 module.exports = router;

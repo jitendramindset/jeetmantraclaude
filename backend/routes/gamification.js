@@ -20,6 +20,24 @@ const { awardForEvent, levelFromXp } = require('../services/award');
 
 const router = express.Router();
 
+// GET /me — alias for GET /summary (streak + XP + badges in one shot).
+router.get('/me', authenticateToken, async (req, res) => {
+  try {
+    const [streakRow, xpRows, badgesEarned] = await Promise.all([
+      supabaseAdmin.from('study_streaks').select('*').eq('user_id', req.user.id).maybeSingle().then(r => r.data).catch(() => null),
+      supabaseAdmin.from('user_xp_ledger').select('xp').eq('user_id', req.user.id).then(r => r.data || []).catch(() => []),
+      supabaseAdmin.from('user_badges').select('id', { count: 'exact', head: true }).eq('user_id', req.user.id).then(r => r.count || 0).catch(() => 0)
+    ]);
+    const totalXp = xpRows.reduce((s, r) => s + (r.xp || 0), 0);
+    const level = levelFromXp(totalXp);
+    res.json({
+      streak: { current: streakRow?.current_streak || 0, longest: streakRow?.longest_streak || 0 },
+      xp: { total: totalXp, level, nextLevelAt: (level * (level + 1) / 2) * 100 },
+      badgesEarned
+    });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // GET /streak — current + longest streak for the caller (defaults if none).
 router.get('/streak', authenticateToken, async (req, res) => {
   try {

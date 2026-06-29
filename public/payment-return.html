@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Payment Status — JeetMantra</title>
+<style>
+  :root { --primary:#7c3aed; --success:#16a34a; --danger:#dc2626; --warn:#d97706; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(135deg,#0f172a,#1e293b);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+  .card{background:#fff;border-radius:20px;padding:40px 36px;max-width:440px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+  .icon{font-size:4rem;margin-bottom:16px;line-height:1}
+  h1{font-size:1.5rem;font-weight:800;margin-bottom:8px;color:#0f172a}
+  p{color:#64748b;line-height:1.6;margin-bottom:4px;font-size:.95rem}
+  .amount{font-size:1.8rem;font-weight:800;color:#0f172a;margin:12px 0}
+  .badge{display:inline-block;padding:.4em 1em;border-radius:999px;font-weight:700;font-size:.85rem;margin:8px 0 20px}
+  .badge.success{background:#dcfce7;color:var(--success)}
+  .badge.failed{background:#fee2e2;color:var(--danger)}
+  .badge.pending{background:#fef9c3;color:var(--warn)}
+  .txn{background:#f8fafc;border-radius:10px;padding:12px 16px;margin:16px 0;text-align:left;font-size:.85rem;color:#475569}
+  .txn strong{color:#0f172a}
+  .btn{display:inline-block;background:var(--primary);color:#fff;padding:.8em 1.6em;border-radius:12px;font-weight:700;text-decoration:none;border:none;cursor:pointer;font-size:1rem;margin-top:8px;width:100%}
+  .btn.ghost{background:#f1f5f9;color:#0f172a;margin-top:8px}
+  .spinner{width:44px;height:44px;border:4px solid #e2e8f0;border-top-color:var(--primary);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 20px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .logo{font-size:1.1rem;font-weight:800;color:#7c3aed;margin-bottom:24px;letter-spacing:-.02em}
+</style>
+</head>
+<body>
+<div class="card" id="card">
+  <div class="logo">JeetMantra</div>
+  <div class="spinner"></div>
+  <h1>Verifying Payment…</h1>
+  <p>Please wait while we confirm your transaction.</p>
+</div>
+
+<script>
+(async function () {
+  const params = new URLSearchParams(location.search);
+  const gateway = params.get('gateway') || 'razorpay';
+  const token = localStorage.getItem('jm_token');
+  const card = document.getElementById('card');
+
+  // ── Instamojo callback params
+  // ?payment_id=XXXX&payment_request_id=YYYY&payment_status=Credit
+  // ── Razorpay demo redirect (we control params)
+  // ?razorpay_payment_id=XXXX&razorpay_order_id=YYYY&status=success
+
+  let status = 'pending';
+  let txnId = '';
+  let amount = params.get('amount') || '';
+  let courseName = params.get('course') || '';
+  let errorMsg = '';
+
+  try {
+    if (gateway === 'instamojo') {
+      const paymentId = params.get('payment_id');
+      const paymentRequestId = params.get('payment_request_id');
+      const paymentStatus = params.get('payment_status'); // 'Credit' = success
+
+      if (token && paymentRequestId) {
+        const r = await fetch('/api/payments/instamojo/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+          body: JSON.stringify({ paymentId, paymentRequestId, paymentStatus }),
+        });
+        const d = await r.json();
+        status = d.status === 'completed' ? 'success' : (d.status || 'failed');
+        txnId = paymentId || paymentRequestId;
+      } else {
+        status = paymentStatus === 'Credit' ? 'success' : 'failed';
+        txnId = paymentId || '';
+      }
+    } else if (gateway === 'razorpay') {
+      // Razorpay redirects only happen in demo mode; live uses JS SDK callback
+      const rzStatus = params.get('status');
+      txnId = params.get('razorpay_payment_id') || params.get('txn') || '';
+      status = rzStatus === 'success' || rzStatus === 'captured' ? 'success' : (rzStatus === 'failed' ? 'failed' : 'pending');
+    } else {
+      // demo
+      status = params.get('status') || 'success';
+      txnId = 'DEMO_' + Date.now();
+    }
+  } catch (e) {
+    status = 'failed';
+    errorMsg = e.message;
+  }
+
+  // ── Render result
+  const icons = { success: '✅', failed: '❌', pending: '⏳' };
+  const labels = { success: 'Payment Successful', failed: 'Payment Failed', pending: 'Payment Pending' };
+  const msgs = {
+    success: 'Your payment has been confirmed. You can now access your course.',
+    failed: 'Your payment could not be processed. No amount was charged.',
+    pending: 'Your payment is being processed. We'll notify you once confirmed.',
+  };
+
+  card.innerHTML = `
+    <div class="logo">JeetMantra</div>
+    <div class="icon">${icons[status] || '❓'}</div>
+    <h1>${labels[status] || 'Unknown Status'}</h1>
+    <span class="badge ${status === 'success' ? 'success' : status === 'failed' ? 'failed' : 'pending'}">${status.toUpperCase()}</span>
+    ${amount ? `<div class="amount">₹${Number(amount).toLocaleString('en-IN')}</div>` : ''}
+    <p>${msgs[status] || ''}</p>
+    ${errorMsg ? `<p style="color:var(--danger);font-size:.8rem;margin-top:6px">${errorMsg}</p>` : ''}
+    ${txnId ? `<div class="txn">Transaction ID: <strong>${txnId}</strong>${courseName ? `<br>Course: <strong>${courseName}</strong>` : ''}<br>Gateway: <strong>${gateway}</strong></div>` : ''}
+    ${status === 'success' ? `<a href="/app" class="btn">Go to Dashboard →</a>` : ''}
+    ${status === 'failed' ? `<button class="btn" onclick="history.back()">Try Again</button>` : ''}
+    <a href="/app" class="btn ghost">Back to Dashboard</a>
+  `;
+
+  // Auto-redirect to dashboard after success
+  if (status === 'success') {
+    setTimeout(() => { location.href = '/app'; }, 5000);
+  }
+})();
+</script>
+</body>
+</html>
