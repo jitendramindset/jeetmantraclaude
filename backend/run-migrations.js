@@ -1,16 +1,14 @@
 #!/usr/bin/env node
-// One-shot migration runner. Run from backend/ directory.
-// Usage: node run-migrations.js
+// Run all SQL migrations against Supabase via /pg/query endpoint
+// Usage: node run-migrations.js   (from backend/ directory)
 require('dotenv').config();
-const { createClient } = require('@supabase/supabase-js');
 const fs = require('fs');
 const path = require('path');
+const axios = require('axios');
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY,
-  { auth: { persistSession: false } }
-);
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const PG_URL = `${SUPABASE_URL}/pg/query`;
 
 const MIGRATION_DIR = path.join(__dirname, 'database');
 const MIGRATIONS = [
@@ -32,91 +30,69 @@ const MIGRATIONS = [
   'migration-s14-cms.sql',
 ];
 
-// Simple SQL statement splitter (skips comments)
+// Split SQL into individual non-empty statements
 function splitSQL(sql) {
-  const stmts = [];
-  let buf = '';
-  let inStr = false;
-  let strChar = '';
-  for (let i = 0; i < sql.length; i++) {
-    const ch = sql[i];
-    // Skip line comments
-    if (!inStr && ch === '-' && sql[i+1] === '-') {
-      while (i < sql.length && sql[i] !== '\n') i++;
-      continue;
-    }
-    if (!inStr && (ch === "'" || ch === '"')) { inStr = true; strChar = ch; buf += ch; continue; }
-    if (inStr && ch === strChar && sql[i-1] !== '\\') { inStr = false; buf += ch; continue; }
-    if (!inStr && ch === ';') {
-      const s = buf.trim();
-      if (s.length > 4) stmts.push(s);
-      buf = '';
-    } else {
-      buf += ch;
-    }
-  }
-  const last = buf.trim();
-  if (last.length > 4) stmts.push(last);
-  return stmts;
+  // Remove line comments
+  const lines = sql.split('\n').map(l => {
+    const ci = l.indexOf('--');
+    return ci >= 0 ? l.slice(0, ci) : l;
+  }).join('\n');
+  return lines.split(';').map(s => s.trim()).filter(s => s.length > 4);
 }
 
-async function runMigration(file) {
-  const filePath = path.join(MIGRATION_DIR, file);
-  if (!fs.existsSync(filePath)) return { skip: true };
-
-  const sql = fs.readFileSync(filePath, 'utf8');
-  const stmts = splitSQL(sql);
-  let ok = 0, warn = 0, fail = 0, errors = [];
-
-  for (const stmt of stmts) {
-    // Use Supabase's RPC or direct REST. Since exec_sql isn't standard,
-    // we POST to the postgres REST endpoint.
-    const res = await fetch(`${process.env.SUPABASE_URL}/rest/v1/rpc/exec_sql`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
-        'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY,
-        'Prefer': 'return=minimal',
-      },
-      body: JSON.stringify({ sql: stmt }),
-    }).catch(e => ({ status: 0, _fetchErr: e.message }));
-
-    const status = res.status || 0;
-    const body = typeof res.json === 'function' ? await res.json().catch(() => ({})) : {};
-
-    if (status >= 200 && status < 300) {
-      ok++;
-    } else {
-      const msg = body?.message || body?.error || JSON.stringify(body).slice(0, 80);
-      if (msg.includes('already exists') || msg.includes('42P07') || msg.includes('duplicate') || status === 0) {
-        warn++;
-      } else {
-        fail++;
-        errors.push(msg.slice(0, 100));
-      }
-    }
-  }
-  return { ok, warn, fail, errors };
-}
+const IDEMPOTENT = ['already exists', '42P07', 'duplicate column', '42701', 'does not exist', '42P01'];
 
 (async () => {
-  console.log(`Supabase: ${process.env.SUPABASE_URL}`);
+  if (!SUPABASE_URL || !SERVICE_KEY) {
+    console.error('SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not set');
+    process.exit(1);
+  }
+  console.log(`Supabase: ${SUPABASE_URL}`);
   console.log(`Running ${MIGRATIONS.length} migrations...\n`);
 
   for (const file of MIGRATIONS) {
-    process.stdout.write(`  ${file}... `);
-    const r = await runMigration(file);
-    if (r.skip) { console.log('⚠️  not found, skipped'); continue; }
-    const sym = r.fail > 0 ? '❌' : r.warn > 0 ? '⚠️ ' : '✅';
-    console.log(`${sym} ok:${r.ok} warn:${r.warn} fail:${r.fail}${r.errors.length ? '\n    ' + r.errors[0] : ''}`);
+    const filePath = path.join(MIGRATION_DIR, file);
+    if (!fs.existsSync(filePath)) {
+      console.log(`  ${file} ⚠️  not found — skipped`);
+      continue;
+    }
+    const sql = fs.readFileSync(filePath, 'utf8');
+    const stmts = splitSQL(sql);
+    process.stdout.write(`  ${file} (${stmts.length} stmts)... `);
+
+    let ok = 0, warn = 0, fail = 0, firstErr = '';
+    for (const stmt of stmts) {
+      try {
+        await axios.post(PG_URL, { query: stmt + ';' }, {
+          headers: { apikey: SERVICE_KEY, 'Content-Type': 'application/json' },
+          timeout: 15000,
+        });
+        ok++;
+      } catch (e) {
+        const msg = e.response?.data?.message || e.response?.data?.error || e.message || '';
+        const isIdempotent = IDEMPOTENT.some(kw => msg.toLowerCase().includes(kw.toLowerCase()));
+        if (isIdempotent) { warn++; }
+        else { fail++; if (!firstErr) firstErr = msg.slice(0, 100); }
+      }
+    }
+    const sym = fail > 0 ? '❌' : warn > 0 ? '⚠️ ' : '✅';
+    console.log(`${sym} ok:${ok} warn:${warn} fail:${fail}${firstErr ? '\n     ' + firstErr : ''}`);
   }
 
-  // Verify key tables
-  console.log('\n─ Table check ─');
-  for (const t of ['feature_permissions','cms_posts','cms_media','cms_comments','cms_categories']) {
-    const { error } = await supabase.from(t).select('id').limit(1);
-    console.log(`  ${t}: ${error ? '❌ ' + error.message.slice(0,70) : '✅'}`);
+  // Final table check
+  console.log('\n─ Verifying key tables via /pg/query ─');
+  const TABLES = ['feature_permissions', 'cms_posts', 'cms_media', 'cms_comments', 'cms_categories'];
+  for (const t of TABLES) {
+    try {
+      await axios.post(PG_URL, { query: `SELECT 1 FROM ${t} LIMIT 1;` }, {
+        headers: { apikey: SERVICE_KEY, 'Content-Type': 'application/json' },
+        timeout: 10000,
+      });
+      console.log(`  ${t}: ✅`);
+    } catch (e) {
+      const msg = e.response?.data?.message || e.message || '';
+      console.log(`  ${t}: ❌ ${msg.slice(0, 80)}`);
+    }
   }
   console.log('\nDone.');
 })();
