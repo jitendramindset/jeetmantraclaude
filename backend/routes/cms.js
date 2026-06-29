@@ -10,7 +10,7 @@ const EDITOR_ROLES = ['admin', 'teacher', 'partner'];
 const withTimeout = (promise, ms = 8000) =>
   Promise.race([promise, new Promise((_, rej) => setTimeout(() => rej(new Error('DB_TIMEOUT')), ms))]);
 
-const TABLE_MISSING = e => e?.code === '42P01' || e?.message?.includes('does not exist') || e?.message === 'DB_TIMEOUT';
+const TABLE_MISSING = e => e?.code === '42P01' || e?.message?.includes('does not exist') || e?.message?.includes('schema cache') || e?.message?.includes('Could not find') || e?.message === 'DB_TIMEOUT';
 
 // Slug generator
 function toSlug(str) {
