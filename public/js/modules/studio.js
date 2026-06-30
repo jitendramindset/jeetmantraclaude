@@ -2284,6 +2284,8 @@ function mount(container) {
     s.textContent = _CSS;
     document.head.appendChild(s);
   }
+  // Suppress welcome guide when mounted inline in the shell (guide designed for standalone page)
+  localStorage.setItem('studio_seen', '1');
   container.innerHTML = _HTML;
   try { _init(container); } catch(e) { console.warn('studio init error:', e); }
 }
