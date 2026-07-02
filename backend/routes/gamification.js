@@ -19,6 +19,19 @@ const { authenticateToken } = require('../middleware/auth');
 const { awardForEvent, levelFromXp } = require('../services/award');
 
 const router = express.Router();
+// Auto-wrap async route handlers so unhandled rejections reach the global error handler
+const asyncHandler = require('../utils/asyncHandler');
+['get','post','put','delete','patch'].forEach(m => {
+  const orig = router[m].bind(router);
+  router[m] = (...args) => {
+    const last = args[args.length - 1];
+    if (typeof last === 'function' && last.constructor.name === 'AsyncFunction') {
+      args[args.length - 1] = asyncHandler(last);
+    }
+    return orig(...args);
+  };
+});
+
 
 // GET /me — alias for GET /summary (streak + XP + badges in one shot).
 router.get('/me', authenticateToken, async (req, res) => {

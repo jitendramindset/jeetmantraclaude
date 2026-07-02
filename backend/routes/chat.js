@@ -17,6 +17,19 @@ const { unreadByRoom, countUnread } = require('../services/chatUnread');
 const { v4: uuidv4 } = require('uuid');
 
 const router = express.Router();
+// Auto-wrap async route handlers so unhandled rejections reach the global error handler
+const asyncHandler = require('../utils/asyncHandler');
+['get','post','put','delete','patch'].forEach(m => {
+  const orig = router[m].bind(router);
+  router[m] = (...args) => {
+    const last = args[args.length - 1];
+    if (typeof last === 'function' && last.constructor.name === 'AsyncFunction') {
+      args[args.length - 1] = asyncHandler(last);
+    }
+    return orig(...args);
+  };
+});
+
 
 async function ensureMembership(roomId, userId) {
   await supabaseAdmin.from('chat_room_members').insert({ id: uuidv4(), room_id: roomId, user_id: userId })

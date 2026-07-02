@@ -6,6 +6,7 @@
 JM.Screens.register({
   id: 'live-roster',
   title: '👥 Live class roster',
+  surface: 'modal',
   model: JM.Models.LiveRoster,
   render: function (d, ctx) {
     if (!ctx.classId) {

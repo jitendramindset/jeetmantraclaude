@@ -7,6 +7,7 @@
 JM.Screens.register({
   id: 'student-detail',
   title: '👤 Student Detail',
+  surface: 'modal',
   model: JM.Models.StudentDetail,
   render: function (d, ctx) {
     var s = d.student || {}; var p = d.progress || {};

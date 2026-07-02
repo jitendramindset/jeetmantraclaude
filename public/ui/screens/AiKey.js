@@ -6,6 +6,7 @@
 JM.Screens.register({
   id: 'ai-key',
   title: '🔑 AI Key (BYOK)',
+  surface: 'modal',
   model: JM.Models.AiKey,
   render: function (d) {
     var PROVIDERS = ['openai', 'anthropic', 'gemini', 'openrouter'];

@@ -27,6 +27,19 @@ const { SELLER_ROLES } = require('../config/roles');
 const { v4: uuidv4 } = require('uuid');
 
 const router = express.Router();
+// Auto-wrap async route handlers so unhandled rejections reach the global error handler
+const asyncHandler = require('../utils/asyncHandler');
+['get','post','put','delete','patch'].forEach(m => {
+  const orig = router[m].bind(router);
+  router[m] = (...args) => {
+    const last = args[args.length - 1];
+    if (typeof last === 'function' && last.constructor.name === 'AsyncFunction') {
+      args[args.length - 1] = asyncHandler(last);
+    }
+    return orig(...args);
+  };
+});
+
 
 const PLATFORM_COMMISSION = parseFloat(process.env.PLATFORM_COMMISSION_RATE || '15') / 100;
 // SELLER_ROLES is the single source of truth in config/roles.js (includes the

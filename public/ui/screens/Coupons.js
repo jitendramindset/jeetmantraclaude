@@ -11,6 +11,7 @@
 JM.Screens.register({
   id: 'coupons',
   title: '🎟 Discount Coupons',
+  surface: 'modal',
   model: JM.Models.Coupons,
   render: function (d) {
     var courses = d.courses || [];

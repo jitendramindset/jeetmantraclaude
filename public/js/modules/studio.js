@@ -38,7 +38,7 @@ var _HTML = ['<h1 style="position:absolute;left:-9999px;width:1px;height:1px;ove
 'x:1"></div>\n  <span id="recStatus" style="display:none;font-size:13px"><span class="rec-dot"></span> REC <span id="recTime">00:00</span></span>\n  <select id="saveTarget" title="Where to save the recording" style="width:auto;margin:0;padding:7px 10px">\n    <option value="local">💾 Save to device</option>\n    <option value="class">☁️ Save in app (class)</option>\n    <option value="both" selected>💾☁️ Both</option>\n  </select>\n  <!-- Templates button with dropdown -->\n  <div class="tpl-btn-',
 'wrap" id="tplBtnWrap">\n    <button class="btn" id="btnTemplates" onclick="toggleTemplatePanel()" title="Save or load scene templates">💾 Templates</button>\n    <div id="templatePanel">\n      <h4 style="margin-top:0">💾 Save current layout</h4>\n      <div style="display:flex;gap:6px;margin-bottom:10px">\n        <input type="text" id="tplNameInput" placeholder="Template name…" style="margin:0;flex:1">\n        <button class="btn pri" style="padding:7px 12px" onclick="saveTemplate()">Save</but',
 'ton>\n      </div>\n      <h4>📂 Saved templates</h4>\n      <div id="tplList"><div class="hint">No templates yet.</div></div>\n    </div>\n  </div>\n  <button class="btn" onclick="openGuide()" title="Show welcome guide">❓ Guide</button>\n  <button class="btn pri" id="btnEnable" onclick="enableDevices()">🔓 Enable camera &amp; mic</button>\n  <button class="btn" id="btnRec" onclick="toggleRecord()">⏺ Record</button>\n  <button class="btn" id="btnFocus" onclick="toggleFocus()" title="Clean full-s',
-'creen teaching board — hides panels (Esc to exit)">🔳 Focus</button>\n  <button class="btn" id="studioExitBtn" onclick="location.href=\'/app\'">← Exit</button>\n</div>\n<!-- Focus-mode floating bars: only visible in clean teaching mode (body.focus). -->\n<div id="focusTop">\n  <button class="btn" onclick="toggleFocus()" title="Exit clean board">✕ Exit focus</button>\n  <span id="focusFmtBadge" class="badge" style="background:rgba(124,58,237,.25);color:#c4b5fd;font-weight:700"></span>\n</div>\n<d',
+'creen teaching board — hides panels (Esc to exit)">🔳 Focus</button>\n  <button class="btn" id="studioExitBtn" onclick="(typeof window._exitModule==='function'?window._exitModule():(location.hash=''))"">← Exit</button>\n</div>\n<!-- Focus-mode floating bars: only visible in clean teaching mode (body.focus). -->\n<div id="focusTop">\n  <button class="btn" onclick="toggleFocus()" title="Exit clean board">✕ Exit focus</button>\n  <span id="focusFmtBadge" class="badge" style="background:rgba(124,58,237,.25);color:#c4b5fd;font-weight:700"></span>\n</div>\n<d',
 'iv id="focusBar" role="toolbar" aria-label="Teaching actions">\n  <button class="btn" onclick="studioFocusPanels()" title="Show sources & tools">⚙ Tools</button>\n  <button class="btn" onclick="addWhiteboard()" title="Add / focus whiteboard">🖍 Board</button>\n  <button class="btn" onclick="enableDevices()" title="Enable camera & mic">🎥 Cam</button>\n  <button class="btn pri" onclick="toggleRecord()" title="Start / stop recording">⏺ Rec</button>\n  <button class="btn" onclick="toggleFocus()" ti',
 'tle="Exit clean board">⤢ Exit</button>\n</div>\n<!-- Hidden holder: keeping source <video>s in the DOM stops browsers from\n     throttling/freezing them when used as canvas paint sources. -->\n<div id="srcHolder" aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden;opacity:0;pointer-events:none"></div>\n<div class="main">\n  <!-- SOURCES -->\n  <div class="col left">\n    <button class="col-toggle" type="button" onclick="studioToggleCol(this)" aria-label="Toggle sources ',
 'panel"><span>📥 Sources &amp; scenes</span><span class="col-arrow">▾</span></button>\n    <div id="permBanner" class="banner warn">Click <b>Enable camera &amp; mic</b> to detect devices.</div>\n    <h4>📥 Camera</h4>\n    <select id="camSelect" onchange="startCamera(this.value)"><option value="">— enable first —</option></select>\n    <h4>🎙 Microphone</h4>\n    <select id="micSelect"><option value="">Default mic</option></select>\n    <button class="btn" style="width:100%" onclick="refreshDevic',
@@ -2275,6 +2275,73 @@ function studioToggleDrawer(force){
     });
   }catch(e){}
 })();
+
+  // Expose Studio functions to window for inline onclick handlers
+  if(typeof _deleteTemplate==='function') window._deleteTemplate=_deleteTemplate;
+  if(typeof _loadTemplateByKey==='function') window._loadTemplateByKey=_loadTemplateByKey;
+  if(typeof _showGuideTemplate==='function') window._showGuideTemplate=_showGuideTemplate;
+  if(typeof addImageUrl==='function') window.addImageUrl=addImageUrl;
+  if(typeof addLayer==='function') window.addLayer=addLayer;
+  if(typeof addScene==='function') window.addScene=addScene;
+  if(typeof addScreen==='function') window.addScreen=addScreen;
+  if(typeof addWhiteboard==='function') window.addWhiteboard=addWhiteboard;
+  if(typeof applyArCrop==='function') window.applyArCrop=applyArCrop;
+  if(typeof applyArCropFull==='function') window.applyArCropFull=applyArCropFull;
+  if(typeof applyLayoutPreset==='function') window.applyLayoutPreset=applyLayoutPreset;
+  if(typeof arQuickSwitch==='function') window.arQuickSwitch=arQuickSwitch;
+  if(typeof cancelArCrop==='function') window.cancelArCrop=cancelArCrop;
+  if(typeof clearVbg==='function') window.clearVbg=clearVbg;
+  if(typeof dismissGuide==='function') window.dismissGuide=dismissGuide;
+  if(typeof enableDevices==='function') window.enableDevices=enableDevices;
+  if(typeof openArCropSelector==='function') window.openArCropSelector=openArCropSelector;
+  if(typeof openCoursePicker==='function') window.openCoursePicker=openCoursePicker;
+  if(typeof openGuide==='function') window.openGuide=openGuide;
+  if(typeof openTeach==='function') window.openTeach=openTeach;
+  if(typeof openWbSaveCourse==='function') window.openWbSaveCourse=openWbSaveCourse;
+  if(typeof resetCorners==='function') window.resetCorners=resetCorners;
+  if(typeof resetCrop==='function') window.resetCrop=resetCrop;
+  if(typeof saveTemplate==='function') window.saveTemplate=saveTemplate;
+  if(typeof selectLayer==='function') window.selectLayer=selectLayer;
+  if(typeof setVbgColor==='function') window.setVbgColor=setVbgColor;
+  if(typeof studioFocusPanels==='function') window.studioFocusPanels=studioFocusPanels;
+  if(typeof studioToggleCol==='function') window.studioToggleCol=studioToggleCol;
+  if(typeof studioToggleDrawer==='function') window.studioToggleDrawer=studioToggleDrawer;
+  if(typeof tCreateClass==='function') window.tCreateClass=tCreateClass;
+  if(typeof tGoLive==='function') window.tGoLive=tGoLive;
+  if(typeof tInstantLive==='function') window.tInstantLive=tInstantLive;
+  if(typeof tSelectClass==='function') window.tSelectClass=tSelectClass;
+  if(typeof toggleCropMode==='function') window.toggleCropMode=toggleCropMode;
+  if(typeof toggleAdjust==='function') window.toggleAdjust=toggleAdjust;
+  if(typeof toggleFocus==='function') window.toggleFocus=toggleFocus;
+  if(typeof toggleLayout==='function') window.toggleLayout=toggleLayout;
+  if(typeof toggleRecord==='function') window.toggleRecord=toggleRecord;
+  if(typeof toggleTemplatePanel==='function') window.toggleTemplatePanel=toggleTemplatePanel;
+  if(typeof wbActivateSlot==='function') window.wbActivateSlot=wbActivateSlot;
+  if(typeof wbAddPage==='function') window.wbAddPage=wbAddPage;
+  if(typeof wbClear==='function') window.wbClear=wbClear;
+  if(typeof wbCopy==='function') window.wbCopy=wbCopy;
+  if(typeof wbCut==='function') window.wbCut=wbCut;
+  if(typeof wbDelPage==='function') window.wbDelPage=wbDelPage;
+  if(typeof wbDoSaveCourse==='function') window.wbDoSaveCourse=wbDoSaveCourse;
+  if(typeof wbDocAddToBoard==='function') window.wbDocAddToBoard=wbDocAddToBoard;
+  if(typeof wbDocPage==='function') window.wbDocPage=wbDocPage;
+  if(typeof wbExportPdf==='function') window.wbExportPdf=wbExportPdf;
+  if(typeof wbGoPage==='function') window.wbGoPage=wbGoPage;
+  if(typeof wbPaste==='function') window.wbPaste=wbPaste;
+  if(typeof wbRedo==='function') window.wbRedo=wbRedo;
+  if(typeof wbRteAlign==='function') window.wbRteAlign=wbRteAlign;
+  if(typeof wbRteBlock==='function') window.wbRteBlock=wbRteBlock;
+  if(typeof wbRteFmt==='function') window.wbRteFmt=wbRteFmt;
+  if(typeof wbRteInsert==='function') window.wbRteInsert=wbRteInsert;
+  if(typeof wbSetBg==='function') window.wbSetBg=wbSetBg;
+  if(typeof wbSetColorSlot==='function') window.wbSetColorSlot=wbSetColorSlot;
+  if(typeof wbSetTool==='function') window.wbSetTool=wbSetTool;
+  if(typeof wbStampRte==='function') window.wbStampRte=wbStampRte;
+  if(typeof wbSwapColors==='function') window.wbSwapColors=wbSwapColors;
+  if(typeof wbToggleFillMode==='function') window.wbToggleFillMode=wbToggleFillMode;
+  if(typeof wbToggleGroup==='function') window.wbToggleGroup=wbToggleGroup;
+  if(typeof wbUndo==='function') window.wbUndo=wbUndo;
+  if(typeof refreshDevices==='function') window.refreshDevices=refreshDevices;
 }
 
 function mount(container) {
@@ -2286,8 +2353,21 @@ function mount(container) {
   }
   // Suppress welcome guide when mounted inline in the shell (guide designed for standalone page)
   localStorage.setItem('studio_seen', '1');
+  // body.focus .topbar hides ALL .topbar elements including the shell nav. Counter-rule restores it.
+  if (!document.getElementById('jm-studio-shellfix')) {
+    var shFix = document.createElement('style');
+    shFix.id = 'jm-studio-shellfix';
+    shFix.textContent = 'body.focus>.topbar{display:flex!important}body.focus>.sidebar{display:flex!important}body.focus>#shellModuleHost{display:flex!important}';
+    document.head.appendChild(shFix);
+  }
   container.innerHTML = _HTML;
   try { _init(container); } catch(e) { console.warn('studio init error:', e); }
+  // Fix exit button to use shell navigation instead of full page redirect
+  var _studioExit = document.getElementById('studioExitBtn');
+  if (_studioExit) _studioExit.onclick = function() {
+    if (document.body.classList.contains('focus') && typeof window.toggleFocus === 'function') window.toggleFocus();
+    if (typeof window._exitModule === 'function') window._exitModule(); else location.hash = '';
+  };
 }
 
 g.JM = g.JM || {}; g.JM.Modules = g.JM.Modules || {}; g.JM.Modules['studio'] = { mount: mount, unmount: function(c){ if(c) c.innerHTML=''; } };

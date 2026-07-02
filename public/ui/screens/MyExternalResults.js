@@ -7,6 +7,9 @@
 JM.Screens.register({
   id: 'my-external-results',
   title: '📊 My Results & Progress',
+  surface: 'takeover',
+  crumb: 'My Results',
+
   model: JM.Models.MyExternalResults,
   render: function (d) {
     var fmt = function (ts) { try { return new Date(ts).toLocaleString(); } catch (_) { return '—'; } };

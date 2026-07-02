@@ -9,6 +9,7 @@
 JM.Screens.register({
   id: 'submissions',
   title: '📥 Submissions',
+  surface: 'modal',
   model: JM.Models.Submissions,
   render: function (d, ctx) {
     var subs = d.submissions || [];

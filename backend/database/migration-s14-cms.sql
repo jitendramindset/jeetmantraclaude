@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS cms_posts (
   event_url       VARCHAR,
   event_capacity  INT,
   -- References
-  references      JSONB       DEFAULT '[]',  -- [{label, url}]
+  post_references JSONB       DEFAULT '[]',  -- [{label, url}]
   attachments     JSONB       DEFAULT '[]',  -- [{name, url, type}]
   -- Engagement
   views           INT         DEFAULT 0,

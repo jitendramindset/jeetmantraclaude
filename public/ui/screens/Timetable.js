@@ -5,6 +5,7 @@
 JM.Screens.register({
   id: 'timetable',
   title: '🗓 Timetable',
+  surface: 'modal',
   model: JM.Models.Timetable,
   render: function (d) {
     var ICON = { live: '📡', assignment: '📝', test: '✏️' };

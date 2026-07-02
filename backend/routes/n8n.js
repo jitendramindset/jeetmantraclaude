@@ -24,6 +24,19 @@ const { authenticateToken, authorizeRole } = require('../middleware/auth');
 const { getN8nConfig, setN8nConfig, triggerN8n } = require('../config/n8nConfig');
 
 const router = express.Router();
+// Auto-wrap async route handlers so unhandled rejections reach the global error handler
+const asyncHandler = require('../utils/asyncHandler');
+['get','post','put','delete','patch'].forEach(m => {
+  const orig = router[m].bind(router);
+  router[m] = (...args) => {
+    const last = args[args.length - 1];
+    if (typeof last === 'function' && last.constructor.name === 'AsyncFunction') {
+      args[args.length - 1] = asyncHandler(last);
+    }
+    return orig(...args);
+  };
+});
+
 
 const N8N_URL = process.env.N8N_WEBHOOK_URL || '';
 const N8N_SECRET = process.env.N8N_WEBHOOK_SECRET || '';

@@ -6,6 +6,7 @@
 JM.Screens.register({
   id: 'attendance-log',
   title: '🗓 Attendance log',
+  surface: 'modal',
   model: JM.Models.AttendanceLog,
   render: function (d, ctx) {
     var s = d.summary || {};

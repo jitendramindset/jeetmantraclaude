@@ -11,6 +11,9 @@
 JM.Screens.register({
   id: 'nearby-search',
   title: '📍 Find Classes Near You',
+  surface: 'takeover',
+  crumb: 'Near Me',
+
   model: JM.Models.NearbySearch,
   render: function () {
     var inputSty = 'flex:1;min-width:120px;padding:8px 12px;border:1.5px solid var(--jm-border);border-radius:8px;background:var(--jm-surface);color:inherit';

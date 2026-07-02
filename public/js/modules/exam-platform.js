@@ -2589,9 +2589,11 @@ window.JM_CAN_AUTHOR = ['teacher','school','coaching','admin','partner'].include
     if (whUrl.value) localStorage.setItem('examforge_ai_url', whUrl.value);
   });
 
-  document.getElementById('exam-duration').addEventListener('input', updateStats);
-  updateStats();
-  updateToolbar();
+  // Guard: these elements only exist after mount() injects _HTML
+  const _dur = document.getElementById('exam-duration');
+  if (_dur) _dur.addEventListener('input', updateStats);
+  try { if (document.getElementById('q-count')) updateStats(); } catch(e) {}
+  try { if (document.getElementById('formula-toolbar-dynamic')) updateToolbar(); } catch(e) {}
 });
 
 

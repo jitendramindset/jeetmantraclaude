@@ -5,6 +5,7 @@
 JM.Screens.register({
   id: 'help',
   title: '❓ Help & Support',
+  surface: 'modal',
   // No model — fully static content.
   render: function () {
     var faqs = [

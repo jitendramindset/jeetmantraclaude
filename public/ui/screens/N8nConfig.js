@@ -7,6 +7,7 @@
 JM.Screens.register({
   id: 'n8n-config',
   title: '⚡ n8n Webhook Config',
+  surface: 'modal',
   model: JM.Models.N8nConfig,
   render: function (d) {
     var statusBadge = JM.Badge({

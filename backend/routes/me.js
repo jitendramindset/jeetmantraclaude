@@ -17,6 +17,19 @@ const { fallbackHasCapability } = require('../middleware/requireCapability');
 const { validate } = require('../middleware/validation');
 
 const router = express.Router();
+// Auto-wrap async route handlers so unhandled rejections reach the global error handler
+const asyncHandler = require('../utils/asyncHandler');
+['get','post','put','delete','patch'].forEach(m => {
+  const orig = router[m].bind(router);
+  router[m] = (...args) => {
+    const last = args[args.length - 1];
+    if (typeof last === 'function' && last.constructor.name === 'AsyncFunction') {
+      args[args.length - 1] = asyncHandler(last);
+    }
+    return orig(...args);
+  };
+});
+
 
 const ALL_CAPS = ['course.create','course.edit','course.delete','live.schedule','live.start',
   'attendance.mark','assignment.grade','assignment.manage','test.create','certificate.issue',

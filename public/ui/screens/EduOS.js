@@ -12,6 +12,8 @@
 JM.Screens.register({
   id: 'eduos',
   title: '🛰️ EduOS Hub',
+  crumb: 'EduOS',
+
   surface: 'takeover',
   model: JM.Models.EduOS,
   render: function () {

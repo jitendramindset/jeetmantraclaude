@@ -20,6 +20,19 @@ const { supabaseAdmin } = require('../config/supabase');
 const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
+// Auto-wrap async route handlers so unhandled rejections reach the global error handler
+const asyncHandler = require('../utils/asyncHandler');
+['get','post','put','delete','patch'].forEach(m => {
+  const orig = router[m].bind(router);
+  router[m] = (...args) => {
+    const last = args[args.length - 1];
+    if (typeof last === 'function' && last.constructor.name === 'AsyncFunction') {
+      args[args.length - 1] = asyncHandler(last);
+    }
+    return orig(...args);
+  };
+});
+
 
 // NOTE: the notifications table tracks read-state with a nullable `read_at`
 // timestamp (NULL = unread) and orders by `sent_at` — there is no is_read /

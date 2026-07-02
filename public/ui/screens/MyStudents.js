@@ -5,6 +5,9 @@
 JM.Screens.register({
   id: 'my-students',
   title: '👨‍🎓 My Students',
+  surface: 'takeover',
+  crumb: 'My Students',
+
   model: JM.Models.MyStudents,
   render: function (d) {
     if (!d.courses.length) {

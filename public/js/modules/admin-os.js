@@ -785,7 +785,8 @@ function _init(container) {
   loadTenantName();
   loadStatus();
   render('overview');
-  setInterval(loadStatus, 30000);
+  if (g._adminOsInterval) clearInterval(g._adminOsInterval);
+  g._adminOsInterval = setInterval(loadStatus, 30000);
 }
 
 function mount(container) {
@@ -799,7 +800,12 @@ function mount(container) {
   try { _init(container); } catch(e) { console.warn('admin-os init error:', e); }
 }
 
+function unmount(c) {
+  if (g._adminOsInterval) { clearInterval(g._adminOsInterval); g._adminOsInterval = null; }
+  if (c) c.innerHTML = '';
+}
+
 g.JM = g.JM || {};
 g.JM.Modules = g.JM.Modules || {};
-g.JM.Modules['adminOs'] = { mount: mount, unmount: function(c){ if(c) c.innerHTML=''; } };
+g.JM.Modules['adminOs'] = { mount: mount, unmount: unmount };
 })(window);
