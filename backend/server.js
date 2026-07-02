@@ -62,6 +62,7 @@ const i18nRoutes          = require('./routes/i18n');
 const studioRoutes        = require('./routes/studio');
 const ragRoutes           = require('./routes/rag');
 const { cacheMiddleware, syncMiddleware } = require('./middleware/datasync');
+const { authenticateToken, authorizeRole } = require('./middleware/auth');
 
 const app = express();
 
@@ -94,12 +95,13 @@ app.get(['/app', '/app/*'], (req, res) => {
 });
 
 // ── HTML gating — single entry point ────────────────────────────────────────
-// Only index.html exists on disk. Any other .html URL goes through the JS router.
+// Standalone pages served directly; all other .html goes through the JS router.
+const STANDALONE_HTML = new Set(['/index.html', '/blog.html', '/admin-os.html']);
 app.use((req, res, next) => {
   if (req.method !== 'GET') return next();
   const p = req.path;
   if (!p.endsWith('.html')) return next();
-  if (p === '/index.html') return next();
+  if (STANDALONE_HTML.has(p)) return next();
   return res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
@@ -121,8 +123,17 @@ app.use(cacheMiddleware);
 app.use(syncMiddleware);
 
 app.get('/health', (req, res) => {
+  const authHeader = req.headers.authorization;
+  const adminToken = process.env.ADMIN_TOKEN;
+  const isAdmin = adminToken && authHeader === `Bearer ${adminToken}`;
+
+  if (!isAdmin) {
+    return res.json({ status: 'ok', version: process.env.npm_package_version || '1.0.0' });
+  }
+
   res.json({
     status: 'ok',
+    version: process.env.npm_package_version || '1.0.0',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV,
     features: {
@@ -193,7 +204,7 @@ const cmsRoutes = require('./routes/cms');
 app.use('/api/cms', cmsRoutes);
 
 // LevelDB sync queue endpoint
-app.get('/api/sync/queue', async (req, res) => {
+app.get('/api/sync/queue', authenticateToken, authorizeRole(['admin']), async (req, res) => {
   try {
     const { SyncQueue } = require('./config/leveldb');
     const queue = new SyncQueue();
@@ -204,7 +215,7 @@ app.get('/api/sync/queue', async (req, res) => {
   }
 });
 
-app.post('/api/sync/flush', async (req, res) => {
+app.post('/api/sync/flush', authenticateToken, authorizeRole(['admin']), async (req, res) => {
   try {
     const { SyncQueue } = require('./config/leveldb');
     const queue = new SyncQueue();
@@ -221,6 +232,10 @@ app.post('/api/sync/flush', async (req, res) => {
 });
 
 app.get('/metrics', (req, res) => {
+  const metricsSecret = process.env.METRICS_SECRET;
+  if (metricsSecret && req.headers['x-metrics-token'] !== metricsSecret) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
   const mem = process.memoryUsage();
   res.set('Content-Type', 'text/plain; version=0.0.4');
   res.send([
@@ -233,19 +248,39 @@ app.get('/metrics', (req, res) => {
   ].join('\n') + '\n');
 });
 
+// 404 handler
 app.use((req, res) => {
-  res.status(404).json({ error: 'Not Found', path: req.path, method: req.method });
+  res.status(404).json({ error: 'Not found', path: req.path });
 });
 
 if (process.env.SENTRY_DSN) Sentry.setupExpressErrorHandler(app);
 
+// Global error handler — must be last middleware, 4 params
 app.use((err, req, res, next) => {
-  console.error('Error:', err);
-  res.status(err.status || 500).json({
-    error: err.message || 'Internal Server Error',
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+  const statusCode = err.statusCode || err.status || 500;
+
+  // Log full error server-side
+  if (statusCode >= 500) {
+    console.error('[ERROR]', req.method, req.path, err.message, err.stack);
+  }
+
+  // In production, don't leak internal error details
+  const isDev = process.env.NODE_ENV !== 'production';
+  const message = statusCode >= 500 && !isDev
+    ? 'Internal server error'
+    : (err.message || 'Internal server error');
+
+  res.status(statusCode).json({
+    error: message,
+    ...(isDev && statusCode >= 500 ? { stack: err.stack } : {}),
   });
 });
+
+// Security gate: hardcoded dev credentials are only active when this flag is
+// explicitly set. Warn loudly at startup so it is never silently left on.
+if (process.env.ALLOW_DEV_USERS === 'true') {
+  console.warn('[SECURITY WARNING] ALLOW_DEV_USERS=true — hardcoded dev credentials are active. Do NOT use in production.');
+}
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

@@ -1,0 +1,16 @@
+{
+  "name": "jeetmantra-eduos",
+  "version": "2.0.0",
+  "description": "JeetMantra EduOS — frontend build pipeline",
+  "private": true,
+  "scripts": {
+    "build:shell": "npx esbuild public/js/app-shell.js --bundle=false --minify --outfile=public/js/app-shell.min.js",
+    "build:ui": "npx esbuild public/ui/widgets/atoms/*.js public/ui/widgets/molecules/*.js --bundle=false --minify --outdir=public/ui/dist/",
+    "build": "npm run build:shell && npm run build:ui",
+    "dev": "node backend/server.js",
+    "start": "NODE_ENV=production node backend/server.js"
+  },
+  "devDependencies": {
+    "esbuild": "^0.20.0"
+  }
+}

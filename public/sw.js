@@ -1,3 +1,5 @@
+// Cache version: bump CACHE_NAME to evict old cached assets
+// Current: jm-shell-v6 (bumped to fix stale app-shell.js issue)
 // JeetMantra service worker.
 // Strategy:
 //   - HTML documents (navigations / *.html): NETWORK-FIRST, so a freshly
@@ -6,7 +8,7 @@
 //   - /api/*: network-first (stash GET responses for offline read).
 //   - Other static assets (css/js/img/fonts): cache-first for speed.
 // Bump CACHE_NAME whenever shell assets change so the old cache is evicted.
-const CACHE_NAME = 'jm-shell-v5';
+const CACHE_NAME = 'jm-shell-v6';
 const SHELL = [
   '/login.html', '/signup.html', '/manifest.json'
 ];
@@ -64,6 +66,9 @@ self.addEventListener('fetch', e => {
     caches.match(req).then(cached => cached || fetch(req).then(r => {
       if (r.ok) { const clone = r.clone(); caches.open(CACHE_NAME).then(c => c.put(req, clone).catch(()=>{})); }
       return r;
-    }))
+    })).catch(() => {
+      // For non-HTML assets, fail silently
+      return new Response('', { status: 404 });
+    })
   );
 });

@@ -4,6 +4,9 @@
 JM.Screens.register({
   id: 'certificates',
   title: '🎓 My Certificates',
+  surface: 'takeover',
+  crumb: 'Certificates',
+
   model: JM.Models.Certificates,
   render: function (d) {
     var origin = location.origin;

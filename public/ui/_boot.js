@@ -26,7 +26,7 @@
   // Load lists (in dependency order). Atoms first, then molecules, then screens.
   var ATOMS = [
     'Button', 'Card', 'KPI', 'Row', 'Badge', 'EmptyState', 'Avatar',
-    'SectionHeader', 'ModalShell', 'Tabs'
+    'SectionHeader', 'ModalShell', 'Tabs', 'Tag'
   ];
   var MOLECULES = ['KPIGrid', 'ListSection', 'ActionToolbar', 'TakeoverPage'];
   var MODELS = ['Wallet', 'Certificates', 'WidgetAdmin', 'Analytics', 'MyStudents', 'Downloads', 'Recordings', 'AttendanceReport', 'Gamification', 'AiKey', 'MyExternalResults', 'LiveRoster', 'AttendanceLog', 'Wall', 'Timetable', 'TestAnalytics', 'EssayInbox', 'Submissions', 'StudentDetail', 'N8nConfig', 'Coupons', 'Plans', 'Profile', 'Settings', 'NearbySearch', 'MyInstitutions', 'Billing', 'Calendar', 'CrmConfig', 'Configure', 'MoneyPage', 'RagTrainer', 'QuestionEditor', 'CourseStudents', 'CourseChat', 'AttGrid', 'QuestionBank', 'BookingDetail', 'Wizard', 'LessonPlanner', 'ProctorEvents', 'EduOS', 'LangPicker'];
@@ -35,16 +35,23 @@
 
   function inject(folder, names) {
     names.forEach(function (n) {
+      var src = '/ui/' + folder + '/' + n + '.js?v=38';
       var s = document.createElement('script');
-      s.src = '/ui/' + folder + '/' + n + '.js?v=36';
+      s.src = src;
       s.async = false; // preserve order
+      s.onerror = function () {
+        console.warn('[JM Boot] Failed to load:', src, '— continuing');
+      };
       document.head.appendChild(s);
     });
   }
   // Registry must exist before screens self-register.
   var reg = document.createElement('script');
-  reg.src = '/ui/registry/screens.js?v=36';
+  reg.src = '/ui/registry/screens.js?v=38';
   reg.async = false;
+  reg.onerror = function () {
+    console.warn('[JM Boot] Failed to load: /ui/registry/screens.js — continuing');
+  };
   document.head.appendChild(reg);
 
   inject('widgets/atoms', ATOMS);

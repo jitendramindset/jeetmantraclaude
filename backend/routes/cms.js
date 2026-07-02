@@ -3,8 +3,7 @@ const { supabaseAdmin } = require('../config/supabase');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
 const router = express.Router();
 
-const ADMIN_ROLES = ['admin'];
-const EDITOR_ROLES = ['admin', 'teacher', 'partner'];
+const { ADMIN_ROLES, EDITOR_ROLES } = require('../config/roles');
 
 // Wrap any promise with a timeout — prevents Supabase from hanging on missing tables
 const withTimeout = (promise, ms = 8000) =>
@@ -35,7 +34,7 @@ router.get('/posts', async (req, res) => {
       } catch {}
     }
     if (!isAdmin) q = q.eq('status','published');
-    else if (status) q = q.eq('status', status);
+    else if (status && status !== 'all') q = q.eq('status', status);
 
     if (type) q = q.eq('type', type);
     if (featured === 'true') q = q.eq('featured', true);
@@ -78,7 +77,7 @@ router.get('/posts/:idOrSlug', async (req, res) => {
 router.post('/posts', authenticateToken, authorizeRole(EDITOR_ROLES), async (req, res) => {
   try {
     const { title, type='post', excerpt, body, cover_image, status='draft', featured=false,
-            tags=[], meta={}, references=[], attachments=[],
+            tags=[], meta={}, post_references=[], attachments=[],
             event_start, event_end, event_location, event_url, event_capacity, allow_comments=true } = req.body;
     if (!title) return res.status(400).json({ error: 'title required' });
     let slug = toSlug(title);
@@ -88,7 +87,7 @@ router.post('/posts', authenticateToken, authorizeRole(EDITOR_ROLES), async (req
     const published_at = status === 'published' ? new Date().toISOString() : null;
     const { data, error } = await supabaseAdmin.from('cms_posts').insert({
       title, type, slug, excerpt, body, cover_image, status, featured, tags, meta,
-      references, attachments, allow_comments,
+      post_references, attachments, allow_comments,
       event_start: event_start||null, event_end: event_end||null,
       event_location: event_location||null, event_url: event_url||null,
       event_capacity: event_capacity||null,
@@ -103,6 +102,12 @@ router.post('/posts', authenticateToken, authorizeRole(EDITOR_ROLES), async (req
 router.put('/posts/:id', authenticateToken, authorizeRole(EDITOR_ROLES), async (req, res) => {
   try {
     const { id } = req.params;
+    // Ownership check: only the post's author or an admin may edit
+    const { data: existing } = await supabaseAdmin.from('cms_posts').select('author_id').eq('id', id).single();
+    if (!existing) return res.status(404).json({ error: 'Post not found' });
+    if (existing.author_id !== req.user.id && !ADMIN_ROLES.includes(req.user.role)) {
+      return res.status(403).json({ error: 'Forbidden — you can only edit your own posts' });
+    }
     const updates = { ...req.body, updated_at: new Date().toISOString() };
     // If publishing now, stamp published_at
     if (updates.status === 'published') {
@@ -180,7 +185,7 @@ router.post('/posts/:postId/comments', authenticateToken, async (req, res) => {
     const { data, error } = await supabaseAdmin.from('cms_comments').insert({
       post_id: req.params.postId, parent_id: parent_id||null, body,
       author_id: req.user.id, author_name: req.user.full_name||req.user.email,
-      status: 'approved',
+      status: EDITOR_ROLES.includes(req.user.role) ? 'approved' : 'pending',
     }).select().single();
     if (error) return res.status(500).json({ error: error.message });
     res.status(201).json({ comment: data });

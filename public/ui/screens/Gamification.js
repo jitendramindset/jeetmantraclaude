@@ -5,27 +5,31 @@
 JM.Screens.register({
   id: 'gamification',
   title: '🏆 Your progress',
+  surface: 'modal',
   model: JM.Models.Gamification,
   render: function (d) {
     var st = d.streak || {};
     var earned = (d.badges || []).filter(function (x) { return x.earned; });
     var locked = (d.badges || []).filter(function (x) { return !x.earned; });
-    var kpiRow =
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">'
-      + '<div style="background:linear-gradient(135deg,#f97316,#ef4444);color:#fff;border-radius:12px;padding:14px">'
-      +   '<div style="font-size:11px;opacity:.85;text-transform:uppercase">Streak</div>'
-      +   '<div style="font-size:26px;font-weight:800;line-height:1">🔥 ' + (st.current_streak || 0) + '</div>'
-      +   '<div style="font-size:11px;opacity:.85;margin-top:2px">Longest: ' + (st.longest_streak || 0) + ' days</div>'
-      + '</div>'
-      + '<div style="background:linear-gradient(135deg,#7c3aed,#ec4899);color:#fff;border-radius:12px;padding:14px">'
-      +   '<div style="font-size:11px;opacity:.85;text-transform:uppercase">XP · Level ' + (d.xp.level || 1) + '</div>'
-      +   '<div style="font-size:26px;font-weight:800;line-height:1">⭐ ' + (d.xp.total || 0).toLocaleString() + '</div>'
-      +   '<div style="font-size:11px;opacity:.85;margin-top:2px">Next level: ' + (d.xp.nextLevelAt || 100).toLocaleString() + '</div>'
-      + '</div>'
-      + '</div>';
+    var kpiRow = JM.KPIGrid([
+      {
+        label: 'Streak',
+        value: (st.current_streak || 0),
+        icon: '🔥',
+        sub: 'Longest: ' + (st.longest_streak || 0) + ' days',
+        accent: 'var(--jm-accent-orange, #f97316)'
+      },
+      {
+        label: 'XP · Level ' + (d.xp.level || 1),
+        value: (d.xp.total || 0).toLocaleString(),
+        icon: '⭐',
+        sub: 'Next level: ' + (d.xp.nextLevelAt || 100).toLocaleString(),
+        accent: 'var(--jm-accent-purple, #7c3aed)'
+      }
+    ], { min: 120 });
     var tile = function (x, isLocked) {
       var common = 'text-align:center;padding:8px;background:var(--jm-surface-2,#f3f4f6);border-radius:10px';
-      var border = isLocked ? ';opacity:.4;filter:grayscale(1)' : ';border:1.5px solid #f59e0b';
+      var border = isLocked ? ';opacity:.4;filter:grayscale(1)' : ';border:1.5px solid var(--jm-accent-amber, #f59e0b)';
       return '<div title="' + (isLocked ? 'Locked: ' : '') + JM.esc(x.description || '') + '" style="' + common + border + '">'
         + '<div style="font-size:26px">' + JM.esc(x.icon || (isLocked ? '🔒' : '🏆')) + '</div>'
         + '<div style="font-size:10px;font-weight:700;margin-top:2px">' + JM.esc(x.title) + '</div>'
@@ -37,7 +41,7 @@ JM.Screens.register({
       + earned.map(function (x) { return tile(x, false); }).join('')
       + locked.slice(0, 12).map(function (x) { return tile(x, true); }).join('')
       + '</div>'
-      + (earned.length === 0 ? '<div style="text-align:center;color:var(--jm-text-muted);font-size:12px;margin-top:14px">Submit an assignment or join a class to earn your first badge.</div>' : '');
+      + (earned.length === 0 ? JM.EmptyState({ icon: '🏅', title: 'No badges yet', msg: 'Submit an assignment or join a class to earn your first badge.' }) : '');
     return JM.ModalShell({ body: kpiRow + grid });
   }
 });

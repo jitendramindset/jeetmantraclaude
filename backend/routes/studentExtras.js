@@ -41,22 +41,23 @@ const { supabaseAdmin } = require('../config/supabase');
 const { awardForEvent } = require('../services/award');
 const { authenticateToken } = require('../middleware/auth');
 const { v4: uuidv4 } = require('uuid');
+const asyncHandler = require('../utils/asyncHandler');
 
 const router = express.Router();
 
 // ── NOTES ──────────────────────────────────────────────────────────────
 // List the caller's notes (newest first), optionally filtered by ?courseId=.
-router.get('/notes', authenticateToken, async (req, res) => {
+router.get('/notes', authenticateToken, asyncHandler(async (req, res) => {
   const { courseId } = req.query;
   let q = supabaseAdmin.from('student_notes').select('*').eq('student_id', req.user.id).order('updated_at', { ascending: false });
   if (courseId) q = q.eq('course_id', courseId);
   const { data, error } = await q;
   if (error) return res.status(400).json({ error: error.message });
   res.json({ notes: data || [] });
-});
+}));
 
 // Create a note (content required; course/lecture refs optional).
-router.post('/notes', authenticateToken, async (req, res) => {
+router.post('/notes', authenticateToken, asyncHandler(async (req, res) => {
   const { courseId, lectureId, title, content } = req.body;
   if (!content) return res.status(400).json({ error: 'content required' });
   const { data, error } = await supabaseAdmin.from('student_notes').insert({
@@ -69,29 +70,29 @@ router.post('/notes', authenticateToken, async (req, res) => {
   }).select().single();
   if (error) return res.status(400).json({ error: error.message });
   res.status(201).json({ note: data });
-});
+}));
 
 // Update one of the caller's own notes.
-router.put('/notes/:id', authenticateToken, async (req, res) => {
+router.put('/notes/:id', authenticateToken, asyncHandler(async (req, res) => {
   const { title, content } = req.body;
   const { data, error } = await supabaseAdmin.from('student_notes').update({
     title, content, updated_at: new Date().toISOString()
   }).eq('id', req.params.id).eq('student_id', req.user.id).select().single();
   if (error) return res.status(400).json({ error: error.message });
   res.json({ note: data });
-});
+}));
 
 // Delete one of the caller's own notes.
-router.delete('/notes/:id', authenticateToken, async (req, res) => {
+router.delete('/notes/:id', authenticateToken, asyncHandler(async (req, res) => {
   const { error } = await supabaseAdmin.from('student_notes').delete().eq('id', req.params.id).eq('student_id', req.user.id);
   if (error) return res.status(400).json({ error: error.message });
   res.json({ message: 'Note removed' });
-});
+}));
 
 // ── SESSIONS (time tracking) ───────────────────────────────────────────
 // Client pings /sessions/start when the dashboard opens, /sessions/end on
 // unload. Optionally tag a session with course_id when inside a lecture.
-router.post('/sessions/start', authenticateToken, async (req, res) => {
+router.post('/sessions/start', authenticateToken, asyncHandler(async (req, res) => {
   const { context, courseId } = req.body;
   const { data, error } = await supabaseAdmin.from('user_sessions').insert({
     id: uuidv4(),
@@ -103,9 +104,9 @@ router.post('/sessions/start', authenticateToken, async (req, res) => {
   // touch last_active
   await supabaseAdmin.from('jeetmantra_users').update({ last_active: new Date().toISOString() }).eq('id', req.user.id);
   res.json({ session: data });
-});
+}));
 
-router.post('/sessions/end', authenticateToken, async (req, res) => {
+router.post('/sessions/end', authenticateToken, asyncHandler(async (req, res) => {
   const { sessionId } = req.body;
   if (!sessionId) return res.status(400).json({ error: 'sessionId required' });
   const { data: existing } = await supabaseAdmin.from('user_sessions').select('started_at').eq('id', sessionId).single();
@@ -121,7 +122,7 @@ router.post('/sessions/end', authenticateToken, async (req, res) => {
   }).eq('id', sessionId).select().single();
   if (error) return res.status(400).json({ error: error.message });
   res.json({ session: data, durationSeconds: duration });
-});
+}));
 
 function parseUtc(s) {
   if (!s) return Date.now();
@@ -131,7 +132,7 @@ function parseUtc(s) {
 }
 
 // Total time across all sessions in a window
-router.get('/time-summary', authenticateToken, async (req, res) => {
+router.get('/time-summary', authenticateToken, asyncHandler(async (req, res) => {
   const { since } = req.query;
   let q = supabaseAdmin.from('user_sessions').select('duration_seconds, context, started_at').eq('user_id', req.user.id);
   if (since) q = q.gte('started_at', since);
@@ -142,7 +143,7 @@ router.get('/time-summary', authenticateToken, async (req, res) => {
     sessions: (data || []).length,
     formatted: formatDuration(total)
   });
-});
+}));
 
 // Per-day study time for the last N days (default 14) + a current streak.
 router.get('/activity-daily', authenticateToken, async (req, res) => {
@@ -178,7 +179,7 @@ function formatDuration(s) {
 // ── PROGRESS (per course) ──────────────────────────────────────────────
 // Per-enrollment progress %: computed from attended/total lectures, falling
 // back to the stored progress_percentage when no lectures exist.
-router.get('/progress', authenticateToken, async (req, res) => {
+router.get('/progress', authenticateToken, asyncHandler(async (req, res) => {
   const { data: enrollments } = await supabaseAdmin
     .from('enrollments').select('*, courses(id,title,category)').eq('student_id', req.user.id);
   const rows = await Promise.all((enrollments || []).map(async (e) => {
@@ -198,7 +199,7 @@ router.get('/progress', authenticateToken, async (req, res) => {
     };
   }));
   res.json({ progress: rows });
-});
+}));
 
 // GET /api/student/test-history — every test the student has taken
 router.get('/test-history', authenticateToken, async (req, res) => {

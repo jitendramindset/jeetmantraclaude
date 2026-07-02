@@ -31,7 +31,7 @@ JM.Screens.register({
               + '<td style="padding:10px 14px">' + new Date(t.created_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) + '</td>'
               + '<td style="padding:10px 14px">' + JM.Badge({ text: t.type, kind: pos ? 'success' : 'danger' }) + '</td>'
               + '<td style="padding:10px 14px;color:var(--jm-text-muted)">' + JM.esc(t.notes || '—') + '</td>'
-              + '<td style="padding:10px 14px;text-align:right;font-weight:700;color:' + (pos ? '#10b981' : '#ef4444') + '">' + (pos ? '+' : '') + fmt(t.amount) + '</td>'
+              + '<td style="padding:10px 14px;text-align:right;font-weight:700;color:' + (pos ? 'var(--jm-success, #10b981)' : 'var(--jm-danger, #ef4444)') + '">' + (pos ? '+' : '') + fmt(t.amount) + '</td>'
               + '<td style="padding:10px 14px;text-align:right;color:var(--jm-text-muted)">' + fmt(t.balance_after || 0) + '</td>'
               + '</tr>';
           }).join('')
@@ -45,9 +45,9 @@ JM.Screens.register({
     return '<div style="max-width:900px;margin:0 auto">'
       + '<h2 style="margin-bottom:14px">💰 My Wallet</h2>'
       + JM.KPIGrid([
-          { label: 'Balance', value: fmt(d.balance), sub: 'Available', accent: '#10b981' },
-          { label: 'Your referral code', value: refCode, sub: 'Share to earn ₹100', accent: '#7c3aed' },
-          { label: 'Transactions', value: txs.length, sub: 'Last 30', accent: '#f59e0b' }
+          { label: 'Balance', value: fmt(d.balance), sub: 'Available', accent: 'var(--jm-success, #10b981)' },
+          { label: 'Your referral code', value: refCode, sub: 'Share to earn ₹100', accent: 'var(--jm-accent-purple, #7c3aed)' },
+          { label: 'Transactions', value: txs.length, sub: 'Last 30', accent: 'var(--jm-accent-amber, #f59e0b)' }
         ])
       + '<div class="card" style="padding:18px;margin:14px 0">'
       +   '<div style="font-weight:700;margin-bottom:10px">Add money</div>'

@@ -28,6 +28,14 @@ const router = express.Router();
 const N8N_URL = process.env.N8N_WEBHOOK_URL || '';
 const N8N_SECRET = process.env.N8N_WEBHOOK_SECRET || '';
 
+function requireN8nSecret(req, res, next) {
+  const secret = req.headers['x-n8n-secret'];
+  if (!secret || secret !== process.env.N8N_WEBHOOK_SECRET) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  next();
+}
+
 // ── Addon config: a user can add / view their own n8n webhook at runtime ──
 // GET  /api/n8n/config — view current addon config (secret redacted)
 router.get('/config', authenticateToken, async (req, res) => {
@@ -193,17 +201,8 @@ router.post('/notify', authenticateToken, async (req, res) => {
 });
 
 // POST /api/n8n/sync-users — n8n pulls user data for sync
-router.post('/sync-users', async (req, res) => {
+router.post('/sync-users', requireN8nSecret, async (req, res) => {
   try {
-    const secret = req.headers['x-sync-secret'] || req.body.secret;
-    // Fail-closed in production: these expose user/course data, so a missing
-    // N8N_SECRET must NOT mean "open to everyone".
-    if (!N8N_SECRET) {
-      if (process.env.NODE_ENV === 'production') return res.status(503).json({ error: 'Sync secret not configured' });
-    } else if (secret !== N8N_SECRET) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-
     const { since } = req.body;
     let query = supabaseAdmin.from('jeetmantra_users').select('id,email,full_name,user_type,created_at,is_active').neq('status', 'deleted').order('created_at', { ascending: false }).limit(500);
     if (since) query = query.gte('created_at', since);
@@ -217,17 +216,8 @@ router.post('/sync-users', async (req, res) => {
 });
 
 // POST /api/n8n/sync-courses — n8n pulls course data
-router.post('/sync-courses', async (req, res) => {
+router.post('/sync-courses', requireN8nSecret, async (req, res) => {
   try {
-    const secret = req.headers['x-sync-secret'] || req.body.secret;
-    // Fail-closed in production: these expose user/course data, so a missing
-    // N8N_SECRET must NOT mean "open to everyone".
-    if (!N8N_SECRET) {
-      if (process.env.NODE_ENV === 'production') return res.status(503).json({ error: 'Sync secret not configured' });
-    } else if (secret !== N8N_SECRET) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-
     const { since } = req.body;
     let query = supabaseAdmin.from('courses').select('id,title,category,level,price,is_active,created_at').order('created_at', { ascending: false }).limit(500);
     if (since) query = query.gte('created_at', since);

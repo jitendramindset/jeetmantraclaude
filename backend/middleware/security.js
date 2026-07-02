@@ -21,11 +21,23 @@ function applySecurity(app) {
   const helmet = optional('helmet');
   if (helmet) {
     app.use(helmet({
-      // The single-file HTML SPAs use inline styles/scripts + CDN React/Babel on
-      // a couple of pages, so a strict CSP would break them. Keep the other
-      // protections (HSTS, noSniff, frameguard) and leave CSP off until the
-      // frontend is bundled/nonce'd.
-      contentSecurityPolicy: false,
+      // Permissive but present CSP — 'unsafe-inline' and 'unsafe-eval' are kept
+      // because the vanilla JS SPA relies on inline scripts and eval. This is a
+      // stepping stone; real nonce-based CSP is a future goal once the frontend
+      // is bundled.
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://accounts.google.com", "https://apis.google.com", "https://checkout.razorpay.com", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net", "https://esm.run"],
+          styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+          fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
+          imgSrc: ["'self'", "data:", "blob:", "https:"],
+          connectSrc: ["'self'", "https:", "wss:"],
+          frameSrc: ["https://www.youtube.com", "https://checkout.razorpay.com"],
+          mediaSrc: ["'self'", "blob:", "https:"],
+          workerSrc: ["'self'", "blob:"],
+        }
+      },
       crossOriginEmbedderPolicy: false,
       hsts: isProd ? { maxAge: 15552000, includeSubDomains: true } : false
     }));

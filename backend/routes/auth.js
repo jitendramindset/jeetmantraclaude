@@ -288,10 +288,11 @@ router.post('/signup', ipLimit(10), validate('signup'), async (req, res) => {
 });
 
 // Login
-// Dev/offline fallback users — only active when Supabase is unreachable.
-// Passwords match what's in jeetmantra_users; stored as bcrypt hashes here so
-// the same bcrypt.compare() path works without a live DB.
-const DEV_USERS = process.env.NODE_ENV !== 'production' ? [
+// Dev/offline fallback users — ONLY active when ALLOW_DEV_USERS=true is
+// explicitly set. These are not real accounts; they exist solely to allow
+// local development without a live Supabase instance. Never set this flag
+// in production — the startup warning in server.js will remind you.
+const DEV_USERS = process.env.ALLOW_DEV_USERS === 'true' ? [
   { id:'dev-admin-1',   email:'admin@jeetmantra.com',    password_hash: null, _pw:'admin123',   user_type:'admin',    full_name:'Dev Admin',    is_active:true },
   { id:'dev-teacher-1', email:'teacher@jeetmantra.com',  password_hash: null, _pw:'teacher123', user_type:'teacher',  full_name:'Dev Teacher',  is_active:true },
   { id:'dev-student-1', email:'student@jeetmantra.com',  password_hash: null, _pw:'student123', user_type:'student',  full_name:'Dev Student',  is_active:true },
@@ -318,6 +319,8 @@ router.post('/login', loginThrottle, validate('login'), async (req, res) => {
       // Supabase unreachable (timeout/network) — try dev fallback
       console.warn('Supabase unreachable during login:', fetchErr.message);
       const devUser = DEV_USERS.find(u => u.email === email);
+      // Plain-text comparison is intentional: _pw values are not real
+      // credentials; they exist only for local dev when the DB is unreachable.
       if (devUser && devUser._pw === password) {
         const token = jwt.sign(
           { id: devUser.id, email: devUser.email, role: devUser.user_type, roles: [devUser.user_type] },
@@ -335,6 +338,8 @@ router.post('/login', loginThrottle, validate('login'), async (req, res) => {
       console.error('Login DB error:', dbError.code, dbError.message);
       // Try dev fallback before giving up
       const devUser = DEV_USERS.find(u => u.email === email);
+      // Plain-text comparison is intentional: _pw values are not real
+      // credentials; they exist only for local dev when the DB is unreachable.
       if (devUser && devUser._pw === password) {
         const token = jwt.sign(
           { id: devUser.id, email: devUser.email, role: devUser.user_type, roles: [devUser.user_type] },
@@ -346,9 +351,12 @@ router.post('/login', loginThrottle, validate('login'), async (req, res) => {
     }
 
     if (!user) {
-      // In dev mode, allow built-in dev users even when Supabase is reachable but has no matching row
-      if (process.env.NODE_ENV !== 'production') {
+      // Allow built-in dev users even when Supabase is reachable but has no matching row,
+      // but only when the operator has explicitly opted in via ALLOW_DEV_USERS=true.
+      if (process.env.ALLOW_DEV_USERS === 'true') {
         const devUser = DEV_USERS.find(u => u.email === email);
+        // Plain-text comparison is intentional: _pw values are not real
+        // credentials; they exist only for local dev sessions.
         if (devUser && devUser._pw === password) {
           loginRecordSuccess(req);
           const token = jwt.sign(

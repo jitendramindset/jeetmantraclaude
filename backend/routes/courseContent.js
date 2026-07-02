@@ -56,6 +56,7 @@ const { supabase, supabaseAdmin } = require('../config/supabase');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
 const { requireCapability } = require('../middleware/requireCapability');
 const { v4: uuidv4 } = require('uuid');
+const asyncHandler = require('../utils/asyncHandler');
 
 const router = express.Router();
 
@@ -126,16 +127,16 @@ router.post('/:courseId/cover', authenticateToken, upload.single('cover'), async
 
 // ── TOPICS ─────────────────────────────────────────────────────────────
 // GET /api/course-content/:courseId/topics — list topics (preview-filtered for non-viewers)
-router.get('/:courseId/topics', authenticateToken, async (req, res) => {
+router.get('/:courseId/topics', authenticateToken, asyncHandler(async (req, res) => {
   const { data, error } = await supabaseAdmin
     .from('course_topics').select('*').eq('course_id', req.params.courseId).order('order_index');
   if (error) return res.status(400).json({ error: error.message });
   const full = await canViewFull(req.params.courseId, req.user);
   res.json({ topics: full ? (data || []) : (data || []).filter(t => t.is_preview) });
-});
+}));
 
 // POST /api/course-content/:courseId/topics — create a topic (owner/admin)
-router.post('/:courseId/topics', authenticateToken, async (req, res) => {
+router.post('/:courseId/topics', authenticateToken, asyncHandler(async (req, res) => {
   const { allowed } = await ownsCourse(req.params.courseId, req.user);
   if (!allowed) return res.status(403).json({ error: 'Not your course' });
   const { title, description, order_index, imageUrl, attachmentUrl, linkUrl, notes, isPreview } = req.body;
@@ -148,10 +149,10 @@ router.post('/:courseId/topics', authenticateToken, async (req, res) => {
   }).select().single();
   if (error) return res.status(400).json({ error: error.message });
   res.status(201).json({ topic: data });
-});
+}));
 
 // PUT /api/course-content/topics/:id — edit title/description/order
-router.put('/topics/:id', authenticateToken, async (req, res) => {
+router.put('/topics/:id', authenticateToken, asyncHandler(async (req, res) => {
   const { allowed } = await ownsContentItem('course_topics', req.params.id, req.user);
   if (!allowed) return res.status(403).json({ error: 'Not your course' });
   const { title, description, orderIndex, imageUrl, attachmentUrl, linkUrl, notes, isPreview } = req.body;
@@ -167,29 +168,29 @@ router.put('/topics/:id', authenticateToken, async (req, res) => {
   const { data, error } = await supabaseAdmin.from('course_topics').update(updates).eq('id', req.params.id).select().single();
   if (error) return res.status(400).json({ error: error.message });
   res.json({ topic: data });
-});
+}));
 
 // DELETE /api/course-content/topics/:id — remove a topic (owner/admin)
-router.delete('/topics/:id', authenticateToken, async (req, res) => {
+router.delete('/topics/:id', authenticateToken, asyncHandler(async (req, res) => {
   const { allowed } = await ownsContentItem('course_topics', req.params.id, req.user);
   if (!allowed) return res.status(403).json({ error: 'Not your course' });
   const { error } = await supabaseAdmin.from('course_topics').delete().eq('id', req.params.id);
   if (error) return res.status(400).json({ error: error.message });
   res.json({ message: 'Topic removed' });
-});
+}));
 
 // ── LECTURES ───────────────────────────────────────────────────────────
 // GET /api/course-content/:courseId/lectures — list lectures (preview-filtered for non-viewers)
-router.get('/:courseId/lectures', authenticateToken, async (req, res) => {
+router.get('/:courseId/lectures', authenticateToken, asyncHandler(async (req, res) => {
   const { data, error } = await supabaseAdmin
     .from('course_lectures').select('*').eq('course_id', req.params.courseId).order('order_index');
   if (error) return res.status(400).json({ error: error.message });
   const full = await canViewFull(req.params.courseId, req.user);
   res.json({ lectures: full ? (data || []) : (data || []).filter(l => l.is_preview) });
-});
+}));
 
 // POST /api/course-content/:courseId/lectures — create a lecture, optional video upload (owner/admin)
-router.post('/:courseId/lectures', authenticateToken, upload.single('video'), async (req, res) => {
+router.post('/:courseId/lectures', authenticateToken, upload.single('video'), asyncHandler(async (req, res) => {
   const { allowed } = await ownsCourse(req.params.courseId, req.user);
   if (!allowed) return res.status(403).json({ error: 'Not your course' });
   const { topicId, title, description, duration, isRecorded, lectureDate, orderIndex, isPreview } = req.body;
@@ -211,10 +212,10 @@ router.post('/:courseId/lectures', authenticateToken, upload.single('video'), as
   }).select().single();
   if (error) return res.status(400).json({ error: error.message });
   res.status(201).json({ lecture: data });
-});
+}));
 
 // PUT /api/course-content/lectures/:id — edit a lecture (owner/admin)
-router.put('/lectures/:id', authenticateToken, async (req, res) => {
+router.put('/lectures/:id', authenticateToken, asyncHandler(async (req, res) => {
   const { allowed } = await ownsContentItem('course_lectures', req.params.id, req.user);
   if (!allowed) return res.status(403).json({ error: 'Not your course' });
   const { title, description, videoUrl, duration, isRecorded, lectureDate, orderIndex, topicId } = req.body;
@@ -230,27 +231,27 @@ router.put('/lectures/:id', authenticateToken, async (req, res) => {
   const { data, error } = await supabaseAdmin.from('course_lectures').update(updates).eq('id', req.params.id).select().single();
   if (error) return res.status(400).json({ error: error.message });
   res.json({ lecture: data });
-});
+}));
 
 // DELETE /api/course-content/lectures/:id — remove a lecture (owner/admin)
-router.delete('/lectures/:id', authenticateToken, async (req, res) => {
+router.delete('/lectures/:id', authenticateToken, asyncHandler(async (req, res) => {
   const { allowed } = await ownsContentItem('course_lectures', req.params.id, req.user);
   if (!allowed) return res.status(403).json({ error: 'Not your course' });
   const { error } = await supabaseAdmin.from('course_lectures').delete().eq('id', req.params.id);
   if (error) return res.status(400).json({ error: error.message });
   res.json({ message: 'Lecture removed' });
-});
+}));
 
 // ── MATERIALS (files / links / images) ─────────────────────────────────
 // GET /api/course-content/:courseId/materials — list materials (owners/enrolled only)
-router.get('/:courseId/materials', authenticateToken, async (req, res) => {
+router.get('/:courseId/materials', authenticateToken, asyncHandler(async (req, res) => {
   const { data, error } = await supabaseAdmin
     .from('course_materials').select('*').eq('course_id', req.params.courseId).order('created_at', { ascending: false });
   if (error) return res.status(400).json({ error: error.message });
   // Materials have no preview flag — only owners/enrolled students see them.
   const full = await canViewFull(req.params.courseId, req.user);
   res.json({ materials: full ? (data || []) : [] });
-});
+}));
 
 // POST /api/course-content/:courseId/materials — add material, optional file upload + RAG index (owner/admin)
 router.post('/:courseId/materials', authenticateToken, upload.single('file'), async (req, res) => {
@@ -293,7 +294,7 @@ router.post('/:courseId/materials', authenticateToken, upload.single('file'), as
 });
 
 // PUT /api/course-content/materials/:id — edit a material (owner/admin)
-router.put('/materials/:id', authenticateToken, async (req, res) => {
+router.put('/materials/:id', authenticateToken, asyncHandler(async (req, res) => {
   const { allowed } = await ownsContentItem('course_materials', req.params.id, req.user);
   if (!allowed) return res.status(403).json({ error: 'Not your course' });
   const { title, type, url, topicId, description } = req.body;
@@ -306,10 +307,10 @@ router.put('/materials/:id', authenticateToken, async (req, res) => {
   const { data, error } = await supabaseAdmin.from('course_materials').update(updates).eq('id', req.params.id).select().single();
   if (error) return res.status(400).json({ error: error.message });
   res.json({ material: data });
-});
+}));
 
 // DELETE /api/course-content/materials/:id — remove a material + its RAG chunks (owner/admin)
-router.delete('/materials/:id', authenticateToken, async (req, res) => {
+router.delete('/materials/:id', authenticateToken, asyncHandler(async (req, res) => {
   const { allowed } = await ownsContentItem('course_materials', req.params.id, req.user);
   if (!allowed) return res.status(403).json({ error: 'Not your course' });
   const { error } = await supabaseAdmin.from('course_materials').delete().eq('id', req.params.id);
@@ -317,20 +318,20 @@ router.delete('/materials/:id', authenticateToken, async (req, res) => {
   // Best-effort: drop any RAG chunks indexed from this material.
   try { await supabaseAdmin.from('rag_chunks').delete().eq('material_id', req.params.id); } catch (e) {}
   res.json({ message: 'Material removed' });
-});
+}));
 
 // ── TESTS ──────────────────────────────────────────────────────────────
 // GET /api/course-content/:courseId/tests — list tests (owners/enrolled only)
-router.get('/:courseId/tests', authenticateToken, async (req, res) => {
+router.get('/:courseId/tests', authenticateToken, asyncHandler(async (req, res) => {
   const { data, error } = await supabaseAdmin
     .from('course_tests').select('*').eq('course_id', req.params.courseId).order('created_at', { ascending: false });
   if (error) return res.status(400).json({ error: error.message });
   const full = await canViewFull(req.params.courseId, req.user);
   res.json({ tests: full ? (data || []) : [] });
-});
+}));
 
 // POST /api/course-content/:courseId/tests — create a test (cap: test.create, owner/admin)
-router.post('/:courseId/tests', authenticateToken, requireCapability('test.create'), async (req, res) => {
+router.post('/:courseId/tests', authenticateToken, requireCapability('test.create'), asyncHandler(async (req, res) => {
   const { allowed } = await ownsCourse(req.params.courseId, req.user);
   if (!allowed) return res.status(403).json({ error: 'Not your course' });
   const { title, description, totalMarks, durationMinutes, scheduledFor, topicId,
@@ -352,10 +353,10 @@ router.post('/:courseId/tests', authenticateToken, requireCapability('test.creat
   }).select().single();
   if (error) return res.status(400).json({ error: error.message });
   res.status(201).json({ test: data });
-});
+}));
 
 // PUT /api/course-content/tests/:id — edit a test (cap: test.create, owner/admin)
-router.put('/tests/:id', authenticateToken, requireCapability('test.create'), async (req, res) => {
+router.put('/tests/:id', authenticateToken, requireCapability('test.create'), asyncHandler(async (req, res) => {
   const { allowed } = await ownsContentItem('course_tests', req.params.id, req.user);
   if (!allowed) return res.status(403).json({ error: 'Not your course' });
   const { title, description, totalMarks, durationMinutes, scheduledFor, topicId,
@@ -374,20 +375,20 @@ router.put('/tests/:id', authenticateToken, requireCapability('test.create'), as
   const { data, error } = await supabaseAdmin.from('course_tests').update(updates).eq('id', req.params.id).select().single();
   if (error) return res.status(400).json({ error: error.message });
   res.json({ test: data });
-});
+}));
 
 // DELETE /api/course-content/tests/:id — remove a test (owner/admin)
-router.delete('/tests/:id', authenticateToken, async (req, res) => {
+router.delete('/tests/:id', authenticateToken, asyncHandler(async (req, res) => {
   const { allowed } = await ownsContentItem('course_tests', req.params.id, req.user);
   if (!allowed) return res.status(403).json({ error: 'Not your course' });
   const { error } = await supabaseAdmin.from('course_tests').delete().eq('id', req.params.id);
   if (error) return res.status(400).json({ error: error.message });
   res.json({ message: 'Test removed' });
-});
+}));
 
 // ── QUESTIONS — the actual items inside a test ──────────────────────────
 // GET /api/course-content/tests/:testId/questions
-router.get('/tests/:testId/questions', authenticateToken, async (req, res) => {
+router.get('/tests/:testId/questions', authenticateToken, asyncHandler(async (req, res) => {
   const [{ data: questions, error }, { data: test }] = await Promise.all([
     supabaseAdmin.from('course_questions').select('*').eq('test_id', req.params.testId).order('order_index'),
     supabaseAdmin.from('course_tests').select('shuffle_questions, shuffle_options, pool_size').eq('id', req.params.testId).single()
@@ -415,12 +416,12 @@ router.get('/tests/:testId/questions', authenticateToken, async (req, res) => {
     }
   }
   res.json({ questions: qs });
-});
+}));
 
 // POST /api/course-content/tests/:testId/questions
 // Supports type ∈ { mcq, true_false, short, long, fill, match } plus an optional
 // section_id, image_url and match_pairs (for type:match).
-router.post('/tests/:testId/questions', authenticateToken, requireCapability('test.create'), async (req, res) => {
+router.post('/tests/:testId/questions', authenticateToken, requireCapability('test.create'), asyncHandler(async (req, res) => {
   const { data: test } = await supabaseAdmin.from('course_tests').select('course_id').eq('id', req.params.testId).single();
   if (!test) return res.status(404).json({ error: 'Test not found' });
   const { allowed } = await ownsCourse(test.course_id, req.user);
@@ -451,10 +452,10 @@ router.post('/tests/:testId/questions', authenticateToken, requireCapability('te
   }).select().single();
   if (error) return res.status(400).json({ error: error.message });
   res.status(201).json({ question: data });
-});
+}));
 
 // PUT /api/course-content/questions/:id — edit
-router.put('/questions/:id', authenticateToken, async (req, res) => {
+router.put('/questions/:id', authenticateToken, asyncHandler(async (req, res) => {
   const { data: row } = await supabaseAdmin.from('course_questions').select('id, test_id').eq('id', req.params.id).single();
   if (!row) return res.status(404).json({ error: 'Question not found' });
   const { data: test } = await supabaseAdmin.from('course_tests').select('course_id').eq('id', row.test_id).single();
@@ -476,10 +477,10 @@ router.put('/questions/:id', authenticateToken, async (req, res) => {
   const { data, error } = await supabaseAdmin.from('course_questions').update(updates).eq('id', req.params.id).select().single();
   if (error) return res.status(400).json({ error: error.message });
   res.json({ question: data });
-});
+}));
 
 // DELETE /api/course-content/questions/:id
-router.delete('/questions/:id', authenticateToken, async (req, res) => {
+router.delete('/questions/:id', authenticateToken, asyncHandler(async (req, res) => {
   const { data: row } = await supabaseAdmin.from('course_questions').select('id, test_id').eq('id', req.params.id).single();
   if (!row) return res.status(404).json({ error: 'Question not found' });
   const { data: test } = await supabaseAdmin.from('course_tests').select('course_id').eq('id', row.test_id).single();
@@ -488,11 +489,11 @@ router.delete('/questions/:id', authenticateToken, async (req, res) => {
   const { error } = await supabaseAdmin.from('course_questions').delete().eq('id', req.params.id);
   if (error) return res.status(400).json({ error: error.message });
   res.json({ message: 'Question removed' });
-});
+}));
 
 // ── TEST SESSIONS — student starts → submits a test ──────────────────────
 // POST /api/course-content/tests/:testId/session/start
-router.post('/tests/:testId/session/start', authenticateToken, async (req, res) => {
+router.post('/tests/:testId/session/start', authenticateToken, asyncHandler(async (req, res) => {
   // Re-use any in_progress session for this student
   const { data: existing } = await supabaseAdmin.from('test_sessions')
     .select('*').eq('test_id', req.params.testId).eq('student_id', req.user.id).eq('status', 'in_progress').maybeSingle();
@@ -506,10 +507,10 @@ router.post('/tests/:testId/session/start', authenticateToken, async (req, res) 
   }).select().single();
   if (error) return res.status(400).json({ error: error.message });
   res.status(201).json({ session: data, resumed: false });
-});
+}));
 
 // POST /api/course-content/sessions/:id/submit
-router.post('/sessions/:id/submit', authenticateToken, async (req, res) => {
+router.post('/sessions/:id/submit', authenticateToken, asyncHandler(async (req, res) => {
   const { answers } = req.body;
   const { data: session } = await supabaseAdmin.from('test_sessions').select('*').eq('id', req.params.id).single();
   if (!session) return res.status(404).json({ error: 'Session not found' });
@@ -604,7 +605,7 @@ router.post('/sessions/:id/submit', authenticateToken, async (req, res) => {
   // Best-effort: surface the submission on the teacher's wall + notify them.
   announceTestSubmission(session.test_id, req.user).catch(() => {});
   res.json({ session: updated, scoreEarned: score, totalMarks });
-});
+}));
 
 // Log a test submission to the activity wall and notify the course teacher.
 // Lazy-requires to avoid circular deps; never throws.
@@ -639,7 +640,7 @@ async function announceTestSubmission(testId, student) {
 }
 
 // POST /api/course-content/tests/:testId/submit — legacy direct submit (records score only)
-router.post('/tests/:testId/submit', authenticateToken, async (req, res) => {
+router.post('/tests/:testId/submit', authenticateToken, asyncHandler(async (req, res) => {
   const { score } = req.body;
   const { data, error } = await supabaseAdmin.from('test_submissions').insert({
     id: uuidv4(),
@@ -650,12 +651,12 @@ router.post('/tests/:testId/submit', authenticateToken, async (req, res) => {
   }).select().single();
   if (error) return res.status(400).json({ error: error.message });
   res.status(201).json({ submission: data });
-});
+}));
 
 // ── PUBLIC PREVIEW (no auth) — used by marketplace browsers. Returns title,
 // description, cover, topics list, and content COUNTS only. Lecture URLs,
 // material URLs etc. are stripped so unenrolled users can't access the goods.
-router.get('/:courseId/preview', async (req, res) => {
+router.get('/:courseId/preview', asyncHandler(async (req, res) => {
   const courseId = req.params.courseId;
   const [course, topics, lecturesCount, materialsCount, testsCount] = await Promise.all([
     supabaseAdmin.from('courses').select('id,title,description,category,level,price,cover_image').eq('id', courseId).single().then(r => r.data),
@@ -672,10 +673,10 @@ router.get('/:courseId/preview', async (req, res) => {
     materials: Array.from({ length: materialsCount }).map(() => ({})),
     tests: Array.from({ length: testsCount }).map(() => ({}))
   });
-});
+}));
 
 // ── COURSE DETAIL (all content in one shot — used by Configure modal) ──
-router.get('/:courseId/full', authenticateToken, async (req, res) => {
+router.get('/:courseId/full', authenticateToken, asyncHandler(async (req, res) => {
   const courseId = req.params.courseId;
   const [course, topics, lectures, materials, tests] = await Promise.all([
     supabaseAdmin.from('courses').select('*').eq('id', courseId).single().then(r => r.data),
@@ -706,18 +707,18 @@ router.get('/:courseId/full', authenticateToken, async (req, res) => {
     tests: [],
     preview: true
   });
-});
+}));
 
 // ── TEST SECTIONS: sub-divisions of a test with per-section duration ────
-router.get('/tests/:testId/sections', authenticateToken, async (req, res) => {
+router.get('/tests/:testId/sections', authenticateToken, asyncHandler(async (req, res) => {
   const { data, error } = await supabaseAdmin
     .from('test_sections').select('*').eq('test_id', req.params.testId).order('order_index');
   if (error) return res.status(400).json({ error: error.message });
   res.json({ sections: data || [] });
-});
+}));
 
 // POST /api/course-content/tests/:testId/sections — create a section (cap: test.create, owner/admin)
-router.post('/tests/:testId/sections', authenticateToken, requireCapability('test.create'), async (req, res) => {
+router.post('/tests/:testId/sections', authenticateToken, requireCapability('test.create'), asyncHandler(async (req, res) => {
   const { data: test } = await supabaseAdmin.from('course_tests').select('course_id').eq('id', req.params.testId).single();
   if (!test) return res.status(404).json({ error: 'Test not found' });
   const { allowed } = await ownsCourse(test.course_id, req.user);
@@ -730,10 +731,10 @@ router.post('/tests/:testId/sections', authenticateToken, requireCapability('tes
   }).select().single();
   if (error) return res.status(400).json({ error: error.message });
   res.status(201).json({ section: data });
-});
+}));
 
 // PUT /api/course-content/sections/:id — edit a section (owner/admin)
-router.put('/sections/:id', authenticateToken, async (req, res) => {
+router.put('/sections/:id', authenticateToken, asyncHandler(async (req, res) => {
   const { data: row } = await supabaseAdmin.from('test_sections').select('id, test_id').eq('id', req.params.id).single();
   if (!row) return res.status(404).json({ error: 'Section not found' });
   const { data: test } = await supabaseAdmin.from('course_tests').select('course_id').eq('id', row.test_id).single();
@@ -748,10 +749,10 @@ router.put('/sections/:id', authenticateToken, async (req, res) => {
   const { data, error } = await supabaseAdmin.from('test_sections').update(updates).eq('id', req.params.id).select().single();
   if (error) return res.status(400).json({ error: error.message });
   res.json({ section: data });
-});
+}));
 
 // DELETE /api/course-content/sections/:id — remove a section (owner/admin)
-router.delete('/sections/:id', authenticateToken, async (req, res) => {
+router.delete('/sections/:id', authenticateToken, asyncHandler(async (req, res) => {
   const { data: row } = await supabaseAdmin.from('test_sections').select('id, test_id').eq('id', req.params.id).single();
   if (!row) return res.status(404).json({ error: 'Section not found' });
   const { data: test } = await supabaseAdmin.from('course_tests').select('course_id').eq('id', row.test_id).single();
@@ -759,7 +760,7 @@ router.delete('/sections/:id', authenticateToken, async (req, res) => {
   if (!allowed) return res.status(403).json({ error: 'Not your course' });
   await supabaseAdmin.from('test_sections').delete().eq('id', req.params.id);
   res.json({ message: 'Section removed' });
-});
+}));
 
 // ── QUESTION IMAGE UPLOAD: multipart, stores under uploads/courses/qimg-*.
 const qimgStorage = multer.diskStorage({
@@ -786,15 +787,15 @@ router.post('/upload', authenticateToken, mediaUpload.single('file'), (req, res)
 
 // ── QUESTION BANK: reusable questions belonging to the teacher.
 // GET /api/course-content/question-bank — list the caller's own bank items
-router.get('/question-bank', authenticateToken, async (req, res) => {
+router.get('/question-bank', authenticateToken, asyncHandler(async (req, res) => {
   const { data, error } = await supabaseAdmin
     .from('question_bank').select('*').eq('owner_id', req.user.id).order('created_at', { ascending: false });
   if (error) return res.status(400).json({ error: error.message });
   res.json({ items: data || [] });
-});
+}));
 
 // POST /api/course-content/question-bank — add a reusable bank item (owned by caller)
-router.post('/question-bank', authenticateToken, async (req, res) => {
+router.post('/question-bank', authenticateToken, asyncHandler(async (req, res) => {
   const { type, questionText, options, correctAnswer, matchPairs, marks, difficulty, explanation, imageUrl, tags } = req.body;
   if (!questionText) return res.status(400).json({ error: 'questionText required' });
   const { data, error } = await supabaseAdmin.from('question_bank').insert({
@@ -807,18 +808,18 @@ router.post('/question-bank', authenticateToken, async (req, res) => {
   }).select().single();
   if (error) return res.status(400).json({ error: error.message });
   res.status(201).json({ item: data });
-});
+}));
 
 // DELETE /api/course-content/question-bank/:id — remove a bank item (owner only)
-router.delete('/question-bank/:id', authenticateToken, async (req, res) => {
+router.delete('/question-bank/:id', authenticateToken, asyncHandler(async (req, res) => {
   const { data: row } = await supabaseAdmin.from('question_bank').select('owner_id').eq('id', req.params.id).single();
   if (!row || row.owner_id !== req.user.id) return res.status(403).json({ error: 'Not your bank item' });
   await supabaseAdmin.from('question_bank').delete().eq('id', req.params.id);
   res.json({ message: 'Removed' });
-});
+}));
 
 // Copy a bank item into a specific test as a question.
-router.post('/tests/:testId/questions/from-bank/:bankId', authenticateToken, requireCapability('test.create'), async (req, res) => {
+router.post('/tests/:testId/questions/from-bank/:bankId', authenticateToken, requireCapability('test.create'), asyncHandler(async (req, res) => {
   const { data: test } = await supabaseAdmin.from('course_tests').select('course_id').eq('id', req.params.testId).single();
   if (!test) return res.status(404).json({ error: 'Test not found' });
   const { allowed } = await ownsCourse(test.course_id, req.user);
@@ -834,11 +835,11 @@ router.post('/tests/:testId/questions/from-bank/:bankId', authenticateToken, req
   }).select().single();
   if (error) return res.status(400).json({ error: error.message });
   res.status(201).json({ question: data });
-});
+}));
 
 // ── PROCTORING: students log suspicious events (tab-switch, fullscreen exit,
 // face-not-visible) during a test session; teachers fetch the timeline.
-router.post('/sessions/:id/proctor-event', authenticateToken, async (req, res) => {
+router.post('/sessions/:id/proctor-event', authenticateToken, asyncHandler(async (req, res) => {
   const { data: session } = await supabaseAdmin.from('test_sessions').select('student_id').eq('id', req.params.id).single();
   if (!session) return res.status(404).json({ error: 'Session not found' });
   if (session.student_id !== req.user.id) return res.status(403).json({ error: 'Not your session' });
@@ -849,10 +850,10 @@ router.post('/sessions/:id/proctor-event', authenticateToken, async (req, res) =
   }).select().single();
   if (error) return res.status(400).json({ error: error.message });
   res.status(201).json({ event: data });
-});
+}));
 
 // GET /api/course-content/sessions/:id/proctor-events — fetch proctor timeline (student-owner or course owner/admin)
-router.get('/sessions/:id/proctor-events', authenticateToken, async (req, res) => {
+router.get('/sessions/:id/proctor-events', authenticateToken, asyncHandler(async (req, res) => {
   const { data: session } = await supabaseAdmin.from('test_sessions').select('*, course_tests(course_id)').eq('id', req.params.id).single();
   if (!session) return res.status(404).json({ error: 'Session not found' });
   // Student can view their own; teacher can view if they own the course.
@@ -867,6 +868,6 @@ router.get('/sessions/:id/proctor-events', authenticateToken, async (req, res) =
   }
   const { data } = await supabaseAdmin.from('proctoring_events').select('*').eq('session_id', req.params.id).order('occurred_at');
   res.json({ events: data || [] });
-});
+}));
 
 module.exports = router;

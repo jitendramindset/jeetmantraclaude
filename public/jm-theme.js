@@ -45,6 +45,42 @@
     } catch (_) { return hex; }
   }
 
+  // Inject static design-token defaults once so every page has them even
+  // before readCrm() runs. apply() may override accent-derived tokens later.
+  (function injectStaticTokens() {
+    var style = document.getElementById('jm-static-tokens');
+    if (style) return; // already injected
+    style = document.createElement('style');
+    style.id = 'jm-static-tokens';
+    style.textContent = [
+      ':root {',
+      '  --jm-success: #16a34a;',
+      '  --jm-success-dim: #dcfce7;',
+      '  --jm-danger: #ef4444;',
+      '  --jm-danger-dim: #fee2e2;',
+      '  --jm-warn: #ca8a04;',
+      '  --jm-warn-dim: #fef9c3;',
+      '  --jm-info: #0369a1;',
+      '  --jm-info-dim: #e0f2fe;',
+      '  --jm-accent-cyan: #06b6d4;',
+      '  --jm-accent-green: #16a34a;',
+      '  --jm-accent-amber: #f59e0b;',
+      '  --jm-accent-purple: #7c3aed;',
+      '  --jm-accent-orange: #f97316;',
+      '  --jm-accent-red: #ef4444;',
+      '  --jm-surface2: #f1f5f9;',
+      '  --jm-text-muted: #64748b;',
+      '  --jm-space-1: 4px;',
+      '  --jm-space-2: 8px;',
+      '  --jm-space-3: 12px;',
+      '  --jm-space-4: 16px;',
+      '  --jm-space-6: 24px;',
+      '  --jm-space-8: 32px;',
+      '}'
+    ].join('\n');
+    (document.head || document.documentElement).appendChild(style);
+  })();
+
   function apply() {
     var c = readCrm();
     var root = document.documentElement;

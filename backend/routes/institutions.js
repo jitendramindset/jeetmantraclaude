@@ -24,12 +24,13 @@ const express = require('express');
 const { supabaseAdmin } = require('../config/supabase');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
 const { v4: uuidv4 } = require('uuid');
+const asyncHandler = require('../utils/asyncHandler');
 
 const router = express.Router();
 const INSTITUTIONS = ['school', 'coaching', 'admin'];
 
 // ── TEACHERS ───────────────────────────────────────────────────────────
-router.get('/teachers', authenticateToken, authorizeRole(INSTITUTIONS), async (req, res) => {
+router.get('/teachers', authenticateToken, authorizeRole(INSTITUTIONS), asyncHandler(async (req, res) => {
   const { data: links } = await supabaseAdmin
     .from('institution_teachers')
     .select('*')
@@ -55,9 +56,9 @@ router.get('/teachers', authenticateToken, authorizeRole(INSTITUTIONS), async (r
       ...byId[l.teacher_id]
     }))
   });
-});
+}));
 
-router.post('/teachers', authenticateToken, authorizeRole(INSTITUTIONS), async (req, res) => {
+router.post('/teachers', authenticateToken, authorizeRole(INSTITUTIONS), asyncHandler(async (req, res) => {
   const { email, subject, role } = req.body;
   if (!email) return res.status(400).json({ error: 'teacher email required' });
   // Find the teacher account
@@ -81,17 +82,17 @@ router.post('/teachers', authenticateToken, authorizeRole(INSTITUTIONS), async (
     return res.status(400).json({ error: error.message });
   }
   res.status(201).json({ message: 'Teacher linked', link: data, teacher });
-});
+}));
 
-router.delete('/teachers/:linkId', authenticateToken, authorizeRole(INSTITUTIONS), async (req, res) => {
+router.delete('/teachers/:linkId', authenticateToken, authorizeRole(INSTITUTIONS), asyncHandler(async (req, res) => {
   const { error } = await supabaseAdmin.from('institution_teachers')
     .delete().eq('id', req.params.linkId).eq('institution_id', req.user.id);
   if (error) return res.status(400).json({ error: error.message });
   res.json({ message: 'Teacher unlinked' });
-});
+}));
 
 // ── STUDENTS ───────────────────────────────────────────────────────────
-router.get('/students', authenticateToken, authorizeRole(INSTITUTIONS), async (req, res) => {
+router.get('/students', authenticateToken, authorizeRole(INSTITUTIONS), asyncHandler(async (req, res) => {
   const { data: links } = await supabaseAdmin
     .from('institution_students').select('*').eq('institution_id', req.user.id);
   const ids = (links || []).map(l => l.student_id);
@@ -105,9 +106,9 @@ router.get('/students', authenticateToken, authorizeRole(INSTITUTIONS), async (r
   res.json({
     students: (links || []).map(l => ({ link_id: l.id, class_label: l.class_label, joined_at: l.joined_at, ...byId[l.student_id] }))
   });
-});
+}));
 
-router.post('/students', authenticateToken, authorizeRole(INSTITUTIONS), async (req, res) => {
+router.post('/students', authenticateToken, authorizeRole(INSTITUTIONS), asyncHandler(async (req, res) => {
   const { email, classLabel } = req.body;
   if (!email) return res.status(400).json({ error: 'student email required' });
   const { data: student } = await supabaseAdmin
@@ -124,12 +125,12 @@ router.post('/students', authenticateToken, authorizeRole(INSTITUTIONS), async (
     return res.status(400).json({ error: error.message });
   }
   res.status(201).json({ message: 'Student linked', link: data });
-});
+}));
 
 // ── DASHBOARD AGG ──────────────────────────────────────────────────────
 // What does an institution want to see at a glance?
 //  - teacher count, student count, total courses (by linked teachers), upcoming live classes.
-router.get('/dashboard', authenticateToken, authorizeRole(INSTITUTIONS), async (req, res) => {
+router.get('/dashboard', authenticateToken, authorizeRole(INSTITUTIONS), asyncHandler(async (req, res) => {
   const { data: teacherLinks } = await supabaseAdmin
     .from('institution_teachers').select('teacher_id').eq('institution_id', req.user.id).eq('is_active', true);
   const teacherIds = (teacherLinks || []).map(t => t.teacher_id);
@@ -153,7 +154,7 @@ router.get('/dashboard', authenticateToken, authorizeRole(INSTITUTIONS), async (
     courses,
     upcomingLiveClasses: liveClasses.filter(l => l.status === 'scheduled' || l.status === 'live')
   });
-});
+}));
 
 // ── FOR TEACHERS: which institutions am I in? ──────────────────────────
 // ── CSV BULK IMPORT: school/coaching uploads name/email[/phone] rows; we
@@ -222,7 +223,7 @@ router.post('/import-csv', authenticateToken, authorizeRole(INSTITUTIONS), async
 // Returns every institution this user is linked to — as a teacher OR as a
 // student — so the dashboard can show "you belong to N institutions, switch
 // active one." Single user id, many memberships.
-router.get('/my-institutions', authenticateToken, async (req, res) => {
+router.get('/my-institutions', authenticateToken, asyncHandler(async (req, res) => {
   const userId = req.user.id;
   const [tRes, sRes] = await Promise.all([
     supabaseAdmin.from('institution_teachers').select('*').eq('teacher_id', userId).eq('is_active', true),
@@ -253,6 +254,6 @@ router.get('/my-institutions', authenticateToken, async (req, res) => {
     }))
   ];
   res.json({ institutions: merged, count: merged.length });
-});
+}));
 
 module.exports = router;

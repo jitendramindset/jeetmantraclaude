@@ -34,7 +34,7 @@ const jwt = require('jsonwebtoken');
 const API_BASE = process.env.MCP_API_BASE || 'http://localhost:5050/api';
 const TOKEN = jwt.sign(
   { id: process.env.MCP_USER_ID || 'mcp-service', email: 'mcp@jeetmantra.local', role: process.env.MCP_ROLE || 'admin' },
-  process.env.JWT_SECRET, { expiresIn: '30d' }
+  process.env.JWT_SECRET, { expiresIn: '1h' } // Short TTL — MCP tokens should be rotated frequently
 );
 
 async function api(pathname, method = 'GET', body) {

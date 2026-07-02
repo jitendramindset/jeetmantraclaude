@@ -5,6 +5,9 @@
 JM.Screens.register({
   id: 'downloads',
   title: '📥 Offline Downloads',
+  surface: 'takeover',
+  crumb: 'Downloads',
+
   model: JM.Models.Downloads,
   render: function (d) {
     var header =
@@ -24,15 +27,18 @@ JM.Screens.register({
     var rows = d.courses.map(function (r) {
       var chapters = (r.full && r.full.topics || []).length;
       var lectures = (r.full && r.full.lectures || []).length;
-      return '<div style="display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--jm-border);border-radius:10px;margin-bottom:8px">'
-        + '<div style="width:40px;height:40px;border-radius:8px;background:var(--jm-primary-tint,rgba(124,58,237,.18));display:flex;align-items:center;justify-content:center">📚</div>'
+      var meta = '<div style="display:flex;align-items:center;gap:10px">'
+        + '<div style="width:40px;height:40px;border-radius:8px;background:var(--jm-primary-tint,rgba(124,58,237,.18));display:flex;align-items:center;justify-content:center;flex-shrink:0">📚</div>'
         + '<div style="flex:1;min-width:0">'
         +   '<div style="font-weight:600;font-size:14px">' + JM.esc(r.title) + '</div>'
         +   '<div style="font-size:11px;color:var(--jm-text-muted)">' + chapters + ' chapters · ' + lectures + ' lectures · saved ' + new Date(r.savedAt).toLocaleDateString() + '</div>'
         + '</div>'
+        + '<div style="display:flex;gap:6px;flex-shrink:0">'
         + JM.Button({ label: '📖 Read', kind: 'primary', size: 'sm', onClick: "openReader('" + r.courseId + "','" + JM.esc(r.title).replace(/'/g, "\\'") + "')" })
-        + '<button onclick="removeDownload(\'' + r.courseId + '\')" title="Remove" style="background:var(--jm-surface-2,#f3f4f6);color:#b91c1c;border:1px solid var(--jm-border);padding:6px 12px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer">🗑</button>'
+        + JM.Button({ label: '🗑', kind: 'ghost', size: 'sm', onClick: "removeDownload('" + r.courseId + "')" })
+        + '</div>'
         + '</div>';
+      return JM.Card({ body: meta, padding: '10px' });
     }).join('');
     return JM.ModalShell({ body: header + rows });
   }

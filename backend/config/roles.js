@@ -22,4 +22,10 @@ const STUDENT_ROLES = ['student'];
 const PARENT_ROLES  = ['parent'];
 const ALL_ROLES = ['student','teacher','partner','school','coaching','admin','parent','corporate_trainer','content_creator','franchise'];
 
-module.exports = { CREATOR_ROLES, SELLER_ROLES, INSTITUTION_ROLES, STUDENT_ROLES, PARENT_ROLES, ALL_ROLES };
+// Convenience groupings used by CMS and other route files
+const ADMIN_ROLES      = ['admin', 'super_admin', 'platform_admin'];
+const EDITOR_ROLES     = ['admin', 'super_admin', 'platform_admin', 'teacher', 'partner', 'org_admin'];
+const TEACHER_ROLES    = ['teacher', 'mentor'];
+const MANAGEMENT_ROLES = ['admin', 'super_admin', 'platform_admin', 'org_admin'];
+
+module.exports = { CREATOR_ROLES, SELLER_ROLES, INSTITUTION_ROLES, STUDENT_ROLES, PARENT_ROLES, ALL_ROLES, ADMIN_ROLES, EDITOR_ROLES, TEACHER_ROLES, MANAGEMENT_ROLES };
