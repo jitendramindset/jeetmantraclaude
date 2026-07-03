@@ -1,4 +1,4 @@
-/* ui/widgets/atoms/Button.js — JM.Button({label, kind, icon, onClick, href, size}) */
+﻿/* ui/widgets/atoms/Button.js — JM.Button({label, kind, icon, onClick, href, size}) */
 window.JM = window.JM || {};
 JM.Button = function (p) {
   p = p || {};

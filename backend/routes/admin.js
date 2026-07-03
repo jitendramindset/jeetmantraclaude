@@ -38,6 +38,7 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const { supabase, supabaseAdmin } = require('../config/supabase');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
+const { ROLES } = require('../utils/roles');
 const { validate } = require('../middleware/validation');
 const { v4: uuidv4 } = require('uuid');
 
@@ -160,17 +161,17 @@ router.get('/stats', authenticateToken, authorizeRole(['admin']), async (req, re
     const { count: studentCount } = await supabaseAdmin
       .from('jeetmantra_users')
       .select('*', { count: 'exact' })
-      .eq('user_type', 'student');
+      .eq('user_type', ROLES.STUDENT);
 
     const { count: teacherCount } = await supabaseAdmin
       .from('jeetmantra_users')
       .select('*', { count: 'exact' })
-      .eq('user_type', 'teacher');
+      .eq('user_type', ROLES.TEACHER);
 
     const { count: partnerCount } = await supabaseAdmin
       .from('jeetmantra_users')
       .select('*', { count: 'exact' })
-      .eq('user_type', 'partner');
+      .eq('user_type', ROLES.PARTNER);
 
     // Get course stats
     const { count: coursesCount } = await supabaseAdmin
@@ -523,7 +524,7 @@ router.post('/impersonate/start', authenticateToken, authorizeRole(['admin']), v
       .select('id, full_name, email, user_type').eq('id', targetUserId).maybeSingle();
     if (!target) return res.status(404).json({ error: 'Target user not found' });
     // Never impersonate another admin (defense in depth).
-    if (target.user_type === 'admin') return res.status(403).json({ error: "Refusing to impersonate another admin" });
+    if (target.user_type === ROLES.ADMIN) return res.status(403).json({ error: "Refusing to impersonate another admin" });
 
     const expiresAt = new Date(Date.now() + Math.min(120, Math.max(1, Number(durationMinutes) || 15)) * 60000);
     const sessionId = uuidv4();
@@ -576,7 +577,7 @@ router.post('/impersonate/stop', authenticateToken, async (req, res) => {
       q = q.eq('id', sessionId);
     } else if (req.user.imp_session_id) {
       q = q.eq('id', req.user.imp_session_id);
-    } else if (req.user.role === 'admin') {
+    } else if (req.user.role === ROLES.ADMIN) {
       q = q.eq('actor_id', req.user.id);
     } else {
       return res.status(400).json({ error: 'sessionId required' });

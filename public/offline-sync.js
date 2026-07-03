@@ -128,7 +128,7 @@
 
   // Auto-flush whenever connectivity returns.
   window.addEventListener('online', function () {
-    try { flush(window.location.origin + '/api'); } catch (e) {}
+    try { flush('/api'); } catch (e) {}
   });
 
   window.JMOffline = {
