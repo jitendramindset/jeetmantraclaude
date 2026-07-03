@@ -88,6 +88,9 @@ router.get('/', authenticateToken, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// POST /apply-coupon — alias for /coupons/apply (smoke test + older frontend calls this path)
+router.post('/apply-coupon', authenticateToken, (req, res, next) => { req.url = '/coupons/apply'; next('route'); });
+
 // ── COUPONS: validate a code + apply against an amount. Returns the
 // discounted amount the order should be created with.
 router.post('/coupons/apply', authenticateToken, validate('couponApply'), async (req, res) => {

@@ -12,7 +12,7 @@ JM.Screens.register({
     var o = d.overall || {};
     var rep = d.report || [];
     var table = rep.length
-      ? '<div class="card"><table style="width:100%;border-collapse:collapse">'
+      ? '<div class="card"><div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><table style="width:100%;border-collapse:collapse">'
         + '<thead><tr style="text-align:left;color:var(--jm-text-muted);font-size:12px;border-bottom:1px solid var(--jm-border)">'
         +   '<th style="padding:8px">Course</th>'
         +   '<th style="padding:8px;text-align:center">Present</th>'
@@ -30,7 +30,7 @@ JM.Screens.register({
               + '<td style="padding:8px;text-align:center"><span style="padding:3px 10px;border-radius:99px;background:' + col + ';color:#fff;font-weight:600;font-size:12px">' + c.percentage + '%</span></td>'
               + '</tr>';
           }).join('')
-        + '</tbody></table></div>'
+        + '</tbody></table></div></div>'
       : JM.EmptyState({ icon: '🗓', title: 'No attendance records yet', msg: 'Mark attendance from your enrolled courses to see your report.' });
     return '<div style="max-width:800px;margin:0 auto">'
       + '<h2 style="margin-bottom:14px">🗓 Attendance report</h2>'

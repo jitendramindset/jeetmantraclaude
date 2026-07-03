@@ -22,7 +22,7 @@ JM.Screens.register({
     var txn = p.transaction_id
       ? '<div style="font-family:monospace;font-size:11px;color:var(--jm-text-muted)">' + JM.esc(p.transaction_id) + '</div>' : '';
 
-    return '<table style="width:100%;border-collapse:collapse;margin-bottom:14px;font-size:13px">'
+    return '<div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><table style="width:100%;border-collapse:collapse;margin-bottom:14px;font-size:13px">'
       + '<tr><td style="padding:6px;color:var(--jm-text-muted);width:35%">Student</td>'
       + '<td style="padding:6px;font-weight:600">' + JM.esc(s.full_name || '—')
       + '<div style="font-size:11px;color:var(--jm-text-muted)">' + JM.esc(s.email || '')
@@ -39,7 +39,7 @@ JM.Screens.register({
       + txn + '</td></tr>'
       + '<tr><td style="padding:6px;color:var(--jm-text-muted)">Booked</td>'
       + '<td style="padding:6px">' + (b.created_at ? new Date(b.created_at).toLocaleString() : '—') + '</td></tr>'
-      + '</table>'
+      + '</table></div>'
       + '<div class="form-row"><label>Reschedule (optional)</label>'
       + '<input id="bk-resch" type="datetime-local" value="' + reschedVal + '"></div>'
       + '<div class="form-row"><label>Status</label><select id="bk-status">'

@@ -49,14 +49,14 @@ JM.Screens.register({
     }).join('');
 
     var qTable = '<div class="card" style="padding:14px"><div style="font-weight:700;margin-bottom:10px">Per-question performance</div>'
-      + '<table style="width:100%;border-collapse:collapse">'
+      + '<div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><table style="width:100%;border-collapse:collapse">'
       + '<thead><tr style="text-align:left;color:var(--jm-text-muted);font-size:12px;border-bottom:1px solid var(--jm-border)">'
       +   '<th style="padding:8px">#</th>'
       +   '<th style="padding:8px">Question</th>'
       +   '<th style="padding:8px;text-align:center">Type</th>'
       +   '<th style="padding:8px;text-align:center">Pass rate</th>'
       +   '<th style="padding:8px">Top wrong answer</th>'
-      + '</tr></thead><tbody>' + qRows + '</tbody></table></div>';
+      + '</tr></thead><tbody>' + qRows + '</tbody></table></div></div>';
 
     return '<div style="max-width:1180px;margin:0 auto">'
       + '<h2 style="margin-bottom:14px">📊 ' + JM.esc(title) + ' — analytics</h2>'

@@ -59,12 +59,12 @@ JM.Screens.register({
         + '</div>'
         + '<div class="section"><div class="section-title">💸 Earnings (' + d.earnings.length + ')</div>'
         +   '<div class="card">' + (earningsRows
-              ? '<table style="width:100%;border-collapse:collapse"><thead><tr style="text-align:left;color:var(--jm-text-muted);font-size:12px;border-bottom:1px solid var(--jm-border)"><th style="padding:8px">Date</th><th style="padding:8px">Source</th><th style="padding:8px;text-align:right">Amount</th></tr></thead><tbody>' + earningsRows + '</tbody></table>'
+              ? '<div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><table style="width:100%;border-collapse:collapse"><thead><tr style="text-align:left;color:var(--jm-text-muted);font-size:12px;border-bottom:1px solid var(--jm-border)"><th style="padding:8px">Date</th><th style="padding:8px">Source</th><th style="padding:8px;text-align:right">Amount</th></tr></thead><tbody>' + earningsRows + '</tbody></table></div>'
               : '<div class="empty-state"><div class="icon">💸</div>No earnings yet.</div>')
         +   '</div></div>'
         + '<div class="section"><div class="section-title">🏦 Payment Transactions (' + d.payments.length + ')</div>'
         +   '<div class="card">' + (pmtRows
-              ? '<table style="width:100%;border-collapse:collapse"><thead><tr style="text-align:left;color:var(--jm-text-muted);font-size:12px;border-bottom:1px solid var(--jm-border)"><th style="padding:8px">Date</th><th style="padding:8px">Reference</th><th style="padding:8px">Status</th><th style="padding:8px;text-align:right">Amount</th></tr></thead><tbody>' + pmtRows + '</tbody></table>'
+              ? '<div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><table style="width:100%;border-collapse:collapse"><thead><tr style="text-align:left;color:var(--jm-text-muted);font-size:12px;border-bottom:1px solid var(--jm-border)"><th style="padding:8px">Date</th><th style="padding:8px">Reference</th><th style="padding:8px">Status</th><th style="padding:8px;text-align:right">Amount</th></tr></thead><tbody>' + pmtRows + '</tbody></table></div>'
               : '<div class="empty-state"><div class="icon">🏦</div>No transactions.</div>')
         +   '</div></div>'
         + '</div>';
@@ -100,10 +100,10 @@ JM.Screens.register({
       +   '<div class="stat-card"><div class="label">Cancelled</div><div class="value">' + stat('cancelled') + '</div><div class="sub">Refunded</div></div>'
       + '</div>'
       + '<div class="card">' + (bookingRows
-          ? '<table style="width:100%;border-collapse:collapse">'
+          ? '<div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><table style="width:100%;border-collapse:collapse">'
             + '<thead><tr style="text-align:left;color:var(--jm-text-muted);font-size:12px;border-bottom:1px solid var(--jm-border)">'
             + '<th style="padding:10px">Date</th><th style="padding:10px">Student</th><th style="padding:10px">Course</th><th style="padding:10px">Status</th><th style="padding:10px;text-align:right">Amount</th>'
-            + '</tr></thead><tbody>' + bookingRows + '</tbody></table>'
+            + '</tr></thead><tbody>' + bookingRows + '</tbody></table></div>'
           : '<div class="empty-state" style="text-align:center;padding:32px">'
             + '<div class="icon" style="font-size:44px">📅</div>'
             + '<div style="font-weight:600;margin:8px 0">No bookings yet.</div>'

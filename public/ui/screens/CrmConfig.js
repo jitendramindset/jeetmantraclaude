@@ -102,7 +102,7 @@ JM.Screens.register({
       + '.crm-att-tile img{width:56px;height:56px;object-fit:cover;border-radius:6px}'
       + '.crm-att-tile .meta{flex:1;min-width:0}'
       + '.crm-bar{position:sticky;bottom:0;background:#fff;border-top:1px solid var(--jm-border,#e2e8f0);padding:14px 18px;margin:0 -18px -60px;display:flex;justify-content:flex-end;gap:8px;box-shadow:0 -8px 24px rgba(15,23,42,.06);z-index:5}'
-      + '@media(max-width:600px){.crm-section{padding:16px}}'
+      + '@media(max-width:768px){.crm-section{padding:16px}}'
       + '</style>'
       + '<div class="crm-wrap">'
       + '<div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:18px;gap:12px;flex-wrap:wrap">'

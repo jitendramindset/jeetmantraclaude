@@ -32,7 +32,7 @@ JM.Screens.register({
         + '.lang-tile.active{border-color:var(--jm-primary);background:var(--jm-primary);color:#fff}'
         + '.lt-native{font-size:15px;font-weight:700;line-height:1.2;margin-bottom:2px}'
         + '.lt-en{font-size:10px;opacity:.78}'
-        + '@media(max-width:420px){.lang-grid{grid-template-columns:1fr 1fr}}';
+        + '@media(max-width:480px){.lang-grid{grid-template-columns:1fr 1fr}}';
       document.head.appendChild(s);
     }
   }

@@ -33,6 +33,9 @@ const asyncHandler = require('../utils/asyncHandler');
 });
 
 
+// GET /profile — alias expected by smoke test + frontend (same as /me)
+router.get('/profile', authenticateToken, (req, res, next) => { req.url = '/me'; next('route'); });
+
 // GET /me — alias for GET /summary (streak + XP + badges in one shot).
 router.get('/me', authenticateToken, async (req, res) => {
   try {

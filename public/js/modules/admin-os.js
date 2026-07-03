@@ -639,7 +639,7 @@ function _init(container) {
     var fieldHtml = function(key, label, ph, type) {
       var v = cur[key] || '';
       var masked = type === 'password' && v ? '' : v;
-      var note = type === 'password' && v ? '<span style="font-size:11px;color:#16a34a">● set — leave blank to keep</span>' : '';
+      var note = type === 'password' && v ? '<span style="font-size:11px;color:var(--jm-success,#16a34a)">● set — leave blank to keep</span>' : '';
       return '<div style="margin-bottom:12px"><label style="display:block;font-size:12px;font-weight:700;margin-bottom:4px">' + esc(label) + ' ' + note + '</label><input id="int_' + key + '" type="' + type + '" value="' + esc(masked) + '" placeholder="' + esc(ph) + '" autocomplete="off" style="width:100%;padding:8px 11px;border:1px solid var(--jm-border);border-radius:6px;background:var(--jm-surface);color:inherit;font-size:13px"></div>';
     };
     el('intForm').innerHTML = WG_INT_FIELDS.map(function(g) {
@@ -672,7 +672,7 @@ function _init(container) {
     var btn = el('intSave'); btn.disabled = true; btn.textContent = 'Saving…';
     try {
       await api('/admin/settings', { method: 'PUT', body: JSON.stringify(payload) });
-      el('intMsg').textContent = '✓ Saved & applied'; el('intMsg').style.color = '#16a34a';
+      el('intMsg').textContent = '✓ Saved & applied'; el('intMsg').style.color = 'var(--jm-success,#16a34a)';
     } catch (e) { el('intMsg').textContent = 'Error: ' + e.message; el('intMsg').style.color = 'var(--jm-danger,var(--jm-danger,#ef4444))'; }
     btn.disabled = false; btn.textContent = 'Save integrations';
     setTimeout(function() { el('intMsg').textContent = ''; }, 3000);
@@ -683,7 +683,7 @@ function _init(container) {
     try {
       var r = await api('/admin/test-email', { method: 'POST', body: '{}' });
       el('intMsg').textContent = r.sent ? '✓ Sent — check your inbox' : '⚠ ' + (r.note || 'Not sent (configure SMTP first)');
-      el('intMsg').style.color = r.sent ? '#16a34a' : '#b45309';
+      el('intMsg').style.color = r.sent ? 'var(--jm-success,#16a34a)' : '#b45309';
     } catch (e) { el('intMsg').textContent = 'Error: ' + e.message; el('intMsg').style.color = 'var(--jm-danger,var(--jm-danger,#ef4444))'; }
   }
 
@@ -693,7 +693,7 @@ function _init(container) {
     try {
       var r = await api('/admin/backup/trigger', { method: 'POST', body: '{}' });
       el('backupMsg').textContent = '✓ Backup running (pid ' + r.pid + ') — refresh list in ~30s';
-      el('backupMsg').style.color = '#16a34a';
+      el('backupMsg').style.color = 'var(--jm-success,#16a34a)';
       setTimeout(function() { loadBackupList(); }, 35000);
     } catch (e) {
       el('backupMsg').textContent = 'Error: ' + e.message;
@@ -732,7 +732,7 @@ function _init(container) {
         console.error('[migration errors]', errs);
       } else {
         el('migMsg').textContent = '✓ ' + r.statements + ' statements applied';
-        el('migMsg').style.color = '#16a34a';
+        el('migMsg').style.color = 'var(--jm-success,#16a34a)';
       }
     } catch (e) {
       el('migMsg').textContent = 'Error: ' + e.message;

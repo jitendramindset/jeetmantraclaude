@@ -2561,7 +2561,7 @@ window.JM_CAN_AUTHOR = ['teacher','school','coaching','admin','partner'].include
       if (stuBtn) stuBtn.click();
       // Add a small role label
       const rb = document.createElement('div');
-      rb.style.cssText='position:fixed;top:8px;right:14px;z-index:51;background:#16a34a;color:#fff;padding:3px 9px;border-radius:99px;font:700 11px/1 system-ui';
+      rb.style.cssText='position:fixed;top:8px;right:14px;z-index:51;background:var(--jm-success,#16a34a);color:#fff;padding:3px 9px;border-radius:99px;font:700 11px/1 system-ui';
       rb.textContent='🎓 Student — Take Exam mode';
       document.body.appendChild(rb);
     }

@@ -38,7 +38,7 @@ JM.Screens.register({
     }) + ' <span id="wa2-status" style="font-size:12px;color:var(--jm-text-muted);margin-left:auto"></span>';
     return JM.ModalShell({
       body: '<div style="margin-bottom:12px;color:var(--jm-text-muted);font-size:13px">Highest-authority policy. Unchecking <strong>Global</strong> hides a widget everywhere; per-role boxes restrict it for that role. Users can still pin/collapse/resize/recolour widgets they can see.</div>'
-        + '<div style="overflow:auto;border:1px solid var(--jm-border);border-radius:10px;max-height:60vh">'
+        + '<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--jm-border);border-radius:10px;max-height:60vh;overflow-y:auto">'
         + '<table id="wa2-grid" style="width:100%;border-collapse:collapse;font-size:13px"><thead style="position:sticky;top:0;background:var(--jm-surface)">' + hdr + '</thead>'
         + '<tbody>' + rows + '</tbody></table></div>',
       footer: footer

@@ -17,7 +17,7 @@ JM.Screens.register({
       return JM.Button({ label: '+ ₹' + a, kind: 'ghost', size: 'sm', onClick: 'walletTopup(' + a + ')' });
     }).join('') + JM.Button({ label: 'Custom amount', kind: 'primary', size: 'sm', onClick: 'walletTopup(null)' });
     var rowsHtml = txs.length
-      ? '<table style="width:100%;border-collapse:collapse">'
+      ? '<div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><table style="width:100%;border-collapse:collapse">'
         + '<thead><tr style="font-size:11px;color:var(--jm-text-muted);text-transform:uppercase;border-bottom:1px solid var(--jm-border)">'
         +   '<th style="text-align:left;padding:10px 14px">Date</th>'
         +   '<th style="text-align:left;padding:10px 14px">Type</th>'
@@ -35,7 +35,7 @@ JM.Screens.register({
               + '<td style="padding:10px 14px;text-align:right;color:var(--jm-text-muted)">' + fmt(t.balance_after || 0) + '</td>'
               + '</tr>';
           }).join('')
-        + '</tbody></table>'
+        + '</tbody></table></div>'
       : JM.EmptyState({
           icon: '💸', title: 'No transactions yet',
           msg: 'Top up your wallet to unlock paid course purchases & faster checkout.',

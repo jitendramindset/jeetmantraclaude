@@ -34,6 +34,9 @@ const asyncHandler = require('../utils/asyncHandler');
 });
 
 
+// GET /enrollments — alias for /enrollments/my (frontend calls both forms)
+router.get('/', authenticateToken, (req, res, next) => { req.url = '/my'; next('route'); });
+
 // Get my enrollments
 router.get('/my', authenticateToken, async (req, res) => {
   try {

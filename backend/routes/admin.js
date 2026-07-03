@@ -866,6 +866,46 @@ router.get('/courses', authenticateToken, authorizeRole(['admin']), async (req, 
 // ── PATCH aliases ─────────────────────────────────────────────────────────────
 // Frontend may call PATCH; authoritative handlers above use PUT.
 // These aliases accept both methods so either works.
+
+// GET /admin/courses/:courseId — single-course fetch for admin detail panel
+// (Frontend: app-shell.js:382 calls api('/admin/courses/' + id))
+router.get('/courses/:courseId', authenticateToken, authorizeRole(['admin']), async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const { data: course, error } = await supabaseAdmin.from('courses')
+      .select('*')
+      .eq('id', courseId)
+      .single();
+    if (error || !course) return res.status(404).json({ error: 'Course not found' });
+    res.json({ course });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// PATCH /admin/users/:userId/status — toggle user active state
+// (Frontend: app-shell.js:417 sends PATCH .../status with { is_active })
+// Delegates to the same logic as PUT /users/:userId/toggle-status.
+router.patch('/users/:userId/status', authenticateToken, authorizeRole(['admin']), async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { is_active } = req.body;
+    if (typeof is_active !== 'boolean') {
+      return res.status(400).json({ error: 'is_active (boolean) is required' });
+    }
+    const { data: updatedUser, error } = await supabaseAdmin.from('jeetmantra_users')
+      .update({ is_active, updated_at: new Date().toISOString() })
+      .eq('id', userId)
+      .select()
+      .single();
+    if (error) return res.status(400).json({ error: 'Failed to update user status' });
+    await auditLog(req.user.id, is_active ? 'user.unblock' : 'user.block', userId, {
+      after: { is_active },
+      actor_ip: req.ip || req.headers['x-forwarded-for'] || null,
+      user_agent: req.headers['user-agent'] || null
+    });
+    res.json({ message: 'User status updated', user: updatedUser });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 router.patch('/users/:userId', authenticateToken, authorizeRole(['admin']), validate('adminUserUpdate'), async (req, res) => {
   const { userId } = req.params;
   const { name, role, status } = req.body;

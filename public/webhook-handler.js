@@ -571,7 +571,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Test webhook connection on page load
   webhooks.testConnection().then(isConnected => {
     if (!isConnected) {
-      console.warn('⚠️ n8n webhook not reachable. Make sure n8n is running on http://localhost:5678');
+      console.warn('⚠️ n8n webhook not reachable. Check N8N_WEBHOOK_URL in backend/.env');
     }
   });
 

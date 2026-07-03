@@ -48,13 +48,13 @@ JM.Screens.register({
       }).join('');
 
       tableOrEmpty = '<div class="card" style="padding:0">'
-        + '<table style="width:100%;border-collapse:collapse">'
+        + '<div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><table style="width:100%;border-collapse:collapse">'
         + '<thead><tr style="text-align:left;color:var(--jm-text-muted);font-size:11px;text-transform:uppercase;border-bottom:1px solid var(--jm-border)">'
         + '<th style="padding:12px 14px">#</th><th style="padding:12px 14px">Client</th>'
         + '<th style="padding:12px 14px">Issued</th><th style="padding:12px 14px">Due</th>'
         + '<th style="padding:12px 14px">Status</th><th style="padding:12px 14px;text-align:right">Total</th>'
         + '<th style="padding:12px 14px;text-align:right">Actions</th>'
-        + '</tr></thead><tbody>' + rows_html + '</tbody></table></div>';
+        + '</tr></thead><tbody>' + rows_html + '</tbody></table></div></div>';
     } else {
       tableOrEmpty = '<div class="empty-state" style="text-align:center;padding:32px">'
         + '<div class="icon" style="font-size:44px">🧾</div>'

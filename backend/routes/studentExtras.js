@@ -586,4 +586,34 @@ router.get('/today', authenticateToken, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ── EXTERNAL RESULT SUBMISSION ────────────────────────────────────────────────
+// POST /api/student/external-result
+// (exam-platform.js:2307 sends student's self-reported external exam result)
+// Stores the record in student_external_results; returns 501 until the
+// table exists (safe fallback — avoids silent 404).
+router.post('/external-result', authenticateToken, async (req, res) => {
+  try {
+    const { exam_name, score, max_score, grade, result_date, certificate_url } = req.body;
+    if (!exam_name) return res.status(400).json({ error: 'exam_name is required' });
+    const { data, error } = await supabaseAdmin.from('student_external_results').insert({
+      student_id: req.user.id,
+      exam_name,
+      score:           score           ?? null,
+      max_score:       max_score       ?? null,
+      grade:           grade           ?? null,
+      result_date:     result_date     ?? null,
+      certificate_url: certificate_url ?? null,
+      created_at: new Date().toISOString()
+    }).select().single();
+    if (error) {
+      // Table may not exist yet — return 501 with a clear message instead of 500
+      if (error.code === '42P01') {
+        return res.status(501).json({ error: 'external_results feature not yet enabled on this instance' });
+      }
+      return res.status(500).json({ error: error.message });
+    }
+    res.status(201).json({ result: data });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 module.exports = router;

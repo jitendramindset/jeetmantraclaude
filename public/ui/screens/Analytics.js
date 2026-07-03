@@ -27,7 +27,7 @@ JM.Screens.register({
     ]);
     var table =
       '<div style="font-weight:700;font-size:13px;margin-bottom:8px">Per course</div>'
-      + '<table style="width:100%;border-collapse:collapse;font-size:13px">'
+      + '<div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><table style="width:100%;border-collapse:collapse;font-size:13px">'
       + '<thead><tr style="color:var(--jm-text-muted);font-size:11px;text-align:left">'
       + '<th style="padding:6px 8px">Course</th>'
       + '<th style="padding:6px 8px;text-align:right">Students</th>'
@@ -40,7 +40,7 @@ JM.Screens.register({
             + '<td style="padding:8px;text-align:right">' + p.completion + '%</td>'
             + '<td style="padding:8px;text-align:right">₹' + (p.revenue || 0).toLocaleString('en-IN') + '</td>'
             + '</tr>';
-        }).join('') + '</tbody></table>';
+        }).join('') + '</tbody></table></div>';
     return JM.ModalShell({ body: kpis + table });
   }
 });
