@@ -28,6 +28,11 @@ const MIGRATIONS = [
   'migration-coupon-redemptions.sql',
   'migration-s13-permissions.sql',
   'migration-s14-cms.sql',
+  'migration-s15-coupons.sql',
+  'migration-s16-exams-materials.sql',
+  'migration-s17-rls.sql',
+  'migration-s18-indexes.sql',
+  'migration-s19-external-results.sql',
 ];
 
 // Split SQL into individual non-empty statements

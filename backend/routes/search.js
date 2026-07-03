@@ -122,8 +122,33 @@ router.get('/semantic', async (req, res) => {
     // Requires OpenAI API key to generate query embedding
 
     if (process.env.OPENAI_API_KEY) {
-      // TODO: call OpenAI embeddings, then do vector similarity
-      return res.json({ results: [], mode: 'vector', message: 'OpenAI embeddings configured but not yet implemented' });
+      try {
+        const axios = require('axios');
+        const embResp = await axios.post(
+          'https://api.openai.com/v1/embeddings',
+          { model: 'text-embedding-3-small', input: q },
+          { headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` }, timeout: 8000 }
+        );
+        const vector = embResp.data.data[0].embedding;
+        // pgvector cosine similarity — requires vector extension + course_embeddings table
+        const { db } = require('../config/supabase');
+        if (db) {
+          const vectorStr = `[${vector.join(',')}]`;
+          const { rows } = await db.query(
+            `SELECT c.id, c.title, c.description, c.category, c.level, c.price, c.cover_image,
+                    1 - (ce.embedding <=> $1::vector) AS similarity
+             FROM course_embeddings ce
+             JOIN courses c ON c.id = ce.course_id
+             WHERE c.is_active = true
+             ORDER BY ce.embedding <=> $1::vector
+             LIMIT $2`,
+            [vectorStr, parseInt(limit)]
+          );
+          return res.json({ results: rows, mode: 'vector' });
+        }
+      } catch (_e) {
+        // OpenAI call failed or pgvector not available — fall through to text search
+      }
     }
 
     const { data: results } = await supabaseAdmin

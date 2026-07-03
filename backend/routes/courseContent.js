@@ -658,20 +658,20 @@ router.post('/tests/:testId/submit', authenticateToken, asyncHandler(async (req,
 // material URLs etc. are stripped so unenrolled users can't access the goods.
 router.get('/:courseId/preview', asyncHandler(async (req, res) => {
   const courseId = req.params.courseId;
-  const [course, topics, lecturesCount, materialsCount, testsCount] = await Promise.all([
+  const [course, topics, lectures, materials, tests] = await Promise.all([
     supabaseAdmin.from('courses').select('id,title,description,category,level,price,cover_image').eq('id', courseId).single().then(r => r.data),
     supabaseAdmin.from('course_topics').select('id,title,description,order_index').eq('course_id', courseId).order('order_index').then(r => r.data || []),
-    supabaseAdmin.from('course_lectures').select('id', { count: 'exact', head: true }).eq('course_id', courseId).then(r => r.count || 0),
-    supabaseAdmin.from('course_materials').select('id', { count: 'exact', head: true }).eq('course_id', courseId).then(r => r.count || 0),
-    supabaseAdmin.from('course_tests').select('id', { count: 'exact', head: true }).eq('course_id', courseId).then(r => r.count || 0)
+    supabaseAdmin.from('course_lectures').select('id,title,order_index,topic_id,duration_seconds').eq('course_id', courseId).order('order_index').then(r => r.data || []),
+    supabaseAdmin.from('course_materials').select('id,title,type').eq('course_id', courseId).order('created_at', { ascending: false }).then(r => r.data || []),
+    supabaseAdmin.from('course_tests').select('id,title').eq('course_id', courseId).order('created_at', { ascending: false }).then(r => r.data || [])
   ]);
   if (!course) return res.status(404).json({ error: 'Course not found' });
   res.json({
     course,
     topics,
-    lectures: Array.from({ length: lecturesCount }).map(() => ({})),  // placeholder array so .length works on the client
-    materials: Array.from({ length: materialsCount }).map(() => ({})),
-    tests: Array.from({ length: testsCount }).map(() => ({}))
+    lectures,
+    materials,
+    tests
   });
 }));
 

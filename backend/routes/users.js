@@ -198,11 +198,29 @@ router.get('/stats', authenticateToken, async (req, res) => {
         .select('amount')
         .eq('user_id', userId);
 
+      // Aggregate real rating from course_reviews for courses owned by this teacher
+      const { data: teacherCourses } = await supabaseAdmin
+        .from('courses')
+        .select('id')
+        .eq('teacher_id', userId);
+      const courseIds = (teacherCourses || []).map(c => c.id);
+      let rating = null;
+      if (courseIds.length) {
+        const { data: reviews } = await supabaseAdmin
+          .from('course_reviews')
+          .select('rating')
+          .in('course_id', courseIds);
+        if (reviews?.length) {
+          const sum = reviews.reduce((acc, r) => acc + (r.rating || 0), 0);
+          rating = Math.round((sum / reviews.length / 10) * 10) / 10; // scale 1-10 → keep 1 decimal
+        }
+      }
+
       stats = {
         totalBookings: bookings?.length || 0,
         completedBookings: bookings?.filter(b => b.status === 'completed')?.length || 0,
         totalEarnings: earnings?.reduce((sum, e) => sum + e.amount, 0) || 0,
-        rating: 4.5 // TODO: Calculate from reviews
+        rating
       };
     }
 

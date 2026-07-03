@@ -73,6 +73,7 @@ MIGRATIONS=(
   backend/database/migration-s16-exams-materials.sql
   backend/database/migration-s17-rls.sql
   backend/database/migration-s18-indexes.sql
+  backend/database/migration-s19-external-results.sql
 )
 
 # Extract host from SUPABASE_URL: https://abc.supabase.co → db.abc.supabase.co
