@@ -29,6 +29,11 @@ source backend/.env
 [[ -n "${SUPABASE_SERVICE_ROLE_KEY:-}" ]] || die "SUPABASE_SERVICE_ROLE_KEY not set"
 [[ -n "${JWT_SECRET:-}" ]]               || die "JWT_SECRET not set"
 [[ -n "${POSTGRES_PASSWORD:-}" ]]        || die "POSTGRES_PASSWORD not set"
+[[ -n "${RAZORPAY_KEY_ID:-}" ]]          || die "RAZORPAY_KEY_ID not set"
+[[ -n "${RAZORPAY_KEY_SECRET:-}" ]]      || die "RAZORPAY_KEY_SECRET not set"
+[[ -n "${FRONTEND_URL:-}" ]]             || die "FRONTEND_URL not set"
+[[ -n "${APP_BASE_URL:-}" ]]             || die "APP_BASE_URL not set"
+[[ -n "${ADMIN_TOKEN:-}" ]]              || die "ADMIN_TOKEN not set"
 
 # Warn if still using localhost Supabase
 if echo "$SUPABASE_URL" | grep -q "localhost"; then
