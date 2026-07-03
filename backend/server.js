@@ -5,13 +5,58 @@ const Sentry = require('@sentry/node');
 // In production outputs JSON lines for log aggregators (LogFlare, Datadog, etc.)
 // In development outputs human-readable messages.
 const isProd = process.env.NODE_ENV === 'production';
+
+// ── LogFlare HTTP shipping ────────────────────────────────────────────────────
+// Batches log events and ships them to LogFlare every 5 seconds when the token
+// is present. Falls back gracefully when the env var is absent (dev / test).
+let _logBatch = [];
+let _logFlushTimer = null;
+
+function _shipToLogFlare(events) {
+  if (!process.env.LOGFLARE_PRIVATE_ACCESS_TOKEN || !events.length) return;
+  const body = JSON.stringify({ batch: events });
+  const url = new URL('https://api.logflare.app/logs?source=jeetmantra-app');
+  const mod = require('https');
+  const req = mod.request({
+    hostname: url.hostname,
+    path: url.pathname + url.search,
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-API-KEY': process.env.LOGFLARE_PRIVATE_ACCESS_TOKEN,
+      'Content-Length': Buffer.byteLength(body),
+    },
+  }, () => {});
+  req.on('error', () => {}); // swallow shipping errors — never crash the app
+  req.write(body);
+  req.end();
+}
+
+function _scheduleFlush() {
+  if (_logFlushTimer) return;
+  _logFlushTimer = setTimeout(() => {
+    _logFlushTimer = null;
+    const batch = _logBatch.splice(0);
+    if (batch.length) _shipToLogFlare(batch);
+  }, 5000);
+}
+
+function _log(level, args) {
+  const msg = args.join(' ');
+  const entry = { level, t: new Date().toISOString(), msg };
+  if (isProd) {
+    (level === 'error' ? process.stderr : process.stdout).write(JSON.stringify(entry) + '\n');
+    _logBatch.push({ message: msg, metadata: { level, timestamp: entry.t } });
+    _scheduleFlush();
+  } else {
+    ({ info: console.log, warn: console.warn, error: console.error }[level])('[' + level.toUpperCase() + ']', ...args);
+  }
+}
+
 const logger = {
-  info:  (...a) => isProd ? process.stdout.write(JSON.stringify({level:'info', t:new Date().toISOString(), msg:a.join(' ')})+'
-') : console.log('[INFO]',...a),
-  warn:  (...a) => isProd ? process.stdout.write(JSON.stringify({level:'warn', t:new Date().toISOString(), msg:a.join(' ')})+'
-') : console.warn('[WARN]',...a),
-  error: (...a) => isProd ? process.stderr.write(JSON.stringify({level:'error',t:new Date().toISOString(), msg:a.join(' ')})+'
-') : console.error('[ERROR]',...a),
+  info:  (...a) => _log('info',  a),
+  warn:  (...a) => _log('warn',  a),
+  error: (...a) => _log('error', a),
 };
 global.logger = logger;
 
