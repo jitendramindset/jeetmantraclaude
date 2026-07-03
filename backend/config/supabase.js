@@ -117,7 +117,7 @@ function buildShim(pool) {
     }
 
     async function run() {
-      // Try direct pg first
+      // Try direct pg first — fall back to REST on connection errors
       if (pool) {
         try {
           const sql = build();
@@ -134,7 +134,10 @@ function buildShim(pool) {
           }
           return { data: result.rows, error: null };
         } catch (e) {
-          return { data: null, error: { message: e.message, code: e.code } };
+          // Connection errors — fall through to REST fallback
+          const connErr = e.code === 'ECONNREFUSED' || e.code === 'ENOTFOUND' ||
+                          e.code === 'ETIMEDOUT' || e.message.includes('Tenant or user not found');
+          if (!connErr) return { data: null, error: { message: e.message, code: e.code } };
         }
       }
       // Fallback to REST client
@@ -159,9 +162,11 @@ function buildShim(pool) {
         else if (c.method === 'gte') q = q.gte(c.col, c.val);
         else if (c.method === 'lte') q = q.lte(c.col, c.val);
         else if (c.method === 'like') q = q.ilike(c.col, `%${c.val}%`);
+        else if (c.method === 'or') q = q.or(c.val);
       }
       if (state.orderCol) q = q.order(state.orderCol, { ascending: state.orderAsc });
-      if (state.limitVal) q = q.limit(state.limitVal);
+      if (state.rangeFrom !== undefined) q = q.range(state.rangeFrom, state.rangeTo);
+      else if (state.limitVal) q = q.limit(state.limitVal);
       if (state.returnSingle) q = q.single();
       else if (state.returnMaybe) q = q.maybeSingle();
       return q;
@@ -212,6 +217,9 @@ function buildShim(pool) {
         return api;
       },
       limit(n) { state.limitVal = n; return api; },
+      range(from, to) { state.rangeFrom = from; state.rangeTo = to; state.limitVal = (to - from + 1); return api; },
+      or(filterStr) { state._rawConds.push({ method: 'or', val: filterStr }); state.conditions.push(`(${filterStr.replace(/([a-z_]+)\.eq\./g, '"$1"=').replace(/,/g, ' OR ')})`); return api; },
+      textSearch(col, query) { vals.push(query); state.conditions.push(`to_tsvector('english', "${col}") @@ plainto_tsquery('english', $${vals.length})`); return api; },
       single() { state.returnSingle = true; return api; },
       maybeSingle() { state.returnMaybe = true; return api; },
       then(resolve, reject) { return run().then(resolve, reject); },
