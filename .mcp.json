@@ -34,6 +34,10 @@
       "command": "npx.cmd",
       "args": ["--package=hostinger-api-mcp@latest", "hostinger-ecommerce-mcp"],
       "env": { "HOSTINGER_API_TOKEN": "hO2mZbMeyZdSMZZ9kut4dCwiK2MJO4i98cX9KNaF99d42f0a" }
+    },
+    "supabase": {
+      "type": "http",
+      "url": "http://localhost:8000/mcp?features=docs%2Cdatabase%2Cdebugging%2Cdevelopment"
     }
   }
 }
