@@ -34,7 +34,7 @@ JM.Screens.register({
         +   '<span>Submitted ' + submitted + '</span>'
         + '</div>'
         + '<div style="font-weight:600;margin-bottom:6px">Q. ' + JM.esc(it.question_text || '') + '</div>'
-        + '<div style="font-size:13px;background:var(--jm-bg,#f8f7fc);padding:10px;border-radius:6px;border-left:3px solid var(--jm-primary,#7c3aed);margin-bottom:10px;white-space:pre-wrap">'
+        + '<div style="font-size:13px;background:var(--jm-bg,var(--jm-primary-bg,#f5f3ff));padding:10px;border-radius:6px;border-left:3px solid var(--jm-primary,var(--jm-primary,#7c3aed));margin-bottom:10px;white-space:pre-wrap">'
         +   JM.esc(it.answer || '') + '</div>'
         + '<div class="grid-2">'
         +   '<div class="form-row"><label>Score (out of ' + it.max_marks + ')</label>'

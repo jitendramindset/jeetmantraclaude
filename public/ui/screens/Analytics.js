@@ -21,9 +21,9 @@ JM.Screens.register({
     }
     var kpis = JM.KPIGrid([
       { label: 'Courses',        value: d.courses.length },
-      { label: 'Total students', value: d.totals.students, accent: 'var(--jm-accent-cyan, #06b6d4)' },
-      { label: 'Avg completion', value: d.totals.avgCompletion + '%', accent: 'var(--jm-accent-green, #16a34a)' },
-      { label: 'Revenue',        value: '₹' + d.totals.revenue.toLocaleString('en-IN'), accent: 'var(--jm-accent-amber, #f59e0b)' }
+      { label: 'Total students', value: d.totals.students, accent: 'var(--jm-accent-cyan, var(--jm-accent-cyan,#0ea5e9))' },
+      { label: 'Avg completion', value: d.totals.avgCompletion + '%', accent: 'var(--jm-accent-green, var(--jm-success,#16a34a))' },
+      { label: 'Revenue',        value: '₹' + d.totals.revenue.toLocaleString('en-IN'), accent: 'var(--jm-accent-amber, var(--jm-warn,#f59e0b))' }
     ]);
     var table =
       '<div style="font-weight:700;font-size:13px;margin-bottom:8px">Per course</div>'

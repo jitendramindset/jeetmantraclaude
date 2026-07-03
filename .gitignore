@@ -60,3 +60,6 @@ scratchpad-*.err
 e2e-report/
 e2e/test-results/
 e2e/node_modules/
+logs/*.log
+public/js/app-shell.min.js
+public/ui/dist/

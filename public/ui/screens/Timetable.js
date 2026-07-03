@@ -24,7 +24,7 @@ JM.Screens.register({
       var items = d.byDay[k] || [];
       var isToday = day.toDateString() === new Date().toDateString();
       var head = '<div style="font-weight:700;font-size:13px;padding:6px 10px;background:'
-        + (isToday ? 'var(--jm-primary-tint,rgba(124,58,237,.16))' : 'var(--jm-surface-2,#f3f4f6)')
+        + (isToday ? 'var(--jm-primary-tint,rgba(124,58,237,.16))' : 'var(--jm-surface-2,var(--jm-surface-2,#f3f4f6))')
         + ';border-radius:6px">' + DOWS[day.getDay()] + ' · ' + day.toLocaleDateString()
         + (isToday ? ' · Today' : '') + '</div>';
       var body = items.length

@@ -18,7 +18,7 @@ JM.Screens.register({
       + ROLES.map(function (r) { return '<th style="padding:8px;font-size:11px;text-transform:uppercase;color:var(--jm-text-muted)">' + r.charAt(0).toUpperCase() + r.slice(1) + '</th>'; }).join('') + '</tr>';
     var rows = widgets.map(function (w) {
       var roleHint = w.roles ? '<span style="font-size:11px;color:var(--jm-text-muted)">' + w.roles.join(', ') + '</span>'
-                             : '<span style="font-size:11px;color:#16a34a">all roles</span>';
+                             : '<span style="font-size:11px;color:var(--jm-success,#16a34a)">all roles</span>';
       var gChk = '<input type="checkbox" data-w="' + w.id + '" data-scope="global" ' + (on('global', w.id) ? 'checked' : '') + ' style="width:18px;height:18px;cursor:pointer">';
       var rChks = ROLES.map(function (r) {
         return '<input type="checkbox" data-w="' + w.id + '" data-scope="role" data-role="' + r + '" ' + (on('role', w.id, r) ? 'checked' : '') + ' style="width:18px;height:18px;cursor:pointer">';
@@ -62,9 +62,9 @@ if (window.JM && JM.Screens) {
     if (s) { s.style.color = 'var(--jm-text-muted)'; s.textContent = 'Saving…'; }
     try {
       await JM.Models.WidgetAdmin.save(cfg);
-      if (s) { s.style.color = '#16a34a'; s.textContent = '✓ Saved · takes effect on next dashboard load'; }
+      if (s) { s.style.color = 'var(--jm-success,#16a34a)'; s.textContent = '✓ Saved · takes effect on next dashboard load'; }
     } catch (e) {
-      if (s) { s.style.color = '#dc2626'; s.textContent = '⚠️ ' + (e.message || 'Save failed'); }
+      if (s) { s.style.color = 'var(--jm-danger,#ef4444)'; s.textContent = '⚠️ ' + (e.message || 'Save failed'); }
     }
   });
 }

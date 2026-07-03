@@ -34,10 +34,10 @@ JM.Screens.register({
     };
 
     var personal = sectionHeader('Personal') + grid(
-        tile('#7c3aed', '👤', 'Profile', 'Name · contact · address · photo', 'openProfilePage()')
-      + tile('#0ea5e9', '🏫', 'My Institutions', 'Manage school / coaching links', 'openMyInstitutions()')
-      + tile('#10b981', '🤖', 'AI assistant key', 'Configure provider (OpenAI / Anthropic / Gemini)', 'openAiKey()')
-      + tile('#ec4899', '💳', 'Payments &amp; coupons', 'Razorpay status · coupon codes · refunds', 'openPayments()')
+        tile('var(--jm-primary,#7c3aed)', '👤', 'Profile', 'Name · contact · address · photo', 'openProfilePage()')
+      + tile('var(--jm-accent-cyan,#0ea5e9)', '🏫', 'My Institutions', 'Manage school / coaching links', 'openMyInstitutions()')
+      + tile('var(--jm-success,var(--jm-success,#16a34a))', '🤖', 'AI assistant key', 'Configure provider (OpenAI / Anthropic / Gemini)', 'openAiKey()')
+      + tile('var(--jm-accent-pink,#ec4899)', '💳', 'Payments &amp; coupons', 'Razorpay status · coupon codes · refunds', 'openPayments()')
     );
 
     var langOpts = LANGS.map(function (l) {
@@ -67,25 +67,25 @@ JM.Screens.register({
       + '</div>';
 
     var workspace = sectionHeader('Workspace') + grid(
-        tile('#f97316', '🏢', 'CRM configuration', 'Company · invoice format · branding · logo', 'openCRMConfig()')
-      + tile('#f59e0b', '🧾', 'Billing &amp; invoices', 'Issue invoices · mark paid · PDF', 'openBilling()')
-      + tile('#7c3aed', '📅', 'Calendar', 'Month view of classes, tests, assignments', 'openCalendar()')
-      + tile('#0ea5e9', '📹', 'Recordings', 'Browse past live-class recordings', 'openRecordings()')
-      + tile('#10b981', '📊', 'Test analytics', 'Per-question pass rate · score distribution', "toast('Open a test from Configure → 📊 Analytics')")
+        tile('var(--jm-accent-orange,#f97316)', '🏢', 'CRM configuration', 'Company · invoice format · branding · logo', 'openCRMConfig()')
+      + tile('var(--jm-warn,#f59e0b)', '🧾', 'Billing &amp; invoices', 'Issue invoices · mark paid · PDF', 'openBilling()')
+      + tile('var(--jm-primary,#7c3aed)', '📅', 'Calendar', 'Month view of classes, tests, assignments', 'openCalendar()')
+      + tile('var(--jm-accent-cyan,#0ea5e9)', '📹', 'Recordings', 'Browse past live-class recordings', 'openRecordings()')
+      + tile('var(--jm-success,var(--jm-success,#16a34a))', '📊', 'Test analytics', 'Per-question pass rate · score distribution', "toast('Open a test from Configure → 📊 Analytics')")
     );
 
     var admin = d.isAdmin
       ? sectionHeader('Admin') + grid(
-            tile('#ef4444', '🛡', 'Audit log', 'Recent admin actions', "toast('See Admin page')")
-          + tile('#7c3aed', '💰', 'Commission rate', 'Platform commission %', "openEmbed('/admin-os.html?embed=1','🛡️ Platform OS')")
-          + tile('#ec4899', '🔌', 'n8n / webhooks', 'Configure automations', 'openN8nConfig()')
+            tile('var(--jm-danger,#ef4444)', '🛡', 'Audit log', 'Recent admin actions', "toast('See Admin page')")
+          + tile('var(--jm-primary,#7c3aed)', '💰', 'Commission rate', 'Platform commission %', "openEmbed('/admin-os.html?embed=1','🛡️ Platform OS')")
+          + tile('var(--jm-accent-pink,#ec4899)', '🔌', 'n8n / webhooks', 'Configure automations', 'openN8nConfig()')
         )
       : '';
 
     var account = sectionHeader('Account')
       + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:14px">'
-      + tile('#0ea5e9', '🔑', 'Change password', 'Send a reset link to your email', 'stChangePassword()')
-      + tile('#ef4444', '🚪', 'Log out', 'End your session on this device', 'logout()')
+      + tile('var(--jm-accent-cyan,#0ea5e9)', '🔑', 'Change password', 'Send a reset link to your email', 'stChangePassword()')
+      + tile('var(--jm-danger,#ef4444)', '🚪', 'Log out', 'End your session on this device', 'logout()')
       + '</div>';
 
     return '<div style="max-width:1180px;margin:0 auto">'

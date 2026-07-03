@@ -12,7 +12,7 @@ JM.Screens.register({
     var origin = location.origin;
     var rows = (d.certificates || []).map(function (c) {
       var verify = c.verify_token ? origin + '/api/certificates/verify/' + encodeURIComponent(c.verify_token) : '';
-      var right = verify ? '<a href="' + verify + '" target="_blank" rel="noopener" style="font-size:11px;color:var(--jm-primary,#7c3aed);text-decoration:none">🔗 Verify</a>' : '';
+      var right = verify ? '<a href="' + verify + '" target="_blank" rel="noopener" style="font-size:11px;color:var(--jm-primary,var(--jm-primary,#7c3aed));text-decoration:none">🔗 Verify</a>' : '';
       return {
         icon: '🎓',
         title: c.course_title || c.title || 'Certificate',

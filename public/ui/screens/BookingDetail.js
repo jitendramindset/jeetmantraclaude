@@ -49,7 +49,7 @@ JM.Screens.register({
       + '</select></div>'
       + '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">'
       + '<button class="btn-sm btn-primary" onclick="bookingSave(\'' + JM.esc(bookingId) + '\')">💾 Save</button>'
-      + '<button class="btn-sm btn-outline" onclick="bookingCancel(\'' + JM.esc(bookingId) + '\')" style="color:#b91c1c">❌ Cancel + refund</button>'
+      + '<button class="btn-sm btn-outline" onclick="bookingCancel(\'' + JM.esc(bookingId) + '\')" style="color:var(--jm-danger,#ef4444)">❌ Cancel + refund</button>'
       + '</div>';
   }
 });

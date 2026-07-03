@@ -19,10 +19,10 @@ JM.Screens.register({
     var s = d.summary, rows = d.invoices;
 
     var statsGrid = '<div class="stats-grid" style="margin-bottom:18px">'
-      + '<div class="stat-card" style="--sc:#10b981"><div class="label">Collected</div><div class="value">' + fmt(s.paidAmount || 0) + '</div><div class="sub">' + (s.paid || 0) + ' paid</div></div>'
-      + '<div class="stat-card" style="--sc:#f59e0b"><div class="label">Pending</div><div class="value">' + fmt(s.pendingAmount || 0) + '</div><div class="sub">' + (s.pending || 0) + ' invoices</div></div>'
-      + '<div class="stat-card" style="--sc:#ef4444"><div class="label">Overdue</div><div class="value">' + (s.overdue || 0) + '</div><div class="sub">past due date</div></div>'
-      + '<div class="stat-card" style="--sc:#7c3aed"><div class="label">Total invoices</div><div class="value">' + (s.total || 0) + '</div><div class="sub">All time</div></div>'
+      + '<div class="stat-card" style="--sc:var(--jm-success,var(--jm-success,#16a34a))"><div class="label">Collected</div><div class="value">' + fmt(s.paidAmount || 0) + '</div><div class="sub">' + (s.paid || 0) + ' paid</div></div>'
+      + '<div class="stat-card" style="--sc:var(--jm-warn,#f59e0b)"><div class="label">Pending</div><div class="value">' + fmt(s.pendingAmount || 0) + '</div><div class="sub">' + (s.pending || 0) + ' invoices</div></div>'
+      + '<div class="stat-card" style="--sc:var(--jm-danger,#ef4444)"><div class="label">Overdue</div><div class="value">' + (s.overdue || 0) + '</div><div class="sub">past due date</div></div>'
+      + '<div class="stat-card" style="--sc:var(--jm-primary,#7c3aed)"><div class="label">Total invoices</div><div class="value">' + (s.total || 0) + '</div><div class="sub">All time</div></div>'
       + '</div>';
 
     var tableOrEmpty;
@@ -60,7 +60,7 @@ JM.Screens.register({
         + '<div class="icon" style="font-size:44px">🧾</div>'
         + '<div style="font-weight:600;margin:8px 0">No invoices yet</div>'
         + '<div style="color:var(--jm-text-muted);font-size:13px;margin-bottom:14px">Issue an invoice to a student or org — payments tracked automatically.</div>'
-        + '<button onclick="blOpenNew()" style="background:linear-gradient(135deg,var(--jm-primary),#a855f7);color:#fff;border:0;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(124,58,237,.35)">➕ New invoice</button>'
+        + '<button onclick="blOpenNew()" style="background:linear-gradient(135deg,var(--jm-primary),var(--jm-accent-purple,#a855f7));color:#fff;border:0;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(124,58,237,.35)">➕ New invoice</button>'
         + '</div>';
     }
 

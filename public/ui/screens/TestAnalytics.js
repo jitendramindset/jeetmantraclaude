@@ -16,9 +16,9 @@ JM.Screens.register({
     var maxBucket = Math.max.apply(null, [1].concat(dist.map(function (b) { return b.count; })));
 
     var kpis = JM.KPIGrid([
-      { label: 'Attempts', value: d.totalAttempts, accent: '#7c3aed' },
-      { label: 'Mean score', value: d.mean_score, sub: 'of ' + totalMarks, accent: '#10b981' },
-      { label: 'Questions', value: d.per_question.length, accent: '#f59e0b' }
+      { label: 'Attempts', value: d.totalAttempts, accent: 'var(--jm-primary,#7c3aed)' },
+      { label: 'Mean score', value: d.mean_score, sub: 'of ' + totalMarks, accent: 'var(--jm-success,var(--jm-success,#16a34a))' },
+      { label: 'Questions', value: d.per_question.length, accent: 'var(--jm-warn,#f59e0b)' }
     ]);
 
     var distBars = '<div class="card" style="margin-bottom:18px;padding:14px"><div style="font-weight:700;margin-bottom:10px">Score distribution</div>'
@@ -26,7 +26,7 @@ JM.Screens.register({
       + dist.map(function (b) {
           var h = (b.count / maxBucket) * 120;
           return '<div style="flex:1;text-align:center;display:flex;flex-direction:column;justify-content:flex-end">'
-            + '<div style="background:var(--jm-primary,#7c3aed);height:' + h + 'px;border-radius:6px 6px 0 0;min-height:2px"></div>'
+            + '<div style="background:var(--jm-primary,var(--jm-primary,#7c3aed));height:' + h + 'px;border-radius:6px 6px 0 0;min-height:2px"></div>'
             + '<div style="font-size:11px;margin-top:4px;font-weight:600">' + b.count + '</div>'
             + '<div style="font-size:10px;color:var(--jm-text-muted)">' + JM.esc(b.range || '') + '</div>'
             + '</div>';
@@ -34,7 +34,7 @@ JM.Screens.register({
       + '</div></div>';
 
     var qRows = (d.per_question || []).map(function (q, i) {
-      var color = q.pass_rate >= 70 ? '#10b981' : q.pass_rate >= 40 ? '#f59e0b' : '#ef4444';
+      var color = q.pass_rate >= 70 ? 'var(--jm-success,var(--jm-success,#16a34a))' : q.pass_rate >= 40 ? 'var(--jm-warn,#f59e0b)' : 'var(--jm-danger,#ef4444)';
       var topWrong = q.top_wrong_answer
         ? JM.esc(String(q.top_wrong_answer.value || '').slice(0, 40)) + ' <span style="color:var(--jm-text-muted)">(' + q.top_wrong_answer.count + '×)</span>'
         : '—';

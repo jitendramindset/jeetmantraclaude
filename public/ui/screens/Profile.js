@@ -47,8 +47,8 @@ JM.Screens.register({
       row('Full name', input('pf-name', u.full_name)),
       row('Date of birth', input('pf-dob', u.date_of_birth, 'date'))
     ) + pair(
-      row('Email <span style="color:#ef4444">*</span>', input('pf-email', u.email, 'email')),
-      row('Mobile <span style="color:#ef4444">*</span>', input('pf-phone', u.phone, 'tel'))
+      row('Email <span style="color:var(--jm-danger,#ef4444)">*</span>', input('pf-email', u.email, 'email')),
+      row('Mobile <span style="color:var(--jm-danger,#ef4444)">*</span>', input('pf-phone', u.phone, 'tel'))
     ) + row('Bio', textarea('pf-bio', u.bio, 3, 'A short bio'));
 
     var address = section('Address')

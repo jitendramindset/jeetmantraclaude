@@ -1,6 +1,21 @@
 // Sentry must be initialized before any other requires to instrument them.
 require('dotenv').config({ path: require('path').join(__dirname, '.env') });
 const Sentry = require('@sentry/node');
+// ── Structured logger ─────────────────────────────────────────────────────────
+// In production outputs JSON lines for log aggregators (LogFlare, Datadog, etc.)
+// In development outputs human-readable messages.
+const isProd = process.env.NODE_ENV === 'production';
+const logger = {
+  info:  (...a) => isProd ? process.stdout.write(JSON.stringify({level:'info', t:new Date().toISOString(), msg:a.join(' ')})+'
+') : console.log('[INFO]',...a),
+  warn:  (...a) => isProd ? process.stdout.write(JSON.stringify({level:'warn', t:new Date().toISOString(), msg:a.join(' ')})+'
+') : console.warn('[WARN]',...a),
+  error: (...a) => isProd ? process.stderr.write(JSON.stringify({level:'error',t:new Date().toISOString(), msg:a.join(' ')})+'
+') : console.error('[ERROR]',...a),
+};
+global.logger = logger;
+
+
 if (process.env.SENTRY_DSN) {
   Sentry.init({
     dsn: process.env.SENTRY_DSN,
@@ -202,6 +217,56 @@ const permissionsRoutes = require('./routes/permissions');
 app.use('/api/permissions', permissionsRoutes);
 const cmsRoutes = require('./routes/cms');
 app.use('/api/cms', cmsRoutes);
+
+// ── API v1 versioned prefix (same routers, future-proof path) ───────────────
+// All existing /api/* routes are mirrored under /api/v1/* so clients can
+// pin a version while the unversioned paths remain for backwards compatibility.
+const v1 = express.Router();
+v1.use('/auth',               authRoutes);
+v1.use('/users',              userRoutes);
+v1.use('/courses',            courseRoutes);
+v1.use('/enrollments',        enrollmentRoutes);
+v1.use('/dashboard',          dashboardRoutes);
+v1.use('/payments',           paymentRoutes);
+v1.use('/attendance',         attendanceRoutes);
+v1.use('/live-classes',       liveClassesRoutes);
+v1.use('/webhooks',           webhookRoutes);
+v1.use('/admin',              adminRoutes);
+v1.use('/marketplace',        marketplaceRoutes);
+v1.use('/search',             searchRoutes);
+v1.use('/n8n',                n8nRoutes);
+v1.use('/course-content',     courseContentRoutes);
+v1.use('/student',            studentExtrasRoutes);
+v1.use('/institutions',       institutionsRoutes);
+v1.use('/assignments',        assignmentsRoutes);
+v1.use('/ai',                 aiRoutes);
+v1.use('/chat',               chatRoutes);
+v1.use('/activity',           activityRoutes);
+v1.use('/teacher',            teacherExtrasRoutes);
+v1.use('/parent',             parentExtrasRoutes);
+v1.use('/wallet',             walletRoutes);
+v1.use('/eduos',              eduosRoutes);
+v1.use('/calendar',           calendarRoutes);
+v1.use('/approvals',          approvalsRoutes);
+v1.use('/payouts',            payoutsRoutes);
+v1.use('/support',            supportRoutes);
+v1.use('/reports',            reportsRoutes);
+v1.use('/notifications-admin',notifAdminRoutes);
+v1.use('/translations',       translationsRoutes);
+v1.use('/resources',          resourcesRoutes);
+v1.use('/bookings',           bookingsRoutes);
+v1.use('/gamification',       gamificationRoutes);
+v1.use('/notifications',      notificationsRoutes);
+v1.use('/certificates',       certificatesRoutes);
+v1.use('/orgs',               orgsRoutes);
+v1.use('/me',                 meRoutes);
+v1.use('/timetable',          timetableRoutes);
+v1.use('/i18n',               i18nRoutes);
+v1.use('/studio',             studioRoutes);
+v1.use('/rag',                ragRoutes);
+v1.use('/permissions',        permissionsRoutes);
+v1.use('/cms',                cmsRoutes);
+app.use('/api/v1', v1);
 
 // LevelDB sync queue endpoint
 app.get('/api/sync/queue', authenticateToken, authorizeRole(['admin']), async (req, res) => {

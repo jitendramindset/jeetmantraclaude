@@ -108,7 +108,7 @@ JM.Screens.register({
             + '<div class="icon" style="font-size:44px">📅</div>'
             + '<div style="font-weight:600;margin:8px 0">No bookings yet.</div>'
             + '<div style="color:var(--jm-text-muted);font-size:13px;margin-bottom:14px">Students book your time once a paid course is listed. Get started:</div>'
-            + '<button onclick="openEmbed(\'/marketplace.html?embed=1\',\'🛒 Marketplace\')" style="background:linear-gradient(135deg,var(--jm-primary),#a855f7);color:#fff;border:0;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(124,58,237,.35)">🛒 List a course</button>'
+            + '<button onclick="openEmbed(\'/marketplace.html?embed=1\',\'🛒 Marketplace\')" style="background:linear-gradient(135deg,var(--jm-primary),var(--jm-accent-purple,#a855f7));color:#fff;border:0;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(124,58,237,.35)">🛒 List a course</button>'
             + '</div>')
       + '</div>'
       + '</div>';

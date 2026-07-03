@@ -21,7 +21,7 @@ JM.Screens.register({
         +   '<th style="padding:8px;text-align:center">%</th>'
         + '</tr></thead><tbody>'
         + rep.map(function (c) {
-            var col = c.percentage >= 75 ? '#10b981' : c.percentage >= 50 ? '#f59e0b' : '#ef4444';
+            var col = c.percentage >= 75 ? 'var(--jm-success,var(--jm-success,#16a34a))' : c.percentage >= 50 ? 'var(--jm-warn,#f59e0b)' : 'var(--jm-danger,#ef4444)';
             return '<tr style="border-bottom:1px solid var(--jm-border)">'
               + '<td style="padding:8px">' + JM.esc(c.course_title) + '</td>'
               + '<td style="padding:8px;text-align:center">' + c.present + '</td>'
@@ -35,7 +35,7 @@ JM.Screens.register({
     return '<div style="max-width:800px;margin:0 auto">'
       + '<h2 style="margin-bottom:14px">🗓 Attendance report</h2>'
       + JM.KPIGrid([
-          { label: 'Overall', value: (o.percentage || 0) + '%', sub: (o.present || 0) + '/' + (o.total || 0) + ' present', accent: '#7c3aed' }
+          { label: 'Overall', value: (o.percentage || 0) + '%', sub: (o.present || 0) + '/' + (o.total || 0) + ' present', accent: 'var(--jm-primary,#7c3aed)' }
         ])
       + '<div style="margin-top:14px"></div>'
       + table

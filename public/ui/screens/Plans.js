@@ -11,7 +11,7 @@ JM.Screens.register({
   render: function (d) {
     var plans = d.plans || [];
     var current = d.current;
-    var planColor = { free: '#94a3b8', basic: '#0ea5e9', pro: '#7c3aed', enterprise: '#10b981' };
+    var planColor = { free: 'var(--jm-text-subtle,#94a3b8)', basic: 'var(--jm-accent-cyan,#0ea5e9)', pro: 'var(--jm-primary,#7c3aed)', enterprise: 'var(--jm-success,var(--jm-success,#16a34a))' };
 
     var currentBanner = current
       ? '<div class="card" style="padding:14px;margin-bottom:18px;display:flex;align-items:center;gap:10px;background:var(--jm-primary-tint,rgba(124,58,237,.18))">'
@@ -25,7 +25,7 @@ JM.Screens.register({
 
     var cards = plans.map(function (p) {
       var isCurrent = current && current.plan_code === p.code;
-      var c = planColor[p.code] || '#7c3aed';
+      var c = planColor[p.code] || 'var(--jm-primary,#7c3aed)';
       var ribbon = p.code === 'pro'
         ? '<div style="position:absolute;top:-10px;right:14px;background:' + c + ';color:#fff;padding:3px 10px;border-radius:99px;font-size:10px;font-weight:800;letter-spacing:.05em">MOST POPULAR</div>'
         : '';
@@ -40,7 +40,7 @@ JM.Screens.register({
       }).join('');
       var cta = isCurrent
         ? '<button class="btn-sm btn-outline" style="width:100%" disabled>Current plan</button>'
-        : '<button class="btn-sm btn-primary" style="width:100%;background:linear-gradient(135deg,' + c + ',color-mix(in oklab,' + c + ',#a855f7 30%))" onclick="subscribe(\'' + p.code + '\',\'monthly\')">Choose ' + JM.esc(p.name) + '</button>';
+        : '<button class="btn-sm btn-primary" style="width:100%;background:linear-gradient(135deg,' + c + ',color-mix(in oklab,' + c + ',var(--jm-accent-purple,#a855f7) 30%))" onclick="subscribe(\'' + p.code + '\',\'monthly\')">Choose ' + JM.esc(p.name) + '</button>';
       return '<div class="card" style="padding:22px;border-top:4px solid ' + c + ';position:relative;'
         + (isCurrent ? 'box-shadow:0 0 0 2px ' + c : '') + '">'
         + ribbon

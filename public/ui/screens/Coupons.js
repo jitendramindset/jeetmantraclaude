@@ -34,12 +34,12 @@ JM.Screens.register({
         var used = (c.used_count || 0) + '/' + (c.max_uses || 100) + ' used';
         var exp = c.expires_at ? ' · exp ' + new Date(c.expires_at).toLocaleDateString() : '';
         return '<div style="display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--jm-border);border-radius:10px;margin-bottom:8px">'
-          + '<div style="font-family:monospace;font-weight:800;font-size:15px;background:var(--jm-primary-tint,rgba(124,58,237,.18));color:var(--jm-primary,#7c3aed);padding:4px 10px;border-radius:6px">' + JM.esc(c.code) + '</div>'
+          + '<div style="font-family:monospace;font-weight:800;font-size:15px;background:var(--jm-primary-tint,rgba(124,58,237,.18));color:var(--jm-primary,var(--jm-primary,#7c3aed));padding:4px 10px;border-radius:6px">' + JM.esc(c.code) + '</div>'
           + '<div style="flex:1;min-width:0">'
           +   '<div style="font-weight:600;font-size:13px">' + disc + ' · ' + JM.esc(c.course_title || 'All courses') + '</div>'
           +   '<div style="font-size:11px;color:var(--jm-text-muted)">' + used + exp + '</div>'
           + '</div>'
-          + '<button class="btn-sm btn-outline" onclick="cpnDelete(\'' + c.id + '\')" title="Delete" style="color:#b91c1c">🗑</button>'
+          + '<button class="btn-sm btn-outline" onclick="cpnDelete(\'' + c.id + '\')" title="Delete" style="color:var(--jm-danger,#ef4444)">🗑</button>'
           + '</div>';
       }).join('');
     }

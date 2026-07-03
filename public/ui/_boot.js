@@ -26,7 +26,7 @@
   // Load lists (in dependency order). Atoms first, then molecules, then screens.
   var ATOMS = [
     'Button', 'Card', 'KPI', 'Row', 'Badge', 'EmptyState', 'Avatar',
-    'SectionHeader', 'ModalShell', 'Tabs', 'Tag'
+    'SectionHeader', 'ModalShell', 'Tabs', 'Tag', 'Input', 'Select', 'Label'
   ];
   var MOLECULES = ['KPIGrid', 'ListSection', 'ActionToolbar', 'TakeoverPage'];
   var MODELS = ['Wallet', 'Certificates', 'WidgetAdmin', 'Analytics', 'MyStudents', 'Downloads', 'Recordings', 'AttendanceReport', 'Gamification', 'AiKey', 'MyExternalResults', 'LiveRoster', 'AttendanceLog', 'Wall', 'Timetable', 'TestAnalytics', 'EssayInbox', 'Submissions', 'StudentDetail', 'N8nConfig', 'Coupons', 'Plans', 'Profile', 'Settings', 'NearbySearch', 'MyInstitutions', 'Billing', 'Calendar', 'CrmConfig', 'Configure', 'MoneyPage', 'RagTrainer', 'QuestionEditor', 'CourseStudents', 'CourseChat', 'AttGrid', 'QuestionBank', 'BookingDetail', 'Wizard', 'LessonPlanner', 'ProctorEvents', 'EduOS', 'LangPicker'];

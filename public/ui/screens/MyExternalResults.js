@@ -16,7 +16,7 @@ JM.Screens.register({
     var examRows = d.exams.length
       ? d.exams.map(function (r) {
           var pct = Number(r.pct) || 0;
-          var color = pct >= 70 ? '#16a34a' : pct >= 50 ? '#d97706' : '#dc2626';
+          var color = pct >= 70 ? 'var(--jm-success,#16a34a)' : pct >= 50 ? 'var(--jm-warn,#f59e0b)' : 'var(--jm-danger,#ef4444)';
           return '<tr><td style="padding:6px 8px">' + fmt(r.ts) + '</td>'
             + '<td style="padding:6px 8px">' + JM.esc(r.topic || r.subject || '—') + '</td>'
             + '<td style="padding:6px 8px;text-align:right">' + (r.score || 0) + '/' + (r.total || 0) + '</td>'
@@ -40,18 +40,18 @@ JM.Screens.register({
       + JM.Button({ label: '🧪 Take Exam', kind: 'ghost', size: 'sm', href: '/exam-platform.html' })
       + JM.Button({ label: '🈯 Bhasha Setu', kind: 'ghost', size: 'sm', href: '/bhasha-setu.html' })
       + '</div>';
-    var examTable = '<div style="font-size:13px;font-weight:700;margin-bottom:8px;color:#7c3aed">🧪 Exam Attempts</div>'
+    var examTable = '<div style="font-size:13px;font-weight:700;margin-bottom:8px;color:var(--jm-primary,#7c3aed)">🧪 Exam Attempts</div>'
       + '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:18px">'
-      +   '<thead><tr style="background:var(--jm-surface-2,#f6f3ff)">'
+      +   '<thead><tr style="background:var(--jm-surface-2,var(--jm-primary-bg,#f5f3ff))">'
       +     '<th style="padding:8px;text-align:left;color:var(--jm-text-muted);font-size:11px;text-transform:uppercase">When</th>'
       +     '<th style="padding:8px;text-align:left;color:var(--jm-text-muted);font-size:11px;text-transform:uppercase">Topic</th>'
       +     '<th style="padding:8px;text-align:right;color:var(--jm-text-muted);font-size:11px;text-transform:uppercase">Score</th>'
       +     '<th style="padding:8px;text-align:right;color:var(--jm-text-muted);font-size:11px;text-transform:uppercase">%</th>'
       +     '<th style="padding:8px;text-align:left;color:var(--jm-text-muted);font-size:11px;text-transform:uppercase">Grade</th>'
       +   '</tr></thead><tbody>' + examRows + '</tbody></table></div>';
-    var bhashaTable = '<div style="font-size:13px;font-weight:700;margin-bottom:8px;color:#16a34a">🈯 Language Practice (Bhasha Setu)</div>'
+    var bhashaTable = '<div style="font-size:13px;font-weight:700;margin-bottom:8px;color:var(--jm-success,#16a34a)">🈯 Language Practice (Bhasha Setu)</div>'
       + '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px">'
-      +   '<thead><tr style="background:var(--jm-surface-2,#f0fdf4)">'
+      +   '<thead><tr style="background:var(--jm-surface-2,var(--jm-success-bg,#f0fdf4))">'
       +     '<th style="padding:8px;text-align:left;color:var(--jm-text-muted);font-size:11px;text-transform:uppercase">When</th>'
       +     '<th style="padding:8px;text-align:left;color:var(--jm-text-muted);font-size:11px;text-transform:uppercase">Lesson</th>'
       +     '<th style="padding:8px;text-align:left;color:var(--jm-text-muted);font-size:11px;text-transform:uppercase">Lang</th>'

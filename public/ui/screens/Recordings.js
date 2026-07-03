@@ -27,7 +27,7 @@ JM.Screens.register({
         +   (rc.topic_title ? '📁 ' + JM.esc(rc.topic_title) + ' · ' : '')
         +   (rc.recording_uploaded_at ? new Date(rc.recording_uploaded_at).toLocaleString() : '')
         + '</div>'
-        + '<a href="' + JM.esc(rc.recording_url) + '" download style="text-decoration:none;display:inline-block;margin-top:8px;background:var(--jm-surface-2,#f3f4f6);color:var(--jm-text);border:1px solid var(--jm-border);padding:6px 12px;border-radius:8px;font-size:11px;font-weight:700">⬇ Download</a>'
+        + '<a href="' + JM.esc(rc.recording_url) + '" download style="text-decoration:none;display:inline-block;margin-top:8px;background:var(--jm-surface-2,var(--jm-surface-2,#f3f4f6));color:var(--jm-text);border:1px solid var(--jm-border);padding:6px 12px;border-radius:8px;font-size:11px;font-weight:700">⬇ Download</a>'
         + '</div>';
     };
     var courseBlocks = Object.keys(d.byCourse).sort().map(function (course) {

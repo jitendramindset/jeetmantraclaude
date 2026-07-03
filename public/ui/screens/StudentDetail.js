@@ -22,19 +22,19 @@ JM.Screens.register({
       + '</div>'
       + '<div style="margin-left:auto;display:flex;align-items:center;gap:12px">'
       +   JM.Button({ label: '💬 Message', kind: 'primary', size: 'sm', onClick: "openDmWith('" + sid + "','" + name.replace(/'/g, "\\'") + "')" })
-      +   '<div style="text-align:center"><div style="font-size:24px;font-weight:800;color:var(--jm-primary,#7c3aed)">' + (p.percentage || 0) + '%</div>'
+      +   '<div style="text-align:center"><div style="font-size:24px;font-weight:800;color:var(--jm-primary,var(--jm-primary,#7c3aed))">' + (p.percentage || 0) + '%</div>'
       +     '<div style="font-size:10px;color:var(--jm-text-muted)">progress</div></div>'
       + '</div>'
       + '</div>';
 
     var kpiRow = '<div style="display:flex;gap:10px;margin-bottom:16px">'
-      + '<div style="flex:1;background:var(--jm-surface-2,#f3f4f6);border-radius:8px;padding:10px;text-align:center">'
+      + '<div style="flex:1;background:var(--jm-surface-2,var(--jm-surface-2,#f3f4f6));border-radius:8px;padding:10px;text-align:center">'
       +   '<div style="font-size:18px;font-weight:800">' + (p.attended_lectures || 0) + '/' + (p.total_lectures || 0) + '</div>'
       +   '<div style="font-size:10px;color:var(--jm-text-muted)">Lectures attended</div></div>'
-      + '<div style="flex:1;background:var(--jm-surface-2,#f3f4f6);border-radius:8px;padding:10px;text-align:center">'
+      + '<div style="flex:1;background:var(--jm-surface-2,var(--jm-surface-2,#f3f4f6));border-radius:8px;padding:10px;text-align:center">'
       +   '<div style="font-size:18px;font-weight:800">' + d.assignments.length + '</div>'
       +   '<div style="font-size:10px;color:var(--jm-text-muted)">Submissions</div></div>'
-      + '<div style="flex:1;background:var(--jm-surface-2,#f3f4f6);border-radius:8px;padding:10px;text-align:center">'
+      + '<div style="flex:1;background:var(--jm-surface-2,var(--jm-surface-2,#f3f4f6));border-radius:8px;padding:10px;text-align:center">'
       +   '<div style="font-size:18px;font-weight:800">' + d.tests.length + '</div>'
       +   '<div style="font-size:10px;color:var(--jm-text-muted)">Tests taken</div></div>'
       + '</div>';
@@ -75,7 +75,7 @@ JM.Screens.register({
 
     var doubtRows = d.doubts.length
       ? d.doubts.map(function (q) {
-          return '<div style="font-size:12px;padding:8px;background:var(--jm-surface-2,#f3f4f6);border-radius:8px;margin-bottom:6px">'
+          return '<div style="font-size:12px;padding:8px;background:var(--jm-surface-2,var(--jm-surface-2,#f3f4f6));border-radius:8px;margin-bottom:6px">'
             + '💬 ' + JM.esc(q.content) + '<div style="font-size:10px;color:var(--jm-text-muted);margin-top:2px">'
             + new Date(q.created_at).toLocaleString() + '</div></div>';
         }).join('')

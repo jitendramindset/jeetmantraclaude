@@ -17,19 +17,19 @@ JM.Screens.register({
         value: (st.current_streak || 0),
         icon: '🔥',
         sub: 'Longest: ' + (st.longest_streak || 0) + ' days',
-        accent: 'var(--jm-accent-orange, #f97316)'
+        accent: 'var(--jm-accent-orange, var(--jm-accent-orange,#f97316))'
       },
       {
         label: 'XP · Level ' + (d.xp.level || 1),
         value: (d.xp.total || 0).toLocaleString(),
         icon: '⭐',
         sub: 'Next level: ' + (d.xp.nextLevelAt || 100).toLocaleString(),
-        accent: 'var(--jm-accent-purple, #7c3aed)'
+        accent: 'var(--jm-accent-purple, var(--jm-primary,#7c3aed))'
       }
     ], { min: 120 });
     var tile = function (x, isLocked) {
-      var common = 'text-align:center;padding:8px;background:var(--jm-surface-2,#f3f4f6);border-radius:10px';
-      var border = isLocked ? ';opacity:.4;filter:grayscale(1)' : ';border:1.5px solid var(--jm-accent-amber, #f59e0b)';
+      var common = 'text-align:center;padding:8px;background:var(--jm-surface-2,var(--jm-surface-2,#f3f4f6));border-radius:10px';
+      var border = isLocked ? ';opacity:.4;filter:grayscale(1)' : ';border:1.5px solid var(--jm-accent-amber, var(--jm-warn,#f59e0b))';
       return '<div title="' + (isLocked ? 'Locked: ' : '') + JM.esc(x.description || '') + '" style="' + common + border + '">'
         + '<div style="font-size:26px">' + JM.esc(x.icon || (isLocked ? '🔒' : '🏆')) + '</div>'
         + '<div style="font-size:10px;font-weight:700;margin-top:2px">' + JM.esc(x.title) + '</div>'
