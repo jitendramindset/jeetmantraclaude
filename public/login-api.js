@@ -4,7 +4,7 @@
  */
 
 const LOGIN_API_CONFIG = {
-  baseURL: window.location.origin+'/api',
+  baseURL: '/api',
   timeout: 30000
 };
 

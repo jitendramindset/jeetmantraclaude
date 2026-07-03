@@ -10,9 +10,9 @@ JM.Screens.register({
   render: function (d) {
     var ICON = { live: '📡', assignment: '📝', test: '✏️' };
     var DOWS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-    var nav = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">'
+    var nav = '<div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;margin-bottom:14px">'
       + JM.Button({ label: '← Prev', kind: 'ghost', size: 'sm', onClick: "openTimetable(" + (d.offset - 1) + ")" })
-      + '<div style="font-weight:700">' + d.weekStart.toLocaleDateString() + ' — ' + new Date(d.weekEnd - 1).toLocaleDateString() + '</div>'
+      + '<div style="font-weight:700;flex:1;text-align:center;min-width:0">' + d.weekStart.toLocaleDateString() + ' — ' + new Date(d.weekEnd - 1).toLocaleDateString() + '</div>'
       + '<div style="display:flex;gap:6px">'
       +   JM.Button({ label: 'Today', kind: 'ghost', size: 'sm', onClick: "openTimetable(0)" })
       +   JM.Button({ label: 'Next →', kind: 'ghost', size: 'sm', onClick: "openTimetable(" + (d.offset + 1) + ")" })
@@ -32,8 +32,8 @@ JM.Screens.register({
             var time = new Date(e.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             var meta = time + (e.duration ? ' · ' + e.duration + ' min' : '') + (e.course_title ? ' · ' + JM.esc(e.course_title) : '');
             var kind = e.type === 'live' ? 'info' : e.type === 'assignment' ? 'warn' : 'success';
-            return '<div style="display:flex;justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--jm-border);align-items:center">'
-              + '<div><div>' + (ICON[e.type] || '•') + ' <strong>' + JM.esc(e.title) + '</strong></div>'
+            return '<div style="display:flex;flex-wrap:wrap;justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--jm-border);align-items:center;gap:6px">'
+              + '<div style="min-width:0;flex:1"><div>' + (ICON[e.type] || '•') + ' <strong>' + JM.esc(e.title) + '</strong></div>'
               +   '<div style="font-size:11px;color:var(--jm-text-muted)">' + meta + '</div>'
               + '</div>'
               + JM.Badge({ text: e.type + (e.status ? ' ' + e.status : ''), kind: kind })

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * TakeoverPage — molecule that owns full-screen "takeover" surfaces.
  *
  *   JM.TakeoverPage.open({ crumb, bodyHtml, pageId, bodyId, crumbId })
@@ -124,7 +124,7 @@ JM.TakeoverPage = {
     this.setBody('<div style="text-align:center;padding:40px;color:#888">' + (text || 'Loading…') + '</div>', bodyId);
   },
   error: function (message, bodyId) {
-    this.setBody('<div style="color:#b91c1c;padding:20px">' + JM.esc(message || 'Something went wrong') + '</div>', bodyId);
+    this.setBody('<div style="color:var(--jm-danger,#ef4444);padding:20px">' + JM.esc(message || 'Something went wrong') + '</div>', bodyId);
   },
   close: function (pageId) {
     var id = pageId || this._last.pageId || 'bookingsPage';

@@ -15,28 +15,28 @@ JM.Screens.register({
     var email = JM.esc(s.email || '');
     var sid = (ctx && ctx.studentId) || '';
 
-    var header = '<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">'
-      + '<div style="width:48px;height:48px;border-radius:50%;background:var(--jm-primary-tint,rgba(124,58,237,.16));display:flex;align-items:center;justify-content:center;font-size:22px">👤</div>'
-      + '<div><div style="font-weight:700;font-size:16px">' + name + '</div>'
-      +   (email ? '<div style="font-size:12px;color:var(--jm-text-muted)">' + email + '</div>' : '')
+    var header = '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:14px">'
+      + '<div style="width:48px;height:48px;border-radius:50%;background:var(--jm-primary-tint,rgba(124,58,237,.16));display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">👤</div>'
+      + '<div style="min-width:0;flex:1"><div style="font-weight:700;font-size:clamp(14px,4vw,16px)">' + name + '</div>'
+      +   (email ? '<div style="font-size:clamp(11px,3vw,12px);color:var(--jm-text-muted)">' + email + '</div>' : '')
       + '</div>'
-      + '<div style="margin-left:auto;display:flex;align-items:center;gap:12px">'
+      + '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">'
       +   JM.Button({ label: '💬 Message', kind: 'primary', size: 'sm', onClick: "openDmWith('" + sid + "','" + name.replace(/'/g, "\\'") + "')" })
-      +   '<div style="text-align:center"><div style="font-size:24px;font-weight:800;color:var(--jm-primary,var(--jm-primary,#7c3aed))">' + (p.percentage || 0) + '%</div>'
-      +     '<div style="font-size:10px;color:var(--jm-text-muted)">progress</div></div>'
+      +   '<div style="text-align:center"><div style="font-size:clamp(18px,5vw,24px);font-weight:800;color:var(--jm-primary,var(--jm-primary,#7c3aed))">' + (p.percentage || 0) + '%</div>'
+      +     '<div style="font-size:clamp(10px,2.5vw,11px);color:var(--jm-text-muted)">progress</div></div>'
       + '</div>'
       + '</div>';
 
-    var kpiRow = '<div style="display:flex;gap:10px;margin-bottom:16px">'
-      + '<div style="flex:1;background:var(--jm-surface-2,var(--jm-surface-2,#f3f4f6));border-radius:8px;padding:10px;text-align:center">'
-      +   '<div style="font-size:18px;font-weight:800">' + (p.attended_lectures || 0) + '/' + (p.total_lectures || 0) + '</div>'
-      +   '<div style="font-size:10px;color:var(--jm-text-muted)">Lectures attended</div></div>'
-      + '<div style="flex:1;background:var(--jm-surface-2,var(--jm-surface-2,#f3f4f6));border-radius:8px;padding:10px;text-align:center">'
-      +   '<div style="font-size:18px;font-weight:800">' + d.assignments.length + '</div>'
-      +   '<div style="font-size:10px;color:var(--jm-text-muted)">Submissions</div></div>'
-      + '<div style="flex:1;background:var(--jm-surface-2,var(--jm-surface-2,#f3f4f6));border-radius:8px;padding:10px;text-align:center">'
-      +   '<div style="font-size:18px;font-weight:800">' + d.tests.length + '</div>'
-      +   '<div style="font-size:10px;color:var(--jm-text-muted)">Tests taken</div></div>'
+    var kpiRow = '<div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px">'
+      + '<div style="flex:1;min-width:80px;background:var(--jm-surface-2,var(--jm-surface-2,#f3f4f6));border-radius:8px;padding:10px;text-align:center">'
+      +   '<div style="font-size:clamp(15px,4vw,18px);font-weight:800">' + (p.attended_lectures || 0) + '/' + (p.total_lectures || 0) + '</div>'
+      +   '<div style="font-size:clamp(10px,2.5vw,11px);color:var(--jm-text-muted)">Lectures attended</div></div>'
+      + '<div style="flex:1;min-width:80px;background:var(--jm-surface-2,var(--jm-surface-2,#f3f4f6));border-radius:8px;padding:10px;text-align:center">'
+      +   '<div style="font-size:clamp(15px,4vw,18px);font-weight:800">' + d.assignments.length + '</div>'
+      +   '<div style="font-size:clamp(10px,2.5vw,11px);color:var(--jm-text-muted)">Submissions</div></div>'
+      + '<div style="flex:1;min-width:80px;background:var(--jm-surface-2,var(--jm-surface-2,#f3f4f6));border-radius:8px;padding:10px;text-align:center">'
+      +   '<div style="font-size:clamp(15px,4vw,18px);font-weight:800">' + d.tests.length + '</div>'
+      +   '<div style="font-size:clamp(10px,2.5vw,11px);color:var(--jm-text-muted)">Tests taken</div></div>'
       + '</div>';
 
     var gradeChip = function (a) {

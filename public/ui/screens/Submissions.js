@@ -31,12 +31,12 @@ JM.Screens.register({
       var email = JM.esc(s.email || '');
       var fileLink = s.submission_url
         ? '<div style="margin-top:4px"><a href="' + JM.esc(s.submission_url) + '" target="_blank">📎 View</a></div>' : '';
-      return '<div style="display:flex;justify-content:space-between;padding:12px;border-bottom:1px solid var(--jm-border);align-items:center">'
-        + '<div><div style="font-weight:600">' + name + '</div>'
+      return '<div style="display:flex;flex-wrap:wrap;justify-content:space-between;padding:12px;border-bottom:1px solid var(--jm-border);align-items:center;gap:8px">'
+        + '<div style="min-width:0;flex:1"><div style="font-weight:600">' + name + '</div>'
         +   (email ? '<div style="font-size:11px;color:var(--jm-text-muted)">' + email + '</div>' : '')
         +   fileLink
         + '</div>'
-        + '<div style="display:flex;gap:8px;align-items:center">'
+        + '<div style="display:flex;gap:8px;align-items:center;flex-shrink:0">'
         +   JM.Badge({ text: statusText, kind: kind })
         +   JM.Button({ label: 'Grade', kind: 'primary', size: 'sm', onClick: "openGradeSubmission('" + s.id + "')" })
         + '</div>'

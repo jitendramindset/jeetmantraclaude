@@ -24,8 +24,8 @@ JM.Screens.register({
       body = d.log.map(function (row) {
         var statusClass = row.status === 'present' ? 'success'
           : row.status === 'late' ? 'warn' : 'danger';
-        return '<div style="display:flex;justify-content:space-between;padding:8px 10px;border-bottom:1px solid var(--jm-border)">'
-          + '<div><strong>' + JM.esc(row.student_name || 'You') + '</strong>'
+        return '<div style="display:flex;justify-content:space-between;padding:8px 10px;border-bottom:1px solid var(--jm-border);gap:8px;align-items:center">'
+          + '<div style="min-width:0;flex:1"><strong>' + JM.esc(row.student_name || 'You') + '</strong>'
           +   '<div style="font-size:11px;color:var(--jm-text-muted)">' + new Date(row.date).toLocaleDateString() + '</div>'
           + '</div>'
           + JM.Badge({ text: row.status, kind: statusClass })

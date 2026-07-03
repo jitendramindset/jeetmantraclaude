@@ -50,14 +50,10 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // API: network-first, fall back to cache if offline.
-  if (url.pathname.startsWith('/api/')) {
-    e.respondWith(
-      fetch(req).then(r => {
-        if (r.ok) { const clone = r.clone(); caches.open(CACHE_NAME).then(c => c.put(req, clone).catch(()=>{})); }
-        return r;
-      }).catch(() => caches.match(req))
-    );
+  // API + health: never cache — mutable data must always come from the network.
+  // Offline reads are handled by the JMOffline localStorage layer (offline-sync.js).
+  if (url.pathname.startsWith('/api/') || url.pathname === '/health') {
+    e.respondWith(fetch(req));
     return;
   }
 

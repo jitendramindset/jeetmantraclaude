@@ -1,36 +1,36 @@
-(function(g) {
+﻿(function(g) {
 var _CSS = [
   ':root { color-scheme: light dark; }',
   '* { box-sizing: border-box; }',
   'html, body { margin: 0; padding: 0; background: var(--jm-bg, #f6f7f9); color: var(--jm-text, #111); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 14px; height: 100%; }',
   '.shell { display: grid; grid-template-columns: 240px 1fr; grid-template-rows: 56px 1fr; height: 100vh; min-height: 100vh; }',
-  '.topbar { grid-column: 1/3; display: flex; align-items: center; gap: 12px; padding: 0 16px; background: var(--jm-surface, #fff); border-bottom: 1px solid var(--jm-border, #e5e7eb); position: sticky; top: 0; z-index: 20; }',
+  '.topbar { grid-column: 1/3; display: flex; align-items: center; gap: 12px; padding: 0 16px; background: var(--jm-surface, var(--jm-text-inv,#fff)); border-bottom: 1px solid var(--jm-border, #e5e7eb); position: sticky; top: 0; z-index: 20; }',
   '.topbar .brand { font-weight: 800; letter-spacing: -0.02em; font-size: 15px; }',
-  '.topbar .brand .pill { background: linear-gradient(135deg, #7c3aed, #ec4899); color: #fff; padding: 1px 6px; border-radius: 4px; font-size: 10px; margin-left: 6px; vertical-align: 2px; }',
+  '.topbar .brand .pill { background: linear-gradient(135deg, var(--jm-primary,#7c3aed), var(--jm-accent-pink,#ec4899)); color: var(--jm-text-inv,#fff); padding: 1px 6px; border-radius: 4px; font-size: 10px; margin-left: 6px; vertical-align: 2px; }',
   '.topbar .grow { flex: 1; }',
   '.cmdk { width: 360px; max-width: 40vw; position: relative; }',
   '.cmdk input { width: 100%; padding: 7px 30px 7px 10px; background: var(--jm-surface-2, #f3f4f6); border: 1px solid var(--jm-border, #e5e7eb); border-radius: 6px; color: inherit; font-size: 13px; }',
-  '.cmdk .kbd { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 10px; color: var(--jm-text-muted, #999); background: var(--jm-surface, #fff); padding: 1px 5px; border: 1px solid var(--jm-border, #e5e7eb); border-radius: 3px; }',
+  '.cmdk .kbd { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 10px; color: var(--jm-text-muted, #999); background: var(--jm-surface, var(--jm-text-inv,#fff)); padding: 1px 5px; border: 1px solid var(--jm-border, #e5e7eb); border-radius: 3px; }',
   '.tenant-switcher { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; background: var(--jm-surface-2, #f3f4f6); border: 1px solid var(--jm-border, #e5e7eb); border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }',
-  '.status-pill { display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 99px; font-size: 11px; font-weight: 700; background: #ecfdf5; color: #047857; }',
+  '.status-pill { display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 99px; font-size: 11px; font-weight: 700; background: #ecfdf5; color: var(--jm-success,#16a34a); }',
   '.status-pill.degraded { background: #fffbeb; color: #b45309; }',
-  '.status-pill.down { background: #fef2f2; color: #b91c1c; }',
+  '.status-pill.down { background: #fef2f2; color: var(--jm-danger,var(--jm-danger,#ef4444)); }',
   '.status-pill .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }',
   '.icon-btn { background: none; border: none; cursor: pointer; padding: 5px; border-radius: 6px; font-size: 16px; }',
   '.icon-btn:hover { background: var(--jm-surface-2, #f3f4f6); }',
-  '.sidebar { background: var(--jm-surface, #fff); border-right: 1px solid var(--jm-border, #e5e7eb); padding: 8px 6px; overflow-y: auto; }',
+  '.sidebar { background: var(--jm-surface, var(--jm-text-inv,#fff)); border-right: 1px solid var(--jm-border, #e5e7eb); padding: 8px 6px; overflow-y: auto; }',
   '.nav-item { display: flex; align-items: center; gap: 9px; padding: 7px 10px; border-radius: 6px; cursor: pointer; color: var(--jm-text-strong, #111); font-size: 13px; font-weight: 500; user-select: none; position: relative; }',
   '.nav-item:hover { background: var(--jm-surface-2, #f3f4f6); }',
-  '.nav-item.active { background: color-mix(in oklab, var(--jm-primary, #7c3aed) 12%, transparent); color: var(--jm-primary, #7c3aed); font-weight: 600; }',
+  '.nav-item.active { background: color-mix(in oklab, var(--jm-primary, var(--jm-primary,#7c3aed)) 12%, transparent); color: var(--jm-primary, var(--jm-primary,#7c3aed)); font-weight: 600; }',
   '.nav-item .ic { font-size: 15px; width: 18px; text-align: center; }',
-  '.nav-item .badge { margin-left: auto; background: #ef4444; color: #fff; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 999px; }',
+  '.nav-item .badge { margin-left: auto; background: var(--jm-danger,#ef4444); color: var(--jm-text-inv,#fff); font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 999px; }',
   '.nav-group-title { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--jm-text-muted, #888); padding: 12px 12px 4px; }',
   '.content { overflow-y: auto; padding: 18px 22px; }',
   '.page-title { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; margin: 0 0 4px; }',
   '.page-sub { color: var(--jm-text-muted, #6b7280); font-size: 13px; margin: 0 0 18px; }',
   '.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 18px; }',
-  '.kpi { background: var(--jm-surface, #fff); border: 1px solid var(--jm-border, #e5e7eb); border-radius: 10px; padding: 14px; position: relative; overflow: hidden; }',
-  '.kpi::before { content: \'\'; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--sc, #7c3aed); }',
+  '.kpi { background: var(--jm-surface, var(--jm-text-inv,#fff)); border: 1px solid var(--jm-border, #e5e7eb); border-radius: 10px; padding: 14px; position: relative; overflow: hidden; }',
+  '.kpi::before { content: \'\'; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--sc,#7c3aed); }',
   '.kpi .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--jm-text-muted, #6b7280); }',
   '.kpi .value { font-size: 24px; font-weight: 800; margin-top: 4px; letter-spacing: -0.02em; }',
   '.kpi .sub { font-size: 11px; color: var(--jm-text-muted, #6b7280); margin-top: 2px; }',
@@ -46,7 +46,7 @@ var _CSS = [
   '  .content { padding: 14px; min-width: 0; }',
   '  .cmdk { display: none; }',
   '}',
-  '.card { background: var(--jm-surface, #fff); border: 1px solid var(--jm-border, #e5e7eb); border-radius: 10px; padding: 14px; }',
+  '.card { background: var(--jm-surface, var(--jm-text-inv,#fff)); border: 1px solid var(--jm-border, #e5e7eb); border-radius: 10px; padding: 14px; }',
   '.card h3 { margin: 0 0 10px; font-size: 14px; font-weight: 700; letter-spacing: -0.01em; display: flex; align-items: center; gap: 6px; }',
   '.card h3 .accent { color: var(--jm-text-muted, #888); font-weight: 400; font-size: 11px; margin-left: auto; }',
   'table.list { width: 100%; border-collapse: collapse; font-size: 13px; }',
@@ -55,20 +55,20 @@ var _CSS = [
   'table.list tr:last-child td { border-bottom: none; }',
   'table.list tr.row-hover:hover { background: var(--jm-surface-2, #f9fafb); cursor: pointer; }',
   '.spark { width: 100%; height: 60px; display: block; }',
-  '.spark path { fill: none; stroke: var(--jm-primary, #7c3aed); stroke-width: 2; }',
-  '.spark .area { fill: color-mix(in oklab, var(--jm-primary, #7c3aed) 14%, transparent); stroke: none; }',
+  '.spark path { fill: none; stroke: var(--jm-primary, var(--jm-primary,#7c3aed)); stroke-width: 2; }',
+  '.spark .area { fill: color-mix(in oklab, var(--jm-primary, var(--jm-primary,#7c3aed)) 14%, transparent); stroke: none; }',
   '.inbox-tile { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; background: var(--jm-surface-2, #f9fafb); margin-bottom: 8px; cursor: pointer; }',
-  '.inbox-tile:hover { background: color-mix(in oklab, var(--jm-primary, #7c3aed) 8%, var(--jm-surface-2, #f9fafb)); }',
+  '.inbox-tile:hover { background: color-mix(in oklab, var(--jm-primary, var(--jm-primary,#7c3aed)) 8%, var(--jm-surface-2, #f9fafb)); }',
   '.inbox-tile .ic { font-size: 18px; }',
-  '.inbox-tile .count { margin-left: auto; font-weight: 800; font-size: 18px; color: var(--jm-primary, #7c3aed); }',
+  '.inbox-tile .count { margin-left: auto; font-weight: 800; font-size: 18px; color: var(--jm-primary, var(--jm-primary,#7c3aed)); }',
   '.inbox-tile .count.zero { color: var(--jm-text-muted, #888); }',
   '.status-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }',
   '.status-card { padding: 10px 12px; border-radius: 8px; background: var(--jm-surface-2, #f9fafb); }',
   '.status-card .name { font-size: 11px; text-transform: uppercase; color: var(--jm-text-muted, #6b7280); }',
   '.status-card .val  { font-weight: 700; font-size: 13px; margin-top: 2px; }',
-  '.status-card.up   { border-left: 3px solid #10b981; }',
-  '.status-card.degraded { border-left: 3px solid #f59e0b; }',
-  '.status-card.down { border-left: 3px solid #ef4444; }',
+  '.status-card.up   { border-left: 3px solid var(--jm-success,#16a34a); }',
+  '.status-card.degraded { border-left: 3px solid var(--jm-warn,#f59e0b); }',
+  '.status-card.down { border-left: 3px solid var(--jm-danger,#ef4444); }',
   '.coming { text-align: center; padding: 60px 20px; color: var(--jm-text-muted, #888); }',
   '.coming .em { font-size: 38px; margin-bottom: 8px; }',
   '.skel { background: linear-gradient(90deg, var(--jm-surface-2, #f3f4f6) 0%, var(--jm-border, #e5e7eb) 50%, var(--jm-surface-2, #f3f4f6) 100%); background-size: 200% 100%; animation: skel 1.4s linear infinite; border-radius: 4px; }',
@@ -247,7 +247,7 @@ function _init(container) {
       '<p class="page-sub">Snapshot of the entire EduOS platform — KPIs, system status, and the operations action inbox.</p>' +
       '<div class="kpi-grid" id="kpiGrid">' +
       ['MAU', 'WAU', 'DAU', 'Users', 'Signups 30d', 'Revenue 30d'].map(function(l) {
-        return '<div class="kpi" style="--sc:#7c3aed"><div class="label">' + l + '</div><div class="value"><div class="skel" style="width:60px;height:24px"></div></div></div>';
+        return '<div class="kpi" style="--sc:var(--jm-primary,#7c3aed)"><div class="label">' + l + '</div><div class="value"><div class="skel" style="width:60px;height:24px"></div></div></div>';
       }).join('') + '</div>' +
       '<div class="row">' +
       '<div class="card"><h3>💸 Revenue · last 30 days <span class="accent" id="rev30Total"></span></h3><div id="revSpark"><div class="skel" style="height:60px"></div></div></div>' +
@@ -275,11 +275,11 @@ function _init(container) {
 
   function paintKpis(d) {
     var cards = [
-      { sc: '#7c3aed', label: 'MAU',         value: d.activity && d.activity.mau != null ? d.activity.mau : 0,   sub: 'Active in last 30d' },
-      { sc: '#0ea5e9', label: 'WAU',         value: d.activity && d.activity.wau != null ? d.activity.wau : 0,   sub: 'Active in last 7d' },
-      { sc: '#10b981', label: 'DAU',         value: d.activity && d.activity.dau != null ? d.activity.dau : 0,   sub: 'Active in last 24h' },
-      { sc: '#f59e0b', label: 'Users',       value: d.users && d.users.total != null ? d.users.total : 0,    sub: 'Total accounts' },
-      { sc: '#ec4899', label: 'Signups 30d', value: d.users && d.users.signups30 != null ? d.users.signups30 : 0, sub: 'New this month' },
+      { sc: 'var(--jm-primary,#7c3aed)', label: 'MAU',         value: d.activity && d.activity.mau != null ? d.activity.mau : 0,   sub: 'Active in last 30d' },
+      { sc: 'var(--jm-accent-cyan,#0ea5e9)', label: 'WAU',         value: d.activity && d.activity.wau != null ? d.activity.wau : 0,   sub: 'Active in last 7d' },
+      { sc: 'var(--jm-success,#16a34a)', label: 'DAU',         value: d.activity && d.activity.dau != null ? d.activity.dau : 0,   sub: 'Active in last 24h' },
+      { sc: 'var(--jm-warn,#f59e0b)', label: 'Users',       value: d.users && d.users.total != null ? d.users.total : 0,    sub: 'Total accounts' },
+      { sc: 'var(--jm-accent-pink,#ec4899)', label: 'Signups 30d', value: d.users && d.users.signups30 != null ? d.users.signups30 : 0, sub: 'New this month' },
       { sc: '#6366f1', label: 'Revenue 30d', value: fmtMoney(d.revenue && d.revenue.last30Total || 0), sub: 'Completed payments' }
     ];
     el('kpiGrid').innerHTML = cards.map(function(k) {
@@ -331,10 +331,10 @@ function _init(container) {
         return;
       }
       tbody.innerHTML = rows.map(function(t) {
-        return '<tr class="row-hover" data-id="' + esc(t.id) + '"><td><strong>' + esc(t.name || '—') + '</strong><div style="color:var(--jm-text-muted);font-size:11px">' + esc(t.email || '') + '</div></td><td><span style="text-transform:capitalize">' + esc(t.type) + '</span></td><td>' + t.teacher_count + '</td><td>' + t.student_count + '</td><td>' + t.course_count + '</td><td>' + fmtDate(t.created_at) + '</td><td><span style="color:' + (t.is_active ? '#047857' : '#b91c1c') + ';font-weight:700">' + (t.is_active ? 'Active' : 'Blocked') + '</span></td></tr>';
+        return '<tr class="row-hover" data-id="' + esc(t.id) + '"><td><strong>' + esc(t.name || '—') + '</strong><div style="color:var(--jm-text-muted);font-size:11px">' + esc(t.email || '') + '</div></td><td><span style="text-transform:capitalize">' + esc(t.type) + '</span></td><td>' + t.teacher_count + '</td><td>' + t.student_count + '</td><td>' + t.course_count + '</td><td>' + fmtDate(t.created_at) + '</td><td><span style="color:' + (t.is_active ? 'var(--jm-success,#16a34a)' : 'var(--jm-danger,var(--jm-danger,#ef4444))') + ';font-weight:700">' + (t.is_active ? 'Active' : 'Blocked') + '</span></td></tr>';
       }).join('');
     } catch (e) {
-      el('tenantsTable').querySelector('tbody').innerHTML = '<tr><td colspan="7" style="padding:24px;text-align:center;color:#b91c1c">Error: ' + esc(e.message) + '</td></tr>';
+      el('tenantsTable').querySelector('tbody').innerHTML = '<tr><td colspan="7" style="padding:24px;text-align:center;color:var(--jm-danger,var(--jm-danger,#ef4444))">Error: ' + esc(e.message) + '</td></tr>';
     }
   }
 
@@ -357,12 +357,12 @@ function _init(container) {
       var rows = r.bookings || [];
       var tbody = el('bookingsTable').querySelector('tbody');
       if (!rows.length) { tbody.innerHTML = '<tr><td colspan="7" style="padding:24px;text-align:center;color:var(--jm-text-muted)">No bookings yet</td></tr>'; return; }
-      var statusColor = function(s) { return ({pending:'#b45309',confirmed:'#047857',cancelled:'#6b7280',completed:'#1d4ed8',no_show:'#b91c1c'})[s] || '#6b7280'; };
+      var statusColor = function(s) { return ({pending:'#b45309',confirmed:'var(--jm-success,#16a34a)',cancelled:'#6b7280',completed:'#1d4ed8',no_show:'var(--jm-danger,var(--jm-danger,#ef4444))'})[s] || '#6b7280'; };
       tbody.innerHTML = rows.map(function(b) {
         return '<tr><td><strong>' + esc(b.resource && b.resource.title || b.resource_id || '—') + '</strong>' + (b.resource && b.resource.venue_name ? '<div style="font-size:11px;color:var(--jm-text-muted)">' + esc(b.resource.venue_name) + '</div>' : '') + '</td><td><span style="text-transform:capitalize">' + esc(b.resource_type) + '</span></td><td>' + esc(b.booker && b.booker.full_name || b.booker_id || '—') + '<div style="font-size:11px;color:var(--jm-text-muted)">' + esc(b.booker && b.booker.email || '') + '</div></td><td>' + new Date(b.start_at).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) + '</td><td>' + (b.party_size || 1) + '</td><td>' + (b.amount ? fmtMoney(b.amount) : '—') + '</td><td><span style="color:' + statusColor(b.status) + ';font-weight:700;text-transform:uppercase;font-size:11px">' + esc(b.status) + '</span></td></tr>';
       }).join('');
     } catch (e) {
-      el('bookingsTable').querySelector('tbody').innerHTML = '<tr><td colspan="7" style="padding:24px;text-align:center;color:#b91c1c">Error: ' + esc(e.message) + '</td></tr>';
+      el('bookingsTable').querySelector('tbody').innerHTML = '<tr><td colspan="7" style="padding:24px;text-align:center;color:var(--jm-danger,var(--jm-danger,#ef4444))">Error: ' + esc(e.message) + '</td></tr>';
     }
   }
 
@@ -385,10 +385,10 @@ function _init(container) {
       var tbody = el('peopleTable').querySelector('tbody');
       if (!rows.length) { tbody.innerHTML = '<tr><td colspan="4" style="padding:24px;text-align:center;color:var(--jm-text-muted)">No users match</td></tr>'; return; }
       tbody.innerHTML = rows.map(function(u) {
-        return '<tr><td><strong>' + esc(u.full_name || '—') + '</strong><div style="font-size:11px;color:var(--jm-text-muted)">' + esc(u.email || '') + '</div></td><td><span style="text-transform:capitalize">' + esc(u.user_type || '—') + '</span></td><td>' + fmtDate(u.created_at) + '</td><td><span style="color:' + (u.is_active === false ? '#b91c1c' : '#047857') + ';font-weight:700">' + (u.is_active === false ? 'Blocked' : 'Active') + '</span></td></tr>';
+        return '<tr><td><strong>' + esc(u.full_name || '—') + '</strong><div style="font-size:11px;color:var(--jm-text-muted)">' + esc(u.email || '') + '</div></td><td><span style="text-transform:capitalize">' + esc(u.user_type || '—') + '</span></td><td>' + fmtDate(u.created_at) + '</td><td><span style="color:' + (u.is_active === false ? 'var(--jm-danger,var(--jm-danger,#ef4444))' : 'var(--jm-success,#16a34a)') + ';font-weight:700">' + (u.is_active === false ? 'Blocked' : 'Active') + '</span></td></tr>';
       }).join('');
     } catch (e) {
-      el('peopleTable').querySelector('tbody').innerHTML = '<tr><td colspan="4" style="padding:24px;text-align:center;color:#b91c1c">Error: ' + esc(e.message) + '</td></tr>';
+      el('peopleTable').querySelector('tbody').innerHTML = '<tr><td colspan="4" style="padding:24px;text-align:center;color:var(--jm-danger,var(--jm-danger,#ef4444))">Error: ' + esc(e.message) + '</td></tr>';
     }
   }
 
@@ -410,12 +410,12 @@ function _init(container) {
       var rows = r.payments || [];
       var tbody = el('revenueTable').querySelector('tbody');
       if (!rows.length) { tbody.innerHTML = '<tr><td colspan="6" style="padding:24px;text-align:center;color:var(--jm-text-muted)">No payments match</td></tr>'; return; }
-      var statusColor = function(s) { return ({created:'#b45309',completed:'#047857',failed:'#b91c1c',refunded:'#6b7280'})[s] || '#6b7280'; };
+      var statusColor = function(s) { return ({created:'#b45309',completed:'var(--jm-success,#16a34a)',failed:'var(--jm-danger,var(--jm-danger,#ef4444))',refunded:'#6b7280'})[s] || '#6b7280'; };
       tbody.innerHTML = rows.map(function(p) {
         return '<tr><td><strong style="font-size:12px">' + esc(p.transaction_id || p.id || '—') + '</strong></td><td>' + esc(p.payer_name || p.user_id || '—') + '<div style="font-size:11px;color:var(--jm-text-muted)">' + esc(p.payer_email || '') + '</div></td><td><span style="text-transform:capitalize">' + esc(p.payment_method || '—') + '</span></td><td>' + (p.amount != null ? fmtMoney(p.amount) : '—') + '</td><td>' + fmtDate(p.created_at) + '</td><td><span style="color:' + statusColor(p.status) + ';font-weight:700;text-transform:uppercase;font-size:11px">' + esc(p.status || '—') + '</span></td></tr>';
       }).join('');
     } catch (e) {
-      el('revenueTable').querySelector('tbody').innerHTML = '<tr><td colspan="6" style="padding:24px;text-align:center;color:#b91c1c">Error: ' + esc(e.message) + '</td></tr>';
+      el('revenueTable').querySelector('tbody').innerHTML = '<tr><td colspan="6" style="padding:24px;text-align:center;color:var(--jm-danger,var(--jm-danger,#ef4444))">Error: ' + esc(e.message) + '</td></tr>';
     }
   }
 
@@ -441,13 +441,13 @@ function _init(container) {
       var tbody = el('ticketsTable').querySelector('tbody');
       if (!rows.length) { tbody.innerHTML = '<tr><td colspan="4" style="padding:24px;text-align:center;color:var(--jm-text-muted)">No tickets</td></tr>'; }
       else {
-        var sc = function(s) { return ({open:'#b45309',pending:'#1d4ed8',resolved:'#047857',closed:'#6b7280'})[s] || '#6b7280'; };
+        var sc = function(s) { return ({open:'#b45309',pending:'#1d4ed8',resolved:'var(--jm-success,#16a34a)',closed:'#6b7280'})[s] || '#6b7280'; };
         tbody.innerHTML = rows.map(function(t) {
           return '<tr><td><strong>' + esc(t.subject || '—') + '</strong></td><td><span style="text-transform:capitalize">' + esc(t.priority || 'normal') + '</span></td><td>' + fmtDate(t.created_at) + '</td><td><span style="color:' + sc(t.status) + ';font-weight:700;text-transform:uppercase;font-size:11px">' + esc(t.status || '—') + '</span></td></tr>';
         }).join('');
       }
     } catch (e) {
-      el('ticketsTable').querySelector('tbody').innerHTML = '<tr><td colspan="4" style="padding:24px;text-align:center;color:#b91c1c">Error: ' + esc(e.message) + '</td></tr>';
+      el('ticketsTable').querySelector('tbody').innerHTML = '<tr><td colspan="4" style="padding:24px;text-align:center;color:var(--jm-danger,var(--jm-danger,#ef4444))">Error: ' + esc(e.message) + '</td></tr>';
     }
     try {
       var r2 = await api('/reports' + (status ? '?status=' + encodeURIComponent(status) : ''));
@@ -458,7 +458,7 @@ function _init(container) {
         return '<tr><td><strong>' + esc(rr.target_type || '—') + '</strong> <span style="font-size:11px;color:var(--jm-text-muted)">' + esc(rr.target_id || '') + '</span></td><td>' + esc(rr.reason || '—') + '</td><td>' + fmtDate(rr.created_at) + '</td><td><span style="font-weight:700;text-transform:uppercase;font-size:11px">' + esc(rr.status || 'pending') + '</span></td></tr>';
       }).join('');
     } catch (e) {
-      el('reportsTable').querySelector('tbody').innerHTML = '<tr><td colspan="4" style="padding:24px;text-align:center;color:#b91c1c">Error: ' + esc(e.message) + '</td></tr>';
+      el('reportsTable').querySelector('tbody').innerHTML = '<tr><td colspan="4" style="padding:24px;text-align:center;color:var(--jm-danger,var(--jm-danger,#ef4444))">Error: ' + esc(e.message) + '</td></tr>';
     }
   }
 
@@ -472,7 +472,7 @@ function _init(container) {
       '<option value="001_rls_policies.sql">001_rls_policies.sql — RLS on all tables</option>' +
       '<option value="002_indexes.sql">002_indexes.sql — Performance indexes (50+ columns)</option>' +
       '</select>' +
-      '<button onclick="runMigration()" id="migBtn" style="padding:8px 16px;border:none;border-radius:6px;background:#7c3aed;color:#fff;font-weight:700;cursor:pointer">Run migration</button>' +
+      '<button onclick="runMigration()" id="migBtn" style="padding:8px 16px;border:none;border-radius:6px;background:var(--jm-primary,#7c3aed);color:var(--jm-text-inv,#fff);font-weight:700;cursor:pointer">Run migration</button>' +
       '<span id="migMsg" style="font-size:13px;font-weight:700"></span></div></div>' +
       '<div class="card" style="padding:0;overflow:hidden"><table class="list" id="auditTable"><thead><tr><th>Action</th><th>Actor</th><th>Target</th><th>When</th></tr></thead><tbody><tr><td colspan="4" style="padding:24px;text-align:center;color:var(--jm-text-muted)">Loading…</td></tr></tbody></table></div>';
     try {
@@ -484,7 +484,7 @@ function _init(container) {
         return '<tr><td><strong style="font-size:12px">' + esc(a.action || '—') + '</strong></td><td style="font-size:12px">' + esc(a.actor_id || a.actor_email || '—') + '</td><td style="font-size:12px">' + esc([a.target_type, a.target_id].filter(Boolean).join(' · ') || '—') + '</td><td>' + fmtDate(a.occurred_at || a.created_at) + '</td></tr>';
       }).join('');
     } catch (e) {
-      el('auditTable').querySelector('tbody').innerHTML = '<tr><td colspan="4" style="padding:24px;text-align:center;color:#b91c1c">Error: ' + esc(e.message) + '</td></tr>';
+      el('auditTable').querySelector('tbody').innerHTML = '<tr><td colspan="4" style="padding:24px;text-align:center;color:var(--jm-danger,var(--jm-danger,#ef4444))">Error: ' + esc(e.message) + '</td></tr>';
     }
   }
 
@@ -501,7 +501,7 @@ function _init(container) {
         return '<tr><td><strong>' + esc(c.title || '—') + '</strong></td><td><span style="text-transform:capitalize">' + esc(c.category || c.category_id || '—') + '</span></td><td>' + esc(c.creator_name || c.instructor_name || c.teacher_id || '—') + '</td><td>' + (c.price ? fmtMoney(c.price) : 'Free') + '</td><td>' + (c.enrolled_count != null ? c.enrolled_count : c.students_count != null ? c.students_count : '—') + '</td></tr>';
       }).join('');
     } catch (e) {
-      el('catalogTable').querySelector('tbody').innerHTML = '<tr><td colspan="5" style="padding:24px;text-align:center;color:#b91c1c">Error: ' + esc(e.message) + '</td></tr>';
+      el('catalogTable').querySelector('tbody').innerHTML = '<tr><td colspan="5" style="padding:24px;text-align:center;color:var(--jm-danger,var(--jm-danger,#ef4444))">Error: ' + esc(e.message) + '</td></tr>';
     }
   }
 
@@ -518,12 +518,12 @@ function _init(container) {
       var rows = r.classes || [];
       var tbody = el('liveTable').querySelector('tbody');
       if (!rows.length) { tbody.innerHTML = '<tr><td colspan="5" style="padding:24px;text-align:center;color:var(--jm-text-muted)">No live classes</td></tr>'; return; }
-      var sc = function(s) { return ({scheduled:'#b45309',live:'#b91c1c',completed:'#047857',cancelled:'#6b7280'})[s] || '#6b7280'; };
+      var sc = function(s) { return ({scheduled:'#b45309',live:'var(--jm-danger,var(--jm-danger,#ef4444))',completed:'var(--jm-success,#16a34a)',cancelled:'#6b7280'})[s] || '#6b7280'; };
       tbody.innerHTML = rows.map(function(c) {
         return '<tr><td><strong>' + esc(c.title || '—') + '</strong></td><td>' + esc(c.course_title || '—') + '</td><td>' + esc(c.host_name || '—') + '</td><td>' + (c.scheduled_time ? fmtDate(c.scheduled_time) : '—') + '</td><td><span style="color:' + sc(c.status) + ';font-weight:700;text-transform:uppercase;font-size:11px">' + esc(c.status || '—') + '</span></td></tr>';
       }).join('');
     } catch (e) {
-      el('liveTable').querySelector('tbody').innerHTML = '<tr><td colspan="5" style="padding:24px;text-align:center;color:#b91c1c">Error: ' + esc(e.message) + '</td></tr>';
+      el('liveTable').querySelector('tbody').innerHTML = '<tr><td colspan="5" style="padding:24px;text-align:center;color:var(--jm-danger,var(--jm-danger,#ef4444))">Error: ' + esc(e.message) + '</td></tr>';
     }
   }
 
@@ -545,7 +545,7 @@ function _init(container) {
           return '<div class="card" style="text-align:center"><div style="font-size:26px;font-weight:800">' + (pair[1] != null ? pair[1] : 0) + '</div><div style="color:var(--jm-text-muted);font-size:12px">' + pair[0] + '</div></div>';
         }).join('') + '</div>';
     } catch (e) {
-      el('anaBody').innerHTML = '<div class="card" style="color:#b91c1c">Error: ' + esc(e.message) + '</div>';
+      el('anaBody').innerHTML = '<div class="card" style="color:var(--jm-danger,var(--jm-danger,#ef4444))">Error: ' + esc(e.message) + '</div>';
     }
   }
 
@@ -558,7 +558,7 @@ function _init(container) {
       '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px">' +
       '<select id="wgcOrg" onchange="loadWidgetConfig()" style="padding:6px 10px;border:1px solid var(--jm-border);border-radius:6px;background:var(--jm-surface);color:inherit"><option value="">Loading orgs…</option></select>' +
       '<select id="wgcRole" onchange="paintWidgetMatrix()" style="padding:6px 10px;border:1px solid var(--jm-border);border-radius:6px;background:var(--jm-surface);color:inherit">' + WG_ROLES.map(function(r) { return '<option value="' + r + '">' + r + '</option>'; }).join('') + '</select>' +
-      '<button id="wgcSave" onclick="saveWidgetConfig()" disabled style="padding:6px 16px;border:none;border-radius:6px;background:var(--jm-primary,#6366f1);color:#fff;font-weight:700;cursor:pointer">Save</button>' +
+      '<button id="wgcSave" onclick="saveWidgetConfig()" disabled style="padding:6px 16px;border:none;border-radius:6px;background:var(--jm-primary,#6366f1);color:var(--jm-text-inv,#fff);font-weight:700;cursor:pointer">Save</button>' +
       '</div>' +
       '<div class="card" id="wgcMatrix" style="padding:16px"><div style="color:var(--jm-text-muted)">Pick an organization to configure its widgets.</div></div>';
     try {
@@ -577,7 +577,7 @@ function _init(container) {
       _wgSettings = (r.settings && r.settings.settings) || {};
       el('wgcSave').disabled = false;
       paintWidgetMatrix();
-    } catch(e) { el('wgcMatrix').innerHTML = '<div style="color:#b91c1c">Error: ' + esc(e.message) + '</div>'; el('wgcSave').disabled = true; }
+    } catch(e) { el('wgcMatrix').innerHTML = '<div style="color:var(--jm-danger,var(--jm-danger,#ef4444))">Error: ' + esc(e.message) + '</div>'; el('wgcSave').disabled = true; }
   }
 
   function paintWidgetMatrix() {
@@ -648,13 +648,13 @@ function _init(container) {
         g.rows.map(function(r) { return fieldHtml(r[0], r[1], r[2], r[3]); }).join('') + '</div>';
     }).join('') +
       '<div style="display:flex;gap:10px;align-items:center">' +
-      '<button id="intSave" onclick="saveIntegrations()" style="padding:9px 18px;border:none;border-radius:6px;background:var(--jm-primary,#6366f1);color:#fff;font-weight:700;cursor:pointer">Save integrations</button>' +
+      '<button id="intSave" onclick="saveIntegrations()" style="padding:9px 18px;border:none;border-radius:6px;background:var(--jm-primary,#6366f1);color:var(--jm-text-inv,#fff);font-weight:700;cursor:pointer">Save integrations</button>' +
       '<button onclick="testIntegrationEmail()" style="padding:9px 16px;border:1px solid var(--jm-border);border-radius:6px;background:var(--jm-surface);color:inherit;font-weight:700;cursor:pointer">Send test email to me</button>' +
       '<span id="intMsg" style="font-size:13px;font-weight:700"></span></div>' +
       '<div class="card" style="padding:16px;margin-top:20px"><h3 style="margin:0 0 6px;font-size:14px">💾 Database backup</h3>' +
       '<div style="font-size:11px;color:var(--jm-text-muted);margin-bottom:12px">Exports all tables via the Supabase REST API, compresses and AES-encrypts, saves to <code>backups/</code>. Configure <code>BACKUP_ENCRYPT_KEY</code> and optionally <code>BACKUP_S3_BUCKET</code> in .env or the server environment.</div>' +
       '<div style="display:flex;gap:10px;align-items:center;margin-bottom:12px">' +
-      '<button onclick="triggerBackup()" id="backupBtn" style="padding:8px 16px;border:none;border-radius:6px;background:#0f766e;color:#fff;font-weight:700;cursor:pointer">Run backup now</button>' +
+      '<button onclick="triggerBackup()" id="backupBtn" style="padding:8px 16px;border:none;border-radius:6px;background:#0f766e;color:var(--jm-text-inv,#fff);font-weight:700;cursor:pointer">Run backup now</button>' +
       '<button onclick="loadBackupList()" style="padding:8px 14px;border:1px solid var(--jm-border);border-radius:6px;background:var(--jm-surface);color:inherit;font-weight:700;cursor:pointer">Refresh list</button>' +
       '<span id="backupMsg" style="font-size:13px;font-weight:700"></span></div>' +
       '<div id="backupList" style="font-size:12px;color:var(--jm-text-muted)">Click "Refresh list" to see saved backups.</div></div>';
@@ -673,7 +673,7 @@ function _init(container) {
     try {
       await api('/admin/settings', { method: 'PUT', body: JSON.stringify(payload) });
       el('intMsg').textContent = '✓ Saved & applied'; el('intMsg').style.color = '#16a34a';
-    } catch (e) { el('intMsg').textContent = 'Error: ' + e.message; el('intMsg').style.color = '#b91c1c'; }
+    } catch (e) { el('intMsg').textContent = 'Error: ' + e.message; el('intMsg').style.color = 'var(--jm-danger,var(--jm-danger,#ef4444))'; }
     btn.disabled = false; btn.textContent = 'Save integrations';
     setTimeout(function() { el('intMsg').textContent = ''; }, 3000);
   }
@@ -684,7 +684,7 @@ function _init(container) {
       var r = await api('/admin/test-email', { method: 'POST', body: '{}' });
       el('intMsg').textContent = r.sent ? '✓ Sent — check your inbox' : '⚠ ' + (r.note || 'Not sent (configure SMTP first)');
       el('intMsg').style.color = r.sent ? '#16a34a' : '#b45309';
-    } catch (e) { el('intMsg').textContent = 'Error: ' + e.message; el('intMsg').style.color = '#b91c1c'; }
+    } catch (e) { el('intMsg').textContent = 'Error: ' + e.message; el('intMsg').style.color = 'var(--jm-danger,var(--jm-danger,#ef4444))'; }
   }
 
   async function triggerBackup() {
@@ -697,7 +697,7 @@ function _init(container) {
       setTimeout(function() { loadBackupList(); }, 35000);
     } catch (e) {
       el('backupMsg').textContent = 'Error: ' + e.message;
-      el('backupMsg').style.color = '#b91c1c';
+      el('backupMsg').style.color = 'var(--jm-danger,var(--jm-danger,#ef4444))';
     }
     btn.disabled = false; btn.textContent = 'Run backup now';
   }
@@ -736,7 +736,7 @@ function _init(container) {
       }
     } catch (e) {
       el('migMsg').textContent = 'Error: ' + e.message;
-      el('migMsg').style.color = '#b91c1c';
+      el('migMsg').style.color = 'var(--jm-danger,var(--jm-danger,#ef4444))';
     }
     btn.disabled = false; btn.textContent = 'Run migration';
   }

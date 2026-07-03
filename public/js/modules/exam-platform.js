@@ -1,4 +1,4 @@
-(function(g) {
+﻿(function(g) {
 
 var _CSS = [
 '
@@ -732,7 +732,7 @@ var _HTML = [
   <div class="page-subtitle">Detailed performance analytics and integrity report</div>
   <div id="results-container">
     <div style="text-align:center;padding:60px;color:var(--muted)"><div style="font-siz',
-'e:44px;margin-bottom:14px">📊</div><div style="margin-bottom:14px">No results yet. Complete an exam to see results.</div><button onclick="showPage(\'take\')" style="background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;border:0;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(124,58,237,.35)">📝 Take an exam</button></div>
+'e:44px;margin-bottom:14px">📊</div><div style="margin-bottom:14px">No results yet. Complete an exam to see results.</div><button onclick="showPage(\'take\')" style="background:linear-gradient(135deg,var(--jm-primary,#7c3aed),var(--jm-accent-purple,#a855f7));color:var(--jm-text-inv,#fff);border:0;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(124,58,237,.35)">📝 Take an exam</button></div>
   </div>
 </div>
 
@@ -754,7 +754,7 @@ var _HTML = [
       <div>
         <div class="card" style="margin-bottom:14px">
           <h3>🔗 Exam Results Endpoint</h3>
-          <div class="form-row"><label>Webhook URL</label><input type="url" id="wh-url" placeholder="https://your-server.com/webhook" value="https://hooks.example.com/exam-results"></div>
+          <div class="form-row"><label>Webhook URL</label><input type="url" id="wh-url" placeholder="https://your-server.com/webhook"></div>
           <div class="form-row">
             <label>HTTP Method</label>
             <div class="method-sel">
@@ -2545,7 +2545,7 @@ window.JM_CAN_AUTHOR = ['teacher','school','coaching','admin','partner'].include
     if (ctx.subject) { const s = document.getElementById('ai-subject'); if (s) { for (const o of s.options) if (o.value.toLowerCase()===ctx.subject.toLowerCase() || o.text.toLowerCase()===ctx.subject.toLowerCase()) { s.value=o.value; break; } } }
     if (ctx.courseId) {
       const banner = document.createElement('div');
-      banner.style.cssText='position:sticky;top:0;z-index:50;background:#7c3aed;color:#fff;padding:8px 14px;font:600 13px/1.4 system-ui;display:flex;justify-content:space-between;align-items:center';
+      banner.style.cssText='position:sticky;top:0;z-index:50;background:var(--jm-primary,#7c3aed);color:var(--jm-text-inv,#fff);padding:8px 14px;font:600 13px/1.4 system-ui;display:flex;justify-content:space-between;align-items:center';
       banner.innerHTML = `📎 Attached to course · topic "${(ctx.topic||'—').replace(/[<>&]/g,'')}" — results will save to your progress · <a href="/dashboard.html" style="color:#fff;text-decoration:underline">← Back to dashboard</a>`;
       document.body.prepend(banner);
     }

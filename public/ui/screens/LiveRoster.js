@@ -21,11 +21,11 @@ JM.Screens.register({
       var name = JM.esc(a.full_name || a.email || (a.student_id || '').slice(0, 8));
       var email = JM.esc(a.email || '');
       var joined = a.joined_at ? new Date(a.joined_at).toLocaleTimeString() : '';
-      return '<div style="display:flex;justify-content:space-between;padding:10px;border-bottom:1px solid var(--jm-border)">'
-        + '<div><div style="font-weight:600">' + name + '</div>'
+      return '<div style="display:flex;justify-content:space-between;padding:10px;border-bottom:1px solid var(--jm-border);gap:8px;align-items:center">'
+        + '<div style="min-width:0;flex:1"><div style="font-weight:600">' + name + '</div>'
         +   (email ? '<div style="font-size:11px;color:var(--jm-text-muted)">' + email + '</div>' : '')
         + '</div>'
-        + '<div style="font-size:11px;color:var(--jm-text-muted)">' + (joined ? 'Joined ' + joined : '') + '</div>'
+        + '<div style="font-size:11px;color:var(--jm-text-muted);white-space:nowrap">' + (joined ? 'Joined ' + joined : '') + '</div>'
         + '</div>';
     }).join('');
     return JM.ModalShell({ body: header + rows });

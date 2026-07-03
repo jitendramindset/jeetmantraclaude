@@ -14,7 +14,7 @@
  * Adding a role or a widget never touches this engine — only the WIDGETS array.
  */
 (function (global) {
-  const API = location.origin + '/api';
+  const API = '/api';
   const token = () => localStorage.getItem('jm_token');
   const esc = s => String(s == null ? '' : s).replace(/[<>&"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c]));
   const pct = n => Math.max(0, Math.min(100, Math.round(Number(n) || 0)));
