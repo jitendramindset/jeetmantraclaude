@@ -10,15 +10,29 @@
  * and skips that layer. The production Docker image installs them all.
  */
 function optional(name) { try { return require(name); } catch (_) { console.warn(`[security] ${name} not installed — skipping (run npm install)`); return null; } }
+function required(name) {
+  try { return require(name); } catch (_) {
+    if (process.env.NODE_ENV === 'production') throw new Error(`[security] ${name} is required in production — run npm install`);
+    console.warn(`[security] ${name} not installed — skipping (run npm install)`); return null;
+  }
+}
 
 function applySecurity(app) {
   const isProd = process.env.NODE_ENV === 'production';
+
+  // ── Startup env validation — crash early, never boot misconfigured ─────────
+  if (isProd) {
+    const required_vars = ['JWT_SECRET', 'SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'];
+    const missing = required_vars.filter(v => !process.env[v]);
+    if (missing.length) throw new Error(`Missing required env vars: ${missing.join(', ')} — set them in backend/.env`);
+    if ((process.env.JWT_SECRET || '').length < 32) throw new Error('JWT_SECRET must be at least 32 characters — generate with: openssl rand -base64 64');
+  }
 
   // Behind a reverse proxy (Traefik/Caddy/nginx) → trust X-Forwarded-* so
   // req.ip and rate-limiting/audit log the real client, not the proxy.
   app.set('trust proxy', 1);
 
-  const helmet = optional('helmet');
+  const helmet = isProd ? required('helmet') : optional('helmet');
   if (helmet) {
     app.use(helmet({
       // Permissive but present CSP — 'unsafe-inline' and 'unsafe-eval' are kept
@@ -43,10 +57,10 @@ function applySecurity(app) {
     }));
   }
 
-  const compression = optional('compression');
+  const compression = isProd ? required('compression') : optional('compression');
   if (compression) app.use(compression());
 
-  const rateLimit = optional('express-rate-limit');
+  const rateLimit = isProd ? required('express-rate-limit') : optional('express-rate-limit');
   if (rateLimit) {
     // Global: generous, just stops runaway abuse.
     app.use('/api/', rateLimit({

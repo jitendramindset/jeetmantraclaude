@@ -9,8 +9,8 @@ JM.Button = function (p) {
   var icon = p.icon ? '<span aria-hidden="true">' + p.icon + '</span> ' : '';
   var label = JM.esc(p.label || '');
   var onClick = (!isDisabled && p.onClick) ? ' onclick="' + String(p.onClick).replace(/"/g, '&quot;') + '"' : '';
-  var style = 'background:' + (kind === 'primary'  ? 'linear-gradient(135deg,var(--jm-primary,#7c3aed),#a855f7);color:#fff;border:0;' :
-                               kind === 'danger'   ? '#dc2626;color:#fff;border:0;' :
+  var style = 'background:' + (kind === 'primary'  ? 'linear-gradient(135deg,var(--jm-primary,#7c3aed),var(--jm-accent-purple,#a855f7));color:#fff;border:0;' :
+                               kind === 'danger'   ? 'var(--jm-danger,#ef4444);color:#fff;border:0;' :
                                kind === 'ghost'    ? 'transparent;color:var(--jm-text);border:1px solid var(--jm-border);' :
                                kind === 'disabled' ? 'var(--jm-surface-2,#f3f4f6);color:var(--jm-text-subtle,#94a3b8);border:1px solid var(--jm-border);' :
                                                      'var(--jm-surface-2,#f3f4f6);color:var(--jm-text);border:1px solid var(--jm-border);');

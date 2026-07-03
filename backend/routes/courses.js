@@ -75,7 +75,7 @@ router.get('/', async (req, res) => {
       if (token) {
         try {
           const jwt = require('jsonwebtoken');
-          const decoded = jwt.verify(token, process.env.JWT_SECRET || 'jeetmantra_secret_2024');
+          const decoded = jwt.verify(token, process.env.JWT_SECRET);
           teacherId = decoded.id || decoded.userId || decoded.sub;
         } catch(e) {}
       }

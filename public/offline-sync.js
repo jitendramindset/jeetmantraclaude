@@ -104,7 +104,18 @@
         });
         if (r.ok) { sent++; }
         else if (r.status >= 500) { kept.push(it); }   // transient → retry later
-        else { sent++; }                                // 4xx → drop (won't succeed)
+        else {
+          // 4xx — server rejected the write; it won't succeed on retry.
+          // Surface the failure so the user knows their data wasn't saved.
+          try {
+            var errBody = await r.json().catch(function() { return {}; });
+            window.dispatchEvent(new CustomEvent('jm-outbox-rejected', {
+              detail: { path: it.path, status: r.status, error: errBody.error || errBody.message || 'Request rejected' }
+            }));
+          } catch (e) {}
+          // Keep the item so the user can inspect it — do NOT silently drop.
+          kept.push(it);
+        }
       } catch (e) { kept.push(it); }                    // still offline → keep
     }
     localStorage.setItem(OUTBOX, JSON.stringify(kept));

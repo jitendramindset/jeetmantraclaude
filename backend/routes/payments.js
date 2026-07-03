@@ -47,11 +47,15 @@ const asyncHandler = require('../utils/asyncHandler');
 });
 
 
-// ── Razorpay configuration: keys come from env; falls back to "demo" mode
-// so the UI flow can be exercised without real keys (useful for dev).
+// ── Razorpay configuration: keys come from env.
+// In production (NODE_ENV=production) both keys must be set — missing keys
+// crash the process at startup rather than silently accepting unsigned webhooks.
 const RZP_KEY_ID = process.env.RAZORPAY_KEY_ID || '';
 const RZP_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET || '';
 const RZP_MODE = RZP_KEY_ID && RZP_KEY_SECRET ? 'live' : 'demo';
+if (process.env.NODE_ENV === 'production' && !RZP_KEY_SECRET) {
+  throw new Error('RAZORPAY_KEY_SECRET is required in production — set it in backend/.env');
+}
 
 // ── Instamojo configuration: optional second gateway.
 const IMOJO_API_KEY = process.env.INSTAMOJO_API_KEY || '';

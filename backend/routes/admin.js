@@ -862,4 +862,33 @@ router.get('/courses', authenticateToken, authorizeRole(['admin']), async (req, 
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ── PATCH aliases ─────────────────────────────────────────────────────────────
+// Frontend may call PATCH; authoritative handlers above use PUT.
+// These aliases accept both methods so either works.
+router.patch('/users/:userId', authenticateToken, authorizeRole(['admin']), validate('adminUserUpdate'), async (req, res) => {
+  const { userId } = req.params;
+  const { name, role, status } = req.body;
+  const updates = {};
+  if (name   !== undefined) updates.full_name  = name;
+  if (role   !== undefined) updates.user_type  = role;
+  if (status !== undefined) updates.status     = status;
+  if (!Object.keys(updates).length) return res.status(400).json({ error: 'No fields to update' });
+  const { error } = await supabaseAdmin.from('jeetmantra_users').update(updates).eq('id', userId);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ok: true });
+});
+
+router.patch('/courses/:courseId', authenticateToken, authorizeRole(['admin']), async (req, res) => {
+  const { courseId } = req.params;
+  const { status, is_published, title } = req.body;
+  const updates = {};
+  if (status       !== undefined) updates.status       = status;
+  if (is_published !== undefined) updates.is_published = is_published;
+  if (title        !== undefined) updates.title        = title;
+  if (!Object.keys(updates).length) return res.status(400).json({ error: 'No fields to update' });
+  const { error } = await supabaseAdmin.from('courses').update(updates).eq('id', courseId);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ok: true });
+});
+
 module.exports = router;
