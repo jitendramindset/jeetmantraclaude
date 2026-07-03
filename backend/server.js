@@ -165,23 +165,7 @@ app.use((req, res, next) => {
   return res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
-// ── Static assets (JS, CSS, images, fonts, etc.) ────────────────────────────
-app.use(express.static(frontendPath));
-
-// ── SPA catch-all ────────────────────────────────────────────────────────────
-// Any GET that fell through (unknown path, client-side route refresh, etc.)
-// returns index.html so the JS router can handle it.
-app.get('*', (req, res, next) => {
-  if (req.path.startsWith('/api/')) return next();
-  res.sendFile(path.join(frontendPath, 'index.html'));
-});
-
-// LevelDB wiring for ALL /api routes:
-//   cacheMiddleware — cache-aside reads (local LevelDB), Supabase on miss
-//   syncMiddleware  — record writes to local SyncQueue + fire optional n8n addon
-app.use(cacheMiddleware);
-app.use(syncMiddleware);
-
+// ── Health check (must be before static middleware so it isn't shadowed) ─────
 app.get('/health', (req, res) => {
   const authHeader = req.headers.authorization;
   const adminToken = process.env.ADMIN_TOKEN;
@@ -207,6 +191,23 @@ app.get('/health', (req, res) => {
     apiRoutes: ['/api/auth', '/api/users', '/api/courses', '/api/enrollments', '/api/dashboard', '/api/payments', '/api/attendance', '/api/live-classes', '/api/webhooks', '/api/admin', '/api/marketplace', '/api/search', '/api/n8n', '/api/sync']
   });
 });
+
+// ── Static assets (JS, CSS, images, fonts, etc.) ────────────────────────────
+app.use(express.static(frontendPath));
+
+// ── SPA catch-all ────────────────────────────────────────────────────────────
+// Any GET that fell through (unknown path, client-side route refresh, etc.)
+// returns index.html so the JS router can handle it.
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api/')) return next();
+  res.sendFile(path.join(frontendPath, 'index.html'));
+});
+
+// LevelDB wiring for ALL /api routes:
+//   cacheMiddleware — cache-aside reads (local LevelDB), Supabase on miss
+//   syncMiddleware  — record writes to local SyncQueue + fire optional n8n addon
+app.use(cacheMiddleware);
+app.use(syncMiddleware);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
