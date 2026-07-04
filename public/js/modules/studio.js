@@ -310,7 +310,7 @@ var _HTML = ['<h1 style="position:absolute;left:-9999px;width:1px;height:1px;ove
 
 function _init(container) {
 const params=new URLSearchParams(location.search);
-const CLASS_ID=params.get('class'); const TOKEN=localStorage.getItem('jm_token'); const API='/api';
+const CLASS_ID=params.get('class'); const TOKEN=localStorage.getItem('jm_token'); const API=window.JM_API_BASE||'/api';
 
 // ── Dashboard connection: load user profile from localStorage ─────────────
 (function _initUserProfile(){

@@ -123,7 +123,7 @@ function _init(container) {
   function fmtMoney(n) { return '₹' + Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 }); }
   function fmtDate(s) { try { return new Date(s).toLocaleDateString('en-IN', { day:'2-digit', month:'short' }); } catch(_) { return ''; } }
 
-  var API = '/api';
+  var API = window.JM_API_BASE || '/api';
   var STATE = { token: '', section: 'overview', activeInst: '' };
 
   async function api(path, opts) {

@@ -126,7 +126,7 @@ function _init(container) {
       '<div class="tab-body" id="tab-polls" style="display:none"><div id="pollPanel" style="font-size:13px"></div></div>';
   }
 
-  var API = '/api';
+  var API = window.JM_API_BASE || '/api';
   var params = new URLSearchParams(location.search);
   var CLASS_ID = params.get('class');
   var ROOM_ID = params.get('room');

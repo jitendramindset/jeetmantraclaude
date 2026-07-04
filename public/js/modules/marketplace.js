@@ -233,7 +233,7 @@ var _HTML = [
 ].join('');
 
 function _init(container) {
-  var API='/api';
+  var API=window.JM_API_BASE||'/api';
   var allListings=[],filteredListings=[];
   var state={category:'all',level:'',mode:'',city:'',priceMin:'',priceMax:'',sort:'newest',q:''};
   var selectedListingId=null,purchasedIds=new Set();
