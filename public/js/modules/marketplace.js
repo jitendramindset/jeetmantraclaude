@@ -241,7 +241,7 @@ function _init(container) {
   var user=function(){try{return JSON.parse(localStorage.getItem('jm_user'));}catch(e){return null;}};
 
   var ICONS={Mathematics:'📐',Science:'🔬',English:'📖',Programming:'💻',Commerce:'📊',Arts:'🎨',Physics:'⚛️',Chemistry:'🧪'};
-  var SELLER_ROLES=['teacher','partner','school','coaching','admin'];
+  var SELLER_ROLES=(window.JMRoles && window.JMRoles.CAN_TEACH_OR_SELL) || ['teacher','partner','school','coaching','admin'];
 
   function fmt(n){return '₹'+Number(n||0).toLocaleString('en-IN');}
   function debounceSearch(q){clearTimeout(window._st);window._st=setTimeout(function(){applySearch(q);},400);}

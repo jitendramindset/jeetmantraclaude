@@ -137,7 +137,7 @@ function _init(container) {
   async function refreshPolls(){
     var panel = document.getElementById('pollPanel');
     if (!panel) return;
-    var isTeacher = ['teacher','school','coaching','admin','partner'].includes(USER.role);
+    var isTeacher = ((window.JMRoles && window.JMRoles.CAN_TEACH_OR_SELL) || ['teacher','school','coaching','admin','partner']).includes(USER.role);
     var head2 = '';
     if (isTeacher) {
       head2 = '<button class="btn primary" onclick="createPoll()" style="margin-bottom:10px">+ New poll</button>';
@@ -201,7 +201,7 @@ function _init(container) {
   var _activePollTimer = setInterval(function(){ if (_activePollId) refreshPolls(); }, 5000);
   var USER = JSON.parse(localStorage.getItem('jm_user') || '{}');
   var ROLE = USER.user_type || USER.role || 'student';
-  var IS_TEACHER = ['teacher','partner','school','coaching','admin'].includes(ROLE);
+  var IS_TEACHER = ((window.JMRoles && window.JMRoles.CAN_TEACH_OR_SELL) || ['teacher','partner','school','coaching','admin']).includes(ROLE);
 
   if (!ROOM_ID && (!CLASS_ID || !TOKEN)) { location.href = '/login.html'; }
 

@@ -2531,7 +2531,7 @@ window.JM_CTX = (() => {
     return { courseId: p.get('courseId')||'', topicId: p.get('topicId')||'', topic: p.get('topic')||'', subject: p.get('subject')||'', mode: p.get('mode')||'', role: (role||'guest').toLowerCase() };
   } catch(e){ return { role:'guest' }; }
 })();
-window.JM_CAN_AUTHOR = ['teacher','school','coaching','admin','partner'].includes(window.JM_CTX.role);
+window.JM_CAN_AUTHOR = ((window.JMRoles && window.JMRoles.CAN_TEACH_OR_SELL) || ['teacher','school','coaching','admin','partner']).includes(window.JM_CTX.role);
 
 /* DOMContentLoaded -> direct */ (function() {
   // Wire math preview to textarea input
