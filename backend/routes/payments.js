@@ -35,6 +35,7 @@ const { v4: uuidv4 } = require('uuid');
 const router = express.Router();
 // Auto-wrap async route handlers so unhandled rejections reach the global error handler
 const asyncHandler = require('../utils/asyncHandler');
+const { applyCoupon, verifyRazorpaySignature } = require('../utils/money');
 ['get','post','put','delete','patch'].forEach(m => {
   const orig = router[m].bind(router);
   router[m] = (...args) => {
@@ -102,12 +103,8 @@ router.post('/coupons/apply', authenticateToken, validate('couponApply'), async 
     if (c.used_count >= c.max_uses) return res.status(400).json({ error: 'Coupon exhausted' });
     if (c.course_id && c.course_id !== courseId) return res.status(400).json({ error: 'Coupon not valid for this course' });
     if (await couponRedeemedBy(c.code, req.user.id)) return res.status(400).json({ error: 'You have already used this coupon.' });
-    const orig = Number(amount);
-    let discounted = orig;
-    if (c.discount_percent) discounted = orig - (orig * Number(c.discount_percent) / 100);
-    else if (c.discount_flat) discounted = orig - Number(c.discount_flat);
-    if (discounted < 0) discounted = 0;
-    res.json({ original: orig, discounted: Math.round(discounted), saved: Math.round(orig - discounted), code: c.code });
+    const { original, discounted, saved } = applyCoupon(amount, c);
+    res.json({ original, discounted, saved, code: c.code });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -238,10 +235,8 @@ router.post('/verify', authenticateToken, validate('paymentVerify'), async (req,
     let verified = false;
     if (RZP_MODE === 'demo' && String(razorpayOrderId || '').startsWith('demo_')) {
       verified = true;
-    } else if (razorpayOrderId && razorpayPaymentId && razorpaySignature && RZP_KEY_SECRET) {
-      const expected = crypto.createHmac('sha256', RZP_KEY_SECRET)
-        .update(razorpayOrderId + '|' + razorpayPaymentId).digest('hex');
-      verified = expected === razorpaySignature;
+    } else {
+      verified = verifyRazorpaySignature(razorpayOrderId, razorpayPaymentId, razorpaySignature, RZP_KEY_SECRET);
     }
     if (!verified) return res.status(400).json({ error: 'Signature verification failed' });
 

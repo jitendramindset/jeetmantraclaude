@@ -29,6 +29,7 @@ const { v4: uuidv4 } = require('uuid');
 const router = express.Router();
 // Auto-wrap async route handlers so unhandled rejections reach the global error handler
 const asyncHandler = require('../utils/asyncHandler');
+const { commissionSplit } = require('../utils/money');
 ['get','post','put','delete','patch'].forEach(m => {
   const orig = router[m].bind(router);
   router[m] = (...args) => {
@@ -355,9 +356,7 @@ router.post('/:id/purchase', authenticateToken, async (req, res) => {
     // Check if already purchased
     const { data: existing } = await supabaseAdmin.from('marketplace_purchases').select('id').eq('buyer_id', buyerId).eq('listing_id', listing.id).single();
     if (existing) return res.status(400).json({ error: 'You have already purchased this course' });
-    const commRate = parseFloat(listing.commission_rate || 15) / 100;
-    const platformFee = amount * commRate;
-    const sellerEarnings = amount - platformFee;
+    const { platformFee, sellerEarnings } = commissionSplit(amount, listing.commission_rate);
     const transactionId = 'TXN_' + uuidv4().replace(/-/g, '').toUpperCase().slice(0, 16);
 
     // Create purchase record
