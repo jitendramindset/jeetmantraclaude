@@ -1,0 +1,39 @@
+/* a11y-touch.css — WCAG 2.5.5 touch-target minimums + small-phone (≤390px) polish.
+ * Loaded app-wide. Uses min-height/min-width so existing padding is preserved;
+ * only bumps controls that fall below the 44px comfortable-tap threshold. */
+
+/* Interactive controls get a comfortable tap area on touch/coarse pointers. */
+@media (pointer: coarse) {
+  button,
+  .lp-btn,
+  .lp-btn-social,
+  .lp-tab,
+  .btn-primary,
+  .btn-secondary,
+  a[role="link"],
+  [role="button"],
+  .jm-nav-item,
+  input:not([type="checkbox"]):not([type="radio"]),
+  select {
+    min-height: 44px;
+  }
+  .lp-tab,
+  .jm-nav-item {
+    display: inline-flex;
+    align-items: center;
+  }
+}
+
+/* Small phones (≤390px): tighten gutters, keep content from overflowing. */
+@media (max-width: 390px) {
+  .lp-card,
+  .sp-box,
+  .jm-auth-card {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .ws-hero h1 { font-size: clamp(1.6rem, 8vw, 2.2rem); }
+  .wg-grid { gap: 10px; }
+  /* Never let a page scroll sideways on a narrow phone. */
+  html, body { overflow-x: hidden; }
+}
