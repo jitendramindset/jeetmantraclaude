@@ -17,27 +17,27 @@
 <script src="/ui/widgets/page/AuthShell.js?v=1" defer></script>
 <script src="/i18n-seed.js?v=4" defer></script>
 <style>
-/* Ã¢â€â‚¬Ã¢â€â‚¬ SPA page switching Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
+/* ── SPA page switching ──────────────────────────────────────────────── */
 html,body{margin:0;padding:0;min-height:100vh}
 .jm-spa-page{display:none!important}
 .jm-spa-page.active{display:flex!important;min-height:100vh;align-items:center;justify-content:center;padding:20px}
 #page-website.active{display:block!important;padding:0}
 
-/* Ã¢â€â‚¬Ã¢â€â‚¬ Body background per active page Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
+/* ── Body background per active page ────────────────────────────────── */
 body.jm-p-login{background:linear-gradient(135deg,#0f172a 0%,#1e293b 55%,#7c2d12 100%);overflow-x:hidden}
 body.jm-p-signup{background:linear-gradient(135deg,var(--primary,#7c3aed) 0%,#6d28d9 100%)}
 body.jm-p-forgot,body.jm-p-reset,body.jm-p-verify{background:linear-gradient(135deg,#7c3aed 0%,#a855f7 100%)}
 body.jm-p-website{background:#f4f6f8;overflow-x:hidden}
 body.jm-p-loading{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:1.25rem;background:var(--jm-bg,#f8f9fa)}
 
-/* Ã¢â€â‚¬Ã¢â€â‚¬ Loading splash Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
+/* ── Loading splash ──────────────────────────────────────────────────── */
 #jm-loading{display:flex;flex-direction:column;align-items:center;gap:1.25rem}
 .jm-spin-logo{font-size:2.25rem;font-weight:800;letter-spacing:-0.02em}
 .jm-spin-logo .accent{color:var(--jm-primary,#7c3aed)}
 .jm-spin{width:38px;height:38px;border:3px solid var(--jm-border,#e5e7eb);border-top-color:var(--jm-primary,#7c3aed);border-radius:50%;animation:r .8s linear infinite}
 @keyframes r{to{transform:rotate(360deg)}}
 
-/* Ã¢â€â‚¬Ã¢â€â‚¬ LOGIN PAGE (scoped to #page-login) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
+/* ── LOGIN PAGE (scoped to #page-login) ─────────────────────────────── */
 #page-login{position:relative}
 #page-login::before{content:'';position:absolute;top:-220px;right:-180px;width:560px;height:560px;border-radius:50%;background:radial-gradient(circle,rgba(249,115,22,.30),transparent 70%);pointer-events:none}
 #page-login::after{content:'';position:absolute;bottom:-200px;left:-160px;width:520px;height:520px;border-radius:50%;background:radial-gradient(circle,rgba(251,191,36,.16),transparent 70%);pointer-events:none}
@@ -87,7 +87,7 @@ body.jm-p-loading{display:flex;align-items:center;justify-content:center;flex-di
   #page-login .lp-btn{font-size:16px}
 }
 
-/* Ã¢â€â‚¬Ã¢â€â‚¬ SIGNUP PAGE (scoped to #page-signup) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
+/* ── SIGNUP PAGE (scoped to #page-signup) ───────────────────────────── */
 #page-signup{align-items:flex-start!important;padding:20px!important}
 #page-signup .sp-box{background:#fff;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.3);width:100%;max-width:900px;overflow:hidden;margin:auto}
 #page-signup .sp-head{background:linear-gradient(135deg,#7c3aed 0%,#6d28d9 100%);color:#fff;padding:40px 20px;text-align:center}
@@ -157,7 +157,7 @@ body.jm-p-loading{display:flex;align-items:center;justify-content:center;flex-di
   #page-signup input,#page-signup select,#page-signup textarea{font-size:16px}
 }
 
-/* Ã¢â€â‚¬Ã¢â€â‚¬ AUTH SHELL PAGES (forgot / reset / verify) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
+/* ── AUTH SHELL PAGES (forgot / reset / verify) ──────────────────────── */
 :root{--jm-primary:#7c3aed;--jm-auth-bg:#f8f7fc;--jm-auth-card:#fff;--jm-auth-border:#e5e3ed;--jm-auth-text:#1a1325;--jm-auth-muted:#6b6783}
 .jm-auth-card{background:var(--jm-auth-card);border-radius:16px;padding:36px;max-width:420px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,.18)}
 .jm-auth-title{font-size:24px;margin-bottom:8px}
@@ -173,7 +173,7 @@ body.jm-p-loading{display:flex;align-items:center;justify-content:center;flex-di
 .jm-auth-foot{margin-top:18px;text-align:center}
 .jm-auth-foot a{color:var(--jm-primary);font-size:13px;text-decoration:none;cursor:pointer}
 
-/* Ã¢â€â‚¬Ã¢â€â‚¬ ProgressSteps CSS Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
+/* ── ProgressSteps CSS ───────────────────────────────────────────────── */
 .jm-progress-steps{display:flex;justify-content:space-between;margin-bottom:32px;position:relative}
 .jm-progress-steps::before{content:"";position:absolute;top:18px;left:0;right:0;height:2px;background:#e5e7eb;z-index:0}
 .jm-step{display:flex;flex-direction:column;align-items:center;gap:6px;position:relative;z-index:1;flex:1}
@@ -190,15 +190,15 @@ body.jm-p-loading{display:flex;align-items:center;justify-content:center;flex-di
 
 <a href="#main-content" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;z-index:9999" onfocus="this.style.left='6px';this.style.top='6px';this.style.width='auto';this.style.height='auto';this.style.padding='8px 16px';this.style.background='#1e40af';this.style.color='#fff';this.style.borderRadius='4px';this.style.textDecoration='none'" onblur="this.style.left='-9999px';this.style.top='auto';this.style.width='1px';this.style.height='1px';this.style.padding='0'">Skip to main content</a>
 
-<!-- Ã¢â€â‚¬Ã¢â€â‚¬ LOADING SPLASH Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ -->
+<!-- ── LOADING SPLASH ──────────────────────────────────────────────────── -->
 <div id="jm-loading" role="status" aria-live="polite" aria-label="Loading application">
   <div class="jm-spin-logo">Jeet<span class="accent">Mantra</span></div>
   <div class="jm-spin"></div>
 </div>
 
-<!-- Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+<!-- ═══════════════════════════════════════════════════════════════════════
      PAGE: LOGIN
-     Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â -->
+     ══════════════════════════════════════════════════════════════════════ -->
 <div id="page-login" class="jm-spa-page">
   <div class="lp-wrap">
     <div class="lp-logo">
@@ -226,7 +226,7 @@ body.jm-p-loading{display:flex;align-items:center;justify-content:center;flex-di
         </div>
         <div class="lp-form-group">
           <label for="loginPassword">Password</label>
-          <input type="password" id="loginPassword" placeholder="Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢" autocomplete="current-password">
+          <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password">
         </div>
         <div class="lp-forgot">
           <a onclick="jmNav('/forgot-password.html')" tabindex="0"
@@ -240,7 +240,7 @@ body.jm-p-loading{display:flex;align-items:center;justify-content:center;flex-di
             <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615Z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18Z"/><path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332Z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58Z"/></svg>
             Google
           </button>
-          <button class="lp-btn-social" onclick="showOTP()" aria-label="Login with phone OTP">Ã°Å¸â€œÂ± Phone OTP</button>
+          <button class="lp-btn-social" onclick="showOTP()" aria-label="Login with phone OTP">📱 Phone OTP</button>
         </div>
         <div class="otp-section" id="otpSection">
           <div class="lp-form-group">
@@ -254,7 +254,7 @@ body.jm-p-loading{display:flex;align-items:center;justify-content:center;flex-di
             <button class="lp-btn lp-btn-primary" onclick="verifyOTP()" style="margin-top:10px">Verify &amp; Login</button>
           </div>
         </div>
-        <div class="lp-loading" id="loginLoading">Ã°Å¸â€Â Signing inÃ¢â‚¬Â¦</div>
+        <div class="lp-loading" id="loginLoading">🔐 Signing in…</div>
       </div>
     </div>
     <div class="lp-switch">
@@ -264,9 +264,9 @@ body.jm-p-loading{display:flex;align-items:center;justify-content:center;flex-di
   </div>
 </div>
 
-<!-- Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+<!-- ═══════════════════════════════════════════════════════════════════════
      PAGE: SIGNUP (4-step wizard)
-     Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â -->
+     ══════════════════════════════════════════════════════════════════════ -->
 <div id="page-signup" class="jm-spa-page">
   <div class="sp-box">
     <div class="sp-head">
@@ -275,7 +275,7 @@ body.jm-p-loading{display:flex;align-items:center;justify-content:center;flex-di
           onkeydown="if(event.key==='Enter'){this.click()}"
           role="link">Already have an account? <u>Login</u></a>
       </div>
-      <h1>Ã°Å¸Å½â€œ Welcome to JeetMantra</h1>
+      <h1>🎓 Welcome to JeetMantra</h1>
       <p>Your all-in-one education platform</p>
     </div>
     <div class="sp-content">
@@ -294,10 +294,10 @@ body.jm-p-loading{display:flex;align-items:center;justify-content:center;flex-di
         <div class="form-group">
           <label class="form-label">Select AI Provider</label>
           <div class="ai-provider-grid">
-            <div class="ai-provider"><input type="radio" name="ai-provider" value="openai" id="provider-openai"><label for="provider-openai"><div class="ai-icon">Ã°Å¸Â¤â€“</div><div class="ai-name">ChatGPT</div></label></div>
-            <div class="ai-provider"><input type="radio" name="ai-provider" value="gemini" id="provider-gemini"><label for="provider-gemini"><div class="ai-icon">Ã¢Å“Â¨</div><div class="ai-name">Gemini</div></label></div>
-            <div class="ai-provider"><input type="radio" name="ai-provider" value="claude" id="provider-claude"><label for="provider-claude"><div class="ai-icon">Ã°Å¸Â§Â </div><div class="ai-name">Claude</div></label></div>
-            <div class="ai-provider"><input type="radio" name="ai-provider" value="openrouter" id="provider-openrouter"><label for="provider-openrouter"><div class="ai-icon">Ã°Å¸â€â‚¬</div><div class="ai-name">OpenRouter</div></label></div>
+            <div class="ai-provider"><input type="radio" name="ai-provider" value="openai" id="provider-openai"><label for="provider-openai"><div class="ai-icon">🤖</div><div class="ai-name">ChatGPT</div></label></div>
+            <div class="ai-provider"><input type="radio" name="ai-provider" value="gemini" id="provider-gemini"><label for="provider-gemini"><div class="ai-icon">✨</div><div class="ai-name">Gemini</div></label></div>
+            <div class="ai-provider"><input type="radio" name="ai-provider" value="claude" id="provider-claude"><label for="provider-claude"><div class="ai-icon">🧠</div><div class="ai-name">Claude</div></label></div>
+            <div class="ai-provider"><input type="radio" name="ai-provider" value="openrouter" id="provider-openrouter"><label for="provider-openrouter"><div class="ai-icon">🔀</div><div class="ai-name">OpenRouter</div></label></div>
           </div>
         </div>
         <div class="form-group">
@@ -309,12 +309,12 @@ body.jm-p-loading{display:flex;align-items:center;justify-content:center;flex-di
         <div class="form-group">
           <label class="form-label">Why provide an API key?</label>
           <div style="padding:12px;background:#dbeafe;border-radius:8px;border-left:4px solid #3b82f6;color:#0f172a">
-            <strong style="color:#1e40af">Ã°Å¸â€™Â¡ Benefits:</strong>
+            <strong style="color:#1e40af">💡 Benefits:</strong>
             <ul style="margin:8px 0 0 20px;font-size:13px;color:#0f172a"><li>Personalized course recommendations</li><li>AI-powered suggestions</li><li>Smart content generation</li><li>Your API key is encrypted with AES-256</li></ul>
-            <div style="margin-top:8px;font-size:12px">Ã¢Å“â€œ Optional: Use platform defaults if you skip this</div>
+            <div style="margin-top:8px;font-size:12px">✓ Optional: Use platform defaults if you skip this</div>
           </div>
         </div>
-        <div class="button-group"><button class="btn-primary" onclick="nextStep(1)">Continue Ã¢â€ â€™</button></div>
+        <div class="button-group"><button class="btn-primary" onclick="nextStep(1)">Continue →</button></div>
       </div>
 
       <!-- STEP 2 -->
@@ -331,7 +331,7 @@ body.jm-p-loading{display:flex;align-items:center;justify-content:center;flex-di
         <div class="form-row">
           <div class="form-group"><label class="form-label" for="confirm-password">Confirm Password <span class="required">*</span></label><input type="password" class="form-input" id="confirm-password" placeholder="Confirm your password" required autocomplete="new-password"><div class="form-error" id="error-confirm-password"></div></div>
         </div>
-        <div class="button-group"><button class="btn-secondary" onclick="prevStep(2)">Ã¢â€ Â Back</button><button class="btn-primary" onclick="nextStep(2)">Continue Ã¢â€ â€™</button></div>
+        <div class="button-group"><button class="btn-secondary" onclick="prevStep(2)">← Back</button><button class="btn-primary" onclick="nextStep(2)">Continue →</button></div>
       </div>
 
       <!-- STEP 3 -->
@@ -340,22 +340,22 @@ body.jm-p-loading{display:flex;align-items:center;justify-content:center;flex-di
         <div class="form-group">
           <label class="form-label">User Type <span class="required">*</span></label>
           <div class="radio-group">
-            <div class="radio-option"><input type="radio" name="user-type" value="student" id="type-student" onchange="updateUserTypeFields()"><label for="type-student"><div class="radio-title">Ã°Å¸Å½â€œ Student</div><div class="radio-description">Learn from expert instructors</div></label></div>
-            <div class="radio-option"><input type="radio" name="user-type" value="teacher" id="type-teacher" onchange="updateUserTypeFields()"><label for="type-teacher"><div class="radio-title">Ã°Å¸â€˜Â¨Ã¢â‚¬ÂÃ°Å¸ÂÂ« Teacher</div><div class="radio-description">Create and teach courses</div></label></div>
-            <div class="radio-option"><input type="radio" name="user-type" value="partner" id="type-partner" onchange="updateUserTypeFields()"><label for="type-partner"><div class="radio-title">Ã°Å¸Â¤Â Partner</div><div class="radio-description">Offer services and mentoring</div></label></div>
-            <div class="radio-option"><input type="radio" name="user-type" value="school" id="type-school" onchange="updateUserTypeFields()"><label for="type-school"><div class="radio-title">Ã°Å¸ÂÂ« School</div><div class="radio-description">Manage teachers, students &amp; programs</div></label></div>
-            <div class="radio-option"><input type="radio" name="user-type" value="coaching" id="type-coaching" onchange="updateUserTypeFields()"><label for="type-coaching"><div class="radio-title">Ã°Å¸Ââ€  Coaching</div><div class="radio-description">Run batches, courses &amp; track results</div></label></div>
-            <div class="radio-option"><input type="radio" name="user-type" value="parent" id="type-parent" onchange="updateUserTypeFields()"><label for="type-parent"><div class="radio-title">Ã°Å¸â€˜Â¨Ã¢â‚¬ÂÃ°Å¸â€˜Â©Ã¢â‚¬ÂÃ°Å¸â€˜Â§ Parent</div><div class="radio-description">Track your child's progress</div></label></div>
-            <div class="radio-option"><input type="radio" name="user-type" value="content_creator" id="type-creator" onchange="updateUserTypeFields()"><label for="type-creator"><div class="radio-title">Ã°Å¸Å½Â¬ Creator</div><div class="radio-description">Launch your own academy</div></label></div>
-            <div class="radio-option"><input type="radio" name="user-type" value="corporate_trainer" id="type-corp" onchange="updateUserTypeFields()"><label for="type-corp"><div class="radio-title">Ã°Å¸ÂÂ¢ Corporate Trainer</div><div class="radio-description">Deliver L&amp;D programs</div></label></div>
+            <div class="radio-option"><input type="radio" name="user-type" value="student" id="type-student" onchange="updateUserTypeFields()"><label for="type-student"><div class="radio-title">🎓 Student</div><div class="radio-description">Learn from expert instructors</div></label></div>
+            <div class="radio-option"><input type="radio" name="user-type" value="teacher" id="type-teacher" onchange="updateUserTypeFields()"><label for="type-teacher"><div class="radio-title">👨‍🏫 Teacher</div><div class="radio-description">Create and teach courses</div></label></div>
+            <div class="radio-option"><input type="radio" name="user-type" value="partner" id="type-partner" onchange="updateUserTypeFields()"><label for="type-partner"><div class="radio-title">🤝 Partner</div><div class="radio-description">Offer services and mentoring</div></label></div>
+            <div class="radio-option"><input type="radio" name="user-type" value="school" id="type-school" onchange="updateUserTypeFields()"><label for="type-school"><div class="radio-title">🏫 School</div><div class="radio-description">Manage teachers, students &amp; programs</div></label></div>
+            <div class="radio-option"><input type="radio" name="user-type" value="coaching" id="type-coaching" onchange="updateUserTypeFields()"><label for="type-coaching"><div class="radio-title">🏆 Coaching</div><div class="radio-description">Run batches, courses &amp; track results</div></label></div>
+            <div class="radio-option"><input type="radio" name="user-type" value="parent" id="type-parent" onchange="updateUserTypeFields()"><label for="type-parent"><div class="radio-title">👨‍👩‍👧 Parent</div><div class="radio-description">Track your child's progress</div></label></div>
+            <div class="radio-option"><input type="radio" name="user-type" value="content_creator" id="type-creator" onchange="updateUserTypeFields()"><label for="type-creator"><div class="radio-title">🎬 Creator</div><div class="radio-description">Launch your own academy</div></label></div>
+            <div class="radio-option"><input type="radio" name="user-type" value="corporate_trainer" id="type-corp" onchange="updateUserTypeFields()"><label for="type-corp"><div class="radio-title">🏢 Corporate Trainer</div><div class="radio-description">Deliver L&amp;D programs</div></label></div>
           </div>
         </div>
         <!-- Conditional fields per role -->
         <div class="conditional" id="student-fields"><div class="form-row"><div class="form-group"><label class="form-label" for="academic-level">Academic Level <span class="required">*</span></label><select class="form-select" id="academic-level"><option value="">Select level</option><option value="high-school">High School (10-12)</option><option value="undergrad">Undergraduate</option><option value="postgrad">Postgraduate</option><option value="professional">Professional/Certification</option><option value="hobbyist">Hobbyist/Self-Learning</option></select></div><div class="form-group"><label class="form-label" for="student-interest">Main Interest Area <span class="required">*</span></label><select class="form-select" id="student-interest"><option value="">Select interest</option><option value="engineering">Engineering</option><option value="science">Science</option><option value="arts">Arts &amp; Humanities</option><option value="business">Business &amp; Management</option><option value="technology">Technology &amp; Programming</option><option value="creative">Creative &amp; Design</option><option value="language">Languages</option></select></div></div></div>
         <div class="conditional" id="teacher-fields"><div class="form-row"><div class="form-group"><label class="form-label" for="qualification">Highest Qualification <span class="required">*</span></label><input type="text" class="form-input" id="qualification" placeholder="e.g., B.Tech CS, M.A English"></div><div class="form-group"><label class="form-label" for="experience">Years of Experience <span class="required">*</span></label><input type="number" class="form-input" id="experience" placeholder="5" min="0" max="70"></div></div><div class="form-row"><div class="form-group"><label class="form-label" for="institution">Institution/Organization <span class="required">*</span></label><input type="text" class="form-input" id="institution" placeholder="Your school/college/company"></div></div></div>
-        <div class="conditional" id="partner-fields"><div class="form-row"><div class="form-group"><label class="form-label" for="service-category">Service Category <span class="required">*</span></label><select class="form-select" id="service-category"><option value="">Select category</option><option value="tutoring">Personal Tutoring</option><option value="mentoring">Career Mentoring</option><option value="counseling">Academic Counseling</option><option value="coaching">Skill Coaching</option><option value="consulting">Consulting</option><option value="other">Other Services</option></select></div><div class="form-group"><label class="form-label" for="hourly-rate">Hourly Rate (Ã¢â€šÂ¹) <span class="required">*</span></label><input type="number" class="form-input" id="hourly-rate" placeholder="500" min="0"></div></div></div>
-        <div class="conditional" id="school-fields"><div class="form-row"><div class="form-group"><label class="form-label" for="school-name">School Name <span class="required">*</span></label><input type="text" class="form-input" id="school-name" placeholder="e.g. Greenfield Academy"></div><div class="form-group"><label class="form-label" for="contact-person">Contact Person <span class="required">*</span></label><input type="text" class="form-input" id="contact-person" placeholder="e.g. Mrs. Jane Smith"></div></div><div class="form-row"><div class="form-group"><label class="form-label" for="affiliation-board">Affiliation Board <span class="required">*</span></label><select class="form-select" id="affiliation-board"><option value="">Select Board</option><option>CBSE</option><option>ICSE</option><option>State Board</option><option>IB</option><option>CIE</option><option>University</option></select></div><div class="form-group"><label class="form-label" for="student-count">Total Students <span class="required">*</span></label><input type="number" class="form-input" id="student-count" placeholder="500" min="1"></div><div class="form-group"><label class="form-label" for="teacher-count">Total Teachers <span class="required">*</span></label><input type="number" class="form-input" id="teacher-count" placeholder="30" min="1"></div></div><div class="form-row"><div class="form-group"><label class="form-label" for="school-address">Address <span class="required">*</span></label><textarea class="form-input" id="school-address" rows="2" placeholder="Full addressÃ¢â‚¬Â¦" style="resize:vertical"></textarea></div></div></div>
-        <div class="conditional" id="coaching-fields"><div class="form-row"><div class="form-group"><label class="form-label" for="center-name">Coaching Center Name <span class="required">*</span></label><input type="text" class="form-input" id="center-name" placeholder="e.g. Apex Learning Center"></div><div class="form-group"><label class="form-label" for="specializations">Specializations <span class="required">*</span></label><input type="text" class="form-input" id="specializations" placeholder="e.g. JEE, NEET, UPSC"></div></div><div class="form-row"><div class="form-group"><label class="form-label" for="student-capacity">Student Capacity <span class="required">*</span></label><input type="number" class="form-input" id="student-capacity" placeholder="200" min="1"></div><div class="form-group"><label class="form-label" for="batch-count">Number of Batches <span class="required">*</span></label><input type="number" class="form-input" id="batch-count" placeholder="8" min="1"></div></div><div class="form-row"><div class="form-group"><label class="form-label" for="coaching-address">Address <span class="required">*</span></label><textarea class="form-input" id="coaching-address" rows="2" placeholder="Full addressÃ¢â‚¬Â¦" style="resize:vertical"></textarea></div></div></div>
+        <div class="conditional" id="partner-fields"><div class="form-row"><div class="form-group"><label class="form-label" for="service-category">Service Category <span class="required">*</span></label><select class="form-select" id="service-category"><option value="">Select category</option><option value="tutoring">Personal Tutoring</option><option value="mentoring">Career Mentoring</option><option value="counseling">Academic Counseling</option><option value="coaching">Skill Coaching</option><option value="consulting">Consulting</option><option value="other">Other Services</option></select></div><div class="form-group"><label class="form-label" for="hourly-rate">Hourly Rate (₹) <span class="required">*</span></label><input type="number" class="form-input" id="hourly-rate" placeholder="500" min="0"></div></div></div>
+        <div class="conditional" id="school-fields"><div class="form-row"><div class="form-group"><label class="form-label" for="school-name">School Name <span class="required">*</span></label><input type="text" class="form-input" id="school-name" placeholder="e.g. Greenfield Academy"></div><div class="form-group"><label class="form-label" for="contact-person">Contact Person <span class="required">*</span></label><input type="text" class="form-input" id="contact-person" placeholder="e.g. Mrs. Jane Smith"></div></div><div class="form-row"><div class="form-group"><label class="form-label" for="affiliation-board">Affiliation Board <span class="required">*</span></label><select class="form-select" id="affiliation-board"><option value="">Select Board</option><option>CBSE</option><option>ICSE</option><option>State Board</option><option>IB</option><option>CIE</option><option>University</option></select></div><div class="form-group"><label class="form-label" for="student-count">Total Students <span class="required">*</span></label><input type="number" class="form-input" id="student-count" placeholder="500" min="1"></div><div class="form-group"><label class="form-label" for="teacher-count">Total Teachers <span class="required">*</span></label><input type="number" class="form-input" id="teacher-count" placeholder="30" min="1"></div></div><div class="form-row"><div class="form-group"><label class="form-label" for="school-address">Address <span class="required">*</span></label><textarea class="form-input" id="school-address" rows="2" placeholder="Full address…" style="resize:vertical"></textarea></div></div></div>
+        <div class="conditional" id="coaching-fields"><div class="form-row"><div class="form-group"><label class="form-label" for="center-name">Coaching Center Name <span class="required">*</span></label><input type="text" class="form-input" id="center-name" placeholder="e.g. Apex Learning Center"></div><div class="form-group"><label class="form-label" for="specializations">Specializations <span class="required">*</span></label><input type="text" class="form-input" id="specializations" placeholder="e.g. JEE, NEET, UPSC"></div></div><div class="form-row"><div class="form-group"><label class="form-label" for="student-capacity">Student Capacity <span class="required">*</span></label><input type="number" class="form-input" id="student-capacity" placeholder="200" min="1"></div><div class="form-group"><label class="form-label" for="batch-count">Number of Batches <span class="required">*</span></label><input type="number" class="form-input" id="batch-count" placeholder="8" min="1"></div></div><div class="form-row"><div class="form-group"><label class="form-label" for="coaching-address">Address <span class="required">*</span></label><textarea class="form-input" id="coaching-address" rows="2" placeholder="Full address…" style="resize:vertical"></textarea></div></div></div>
         <div class="form-group">
           <label class="form-label">Skills <span class="required">*</span></label>
           <div class="skills-input-group"><input type="text" class="form-input" id="skill-input" placeholder="Type a skill and press Enter" onkeypress="handleSkillInput(event)"><button type="button" class="btn-primary" onclick="addSkill()" style="max-width:120px">Add Skill</button></div>
@@ -363,7 +363,7 @@ body.jm-p-loading{display:flex;align-items:center;justify-content:center;flex-di
           <div class="skills-list" id="skills-list"></div>
           <div class="form-error" id="error-skills"></div>
         </div>
-        <div class="button-group"><button class="btn-secondary" onclick="prevStep(3)">Ã¢â€ Â Back</button><button class="btn-primary" onclick="nextStep(3)">Continue Ã¢â€ â€™</button></div>
+        <div class="button-group"><button class="btn-secondary" onclick="prevStep(3)">← Back</button><button class="btn-primary" onclick="nextStep(3)">Continue →</button></div>
       </div>
 
       <!-- STEP 4 -->
@@ -372,15 +372,15 @@ body.jm-p-loading{display:flex;align-items:center;justify-content:center;flex-di
         <div style="background:#f4f6f8;padding:20px;border-radius:8px;margin-bottom:24px">
           <h3 style="margin-bottom:16px;color:#0f172a;font-size:16px;font-weight:700">Account Information</h3>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr));gap:16px;font-size:14px">
-            <div><strong style="color:#64748b">Name:</strong><div id="review-name">Ã¢â‚¬â€</div></div>
-            <div><strong style="color:#64748b">Email:</strong><div id="review-email">Ã¢â‚¬â€</div></div>
-            <div><strong style="color:#64748b">Phone:</strong><div id="review-phone">Ã¢â‚¬â€</div></div>
-            <div><strong style="color:#64748b">User Type:</strong><div id="review-type">Ã¢â‚¬â€</div></div>
-            <div><strong style="color:#64748b">AI Provider:</strong><div id="review-ai">Ã¢â‚¬â€</div></div>
-            <div><strong style="color:#64748b">Skills:</strong><div id="review-skills">Ã¢â‚¬â€</div></div>
+            <div><strong style="color:#64748b">Name:</strong><div id="review-name">—</div></div>
+            <div><strong style="color:#64748b">Email:</strong><div id="review-email">—</div></div>
+            <div><strong style="color:#64748b">Phone:</strong><div id="review-phone">—</div></div>
+            <div><strong style="color:#64748b">User Type:</strong><div id="review-type">—</div></div>
+            <div><strong style="color:#64748b">AI Provider:</strong><div id="review-ai">—</div></div>
+            <div><strong style="color:#64748b">Skills:</strong><div id="review-skills">—</div></div>
           </div>
         </div>
-        <div style="padding:12px;background:#dbeafe;border-radius:8px;border-left:4px solid #3b82f6;margin-bottom:24px;color:#0f172a"><strong>Ã°Å¸â€œÂ§ Next Step:</strong> We'll send a verification email to activate your account</div>
+        <div style="padding:12px;background:#dbeafe;border-radius:8px;border-left:4px solid #3b82f6;margin-bottom:24px;color:#0f172a"><strong>📧 Next Step:</strong> We'll send a verification email to activate your account</div>
         <div class="form-group">
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
             <input type="checkbox" id="terms-agree">
@@ -388,7 +388,7 @@ body.jm-p-loading{display:flex;align-items:center;justify-content:center;flex-di
           </label>
           <div class="form-error" id="error-terms"></div>
         </div>
-        <div class="button-group"><button class="btn-secondary" onclick="prevStep(4)">Ã¢â€ Â Back</button><button class="btn-primary" onclick="submitSignup()" id="submit-btn">Create Account</button></div>
+        <div class="button-group"><button class="btn-secondary" onclick="prevStep(4)">← Back</button><button class="btn-primary" onclick="submitSignup()" id="submit-btn">Create Account</button></div>
         <div style="text-align:center;margin-top:24px;color:#64748b;font-size:14px">Already have an account? <a onclick="jmNav('/login.html')" style="color:#7c3aed;text-decoration:none;font-weight:700;cursor:pointer">Login here</a></div>
       </div>
     </div><!-- /.sp-content -->
@@ -396,55 +396,55 @@ body.jm-p-loading{display:flex;align-items:center;justify-content:center;flex-di
   <div class="toast-container" id="toast-container"></div>
 </div><!-- /#page-signup -->
 
-<!-- Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+<!-- ═══════════════════════════════════════════════════════════════════════
      PAGE: FORGOT PASSWORD
-     Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â -->
+     ══════════════════════════════════════════════════════════════════════ -->
 <div id="page-forgot" class="jm-spa-page">
   <div class="jm-auth-card">
-    <h1 class="jm-auth-title">Ã°Å¸â€â€˜ Forgot password?</h1>
+    <h1 class="jm-auth-title">🔑 Forgot password?</h1>
     <div class="jm-auth-sub">Enter your email and we'll send a reset link.</div>
     <div id="fp-msg" class="jm-auth-msg"></div>
     <label for="fp-email">Email</label>
     <input type="email" id="fp-email" placeholder="you@example.com" autocomplete="email">
     <button class="jm-auth-btn" id="fp-btn" onclick="sendForgot()">Send reset link</button>
-    <div class="jm-auth-foot"><a onclick="jmNav('/login.html')" tabindex="0" onkeydown="if(event.key==='Enter'){this.click()}" role="link">Ã¢â€ Â Back to login</a></div>
+    <div class="jm-auth-foot"><a onclick="jmNav('/login.html')" tabindex="0" onkeydown="if(event.key==='Enter'){this.click()}" role="link">← Back to login</a></div>
   </div>
 </div>
 
-<!-- Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+<!-- ═══════════════════════════════════════════════════════════════════════
      PAGE: RESET PASSWORD
-     Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â -->
+     ══════════════════════════════════════════════════════════════════════ -->
 <div id="page-reset" class="jm-spa-page">
   <div class="jm-auth-card">
-    <h1 class="jm-auth-title">Ã°Å¸â€Â Set a new password</h1>
+    <h1 class="jm-auth-title">🔐 Set a new password</h1>
     <div class="jm-auth-sub">Pick something 8+ characters.</div>
     <div id="rp-msg" class="jm-auth-msg"></div>
     <label for="rp-pw">New password</label>
-    <input type="password" id="rp-pw" placeholder="Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢" autocomplete="new-password">
+    <input type="password" id="rp-pw" placeholder="••••••••" autocomplete="new-password">
     <label for="rp-pw2">Confirm password</label>
-    <input type="password" id="rp-pw2" placeholder="Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢" autocomplete="new-password">
+    <input type="password" id="rp-pw2" placeholder="••••••••" autocomplete="new-password">
     <button class="jm-auth-btn" id="rp-btn" onclick="submitReset()">Update password</button>
-    <div class="jm-auth-foot"><a onclick="jmNav('/login.html')" tabindex="0" onkeydown="if(event.key==='Enter'){this.click()}" role="link">Ã¢â€ Â Back to login</a></div>
+    <div class="jm-auth-foot"><a onclick="jmNav('/login.html')" tabindex="0" onkeydown="if(event.key==='Enter'){this.click()}" role="link">← Back to login</a></div>
   </div>
 </div>
 
-<!-- Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+<!-- ═══════════════════════════════════════════════════════════════════════
      PAGE: VERIFY EMAIL
-     Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â -->
+     ══════════════════════════════════════════════════════════════════════ -->
 <div id="page-verify" class="jm-spa-page">
   <div class="jm-auth-card">
     <div style="text-align:center">
-      <div id="ve-icon" style="font-size:48px;margin-bottom:14px">Ã¢ÂÂ³</div>
-      <h1 id="ve-title" class="jm-auth-title" style="margin-bottom:10px">VerifyingÃ¢â‚¬Â¦</h1>
+      <div id="ve-icon" style="font-size:48px;margin-bottom:14px">⏳</div>
+      <h1 id="ve-title" class="jm-auth-title" style="margin-bottom:10px">Verifying…</h1>
       <div id="ve-msg" style="color:var(--jm-auth-muted);font-size:14px;margin-top:6px"></div>
     </div>
-    <div class="jm-auth-foot"><a onclick="jmNav('/login.html')" tabindex="0" onkeydown="if(event.key==='Enter'){this.click()}" role="link">Go to login Ã¢â€ â€™</a></div>
+    <div class="jm-auth-foot"><a onclick="jmNav('/login.html')" tabindex="0" onkeydown="if(event.key==='Enter'){this.click()}" role="link">Go to login →</a></div>
   </div>
 </div>
 
-<!-- Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+<!-- ═══════════════════════════════════════════════════════════════════════
      PAGE: WEBSITE / LANDING
-     Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â -->
+     ══════════════════════════════════════════════════════════════════════ -->
 <div id="page-website" class="jm-spa-page">
 <style>
 #page-website{font-family:'Plus Jakarta Sans',system-ui,sans-serif;color:#0f172a}
@@ -530,9 +530,9 @@ body.jm-p-loading{display:flex;align-items:center;justify-content:center;flex-di
 
 <!-- HERO -->
 <div class="ws-hero">
-  <div class="ws-hero-badge">Ã°Å¸Å¡â‚¬ India's Modern Gurukul</div>
+  <div class="ws-hero-badge">🚀 India's Modern Gurukul</div>
   <h1>Learn, Teach &amp; Grow with<br><span class="hl">AI-Powered Education</span></h1>
-  <p>JeetMantra connects students, teachers, coaching centres, and schools Ã¢â‚¬â€ all in one powerful platform.</p>
+  <p>JeetMantra connects students, teachers, coaching centres, and schools — all in one powerful platform.</p>
   <div class="ws-hero-actions">
     <button class="ws-btn ws-btn-solid" onclick="jmNav('/signup.html')">Start Learning Free</button>
     <button class="ws-btn ws-btn-ghost" style="border-color:rgba(255,255,255,.4);color:#fff" onclick="jmNav('/login.html')">I already have an account</button>
@@ -551,14 +551,14 @@ body.jm-p-loading{display:flex;align-items:center;justify-content:center;flex-di
 <div id="ws-features" class="ws-section">
   <div class="ws-section-label">Platform Features</div>
   <h2>Everything you need to educate &amp; learn</h2>
-  <p class="sub">Built for modern India Ã¢â‚¬â€ works offline, supports Hindi &amp; 11 other languages, and adapts to your role.</p>
+  <p class="sub">Built for modern India — works offline, supports Hindi &amp; 11 other languages, and adapts to your role.</p>
   <div class="ws-features">
-    <div class="ws-feat"><div class="icon">Ã°Å¸Â¤â€“</div><h3>AI Tutor</h3><p>Ask questions in your language. Get instant, personalised explanations powered by leading AI models.</p></div>
-    <div class="ws-feat"><div class="icon">Ã°Å¸â€œÂ´</div><h3>Offline-First</h3><p>Download lessons, watch videos and access your materials even without internet. Sync automatically when reconnected.</p></div>
-    <div class="ws-feat"><div class="icon">Ã°Å¸Å½Â¥</div><h3>Live Classes</h3><p>Host and join live sessions with screen sharing, whiteboard, and Q&amp;A. Record for later replay.</p></div>
-    <div class="ws-feat"><div class="icon">Ã°Å¸â€œÂ</div><h3>Test Centre</h3><p>Create MCQ, subjective and adaptive tests. Auto-grade and get detailed analytics on every student.</p></div>
-    <div class="ws-feat"><div class="icon">Ã°Å¸Å’Â</div><h3>Multilingual</h3><p>Full UI in Hindi, Tamil, Telugu, Bengali, Marathi and 7 more languages. Bhasha Setu helps students read in any language.</p></div>
-    <div class="ws-feat"><div class="icon">Ã°Å¸Ââ€¦</div><h3>Certificates &amp; XP</h3><p>Issue verifiable certificates. Students earn XP, streaks and badges Ã¢â‚¬â€ keeping them motivated every day.</p></div>
+    <div class="ws-feat"><div class="icon">🤖</div><h3>AI Tutor</h3><p>Ask questions in your language. Get instant, personalised explanations powered by leading AI models.</p></div>
+    <div class="ws-feat"><div class="icon">📴</div><h3>Offline-First</h3><p>Download lessons, watch videos and access your materials even without internet. Sync automatically when reconnected.</p></div>
+    <div class="ws-feat"><div class="icon">🎥</div><h3>Live Classes</h3><p>Host and join live sessions with screen sharing, whiteboard, and Q&amp;A. Record for later replay.</p></div>
+    <div class="ws-feat"><div class="icon">📝</div><h3>Test Centre</h3><p>Create MCQ, subjective and adaptive tests. Auto-grade and get detailed analytics on every student.</p></div>
+    <div class="ws-feat"><div class="icon">🌐</div><h3>Multilingual</h3><p>Full UI in Hindi, Tamil, Telugu, Bengali, Marathi and 7 more languages. Bhasha Setu helps students read in any language.</p></div>
+    <div class="ws-feat"><div class="icon">🏅</div><h3>Certificates &amp; XP</h3><p>Issue verifiable certificates. Students earn XP, streaks and badges — keeping them motivated every day.</p></div>
   </div>
 </div>
 
@@ -568,12 +568,12 @@ body.jm-p-loading{display:flex;align-items:center;justify-content:center;flex-di
     <div class="ws-section-label">Who it's for</div>
     <h2>A role for everyone in education</h2>
     <div class="ws-roles">
-      <div class="ws-role" onclick="jmNav('/signup.html')"><div class="ri">Ã°Å¸Å½â€œ</div><div class="rt">Students</div><div class="rd">Learn at your pace</div></div>
-      <div class="ws-role" onclick="jmNav('/signup.html')"><div class="ri">Ã°Å¸â€˜Â¨Ã¢â‚¬ÂÃ°Å¸ÂÂ«</div><div class="rt">Teachers</div><div class="rd">Create &amp; sell courses</div></div>
-      <div class="ws-role" onclick="jmNav('/signup.html')"><div class="ri">Ã°Å¸ÂÂ«</div><div class="rt">Schools</div><div class="rd">Manage classes &amp; teachers</div></div>
-      <div class="ws-role" onclick="jmNav('/signup.html')"><div class="ri">Ã°Å¸Ââ€ </div><div class="rt">Coaching</div><div class="rd">Run batches &amp; track results</div></div>
-      <div class="ws-role" onclick="jmNav('/signup.html')"><div class="ri">Ã°Å¸Â¤Â</div><div class="rt">Partners</div><div class="rd">Offer tutoring services</div></div>
-      <div class="ws-role" onclick="jmNav('/signup.html')"><div class="ri">Ã°Å¸â€˜Â¨Ã¢â‚¬ÂÃ°Å¸â€˜Â©Ã¢â‚¬ÂÃ°Å¸â€˜Â§</div><div class="rt">Parents</div><div class="rd">Track your child's progress</div></div>
+      <div class="ws-role" onclick="jmNav('/signup.html')"><div class="ri">🎓</div><div class="rt">Students</div><div class="rd">Learn at your pace</div></div>
+      <div class="ws-role" onclick="jmNav('/signup.html')"><div class="ri">👨‍🏫</div><div class="rt">Teachers</div><div class="rd">Create &amp; sell courses</div></div>
+      <div class="ws-role" onclick="jmNav('/signup.html')"><div class="ri">🏫</div><div class="rt">Schools</div><div class="rd">Manage classes &amp; teachers</div></div>
+      <div class="ws-role" onclick="jmNav('/signup.html')"><div class="ri">🏆</div><div class="rt">Coaching</div><div class="rd">Run batches &amp; track results</div></div>
+      <div class="ws-role" onclick="jmNav('/signup.html')"><div class="ri">🤝</div><div class="rt">Partners</div><div class="rd">Offer tutoring services</div></div>
+      <div class="ws-role" onclick="jmNav('/signup.html')"><div class="ri">👨‍👩‍👧</div><div class="rt">Parents</div><div class="rd">Track your child's progress</div></div>
     </div>
   </div>
 </div>
@@ -583,10 +583,10 @@ body.jm-p-loading{display:flex;align-items:center;justify-content:center;flex-di
   <div class="ws-section-label">Featured Courses</div>
   <h2>Popular courses on JeetMantra</h2>
   <div class="ws-courses" id="ws-courses-grid">
-    <div class="ws-course" onclick="jmNav('/login.html')"><div class="thumb" style="background:linear-gradient(135deg,#dbeafe,#bfdbfe)">Ã°Å¸â€œÂ</div><div class="info"><div class="subject">Mathematics</div><h4>JEE Advanced Maths Ã¢â‚¬â€ Calculus</h4><div class="price">Ã¢â€šÂ¹1,499 <span style="color:#94a3b8;text-decoration:line-through;font-size:13px">Ã¢â€šÂ¹2,999</span></div></div></div>
-    <div class="ws-course" onclick="jmNav('/login.html')"><div class="thumb" style="background:linear-gradient(135deg,#dcfce7,#bbf7d0)">Ã°Å¸Â§Â¬</div><div class="info"><div class="subject">Science</div><h4>NEET Biology Ã¢â‚¬â€ Complete Revision</h4><div class="price">Ã¢â€šÂ¹1,299 <span style="color:#94a3b8;text-decoration:line-through;font-size:13px">Ã¢â€šÂ¹2,499</span></div></div></div>
-    <div class="ws-course" onclick="jmNav('/login.html')"><div class="thumb" style="background:linear-gradient(135deg,#fce7f3,#fbcfe8)">Ã°Å¸â€™Â»</div><div class="info"><div class="subject">Technology</div><h4>Full-Stack Web Development</h4><div class="price">Ã¢â€šÂ¹2,499 <span style="color:#94a3b8;text-decoration:line-through;font-size:13px">Ã¢â€šÂ¹4,999</span></div></div></div>
-    <div class="ws-course" onclick="jmNav('/login.html')"><div class="thumb" style="background:linear-gradient(135deg,#fef3c7,#fde68a)">Ã°Å¸â€œÅ¡</div><div class="info"><div class="subject">Language</div><h4>Spoken English Ã¢â‚¬â€ From Zero</h4><div class="price">Ã¢â€šÂ¹799 <span style="color:#94a3b8;text-decoration:line-through;font-size:13px">Ã¢â€šÂ¹1,499</span></div></div></div>
+    <div class="ws-course" onclick="jmNav('/login.html')"><div class="thumb" style="background:linear-gradient(135deg,#dbeafe,#bfdbfe)">📐</div><div class="info"><div class="subject">Mathematics</div><h4>JEE Advanced Maths — Calculus</h4><div class="price">₹1,499 <span style="color:#94a3b8;text-decoration:line-through;font-size:13px">₹2,999</span></div></div></div>
+    <div class="ws-course" onclick="jmNav('/login.html')"><div class="thumb" style="background:linear-gradient(135deg,#dcfce7,#bbf7d0)">🧬</div><div class="info"><div class="subject">Science</div><h4>NEET Biology — Complete Revision</h4><div class="price">₹1,299 <span style="color:#94a3b8;text-decoration:line-through;font-size:13px">₹2,499</span></div></div></div>
+    <div class="ws-course" onclick="jmNav('/login.html')"><div class="thumb" style="background:linear-gradient(135deg,#fce7f3,#fbcfe8)">💻</div><div class="info"><div class="subject">Technology</div><h4>Full-Stack Web Development</h4><div class="price">₹2,499 <span style="color:#94a3b8;text-decoration:line-through;font-size:13px">₹4,999</span></div></div></div>
+    <div class="ws-course" onclick="jmNav('/login.html')"><div class="thumb" style="background:linear-gradient(135deg,#fef3c7,#fde68a)">📚</div><div class="info"><div class="subject">Language</div><h4>Spoken English — From Zero</h4><div class="price">₹799 <span style="color:#94a3b8;text-decoration:line-through;font-size:13px">₹1,499</span></div></div></div>
   </div>
 </div>
 
@@ -594,7 +594,7 @@ body.jm-p-loading{display:flex;align-items:center;justify-content:center;flex-di
 <div class="ws-cta-section">
   <h2>Ready to transform your learning?</h2>
   <p>Join 50,000+ students and educators already on JeetMantra. Free to start.</p>
-  <button class="ws-btn-white" onclick="jmNav('/signup.html')">Create Free Account Ã¢â€ â€™</button>
+  <button class="ws-btn-white" onclick="jmNav('/signup.html')">Create Free Account →</button>
 </div>
 
 <!-- FOOTER -->
@@ -605,18 +605,18 @@ body.jm-p-loading{display:flex;align-items:center;justify-content:center;flex-di
     <a onclick="jmNav('/signup.html')">Sign Up</a>
     <a onclick="jmNav('/forgot-password.html')">Reset Password</a>
   </div>
-  <div class="copy">Ã‚Â© 2025 JeetMantra. India's Modern Gurukul.</div>
+  <div class="copy">© 2025 JeetMantra. India's Modern Gurukul.</div>
 </footer>
 </div><!-- /#page-website -->
 
-<!-- Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+<!-- ═══════════════════════════════════════════════════════════════════════
      SCRIPTS
-     Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â -->
+     ══════════════════════════════════════════════════════════════════════ -->
 <script>
 'use strict';
 var API = window.location.origin + '/api';
 
-/* Ã¢â€â‚¬Ã¢â€â‚¬ SPA Router Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
+/* ── SPA Router ──────────────────────────────────────────────────────── */
 var PAGE_MAP = {
   '/':                    'website',
   '/index.html':          'website',
@@ -626,15 +626,15 @@ var PAGE_MAP = {
   '/forgot-password.html':'forgot',
   '/reset-password.html': 'reset',
   '/verify-email.html':   'verify',
-  '/app':                 'loading',  // handled by bootstrap Ã¢â‚¬â€ mounts app-shell
+  '/app':                 'loading',  // handled by bootstrap — mounts app-shell
 };
 var PAGE_TITLES = {
-  website:'JeetMantra Ã¢â‚¬â€ India\'s Modern Gurukul',
-  login:  'Login Ã¢â‚¬â€ JeetMantra',
-  signup: 'Sign Up Ã¢â‚¬â€ JeetMantra',
-  forgot: 'Forgot Password Ã¢â‚¬â€ JeetMantra',
-  reset:  'Reset Password Ã¢â‚¬â€ JeetMantra',
-  verify: 'Verify Email Ã¢â‚¬â€ JeetMantra',
+  website:'JeetMantra — India\'s Modern Gurukul',
+  login:  'Login — JeetMantra',
+  signup: 'Sign Up — JeetMantra',
+  forgot: 'Forgot Password — JeetMantra',
+  reset:  'Reset Password — JeetMantra',
+  verify: 'Verify Email — JeetMantra',
   loading:'JeetMantra',
 };
 
@@ -672,7 +672,7 @@ document.addEventListener('click', function(e) {
   }
 });
 
-/* Ã¢â€â‚¬Ã¢â€â‚¬ Bootstrap: check auth, then route Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
+/* ── Bootstrap: check auth, then route ─────────────────────────────── */
 function wsScrollTo(id) {
   var el = document.getElementById('ws-' + id);
   if (el) el.scrollIntoView({behavior:'smooth', block:'start'});
@@ -682,7 +682,7 @@ function wsScrollTo(id) {
   var user = null;
   try { user = JSON.parse(localStorage.getItem('jm_user') || 'null'); } catch(e) {}
   var path = location.pathname;
-  // Logged-in user hitting the website/landing pages Ã¢â€ â€™ load app shell
+  // Logged-in user hitting the website/landing pages → load app shell
   if (token && user && path !== '/verify-email.html') {
     var role = user.user_type || user.role || 'student';
     // Logged-in: load the app shell JS and mount it (no page reload)
@@ -704,7 +704,7 @@ function wsScrollTo(id) {
   jmShowPage(PAGE_MAP[path] || 'website');
 })();
 
-/* Ã¢â€â‚¬Ã¢â€â‚¬ Shared helpers Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
+/* ── Shared helpers ──────────────────────────────────────────────────── */
 function extractError(data, fallback) {
   if (!data) return fallback;
   if (typeof data === 'string') return data;
@@ -725,7 +725,7 @@ function storeAuth(token, user) {
   localStorage.setItem('jm_user', JSON.stringify(user));
 }
 
-/* Ã¢â€â‚¬Ã¢â€â‚¬ LOGIN page JS Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
+/* ── LOGIN page JS ───────────────────────────────────────────────────── */
 function lpSwitchTab(tab) {
   document.querySelectorAll('.lp-tab').forEach(function(t, i) {
     t.classList.toggle('active', (i===0 && tab==='login') || (i===1 && tab==='signup'));
@@ -760,14 +760,14 @@ async function doLogin() {
     if (!res.ok) throw new Error(extractError(data, 'Login failed'));
     storeAuth(data.token, data.user);
     try { if (window.JMOffline) await JMOffline.rememberCredential(email, password, data.user, data.token); } catch(_){}
-    lpShowMsg('Ã¢Å“â€¦ Login successful! RedirectingÃ¢â‚¬Â¦', 'success');
+    lpShowMsg('✅ Login successful! Redirecting…', 'success');
     redirectToDashboard(data.user.role);
   } catch(e) {
     var networkDown = (e instanceof TypeError) || !navigator.onLine;
     if (networkDown && window.JMOffline && JMOffline.hasOfflineProfile(email)) {
       try {
         var off = await JMOffline.offlineLogin(email, password);
-        lpShowMsg('Ã°Å¸â€œÂ´ Offline mode Ã¢â‚¬â€ showing your saved data.', 'success');
+        lpShowMsg('📴 Offline mode — showing your saved data.', 'success');
         redirectToDashboard((off.user && off.user.role) || 'student');
         document.getElementById('loginLoading').style.display = 'none';
         return;
@@ -788,7 +788,7 @@ async function sendOTP() {
   var phone = document.getElementById('otpPhone').value.trim();
   if (!phone) return lpShowMsg('Enter phone number', 'error');
   var btn = document.getElementById('sendOtpBtn');
-  btn.disabled = true; btn.textContent = 'SendingÃ¢â‚¬Â¦';
+  btn.disabled = true; btn.textContent = 'Sending…';
   try {
     var res = await fetch(API + '/auth/send-otp', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({phone}) });
     var data = await res.json();
@@ -807,7 +807,7 @@ async function verifyOTP() {
     var data = await res.json();
     if (!res.ok) throw new Error(extractError(data, 'OTP verification failed'));
     storeAuth(data.token, data.user);
-    lpShowMsg('Ã¢Å“â€¦ Verified! RedirectingÃ¢â‚¬Â¦', 'success');
+    lpShowMsg('✅ Verified! Redirecting…', 'success');
     redirectToDashboard(data.user.role);
   } catch(e) { lpShowMsg(e.message, 'error'); }
 }
@@ -821,7 +821,7 @@ async function _initGoogle() {
 }
 function doGoogleLogin() {
   if (!_gClientId) { lpShowMsg('Google login is not configured on this server yet.', 'error'); return; }
-  if (!window.google) { lpShowMsg('Google Sign-In is still loading Ã¢â‚¬â€ please try again.', 'error'); return; }
+  if (!window.google) { lpShowMsg('Google Sign-In is still loading — please try again.', 'error'); return; }
   var btn = document.getElementById('googleBtn'); btn.disabled = true;
   google.accounts.id.prompt(function(notification) {
     if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
@@ -833,19 +833,19 @@ function doGoogleLogin() {
 }
 async function _handleGoogleCredential(response) {
   var btn = document.getElementById('googleBtn'); if (btn) btn.disabled = true;
-  lpShowMsg('Signing in with GoogleÃ¢â‚¬Â¦', 'success');
+  lpShowMsg('Signing in with Google…', 'success');
   try {
     var res = await fetch(API + '/auth/google-login', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({credential:response.credential}) });
     var data = await res.json();
     if (!res.ok) throw new Error(extractError(data, 'Google login failed'));
     storeAuth(data.token, data.user);
-    lpShowMsg('Ã¢Å“â€¦ Signed in with Google! RedirectingÃ¢â‚¬Â¦', 'success');
+    lpShowMsg('✅ Signed in with Google! Redirecting…', 'success');
     redirectToDashboard(data.user.role);
   } catch(e) { lpShowMsg(e.message, 'error'); if (btn) btn.disabled = false; }
 }
 _initGoogle();
 
-/* Ã¢â€â‚¬Ã¢â€â‚¬ SIGNUP page JS Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
+/* ── SIGNUP page JS ──────────────────────────────────────────────────── */
 var signupData = { aiProvider:null, apiKey:null, fullName:null, email:null, phone:null, password:null, userType:null, skills:[], academicLevel:null, studentInterest:null, qualification:null, experience:null, institution:null, serviceCategory:null, hourlyRate:null, schoolName:null, contactPerson:null, affiliationBoard:null, studentCount:null, teacherCount:null, address:null };
 var currentStep = 1;
 
@@ -902,26 +902,26 @@ function updateUserTypeFields() {
 function addSkill() { var input=document.getElementById('skill-input'), skill=input.value.trim(); if (skill && !signupData.skills.includes(skill)) { signupData.skills.push(skill); input.value=''; renderSkills(); } }
 function handleSkillInput(e) { if (e.key==='Enter') { e.preventDefault(); addSkill(); } }
 function removeSkill(skill) { signupData.skills=signupData.skills.filter(function(s){return s!==skill;}); renderSkills(); }
-function renderSkills() { document.getElementById('skills-list').innerHTML=signupData.skills.map(function(s){ return '<div class="skill-badge">'+s+'<button type="button" onclick="removeSkill(\''+s.replace(/'/g,"\\'")+'\')" aria-label="Remove skill">Ãƒâ€”</button></div>'; }).join(''); }
+function renderSkills() { document.getElementById('skills-list').innerHTML=signupData.skills.map(function(s){ return '<div class="skill-badge">'+s+'<button type="button" onclick="removeSkill(\''+s.replace(/'/g,"\\'")+'\')" aria-label="Remove skill">×</button></div>'; }).join(''); }
 
 function updateReview() {
-  document.getElementById('review-name').innerHTML = signupData.userType==='school' ? '<strong>Contact:</strong> '+signupData.fullName+'<br><strong>School:</strong> '+(signupData.schoolName||'') : (signupData.fullName||'Ã¢â‚¬â€');
-  document.getElementById('review-email').textContent = signupData.email||'Ã¢â‚¬â€';
-  document.getElementById('review-phone').textContent = signupData.phone||'Ã¢â‚¬â€';
-  document.getElementById('review-type').textContent = (signupData.userType||'Ã¢â‚¬â€').toUpperCase();
-  document.getElementById('review-ai').textContent = signupData.aiProvider ? signupData.aiProvider.toUpperCase() : 'Ã¢â‚¬â€';
-  document.getElementById('review-skills').textContent = signupData.skills.join(', ')||'Ã¢â‚¬â€';
+  document.getElementById('review-name').innerHTML = signupData.userType==='school' ? '<strong>Contact:</strong> '+signupData.fullName+'<br><strong>School:</strong> '+(signupData.schoolName||'') : (signupData.fullName||'—');
+  document.getElementById('review-email').textContent = signupData.email||'—';
+  document.getElementById('review-phone').textContent = signupData.phone||'—';
+  document.getElementById('review-type').textContent = (signupData.userType||'—').toUpperCase();
+  document.getElementById('review-ai').textContent = signupData.aiProvider ? signupData.aiProvider.toUpperCase() : '—';
+  document.getElementById('review-skills').textContent = signupData.skills.join(', ')||'—';
 }
 
 async function submitSignup() {
-  var btn = document.getElementById('submit-btn'); btn.disabled=true; btn.textContent='Creating accountÃ¢â‚¬Â¦';
+  var btn = document.getElementById('submit-btn'); btn.disabled=true; btn.textContent='Creating account…';
   try {
     var payload = { email:signupData.email, password:signupData.password, fullName:signupData.fullName, role:signupData.userType, aiProvider:(signupData.aiProvider&&signupData.aiProvider!=='none')?signupData.aiProvider:undefined, apiKey:signupData.apiKey||undefined, phone:signupData.phone, academicLevel:signupData.academicLevel, skills:signupData.skills, institution:signupData.institution, qualifications:signupData.qualifications, schoolName:signupData.schoolName, contactPerson:signupData.contactPerson, affiliationBoard:signupData.affiliationBoard, studentCount:signupData.studentCount, teacherCount:signupData.teacherCount, address:signupData.address, centerName:signupData.centerName, specializations:signupData.specializations, studentCapacity:signupData.studentCapacity, batchCount:signupData.batchCount };
     var res = await fetch(API + '/auth/signup', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
     if (res.ok) {
       var data = await res.json();
       storeAuth(data.token, data.user);
-      showToast('Account created! RedirectingÃ¢â‚¬Â¦','success');
+      showToast('Account created! Redirecting…','success');
       setTimeout(function(){ window.location.href='/app?role='+encodeURIComponent(signupData.userType||'student'); }, 2000);
     } else {
       var err = await res.json();
@@ -931,12 +931,12 @@ async function submitSignup() {
   } catch(e) { showToast('An error occurred: '+e.message,'error'); btn.disabled=false; btn.textContent='Create Account'; }
 }
 
-/* Ã¢â€â‚¬Ã¢â€â‚¬ FORGOT PASSWORD page JS Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
+/* ── FORGOT PASSWORD page JS ─────────────────────────────────────────── */
 async function sendForgot() {
   var email=document.getElementById('fp-email').value.trim(), btn=document.getElementById('fp-btn'), msg=document.getElementById('fp-msg');
   msg.className='jm-auth-msg'; msg.textContent='';
   if (!email) { msg.className='jm-auth-msg err'; msg.textContent='Email required'; return; }
-  btn.disabled=true; btn.textContent='SendingÃ¢â‚¬Â¦';
+  btn.disabled=true; btn.textContent='Sending…';
   try {
     var r=await fetch('/api/auth/forgot-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
     var j=await r.json();
@@ -945,7 +945,7 @@ async function sendForgot() {
   finally { btn.disabled=false; btn.textContent='Send reset link'; }
 }
 
-/* Ã¢â€â‚¬Ã¢â€â‚¬ RESET PASSWORD page JS Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
+/* ── RESET PASSWORD page JS ──────────────────────────────────────────── */
 var _resetToken = '';
 function initReset() {
   _resetToken = new URLSearchParams(location.search).get('token') || '';
@@ -958,7 +958,7 @@ async function submitReset() {
   msg.className='jm-auth-msg'; msg.textContent='';
   if (pw.length<8) { msg.className='jm-auth-msg err'; msg.textContent='Password must be 8+ chars'; return; }
   if (pw!==pw2) { msg.className='jm-auth-msg err'; msg.textContent="Passwords don't match"; return; }
-  btn.disabled=true; btn.textContent='UpdatingÃ¢â‚¬Â¦';
+  btn.disabled=true; btn.textContent='Updating…';
   try {
     var r=await fetch('/api/auth/reset-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:_resetToken,password:pw})});
     var j=await r.json();
@@ -968,24 +968,24 @@ async function submitReset() {
   } catch(_) { msg.className='jm-auth-msg err'; msg.textContent='Network error'; btn.disabled=false; btn.textContent='Update password'; }
 }
 
-/* Ã¢â€â‚¬Ã¢â€â‚¬ VERIFY EMAIL page JS Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
+/* ── VERIFY EMAIL page JS ────────────────────────────────────────────── */
 var _verifyRan = false;
 async function runVerify() {
   if (_verifyRan) return; _verifyRan = true;
   var token=new URLSearchParams(location.search).get('token'), icon=document.getElementById('ve-icon'), title=document.getElementById('ve-title'), msg=document.getElementById('ve-msg');
-  if (!token) { icon.textContent='Ã¢Å¡Â Ã¯Â¸Â'; title.textContent='Missing token'; return; }
+  if (!token) { icon.textContent='⚠️'; title.textContent='Missing token'; return; }
   try {
     var r=await fetch('/api/auth/verify-email?token='+encodeURIComponent(token));
     var j=await r.json();
-    if (r.ok) { icon.textContent='Ã¢Å“â€¦'; title.textContent='Email verified'; msg.textContent=j.message||''; }
-    else { icon.textContent='Ã¢Å¡Â Ã¯Â¸Â'; title.textContent='Verification failed'; msg.textContent=j.error||''; }
-  } catch(_) { icon.textContent='Ã¢Å¡Â Ã¯Â¸Â'; title.textContent='Network error'; }
+    if (r.ok) { icon.textContent='✅'; title.textContent='Email verified'; msg.textContent=j.message||''; }
+    else { icon.textContent='⚠️'; title.textContent='Verification failed'; msg.textContent=j.error||''; }
+  } catch(_) { icon.textContent='⚠️'; title.textContent='Network error'; }
 }
 
-/* Ã¢â€â‚¬Ã¢â€â‚¬ AI provider help text Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
+/* ── AI provider help text ───────────────────────────────────────────── */
 document.addEventListener('change', function(e) {
   if (e.target.name === 'ai-provider') {
-    var helpTexts = { openai:'Ã°Å¸â€â€˜ Get key from: https://platform.openai.com/api-keys', gemini:'Ã°Å¸â€â€˜ Get key from: https://aistudio.google.com/app/apikey', claude:'Ã°Å¸â€â€˜ Get key from: https://console.anthropic.com/account/keys', openrouter:'Ã°Å¸â€â€˜ Get key from: https://openrouter.ai/keys' };
+    var helpTexts = { openai:'🔑 Get key from: https://platform.openai.com/api-keys', gemini:'🔑 Get key from: https://aistudio.google.com/app/apikey', claude:'🔑 Get key from: https://console.anthropic.com/account/keys', openrouter:'🔑 Get key from: https://openrouter.ai/keys' };
     var h = document.getElementById('api-help'); if (h) h.textContent = helpTexts[e.target.value] || '';
   }
 });
