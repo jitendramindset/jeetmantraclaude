@@ -6,6 +6,8 @@
 <meta name="description" content="JeetMantra — India's Modern Gurukul. AI-powered learning platform for students and teachers.">
 <meta name="theme-color" content="#7c3aed">
 <title>JeetMantra</title>
+<link rel="icon" type="image/png" sizes="64x64" href="/favicon.png?v=1">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=1">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/theme.css">
 <link rel="stylesheet" href="/premium-ui.css?v=5">
@@ -196,6 +198,7 @@ body.jm-p-loading{display:flex;align-items:center;justify-content:center;flex-di
 
 <!-- ── LOADING SPLASH ──────────────────────────────────────────────────── -->
 <div id="jm-loading" role="status" aria-live="polite" aria-label="Loading application">
+  <img src="/logo.png" alt="" style="height:72px;margin-bottom:10px">
   <div class="jm-spin-logo">Jeet<span class="accent">Mantra</span></div>
   <div class="jm-spin"></div>
 </div>
@@ -206,6 +209,7 @@ body.jm-p-loading{display:flex;align-items:center;justify-content:center;flex-di
 <div id="page-login" class="jm-spa-page">
   <div class="lp-wrap">
     <div class="lp-logo">
+      <img src="/logo.png" alt="JeetMantra" style="height:84px;display:block;margin:0 auto 8px">
       <h1>Jeet<span class="accent">Mantra</span></h1>
       <p>India's Modern Gurukul</p>
     </div>
@@ -520,7 +524,7 @@ body.jm-p-loading{display:flex;align-items:center;justify-content:center;flex-di
 </style>
 <!-- NAV -->
 <nav class="ws-nav">
-  <div class="brand" onclick="jmNav('/')">Jeet<span>Mantra</span></div>
+  <div class="brand" onclick="jmNav('/')" style="display:flex;align-items:center;gap:8px"><img src="/logo.png" alt="" style="height:34px">Jeet<span>Mantra</span></div>
   <ul class="ws-nav-links">
     <li><a onclick="wsScrollTo('features')">Features</a></li>
     <li><a onclick="wsScrollTo('roles')">Who it's for</a></li>
