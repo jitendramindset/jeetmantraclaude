@@ -130,10 +130,13 @@ const app = express();
 require('./middleware/security').applySecurity(app);
 
 // CORS: lock to FRONTEND_URL in production (comma-separated list allowed); only
-// the dev convenience falls back to permissive '*'.
+// the dev convenience falls back to permissive '*'. Native mobile shells
+// (Capacitor APK/IPA) present https://localhost or capacitor://localhost as
+// their origin, so those are always allowed alongside the configured list.
+const NATIVE_ORIGINS = ['https://localhost', 'http://localhost', 'capacitor://localhost', 'ionic://localhost'];
 const _cors = process.env.FRONTEND_URL
-  ? process.env.FRONTEND_URL.split(',').map(s => s.trim())
-  : (process.env.NODE_ENV === 'production' ? false : '*');
+  ? process.env.FRONTEND_URL.split(',').map(s => s.trim()).concat(NATIVE_ORIGINS)
+  : (process.env.NODE_ENV === 'production' ? NATIVE_ORIGINS : '*');
 app.use(cors({ origin: _cors, credentials: true }));
 // The Razorpay webhook signature is computed over the RAW request bytes, so it
 // must be parsed as a Buffer BEFORE the global JSON parser consumes the stream.

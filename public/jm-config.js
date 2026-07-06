@@ -41,6 +41,25 @@
 
   w.JM_API_BASE = resolve();
 
+  // Native-only fetch shim: legacy code fetches relative '/api/...' paths,
+  // which inside a Capacitor web-view hit the local shell and get HTML back
+  // (the "not valid JSON" login error). Rewrite them to JM_API_BASE so every
+  // module works in the APK without per-file edits. Web is untouched.
+  if (isNative() && typeof w.fetch === 'function') {
+    var _fetch = w.fetch.bind(w);
+    w.fetch = function (input, init) {
+      try {
+        var url = (typeof input === 'string') ? input : (input && input.url);
+        if (url && url.indexOf('/api/') === 0) {
+          var rewritten = w.JM_API_BASE + url.slice(4); // '/api/x' -> BASE + '/x'
+          if (typeof input === 'string') return _fetch(rewritten, init);
+          return _fetch(new Request(rewritten, input), init);
+        }
+      } catch (e) { /* fall through to original */ }
+      return _fetch(input, init);
+    };
+  }
+
   // Helper so QA can repoint the app without a rebuild: JM.setApiBase('https://host/api')
   w.JM = w.JM || {};
   w.JM.setApiBase = function (url) {

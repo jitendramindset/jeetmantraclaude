@@ -622,7 +622,7 @@ body.jm-p-loading{display:flex;align-items:center;justify-content:center;flex-di
      ══════════════════════════════════════════════════════════════════════ -->
 <script>
 'use strict';
-var API = window.location.origin + '/api';
+var API = window.JM_API_BASE || (window.location.origin + '/api');
 
 /* ── SPA Router ──────────────────────────────────────────────────────── */
 var PAGE_MAP = {
@@ -946,7 +946,7 @@ async function sendForgot() {
   if (!email) { msg.className='jm-auth-msg err'; msg.textContent='Email required'; return; }
   btn.disabled=true; btn.textContent='Sending…';
   try {
-    var r=await fetch('/api/auth/forgot-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
+    var r=await fetch(API + '/auth/forgot-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
     var j=await r.json();
     msg.className='jm-auth-msg ok'; msg.textContent=j.message||'If that email exists, a reset link has been sent.';
   } catch(_) { msg.className='jm-auth-msg err'; msg.textContent='Network error'; }
@@ -968,7 +968,7 @@ async function submitReset() {
   if (pw!==pw2) { msg.className='jm-auth-msg err'; msg.textContent="Passwords don't match"; return; }
   btn.disabled=true; btn.textContent='Updating…';
   try {
-    var r=await fetch('/api/auth/reset-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:_resetToken,password:pw})});
+    var r=await fetch(API + '/auth/reset-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:_resetToken,password:pw})});
     var j=await r.json();
     if (!r.ok) { msg.className='jm-auth-msg err'; msg.textContent=j.error||'Failed'; btn.disabled=false; btn.textContent='Update password'; return; }
     msg.className='jm-auth-msg ok'; msg.textContent=j.message||'Password updated.';
@@ -983,7 +983,7 @@ async function runVerify() {
   var token=new URLSearchParams(location.search).get('token'), icon=document.getElementById('ve-icon'), title=document.getElementById('ve-title'), msg=document.getElementById('ve-msg');
   if (!token) { icon.textContent='⚠️'; title.textContent='Missing token'; return; }
   try {
-    var r=await fetch('/api/auth/verify-email?token='+encodeURIComponent(token));
+    var r=await fetch(API + '/auth/verify-email?token='+encodeURIComponent(token));
     var j=await r.json();
     if (r.ok) { icon.textContent='✅'; title.textContent='Email verified'; msg.textContent=j.message||''; }
     else { icon.textContent='⚠️'; title.textContent='Verification failed'; msg.textContent=j.error||''; }

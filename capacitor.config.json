@@ -3,6 +3,10 @@
   "appName": "JeetMantra",
   "webDir": "public",
   "server": {
-    "androidScheme": "https"
+    "androidScheme": "https",
+    "cleartext": true
+  },
+  "android": {
+    "allowMixedContent": true
   }
 }
