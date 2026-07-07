@@ -12,6 +12,13 @@
 <link rel="stylesheet" href="/theme.css">
 <link rel="stylesheet" href="/premium-ui.css?v=5">
 <link rel="stylesheet" href="/a11y-touch.css?v=1">
+<script>
+/* TEST-BUILD default for native shells only (web ignores this entirely —
+   jm-config uses JM_DEFAULT_API solely when running inside Capacitor).
+   Points the APK at the laptop backend via `adb reverse tcp:5000 tcp:5000`.
+   Change to the real backend URL before a production mobile release. */
+window.JM_DEFAULT_API = 'http://localhost:5000/api';
+</script>
 <script src="/jm-config.js"></script>
 <script src="/jm-theme.js"></script>
 <script src="/jm-roles.js"></script>
